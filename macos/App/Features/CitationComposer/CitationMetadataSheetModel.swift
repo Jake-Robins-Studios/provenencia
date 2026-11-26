@@ -1,0 +1,91 @@
+import Foundation
+import Observation
+
+/// The Citation metadata sheet: one saved Citation's board, edited and written on
+/// its own. Save sends the board's draft with the Citation's stored columns as
+/// they were when the sheet opened, so the write changes only metadata rows and
+/// anything unsaved in the citation form stays unsaved. Cancel drops the model
+/// with everything in it.
+@MainActor
+@Observable
+final class CitationMetadataSheetModel {
+    let citation: CatalogCitation
+    let host: MetadataDraftHost
+    let board: MetadataBoardModel
+    /// Why the last Save stopped, shown at the top of the sheet; nil otherwise.
+    var saveError: String?
+    private(set) var isSaving = false
+
+    @ObservationIgnored private let context: CitationComposerContext
+    @ObservationIgnored private let onSaved: @MainActor () -> Void
+
+    /// `citation` is the cached list row's Citation; `rows` its board; `onSaved` closes the sheet.
+    init(
+        context: CitationComposerContext,
+        citation: CatalogCitation,
+        rows: [CatalogMetadataEntry],
+        fields: [CatalogMetadataField],
+        onSaved: @escaping @MainActor () -> Void
+    ) {
+        self.context = context
+        self.citation = citation
+        self.onSaved = onSaved
+        host = MetadataDraftHost(entries: rows, fields: fields)
+        board = MetadataBoardModel(host: host)
+    }
+
+    var citationID: String { citation.id }
+
+    /// "CIT-4QJ7R · Alderwick death notice. Saves on its own; …" under the sheet's title.
+    var subtitle: String {
+        let label = citation.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        return L10n.CitationComposer.metadataSheetSubtitle(
+            ref: citation.ref,
+            label: label.isEmpty ? L10n.string(L10n.CitationComposer.metadataNoLabel) : label
+        )
+    }
+
+    var isDirty: Bool { host.isChanged }
+    var canSave: Bool { host.isChanged && !isSaving }
+
+    /// Writes the board's changes with the Citation's stored columns. True when the sheet may close.
+    func save() async -> Bool {
+        guard !isSaving else { return false }
+        saveError = nil
+        if let message = board.unconfirmedInputMessage {
+            saveError = message
+            return false
+        }
+        guard let draft = host.draft else { return true }
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            let (_, _, effects) = try await context.store.updateCitation(
+                projectDir: context.projectDir,
+                userID: context.userID,
+                citationID: citation.id,
+                locatorJSON: citation.locatorJSON,
+                transcription: citation.transcription,
+                description: citation.description,
+                transcriptionUncertain: citation.transcriptionUncertain,
+                transcriptionNote: citation.transcriptionNote,
+                metadata: draft
+            )
+            host.markSaved()
+            context.applyWrite(effects)
+            onSaved()
+            return true
+        } catch {
+            if board.showRefusal(error) { return false }
+            saveError = L10n.Errors.message(for: error)
+            return false
+        }
+    }
+}
+
+extension CitationMetadataSheetModel: Equatable {
+    /// Two sheets are the same dialog when they edit the same Citation.
+    nonisolated static func == (lhs: CitationMetadataSheetModel, rhs: CitationMetadataSheetModel) -> Bool {
+        lhs.citation.id == rhs.citation.id
+    }
+}

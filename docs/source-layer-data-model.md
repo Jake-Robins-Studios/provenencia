@@ -362,6 +362,7 @@ CREATE TABLE artifact_metadata_layout (
 - **A type suggests fields once; every board offers them.** A Source type suggests each field once (`source_type_metadata_fields`, no level); an Artifact's, a graph's or a Citation's board lists its Source's type's whole suggestion list, plus extras.
 - **Audit.** Every change carries the owner column (`artifact_id`, `graph_id`, `citation_id`) and scopes the owner's Source (`effects` registry: `up(owner, "source_id")`, and for a Citation `up("citation_id", "artifact_id", "source_id")`), so a write refreshes the Source's page and moves its last activity.
 - **Delete.** A field is in use while any of the four value tables holds it, and `deleteimpact.UsedBy` counts all four; a layout row alone never blocks. A field's layout rows at every level are released, audited, with it.
+- **Boards.** One board (`macos/App/Features/MetadataBoard/`) draws every owner's values: the Source page, the Artifact sheet, the graph form and the citation composer's Citation metadata sheet. A Citation's board reaches the composer on the Citation list (`ListCitationsByArtifact` carries each Citation's board and its own Page value), reloaded when a value moves at any level of its graph (the `citation_boards` read).
 - **Search and citations.** No search document is built from Artifact, graph or Citation metadata. A citation reads the Citation's value, else the graph's, else the Artifact's, else the Source's (spike 15).
 
 ---

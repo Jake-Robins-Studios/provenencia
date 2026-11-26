@@ -204,6 +204,73 @@ struct CatalogQueryRegistryTests {
         #expect(handle.value?.map(\.id) == ["cit-1"])
     }
 
+    /// The composer place warms the field list its metadata sheet offers (S15-56 D-8).
+    @Test func composerWarmsMetadataFields() {
+        let project = ProjectKey(projectDir: projectDir)
+        let location = WorkspaceLocation(
+            section: .sources, sourceId: "s1", graphId: "g1", subjectId: "sub-1",
+            artifactId: "art-0", sourceSurface: .citationComposer
+        )
+        let keys = PlaceRegistry.standard.resolve(location, project: project)?.queryKeys ?? []
+        #expect(keys.contains(.metadataFieldsList(project: project)))
+        #expect(keys.contains(.citationsByArtifact(project: project, graphId: "g1", artifactId: "art-0")))
+    }
+
+    /// D-5: a `citation_boards` read revalidates the graph's Citation lists and never a count key.
+    @Test func citationBoardsReloadCitationList() async {
+        let store = FakeStore()
+        seedStore(store)
+        let session = makeSession(store: store)
+        let project = session.projectKey
+        let listKey = CatalogQueryKey.citationsByArtifact(project: project, graphId: "g1", artifactId: "art-0")
+        let otherGraph = CatalogQueryKey.citationsByArtifact(project: project, graphId: "g2", artifactId: "art-0")
+        let countsKey = CatalogQueryKey.citationCounts(project: project, graphId: "g1")
+        session.apply(location: WorkspaceLocation(
+            section: .sources, sourceId: "s1", graphId: "g1", subjectId: "sub-1",
+            artifactId: "art-0", sourceSurface: .citationComposer
+        ))
+        let list: QueryHandle<[CatalogListedCitation]> = session.query(listKey)
+        let other: QueryHandle<[CatalogListedCitation]> = session.query(otherGraph)
+        let counts: QueryHandle<[String: Int]> = session.query(countsKey)
+        await waitForQuery(list)
+        await waitForQuery(other)
+        await waitForQuery(counts)
+
+        let effects = CatalogWriteEffects(reads: [CatalogWriteEffectsRead(read: .citationBoards, ids: ["g1"])])
+        let keys = session.revalidatedKeys(for: effects)
+        #expect(keys.contains(listKey))
+        #expect(!keys.contains(otherGraph))
+        #expect(!keys.contains(countsKey))
+        #expect(CatalogQueryKey.Kind.citationCounts.descriptor.refreshes.map(\.follows) == [.reads(.citations)])
+    }
+
+    /// D-17: the edits that change a board's labels, suggestions or annotations mark a hidden
+    /// Citation list stale.
+    @Test func boardVocabularyStalesCitationLists() async {
+        let store = FakeStore()
+        seedStore(store)
+        let session = makeSession(store: store)
+        let project = session.projectKey
+        let listKey = CatalogQueryKey.citationsByArtifact(project: project, graphId: "g1", artifactId: "art-0")
+        let list: QueryHandle<[CatalogListedCitation]> = session.query(listKey)
+        await waitForQuery(list)
+
+        let source = CatalogSource(id: "s1", ref: "SRC-1", sourceTypeID: "t1", title: "Alpha", description: "")
+        for mutation: CatalogMutation in [
+            .changedSourceType(source), .updatedMetadataField(id: "f1"), .deletedMetadataField(id: "f1"),
+            .changedCitationFormats(typeId: "t1"),
+            .wroteTypeSuggestions(typeId: "t1", edit: CatalogTypeSuggestionEdit(suggestions: [], suggestedFieldCount: 0)),
+        ] {
+            #expect(session.registry.invalidations(by: mutation, project: project).contains(.allCached(.citationsByArtifact)))
+            session.apply(mutation)
+            await session.settleWrites()
+            #expect(list.isStale, "\(mutation)")
+            let _: QueryHandle<[CatalogListedCitation]> = session.query(listKey)
+            await waitForQuery(list)
+        }
+        #expect(CatalogMutationKind.boardVocabulary.isSuperset(of: [.changedSourceType, .changedCitationFormats]))
+    }
+
     @Test func evidenceGraphLoadsPlacedPrimaries() async {
         let store = FakeStore()
         seedStore(store)
@@ -964,7 +1031,7 @@ struct CatalogQueryRegistryTests {
         await waitForQuery(types)
 
         #expect(session.registry.invalidations(by: .changedCitationFormats(typeId: "t1"), project: project) == [
-            .allCached(.sourceWorkspace),
+            .allCached(.sourceWorkspace), .allCached(.citationsByArtifact),
         ])
         session.apply(.changedCitationFormats(typeId: "t1"))
         await session.settleWrites()
@@ -1000,22 +1067,25 @@ struct CatalogQueryRegistryTests {
         // Source page, which a list cannot tell from a field create, so those
         // two mutations still name the pages, and only the pages.
         #expect(registry.invalidations(by: .deletedMetadataField(id: "f1"), project: project) == [
-            .allCached(.sourceWorkspace),
+            .allCached(.sourceWorkspace), .allCached(.citationsByArtifact),
         ])
         #expect(registry.invalidations(by: .updatedMetadataField(id: "f1"), project: project) == [
-            .allCached(.sourceWorkspace),
+            .allCached(.sourceWorkspace), .allCached(.citationsByArtifact),
         ])
         #expect(registry.invalidations(
             by: .wroteTypeSuggestions(typeId: "t1", edit: CatalogTypeSuggestionEdit(suggestions: [], suggestedFieldCount: 0)),
             project: project
-        ) == [.allCached(.sourceWorkspace)])
+        ) == [.allCached(.sourceWorkspace), .allCached(.citationsByArtifact)])
         // A mutation names no graph key: the graph is reached through each kind's
         // `refreshes` (pinned by `propertyUsageAndGraphEffectsReloadEachOnce`).
         let updated = registry.invalidations(by: .updatedMetadataField(id: "f1"), project: project)
         #expect(!updated.contains(.key(.evidenceGraph(project: project, graphId: "g-1"))))
         // Keyed reads invalidate nothing: each kind's `refresh` follows them.
         #expect(CatalogQueryKey.Kind.citationCounts.descriptor.refreshes.map(\.follows) == [.reads(.citations)])
-        #expect(CatalogQueryKey.Kind.citationsByArtifact.descriptor.refreshes.map(\.follows) == [.reads(.citations)])
+        #expect(
+            CatalogQueryKey.Kind.citationsByArtifact.descriptor.refreshes.map(\.follows)
+                == [.reads(.citations), .reads(.citationBoards)]
+        )
         #expect(
             CatalogQueryKey.Kind.evidenceGraphProgress.descriptor.refreshes.map(\.follows)
                 == [.reads(.evidenceGraphProgress)]
@@ -1072,6 +1142,7 @@ struct CatalogQueryRegistryTests {
         #expect(registry.invalidations(by: .changedSourceType(source), project: project) == [
             .key(.sourceTypesList(project: project)),
             .key(.sourceWorkspace(project: project, sourceId: "s1")),
+            .allCached(.citationsByArtifact),
         ])
     }
 

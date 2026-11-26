@@ -68,6 +68,8 @@ final class CitationComposerModel {
         indirect case deleteImpact(returnTo: ComposerPresented?)
         /// The dialog steps aside while a region is drawn on the viewer.
         case drawingDepiction(over: ComposerBase)
+        /// The open Citation's metadata sheet; equal when the Citation is.
+        case metadata(CitationMetadataSheetModel)
     }
 
     enum CatalogWarmError: Error {
@@ -121,6 +123,13 @@ final class CitationComposerModel {
     var freshLineKey: String?
     var editSession: CitationEditSession?
     private(set) var presented: ComposerPresented?
+    /// The board a new Citation starts with (what it inherits from its graph and Artifact), read when
+    /// the composer opens a blank Citation. Nil until the read answers, and while a Citation is open.
+    var draftMetadataRows: [CatalogMetadataEntry]?
+    /// Why the new Citation's board could not be read, as the metadata line shows it; nil when it was read.
+    var draftMetadataFailure: String?
+    /// Which draft board read is the current one; an answer for an older one is dropped.
+    @ObservationIgnored var draftMetadataReadID = 0
     /// The step "Discard changes?" waits on: the next Citation, a step, or an
     /// authoring action. Held while `pendingLeave` asks, handed out once on Discard.
     var leaveGate = PVDiscardGate()
@@ -305,11 +314,6 @@ final class CitationComposerModel {
         get { fields.description }
         set { fields.description = newValue }
     }
-    /// The page the original prints, as typed; the locator trims it on save.
-    var pageLabel: String {
-        get { fields.locator.pageLabel }
-        set { fields.locator.pageLabel = newValue }
-    }
     var activeCitationID: String? {
         get { context.citationID }
         set { context.citationID = newValue }
@@ -334,7 +338,7 @@ final class CitationComposerModel {
         return loadedCitationRef
     }
 
-    private func listedCitation(_ id: String) -> CatalogListedCitation? {
+    func listedCitation(_ id: String) -> CatalogListedCitation? {
         listedCitations.first(where: { $0.id == id })
     }
 
@@ -348,7 +352,7 @@ final class CitationComposerModel {
     }
 
     var hasUnsavedDocumentWork: Bool {
-        fields.isDirty || authoring.holdsLeave || (editSession?.isDirty ?? false)
+        fields.isDirty || authoring.holdsLeave || (editSession?.isDirty ?? false) || metadataSheetIsChanged
     }
 
     var shouldHoldLeave: Bool {
@@ -389,7 +393,7 @@ final class CitationComposerModel {
             return L10n.CitationComposer.leaveDraft(detail: detail, ref: ref)
         }
         return L10n.CitationComposer.unsavedSummary(
-            citationDirty: fields.isDirty,
+            citationDirty: fields.isDirty || metadataSheetIsChanged,
             observationCount: (editSession?.isDirty ?? false) ? 1 : 0,
             connectionTouched: false
         )
@@ -436,6 +440,7 @@ final class CitationComposerModel {
     var evidenceGraphsKey: CatalogQueryKey { session.evidenceGraphsKey }
     var fieldsKey: CatalogQueryKey { .propertiesWorkspace(project: session.projectKey) }
     var connectRulesKey: CatalogQueryKey { .connectRules(project: session.projectKey) }
+    var metadataFieldsKey: CatalogQueryKey { .metadataFieldsList(project: session.projectKey) }
 
     private func termsKey(propertyID: String) -> CatalogQueryKey {
         .propertyTerms(project: session.projectKey, propertyId: propertyID)
@@ -518,6 +523,7 @@ final class CitationComposerModel {
                 }
             }
             await reloadListedCitations()
+            if activeCitationID == nil { refreshDraftMetadata() }
             phase = .compose
         } catch is CatalogWarmError {
             loadFailureIsMissingCitation = false
@@ -885,6 +891,7 @@ final class CitationComposerModel {
         authoring = .rest
         editSession = nil
         show(nil)
+        refreshDraftMetadata()
     }
 
     /// The sheet underneath a custom-term or new-subject dialog.
@@ -907,6 +914,8 @@ final class CitationComposerModel {
             return .edit
         case .customTerm(_, let over), .newSubject(_, let over), .drawingDepiction(let over):
             return over
+        case .metadata:
+            return .none
         case .leave(_, let returnTo), .transcription(_, let returnTo), .deleteImpact(let returnTo):
             return base(of: returnTo)
         case nil:
@@ -918,7 +927,7 @@ final class CitationComposerModel {
     /// including a child draft that was on screen.
     func suspendedDialog() -> ComposerPresented? {
         switch presented {
-        case .authoring, .edit, .customTerm, .newSubject, .drawingDepiction:
+        case .authoring, .edit, .customTerm, .newSubject, .drawingDepiction, .metadata:
             return presented
         case .leave(_, let returnTo), .transcription(_, let returnTo), .deleteImpact(let returnTo):
             return returnTo
@@ -944,7 +953,7 @@ final class CitationComposerModel {
             restore(.authoring)
         case .edit:
             restore(.edit)
-        case .customTerm, .newSubject, .drawingDepiction:
+        case .customTerm, .newSubject, .drawingDepiction, .metadata:
             show(next)
         case .leave, .transcription, .deleteImpact, nil:
             show(nil)
@@ -1022,6 +1031,7 @@ final class CitationComposerModel {
         if Task.isCancelled { return }
         await applySelectedArtifact(id)
         if Task.isCancelled { return }
+        refreshDraftMetadata()
         await reloadListedCitations()
         let ordered = CitationComposerAuthoring.stepperOrder(listedCitations)
         if let first = ordered.first {
@@ -1070,6 +1080,7 @@ final class CitationComposerModel {
         fields.resetBlank()
         observationRows.replace([])
         connections.clearSavedKeepingPending()
+        refreshDraftMetadata()
     }
 
     private func selectCitationAndLoad(_ id: String?) async {
@@ -1149,6 +1160,7 @@ final class CitationComposerModel {
     private func loadCitation(_ citationID: String) async throws {
         guard let loaded = try await fetchOpenCitation(citationID) else { return }
         activeCitationID = loaded.citation.id
+        clearDraftMetadata()
         loadedCitationRef = loaded.citation.ref
         selectedArtifactID = loaded.citation.artifactID
         fields.replace(from: loaded.citation)
@@ -1251,12 +1263,14 @@ final class CitationComposerModel {
         let _: QueryHandle<[String: Int]> = session.query(citationCountsKey)
         let _: QueryHandle<[CatalogEvidenceGraph]> = session.query(evidenceGraphsKey)
         let _: QueryHandle<[CatalogConnectRule]> = session.query(connectRulesKey)
+        let _: QueryHandle<[CatalogMetadataField]> = session.query(metadataFieldsKey)
         let rows: EvidenceGraphRows? = await session.readyValue(graphKey)
         let fieldsReady: PropertiesSnapshot? = await session.readyValue(fieldsKey)
         let workspaceReady: CatalogSourceWorkspace? = await session.readyValue(workspaceKey)
         _ = await session.readyValue(session.sourceTypesKey) as [CatalogSourceType]?
         _ = await session.readyValue(citationCountsKey) as [String: Int]?
         _ = await session.readyValue(connectRulesKey) as [CatalogConnectRule]?
+        _ = await session.readyValue(metadataFieldsKey) as [CatalogMetadataField]?
         let graphsReady: [CatalogEvidenceGraph]? = await session.readyValue(evidenceGraphsKey)
         guard rows != nil, fieldsReady != nil, workspaceReady != nil, graphsReady != nil else {
             throw CatalogWarmError.handleMissing

@@ -139,6 +139,12 @@ struct CitationComposerView: View {
                 )
             }
         }
+        .citationMetadataSheet(
+            Binding(
+                get: { model.metadataSheet },
+                set: { if $0 == nil { model.metadataSheet = nil } }
+            )
+        )
         .pvDeleteImpact(
             item: Binding(
                 get: { model.deleteImpact.request },
@@ -298,10 +304,7 @@ struct CitationComposerView: View {
 
     private var composeSplit: some View {
         let layout = CitationComposerColumnLayout(widthClass)
-        let order = CitationFormFocus.order(
-            layout,
-            printedPageOffered: model.locatorCapabilities.supportsPrintedPage
-        )
+        let order = CitationFormFocus.order(layout)
         return GeometryReader { geo in
             HStack(alignment: .top, spacing: 0) {
                 evidence(layout: layout, order: order, height: geo.size.height)
