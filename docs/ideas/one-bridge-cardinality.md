@@ -12,10 +12,10 @@
 ## Idea
 
 1. A `One` key can name the end it holds from (`End` set), so location holds from the event's end only.
-2. Place containment at a date is one predicate the place domain owns (today `conclusionsummaries` `placeGraph.folds`, used by the summary fold and the S16-80 vote). Matching reads it too, so two places where one contains the other at the event's date line up instead of conflicting.
+2. Since S16-80, value compare relates two subject values by entity and by the `Within` list each carries (the places that contain it at a date, from `conclusionsummaries` `placeGraph.within`). Matching fills `Within` for a place neighbour the same way, so two places where one contains the other at the event's date line up instead of conflicting.
 3. With both, location's event end joins `One`, and the place vote reads the registry instead of its constant. Any later single bridge end is one registry row that matching and reconciliation both honour.
 
 ## Open questions
 
-- How matching reaches the place graph at a date without pulling the conclusion layer into the matching layers (the layers are pure today).
+- How matching reads a place's `Within` at the event's date: the layers stay pure, so the walk that builds segments supplies it.
 - Whether a person's birth and death, already `One` for matching, should also vote across a person's several birth events (today the earliest dated leads).

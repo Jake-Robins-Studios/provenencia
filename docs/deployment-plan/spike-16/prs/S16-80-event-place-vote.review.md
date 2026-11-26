@@ -7,7 +7,8 @@
 
 - **M-1, where "an event has one place" is declared.** The user chose the matching registry (`segment.go` `One`). The writer then found two consequences and asked again. `One` keys hold from both ends (a place would have one event). Matching knows no containment, so Promote would score Canada vs Swift Current as a −3 conflict. The user asked which shape fits best. **Writer's recommendation, applied in D-1 pending the user's confirmation:** no declaration yet. The vote passes single with a decided comment, and the one declaration both layers read is parked in [`ideas/one-bridge-cardinality.md`](../../../ideas/one-bridge-cardinality.md), to be built once matching can tell containment from conflict.
 
-- **M-12, the reconciler's grouping policy.** Values group on `Same` and fold on `Contains` (S11-06, § 7; the `moduleFor` comment; `add-match-rule`), and a subject folds by nothing. S16-80 lets subjects fold by a rule the caller passes, because value compare is pure and cannot read the place graph. **Writer's recommendation: accept.** The plan lists it under Rules this plan bends; STEP-4 and STEP-10 rewrite the comment, § 7 and the skill line. The product behaviour it serves (containment folds, AC-2.2) is the user's call of 2026-11-26.
+- **M-12, the reconciler's grouping policy.** Asked whether to bend S11-06 with a caller's fold rule, the user asked which shape is better long-term (2026-11-26). **Writer's answer, applied:** do not bend it. Containment enters as data: a subject value carries `Within` (what contains it at the date), value compare gains the subject comparer its "Add a comparer" slot always had (`noComparer` listed subject), and the subject module folds on `Contains` like `dateModule`. The policy holds, value compare stays pure, and matching can fill `Within` the same way later. `ReconcileHandles`, `keyModule.folds` and `validate` are gone; Rules this plan bends is None. Awaiting the user's veto only.
+- **M-1:** answered 2026-11-26: no declaration yet (D-1).
 
 ## Writer's own calls
 
@@ -94,7 +95,7 @@ The verdicts exist only on the Person row's owners; a read keyed by (association
 **Answer:** Fixed. D-12 says S15-28's records read for a derived row takes the Person and the row kind, as `PersonDerivedRows` does. The Spike 16 cross-spike row says the same, and S15-28's row in the Spike 15 map now names it and depends on S16-80. Rejected: an exported verdict read by association, which would re-run the vote at a date the Person row did not use.
 
 ### M-12 · blocker · The caller-supplied fold rule bends the reconciler's fold policy
-**Answer:** To user (above). The plan lists it under Rules this plan bends, STEP-4 rewrites the `moduleFor` comment, STEP-10 rewrites § 7's policy, the subject row and the `add-match-rule` line, and the sweep covers "Contains folds, and no other relation does".
+**Answer:** Fixed by reshape (above): no bend; a subject comparer in value compare and a subject module that folds on `Contains`.
 
 ### M-2 follow-up · The sheet's grade label stays on the Source record
 **Answer:** Fixed. D-5 no longer claims one home: the vote and the sheet weigh a record from the node, and the sheet's `CredibilityKey` label stays the Source record's.
