@@ -1,6 +1,6 @@
 # S15-30 — The paged fold moves to the kit
 
-**Status:** Planned
+**Status:** Landed in [#996](https://github.com/Jake-Robins-Studios/provenencia/pull/996) (2026-11-26)
 **Spike / slice:** Spike 15 · Slice 8 — Provenance loading
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the row, its copy and its layout are drawn as today; the only change is that a pointer click on Show more no longer scrolls)
