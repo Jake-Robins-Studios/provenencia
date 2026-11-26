@@ -1,6 +1,7 @@
 # S16-79 — A seeded Voters list type cites a voter list down to the entry
 
-**Status:** Planned
+**Status:** Landed in [#1001](https://github.com/Jake-Robins-Studios/provenencia/pull/1001) (2026-11-26)
+**Landed:** As planned.
 **Spike / slice:** Spike 16 · Slice 6j — A Voters list type
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: a seeded type, its fields and formats are catalog data that today's Source type, board and citation views already show)
