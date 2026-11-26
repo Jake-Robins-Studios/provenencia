@@ -497,6 +497,7 @@ private struct HistoryJumpRowLabel: View {
     }
 }
 
+#if DEBUG
 #Preview {
     WorkspaceToolbar(
         omnibarResults: OmnibarResultsModel(),
@@ -510,3 +511,4 @@ private struct HistoryJumpRowLabel: View {
         .frame(width: 900)
         .background(PVColor.surfacePage)
 }
+#endif

@@ -1,3 +1,4 @@
+#if DEBUG
 import SwiftUI
 
 /// Fixtures for the Sources list's previews: three Sources over a `FakeStore`, the first with eight
@@ -149,3 +150,4 @@ private struct SourcesTablePreview: View {
             .environment(\.pvWidthClass, widthClass)
     }
 }
+#endif
