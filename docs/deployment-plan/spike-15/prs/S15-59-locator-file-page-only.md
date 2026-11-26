@@ -1,6 +1,6 @@
 # S15-59 — The locator only finds things in its Artifact
 
-**Status:** Draft
+**Status:** Planned
 **Spike / slice:** Spike 15 · Slice 11 — Metadata at any level
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the composer has not shown or written a printed page in the locator since S15-56, and no view reads the locator's label)
@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc` (table tests)
 **Context:** map scope entry S15-59 ([`../deployment-plan.md`](../deployment-plan.md)); working rules "The locator only finds things in its Artifact", "The printed page is a metadata field", "A value can be marked unknown or supplied"; [`docs/interpretation-layer-data-model.md`](../../../interpretation-layer-data-model.md) §§ 3.2, 3.3, 3.6, 3.8
 **Planned:** 2026-11-26 against `main` @ `8d95af5`
-**Review:** [`S15-59-locator-file-page-only.review.md`](S15-59-locator-file-page-only.review.md) — round 1 answered; round 2 running
+**Review:** [`S15-59-locator-file-page-only.review.md`](S15-59-locator-file-page-only.review.md) — Fits / Ready with changes, two rounds; every finding Fixed, Declined or answered by the user; nothing open
 
 ### Implementer — read this first
 

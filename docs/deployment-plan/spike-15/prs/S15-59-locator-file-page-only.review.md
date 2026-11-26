@@ -1,6 +1,6 @@
 # Review — S15-59 The locator only finds things in its Artifact
 
-**Verdict:** Fits with changes — Ready with changes (round 1); round 2 below
+**Verdict:** Fits — Ready with changes (round 2; every finding answered)
 **Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
@@ -65,7 +65,7 @@
 **Answer:** Fixed — D-3: `filePage` returns the raw page; `Validate` and `regionDocPages` accept a page above `MaxInt32` as today, and `citationPage` keeps the cap. T-3 stands.
 
 ### X-10 · nit · STEP-5's list misses `graphcachetest.go`'s SQL-string copy
-**Answer:** Fixed — STEP-5 excludes it by name; its copy sits inside a SQL literal.
+**Answer:** Fixed — STEP-5 excludes it by name; its copy sits inside a SQL literal. The round-2 maintainability reviewer raised the same note and no blocker (verdict Fits).
 
 ## Cost
 Plan: 4,680 words at round 1, about 5,100 after the answers (check-plan-docs info line).
@@ -74,4 +74,5 @@ Plan: 4,680 words at round 1, about 5,100 after the answers (check-plan-docs inf
 | --- | --- | --- | --- |
 | 1 | maintainability | opus | — |
 | 1 | executability | sonnet | 131k |
+| 2 | maintainability | opus | — |
 | 2 | executability | sonnet | 97k |
