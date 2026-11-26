@@ -400,3 +400,6 @@ One fresh maintainability reviewer, scoped to the added PR S15-73 (field tooltip
 
 ### K-7 · minor · `add-ui-component` goes stale
 **Answer:** Fixed. S15-73's Context loads it and names both updates (the inner-edit example; the Return-to-next-row pattern).
+
+### Added after the review (user, 2026-11-26)
+Rule "Return saves an inline value edit" joins S15-73: a kit `onReturn` on `PVTextArea` (default off), used by `MetadataBoardTextEditor`; ⌥Return types a line break. Not re-reviewed: the kit hook is the existing `doCommandBy`, and every other text area is unchanged. `plan-pr` should check the step count (now three behaviours on the same rows).
