@@ -1,6 +1,6 @@
 # S15-59 — The locator only finds things in its Artifact
 
-**Status:** Planned
+**Status:** Landed #991
 **Spike / slice:** Spike 15 · Slice 11 — Metadata at any level
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the composer has not shown or written a printed page in the locator since S15-56, and no view reads the locator's label)
