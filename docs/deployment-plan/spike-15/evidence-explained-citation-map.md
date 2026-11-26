@@ -37,7 +37,7 @@ The two overlap only by accident: "image 37" means nothing without the file, and
 | Source | — | What the record is and where the original lives: creator, jurisdiction, title, volume, repository |
 | Artifact | The File | How to get this copy again: format, provider, URL, accessed date, film number, citing |
 | Evidence graph | — | The item in the record's own numbering: entry, line, dwelling, family, folio, column (§ 6.9) |
-| Citation | Page in the file, region | What differs inside a graph: the printed page (the `page` field; a locator's `page_label` answers until S15-58), and any other item field set on the Citation (§ 6.9) |
+| Citation | Page in the file, region | What differs inside a graph: the printed page (the `page` field), and any other item field set on the Citation (§ 6.9) |
 
 What follows from it:
 
@@ -729,7 +729,6 @@ Values that are not metadata, named directly under their level. Metadata keys ar
 | `{source.date}`, `{source.date:year}`, `{source.date:full}` | The Source date. It is a structured DateValue, so formatting it is safe: the year only, or day-month-year ("3 March 1930") at whatever precision the date has. `{source.date}` is `{source.date:full}` |
 | `{artifact.label}` | The Artifact label |
 | `{graph.name}` | The Evidence graph name |
-| `{citation.page}` | The Citation's printed page (`page_label`) |
 | `{citation.image}` | The Citation's page in the file (`artifact_page`), for the online-image layer ("image 37") |
 | `{citation.label}` | The Citation label |
 
@@ -938,12 +937,12 @@ Lines are wrapped here for reading; a format is one line. Types that share a pat
 
 ```text
 full:  {source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, {meta.schedule}]
-       [, ED {meta.enumeration_district}][, piece {meta.piece}][, fol. {meta.folio}][, p. {meta.page|citation.page}]
+       [, ED {meta.enumeration_district}][, piece {meta.piece}][, fol. {meta.folio}][, p. {meta.page}]
        [, schedule {meta.schedule_number}][, dwelling {meta.dwelling_number}][, family {meta.family_number}]
        [, line {meta.line_number}][, {meta.item}][; {meta.format}, *{meta.provider}*]
        [ ({meta.url}[ : accessed {meta.accessed_date}])][; citing {meta.citing}].
 short: {source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, ED {meta.enumeration_district}]
-       [, fol. {meta.folio}][, p. {meta.page|citation.page}][, dwell. {meta.dwelling_number}][, fam. {meta.family_number}]
+       [, fol. {meta.folio}][, p. {meta.page}][, dwell. {meta.dwelling_number}][, fam. {meta.family_number}]
        [, {meta.item}].
 list:  {meta.jurisdiction}. {source.date:year} [{meta.creator} ]census[, {meta.schedule}].
 ```
@@ -954,7 +953,7 @@ list:  {meta.jurisdiction}. {source.date:year} [{meta.creator} ]census[, {meta.s
 
 ```text
 full:  {meta.jurisdiction}, [{meta.creator}, ]birth certificate[ no. {meta.document_number}][ ({source.date:full})][, {meta.item}]
-       [, vol. {meta.volume}][, p. {meta.page|citation.page}][, entry {meta.entry_number}][; {meta.format}, *{meta.provider}*]
+       [, vol. {meta.volume}][, p. {meta.page}][, entry {meta.entry_number}][; {meta.format}, *{meta.provider}*]
        [ ({meta.url}[ : accessed {meta.accessed_date}])][; {meta.repository}].
 short: {meta.jurisdiction}, [{meta.creator}, ]birth certificate[ no. {meta.document_number}][, {meta.item}].
 list:  {meta.jurisdiction}.[ {meta.creator}.] Birth certificates.[ {meta.repository}.]
@@ -963,11 +962,11 @@ list:  {meta.jurisdiction}.[ {meta.creator}.] Birth certificates.[ {meta.reposit
 **Church register**
 
 ```text
-full:  {meta.creator}[ ({meta.jurisdiction})], *{source.title}*[, vol. {meta.volume}][, p. {meta.page|citation.page}]
+full:  {meta.creator}[ ({meta.jurisdiction})], *{source.title}*[, vol. {meta.volume}][, p. {meta.page}]
        [, fol. {meta.folio}][, no. {meta.entry_number}][, {meta.item}][; {meta.format}, *{meta.provider}*]
        [ ({meta.url}[ : accessed {meta.accessed_date}])][; film {meta.film_number}[, item {meta.item_number}]]
        [; {meta.repository}].
-short: {meta.creator}, *{meta.short_title|source.title}*[, vol. {meta.volume}][, p. {meta.page|citation.page}]
+short: {meta.creator}, *{meta.short_title|source.title}*[, vol. {meta.volume}][, p. {meta.page}]
        [, no. {meta.entry_number}].
 list:  {meta.creator}[ ({meta.jurisdiction})]. *{source.title}*[, {meta.coverage}].[ {meta.repository}.]
 ```
@@ -975,20 +974,20 @@ list:  {meta.creator}[ ({meta.jurisdiction})]. *{source.title}*[, {meta.coverage
 **Record book**
 
 ```text
-full:  {meta.jurisdiction}, [{meta.creator}, ]{meta.book|source.title}[: {meta.page|citation.page}][, entry {meta.entry_number}]
+full:  {meta.jurisdiction}, [{meta.creator}, ]{meta.book|source.title}[: {meta.page}][, entry {meta.entry_number}]
        [, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])]
        [; film {meta.film_number}][; {meta.repository}].
-short: {meta.jurisdiction}, {meta.book|source.title}[: {meta.page|citation.page}].
+short: {meta.jurisdiction}, {meta.book|source.title}[: {meta.page}].
 list:  {meta.jurisdiction}.[ {meta.creator}.] {source.title}[, {meta.coverage}].[ {meta.repository}.]
 ```
 
 **Passenger list**
 
 ```text
-full:  {source.title}[, p. {meta.page|citation.page}][, line {meta.line_number}][, {meta.item}]
+full:  {source.title}[, p. {meta.page}][, line {meta.line_number}][, {meta.item}]
        [; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])]
        [; citing {meta.citing}][; {meta.film_publication}[, roll {meta.roll}]].
-short: {meta.short_title|source.title}[, p. {meta.page|citation.page}][, line {meta.line_number}].
+short: {meta.short_title|source.title}[, p. {meta.page}][, line {meta.line_number}].
 list:  [{meta.creator}. ]{meta.collection|source.title}.[ {meta.repository}.]
 ```
 
@@ -1095,9 +1094,9 @@ list:  {meta.creator}. Correspondence to {meta.recipient}[, {meta.coverage}].[ H
 ```text
 full:  {meta.author}[, ed. {meta.editor}][, comp. {meta.compiler}][, trans. {meta.translator}], *{source.title}*
        [, {meta.edition} ed.][, vol. {meta.volume}][, {meta.series}][ ([{meta.publication_place}: ]{meta.publisher}
-       [, {source.date:year}])][, {meta.page|citation.page}][; {meta.format}, *{meta.provider}*]
+       [, {source.date:year}])][, {meta.page}][; {meta.format}, *{meta.provider}*]
        [ ({meta.url}[ : accessed {meta.accessed_date}])].
-short: {meta.author}, *{meta.short_title|source.title}*[, {meta.page|citation.page}].
+short: {meta.author}, *{meta.short_title|source.title}*[, {meta.page}].
 list:  {meta.author_sort|meta.author}. *{source.title}*.[ {meta.edition} ed.][ [{meta.publication_place}: ]{meta.publisher}
        [, {source.date:year}].]
 ```
@@ -1106,8 +1105,8 @@ list:  {meta.author_sort|meta.author}. *{source.title}*.[ {meta.edition} ed.][ [
 
 ```text
 full:  {meta.author}, "{source.title}," *{meta.published_in}*[ {meta.volume}][, no. {meta.issue}][ ({source.date:full})]
-       [: {meta.page_range}][, specifically {meta.page|citation.page}].
-short: {meta.author}, "{meta.short_title|source.title}"[, {meta.page|citation.page}].
+       [: {meta.page_range}][, specifically {meta.page}].
+short: {meta.author}, "{meta.short_title|source.title}"[, {meta.page}].
 list:  {meta.author_sort|meta.author}. "{source.title}." *{meta.published_in}*[ {meta.volume}][, no. {meta.issue}]
        [ ({source.date:full})][: {meta.page_range}].
 ```
@@ -1115,7 +1114,7 @@ list:  {meta.author_sort|meta.author}. "{source.title}." *{meta.published_in}*[ 
 **Newspaper item**
 
 ```text
-full:  "{source.title}," *{meta.published_in}*[ ({meta.jurisdiction})], {source.date:full}[, p. {meta.page|citation.page}]
+full:  "{source.title}," *{meta.published_in}*[ ({meta.jurisdiction})], {source.date:full}[, p. {meta.page}]
        [, col. {meta.column}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])].
 short: "{meta.short_title|source.title}," *{meta.published_in}*, {source.date:full}.
 list:  *{meta.published_in}*[ ({meta.jurisdiction})].
@@ -1134,7 +1133,7 @@ list:  [{meta.creator}. ]"{source.title}." *{meta.site_name}*.[ {meta.url}.]
 
 ```text
 full:  {meta.jurisdiction}, *{meta.published_in}*[ {source.date:year}][, vol. {meta.volume}][, chap. {meta.chapter}]
-       [, sec. {meta.section}][, p. {meta.page|citation.page}].
+       [, sec. {meta.section}][, p. {meta.page}].
 short: {meta.jurisdiction}, *{meta.published_in}*[ {source.date:year}][, chap. {meta.chapter}].
 list:  {meta.jurisdiction}. *{meta.published_in}*[, {source.date:year}].
 ```
@@ -1142,8 +1141,8 @@ list:  {meta.jurisdiction}. *{meta.published_in}*[, {source.date:year}].
 **Court report**
 
 ```text
-full:  *{source.title}*, [{meta.volume} ]{meta.published_in} {meta.page|citation.page|meta.page_range}[ ({source.date:year})].
-short: *{meta.short_title|source.title}*[, {meta.page|citation.page}].
+full:  *{source.title}*, [{meta.volume} ]{meta.published_in} {meta.page|meta.page_range}[ ({source.date:year})].
+short: *{meta.short_title|source.title}*[, {meta.page}].
 list:  *{source.title}*. [{meta.volume} ]{meta.published_in}[ ({source.date:year})].
 ```
 
@@ -1151,7 +1150,7 @@ list:  *{source.title}*. [{meta.volume} ]{meta.published_in}[ ({source.date:year
 
 A census row is one EE citation (the household, its dwelling, family and line), but a researcher may draw five Citations on it: the name, the age, the birthplace, the occupation, the relationship column. All five share the item and differ only in their locators.
 
-**The item's fields are read nearest-first** (rule "A format reads a field from the nearest level that holds it", user 2026-11-22), so a researcher sets each at the level that fits how they filed. The printed page is the seeded `page` field: set it on each Citation of a whole-issue PDF (in the composer from S15-56), once on the graph or Artifact of a clipping, or on the Source when one Source is one item. Until S15-58 the seed reads `{meta.page|citation.page}`, so a locator's printed page answers when no level holds a value.
+**The item's fields are read nearest-first** (rule "A format reads a field from the nearest level that holds it", user 2026-11-22), so a researcher sets each at the level that fits how they filed. The printed page is the seeded `page` field: set it on each Citation of a whole-issue PDF (in the composer from S15-56), once on the graph or Artifact of a clipping, or on the Source when one Source is one item.
 
 - **Why the graph is the usual home.** An Evidence graph already groups the Subjects drawn from one part of a Source, and Spike 12 made several graphs per Source for exactly this: one per household, entry or article in a large record. Every Citation belongs to one graph and never moves ([`source-layer-data-model.md`](../../source-layer-data-model.md) § 7.1). So the item's numbers are usually entered once, on the graph, and every Citation drawn in it inherits them.
 - **Why the Artifact is not the usual home.** An Artifact is one file, and one file often holds several items (a census page with three households, a register page with eight entries), while one item can run onto a second page. Item fields on the Artifact would need one Artifact per household, each repeating the copy fields. Graphs and Artifacts are already many-to-many, so a household over two pages is one graph linked to two Artifacts.
@@ -1186,7 +1185,7 @@ This replaces the Source page's citation preview (the S15-D1 "Citation" section,
 
 A field that is both suggested and needed shows once, as needed. A chain empty everywhere is flagged on its first option, with a hint naming the others. Filled at another level means not flagged.
 
-**Built-ins.** `{source.date}` is flagged in the Source page header where the date sits; `{citation.page}` in the citation composer. Labels and titles always have a value.
+**Built-ins.** `{source.date}` is flagged in the Source page header where the date sits. Labels and titles always have a value.
 
 **Unknown and supplied.** Each metadata value row, the Source date and the printed page can be marked **Unknown** (no text; prints the field's unknown text) or **Supplied** (text; prints in square brackets). A supplied date keeps its precision ("[ca. 1880]"). One Go type, `core/valuemark`, declares the pair and its rule (never both; unknown has no text) for every place that stores it, and the app builds one Unknown and Supplied control that the board row, the date dialog and the composer share. Storage:
 
