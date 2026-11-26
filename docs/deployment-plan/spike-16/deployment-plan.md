@@ -93,6 +93,7 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 42. **The Sources list is a native table.** Its columns are named and sort by their headers (title, published, added, updated), with no sort menu. One Source is open at a time: opening another closes it. A Source shows one status badge (Promoted when every graph is, Not started when every graph is, else In progress), and the status filter lists the Sources with that badge. The ref is under the title, and a double-click opens the Source first pressed. Everything else of bar 41 holds. (S16-D14.)
 43. **Back returns to the scroll position.** Back, Forward and a jump in history show a page scrolled where it was left, with what it had open (on Sources, the open Source); a position that no longer fits opens the page at the top.
 48. **A voters list cites down to the entry.** In a new project, a Voters list Source for a 1949 Canadian federal list seen on Ancestry gives a full citation that names the election, electoral district, polling division, page and entry, then the LAC series, reference R1003-6-3-E and Record Group 113-B, then the Ancestry database; a British register of electors and an American great register read right from the same fields; every record type's citation names the online database it was seen in. (Slice 6j.)
+49. **An event shows the place its records name.** A birth that three Sources place in Swift Current and one in England shows Swift Current on the Person's Birth place, the Event's Place and the Events list, with no Mixed badge, and its provenance sheet lists the England record as outvoted (3 of 4 Sources); a fourth record of Canada in place of England folds into Swift Current and is listed as folded. Two places from one Source each still show mixed. (Slice 6k.)
 
 **Batch 7 — One window** (user, 2026-11-18; lands before Batch 6):
 
@@ -404,6 +405,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-72 | Back returns to the scroll position | 6i | Swift: a history entry records the main scroll view's y offset (written to the history file) and, apart from it, a list's open row (not written); one kit modifier records and restores the offset on every main page's scroll view; the Sources list records its open Source; no usable offset opens at the top; row scrolls on arrival go | — | S16-71 | [plan](prs/S16-72-scroll-offset-history.md) | Landed [#973](https://github.com/Jake-Robins-Studios/provenencia/pull/973) |
 | S16-78 | Install derives each seeded type's suggested fields from its formats | 6j | Preparatory, Go: `suggestedKeys` moves the § 2.3 rule from the test into `sourcevocab`; `Install` writes the derived lists; `seedSuggestions` goes; new projects get the same rows | — | — | [plan](prs/S16-78-derive-seed-suggestions.md) | Planned |
 | S16-79 | A seeded Voters list type cites a voter list down to the entry | 6j | Go seed: one shared `copyLayer` that prints the database title for every record type; type `voters_list` with three formats (record and locators, then the archive, then the copy); fields `election`, `electoral_district` and `polling_division` that hold the list's own words; golden plus literal Canadian, British and American renders; new projects only; its page reads `{meta.page}`, since Spike 15's S15-58 retires `{citation.page}` | — | S16-78 | [plan](prs/S16-79-voters-list-type.md) | Blocked — on S16-78 |
+| S16-80 | An event's places reconcile by their records | 6k | Go: an event's location links vote through the shared reconciler, after containment folds at the event's date, so Event rows, life rows, search and the Birth and Death place sheets show the place most Sources name and each record's outcome; bridge ends declare cardinality (only the location's place end is single); outcome rows on the node carry their Source and provenance | — | — | [plan](prs/S16-80-event-place-vote.md) | Draft |
 | S16-73 | Add Source takes the Published date and Private | 8a | Go and Swift: `CreateSourceRequest` gains the date and `is_private`, written in its one write through Copy's composer; the Add sheet shows the shared Source fields (Title, Type, Published date, Description, Private) | S16-D15 | S16-D15 | — | Scoped |
 | S16-76 | Drafts carry the marks they read | 8a | Preparatory, Go and Swift: Swift maps the metadata and Source date marks both ways; `MetadataDraftHost` sends each row's mark; draft writes settle marks against their text and accept an unknown row with no text; the Artifact and graph sheets stop dropping a stored mark | — | — | — | Scoped |
 | S16-74 | Copy Source edits the date, description and Private | 8a | Go and Swift: `CopySourceRequest` carries the description text, the date with its mark and `is_private` in place of their ticks; the Copy sheet shows the shared Source fields filled from the original; credibility and Artifacts stay ticks | S16-D16 | S16-73, S16-76, S16-D16 | — | Scoped |
@@ -572,6 +574,10 @@ SLICE 6j — A Voters list type                        (any time)
   S16-78  Install derives each seeded type's suggested fields from its formats
   S16-79  A seeded Voters list type cites a voter list down to the entry   (after S16-78)
   Check: bar 48.
+
+SLICE 6k — Event places by evidence                 (any time)
+  S16-80  An event's places reconcile by their records
+  Check: bar 49.
   Check: bar 43.
 
 BATCH 8 — Add and Copy Source sheets               (lands before S16-99)
@@ -666,6 +672,7 @@ S16-66 ──▶ S16-71
 S16-D14 ──▶ S16-71
 S16-71 ──▶ S16-72
 S16-78 ──▶ S16-79
+S16-80: none
 S16-D15 ──▶ S16-73 ──▶ S16-74 ──▶ S16-75
 S16-76 ──▶ S16-74
 S16-76 ──▶ S16-77 ──▶ S16-75
@@ -1227,6 +1234,16 @@ Design: [`catalog-query-layer.md`](catalog-query-layer.md).
 **Ships.** Go. The rule moves from the test into `sourcevocab` as `suggestedKeys`; `Install` writes its lists; the hand lists go. New projects get the same rows.
 **Check.** A new project's Census type suggests the same 18 fields; `rg seedSuggestion core` finds nothing.
 **Context.** `core/database/sourcevocab`; [`docs/seeded-vocabulary.md`](../../seeded-vocabulary.md) § 2.3; skill `add-seeded-vocabulary`.
+
+### Slice 6k — Event places by evidence
+
+#### S16-80 — An event's places reconcile by their records
+
+**Decided (user, 2026-11-26).** Only the location bridge's place end is single; `part_of`, `succeeded_by`, participation and relationship ends stay multiple. A place that contains another linked place at the event's date folds into it; places that do not contain each other vote; a parent shared by two linked places folds into the better-supported one, as the pipeline folds any value. Each record's strength counts, as in any field.
+**Today.** Each event–place link reconciles only its own records; `FoldLocations` orders the places left after folding by ref, so a Person born in Swift Current by three Sources and in England by one showed England, mixed (dogfood, 2026-11-26).
+**Ships.** Go. The shared reconciler gains a subject module that folds by a caller's rule; the summary composer votes an event's location links with it; outcome rows on the node carry their Source and provenance; the Person's place owners list every link with what the vote did; search re-projects. No Swift change.
+**Check.** Bar 49.
+**Context.** [`docs/conclusion-reconciliation.md`](../../conclusion-reconciliation.md) § 9 and § 11.1; `core/autoreconcile`, `core/database/conclusionsummaries`, `core/database/graphcache`, `core/connectrules`, `core/hops`.
 
 ### Batch 8 — Add and Copy Source sheets
 
