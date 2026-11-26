@@ -46,6 +46,9 @@ struct PVShowMoreRowHostedTests {
                     if probing { Probe() }
                 }
             }
+            // An unshown window has no display link to step the scroll animation, so a
+            // loaded machine decides when (or whether) it lands. The scroll jumps instead.
+            .transaction { $0.disablesAnimations = true }
             .pvScrollsShowMoreReveals()
             .frame(width: 300, height: 200)
             .onChange(of: trigger.fired) {
