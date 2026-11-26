@@ -103,24 +103,21 @@ extension EnvironmentValues {
 /// The default provider of `\.pvShowMoreReveal`: scrolls the revealed row into view
 /// through `pvScrollsRowIntoView`. Rows carry `.id(_:)` with the value the Show more passes.
 private struct PVScrollsShowMoreReveals: ViewModifier {
-    let animated: Bool
     @State private var target: AnyHashable?
     @State private var request = 0
 
     func body(content: Content) -> some View {
         content
             .environment(\.pvShowMoreReveal, PVShowMoreReveal { target = $0; request += 1 })
-            .pvScrollsRowIntoView(target, animated: animated, whenRequested: request)
+            .pvScrollsRowIntoView(target, whenRequested: request)
     }
 }
 
 extension View {
     /// Scrolls the first item a keyboard Show more reveals into view. Apply it to the
     /// scroll view or the rows inside one. See `PVShowMoreRow`.
-    ///
-    /// - Parameter animated: Animates the scroll, as `pvScrollsRowIntoView` does.
-    func pvScrollsShowMoreReveals(animated: Bool = true) -> some View {
-        modifier(PVScrollsShowMoreReveals(animated: animated))
+    func pvScrollsShowMoreReveals() -> some View {
+        modifier(PVScrollsShowMoreReveals())
     }
 }
 
