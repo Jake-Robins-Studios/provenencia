@@ -22,6 +22,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue/datevaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/kinship"
 	"github.com/Jake-Robins-Studios/provenencia/core/onboarding"
 	"github.com/Jake-Robins-Studios/provenencia/core/recordlinks"
@@ -86,7 +87,7 @@ func TestListPersonClaims(t *testing.T) {
 	cite := func(graphID string, drafts ...*engine.ObservationDraft) {
 		var out engine.CreateCitationWithObservationsResponse
 		mustRPC(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
-			ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphID, LocatorJson: likenessLocatorJSON, Observations: drafts,
+			ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphID, LocatorJson: depictionvaluetest.Locator, Observations: drafts,
 		}, &out)
 	}
 	cite(baptisms,

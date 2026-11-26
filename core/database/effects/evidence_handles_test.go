@@ -26,14 +26,13 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 )
-
-const evidenceLocator = `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`
 
 // TestEvidenceHandleSets builds the change an evidence write actually returns
 // and checks effects.Resolve (Set.Handles) against HandlesForSubjects and HandlesForCitation.
@@ -123,7 +122,7 @@ func TestEvidenceHandleSets(t *testing.T) {
 	}
 	graph := evidencegraphstest.SoleGraph(t, c, src.ID).ID
 	year := 1842
-	created, _, err := observationstest.Cite(c, userID, graph, art.ID, evidenceLocator, []observations.Input{
+	created, _, err := observationstest.Cite(c, userID, graph, art.ID, depictionvaluetest.Locator, []observations.Input{
 		{SubjectID: person.ID, PropertyID: nameProp.ID, Name: &namevalue.Value{Form: "Ada"}},
 		{SubjectID: place.ID, PropertyID: dateProp.ID, Date: &datevalue.Value{Kind: datevalue.KindPoint, StartYear: &year}},
 		{SubjectID: person.ID, PropertyID: seenWith.ID, ValueSubjectID: alice.ID},
@@ -247,7 +246,7 @@ func TestEvidenceHandleSets(t *testing.T) {
 		tx, done := open()
 		defer done()
 		_, changes, err := citations.Update(tx, userID, created.Citation.ID, citations.CitationFieldsInput{
-			LocatorJSON: evidenceLocator, TranscriptionUncertain: true,
+			LocatorJSON: depictionvaluetest.Locator, TranscriptionUncertain: true,
 		})
 		if err != nil {
 			t.Fatal(err)

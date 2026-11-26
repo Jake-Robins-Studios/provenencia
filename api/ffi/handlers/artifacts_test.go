@@ -15,6 +15,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
 	"google.golang.org/protobuf/proto"
 )
@@ -207,7 +208,7 @@ func TestDeleteArtifact(t *testing.T) {
 					UserId:      userID,
 					ArtifactId:  art.Artifact.Id,
 					GraphId:     graphLinking(t, dir, art.Artifact.Id),
-					LocatorJson: `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`,
+					LocatorJson: depictionvaluetest.Locator,
 				})); err != nil {
 					t.Fatal(err)
 				}

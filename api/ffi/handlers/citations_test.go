@@ -70,7 +70,6 @@ func citationFixture(t *testing.T) (projectDir, userID, sourceID, artifactID, pl
 }
 
 const (
-	likenessLocatorJSON = `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`
 	likenessRegionJSON  = `{"version":1,"selectors":[{"type":"page","artifact_page":1},{"type":"region","unit":"normalized","points":[{"x":0.1,"y":0.1},{"x":0.4,"y":0.1},{"x":0.4,"y":0.5}]}]}`
 	likenessRegion2JSON = `{"version":1,"selectors":[{"type":"page","artifact_page":1},{"type":"region","unit":"normalized","points":[{"x":0.5,"y":0.5},{"x":0.9,"y":0.5},{"x":0.9,"y":0.9}]}]}`
 )
@@ -160,7 +159,7 @@ func likenessDraft(personID, likenessID, region, imagePath string) *engine.Obser
 func saveLikeness(t *testing.T, dir, userID, artifactID, personID, likenessID, crop string) *engine.CreateCitationWithObservationsResponse {
 	t.Helper()
 	out, err := CreateCitationWithObservations(marshalProto(t, &engine.CreateCitationWithObservationsRequest{
-		ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: likenessLocatorJSON,
+		ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: depictionvaluetest.Locator,
 		Observations: []*engine.ObservationDraft{likenessDraft(personID, likenessID, likenessRegionJSON, crop)},
 	}))
 	if err != nil {
@@ -217,7 +216,7 @@ func TestCreateCitationRefusesSymlinkedCrop(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err := CreateCitationWithObservations(marshalProto(t, &engine.CreateCitationWithObservationsRequest{
-		ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: likenessLocatorJSON,
+		ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: depictionvaluetest.Locator,
 		Observations: []*engine.ObservationDraft{likenessDraft(personID, likenessID, likenessRegionJSON, link)},
 	}))
 	if !errors.Is(err, ingest.ErrSymlink) {
@@ -374,7 +373,7 @@ func TestCreateCitationWithObservations(t *testing.T) {
 				dir, userID, _, artifactID, personID, likenessID := likenessFixture(t)
 				objectsBefore = objectRelPaths(t, dir)
 				return &engine.CreateCitationWithObservationsRequest{
-					ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: likenessLocatorJSON,
+					ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{likenessDraft(personID, likenessID, likenessRegionJSON, writeCrop(t, 300, 200, 128))},
 				}
 			},
@@ -445,7 +444,7 @@ func TestAddObservationsToCitation(t *testing.T) {
 			reqFn: func(t *testing.T) proto.Message {
 				dir, userID, _, artifactID, personID, likenessID := likenessFixture(t)
 				createOut, err := CreateCitationWithObservations(marshalProto(t, &engine.CreateCitationWithObservationsRequest{
-					ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: likenessLocatorJSON,
+					ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: depictionvaluetest.Locator,
 				}))
 				if err != nil {
 					t.Fatal(err)
@@ -1337,7 +1336,7 @@ func TestDepictionStagesBeforeSession(t *testing.T) {
 		done := make(chan result, 1)
 		go func() {
 			out, err := CreateCitationWithObservations(marshalProto(t, &engine.CreateCitationWithObservationsRequest{
-				ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphID, LocatorJson: likenessLocatorJSON,
+				ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphID, LocatorJson: depictionvaluetest.Locator,
 				Observations: []*engine.ObservationDraft{likenessDraft(personID, likenessID, likenessRegionJSON, crop)},
 			}))
 			done <- result{out, err}

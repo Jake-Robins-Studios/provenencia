@@ -23,6 +23,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue/datevaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/eventtitle"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue/namevaluetest"
@@ -57,7 +58,7 @@ func namedPerson(t *testing.T) (dir, handleRef string) {
 		if err != nil {
 			return err
 		}
-		_, _, err = observationstest.Cite(c, userID[:], graphID, art.ID, `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`, []observations.Input{
+		_, _, err = observationstest.Cite(c, userID[:], graphID, art.ID, depictionvaluetest.Locator, []observations.Input{
 			{SubjectID: subjectID[:], PropertyID: name.ID, Name: &namevalue.Value{Form: "James Robins", Parts: []namevalue.Part{
 				{Idx: 0, Value: "James", Type: namevalue.PartTypeGiven}, {Idx: 1, Value: "Robins", Type: namevalue.PartTypeSurname},
 			}}},
@@ -316,7 +317,7 @@ func citedEvent(t *testing.T) (dir, entityID string) {
 		if err != nil {
 			return err
 		}
-		_, _, err = observationstest.Cite(c, userID[:], s.GraphID, art.ID, `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`, []observations.Input{
+		_, _, err = observationstest.Cite(c, userID[:], s.GraphID, art.ID, depictionvaluetest.Locator, []observations.Input{
 			{SubjectID: s.ID, PropertyID: name.ID, Scalar: propertymeta.TextScalar("The Great Fire")},
 			{SubjectID: s.ID, PropertyID: eventType.ID, ValueTermID: term.ID},
 			{SubjectID: s.ID, PropertyID: dateProp.ID, Date: datevaluetest.YMD(1849, 0, 0)},
@@ -411,7 +412,7 @@ func citedPlace(t *testing.T) (dir, entityID string) {
 		if err != nil {
 			return err
 		}
-		_, _, err = observationstest.Cite(c, userID[:], s.GraphID, art.ID, `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`, []observations.Input{
+		_, _, err = observationstest.Cite(c, userID[:], s.GraphID, art.ID, depictionvaluetest.Locator, []observations.Input{
 			{SubjectID: s.ID, PropertyID: toponym.ID, Scalar: propertymeta.TextScalar("York")},
 			{SubjectID: s.ID, PropertyID: toponym.ID, Scalar: propertymeta.TextScalar("Toronto")},
 		}...)

@@ -23,6 +23,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
@@ -166,8 +167,6 @@ func TestSourceTypeChangeKeepsEvidenceGraph(t *testing.T) {
 	}
 }
 
-const pageLocator = `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`
-
 // twoGraphs is one Source ("Register") split into a Default graph holding
 // Ada (a person) and a Jones graph holding Bea (a place) and one Observation on her, plus a second
 // Source with one graph holding one Subject.
@@ -236,7 +235,7 @@ func newTwoGraphs(t *testing.T) twoGraphs {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := observationstest.Cite(c, userID, f.jones.ID, page2.ID, pageLocator, []observations.Input{{SubjectID: f.bea.ID, PropertyID: toponym.ID, Scalar: propertymeta.TextScalar("Bea")}}...); err != nil {
+	if _, _, err := observationstest.Cite(c, userID, f.jones.ID, page2.ID, depictionvaluetest.Locator, []observations.Input{{SubjectID: f.bea.ID, PropertyID: toponym.ID, Scalar: propertymeta.TextScalar("Bea")}}...); err != nil {
 		t.Fatal(err)
 	}
 	f.other = newSource("Elsewhere")

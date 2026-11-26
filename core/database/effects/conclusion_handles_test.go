@@ -31,6 +31,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
@@ -160,7 +161,7 @@ func TestConclusionHandleSets(t *testing.T) {
 		t.Fatal(err)
 	}
 	graph := evidencegraphstest.SoleGraph(t, c, src.ID).ID
-	if _, _, err := observationstest.Cite(c, userID, graph, art.ID, evidenceLocator, []observations.Input{
+	if _, _, err := observationstest.Cite(c, userID, graph, art.ID, depictionvaluetest.Locator, []observations.Input{
 		{SubjectID: ada.ID, PropertyID: nameProp.ID, Name: &namevalue.Value{Form: "Ada"}},
 		{SubjectID: ada.ID, PropertyID: seenWith.ID, ValueSubjectID: bob.ID},
 	}...); err != nil {
@@ -174,7 +175,7 @@ func TestConclusionHandleSets(t *testing.T) {
 				return connect.CreateCitedBridge(tx, userID, connect.CreateInput{
 					FromSubjectID: from.ID,
 					ToSubjectID:   to.ID,
-					Citation:      citations.CreateInput{ArtifactID: art.ID, LocatorJSON: evidenceLocator},
+					Citation:      citations.CreateInput{ArtifactID: art.ID, LocatorJSON: depictionvaluetest.Locator},
 					Observations: []observations.Input{
 						{PropertyID: personProp.ID, ValueSubjectID: from.ID},
 						{PropertyID: eventProp.ID, ValueSubjectID: to.ID},

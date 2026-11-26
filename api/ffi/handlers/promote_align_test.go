@@ -16,6 +16,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/graphalign"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue/namevaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
@@ -70,7 +71,7 @@ func namedPersonOnNewSource(t *testing.T, dir, userID, typeID, personName, sexKe
 		if err != nil {
 			return err
 		}
-		_, _, err = observationstest.Cite(c, uid[:], s.GraphID, art.ID, `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`, []observations.Input{
+		_, _, err = observationstest.Cite(c, uid[:], s.GraphID, art.ID, depictionvaluetest.Locator, []observations.Input{
 			{SubjectID: s.ID, PropertyID: name.ID, Name: namevaluetest.Western(personName)},
 			{SubjectID: s.ID, PropertyID: sex.ID, ValueTermID: term.ID, Polarity: polarity},
 		}...)

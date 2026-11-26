@@ -26,13 +26,12 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 	"github.com/google/uuid"
 )
-
-const locator = `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`
 
 // TestHandlePaths resolves Effect.Handles through Resolve (Set.Handles)
 // against a catalog; these checks are the rules the registry states.
@@ -125,7 +124,7 @@ func TestHandlePaths(t *testing.T) {
 	}
 	graph := evidencegraphstest.SoleGraph(t, c, src.ID).ID
 	year := 1842
-	created, _, err := observationstest.Cite(c, userID, graph, art.ID, locator, []observations.Input{{
+	created, _, err := observationstest.Cite(c, userID, graph, art.ID, depictionvaluetest.Locator, []observations.Input{{
 		SubjectID: boston.ID, PropertyID: dateProp.ID,
 		Date: &datevalue.Value{Kind: datevalue.KindPoint, StartYear: &year},
 	}}...)

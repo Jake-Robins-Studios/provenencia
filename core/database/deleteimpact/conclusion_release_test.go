@@ -28,6 +28,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
@@ -89,7 +90,7 @@ func newConclusionFixture(t *testing.T) conclusionFixture {
 	res, err := writes.Call(c, writes.Op{Action: "create_citation_with_observations", UserID: userID}, func(tx *database.Tx) (citations.CreateResult, []rowchange.Change, error) {
 		return citations.CreateWithObservations(tx, userID, citations.CreateInput{
 			GraphID:    graph,
-			ArtifactID: art.ID, LocatorJSON: testLocator, Transcription: "York",
+			ArtifactID: art.ID, LocatorJSON: depictionvaluetest.Locator, Transcription: "York",
 		}, []observations.Input{
 			{SubjectID: a.ID, PropertyID: toponym.ID, Scalar: propertymeta.TextScalar("York")},
 			{SubjectID: b.ID, PropertyID: toponym.ID, Scalar: propertymeta.TextScalar("York")},

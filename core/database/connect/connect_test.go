@@ -25,6 +25,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/locator"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
@@ -33,7 +34,6 @@ import (
 
 func TestCreateCitedBridge(t *testing.T) {
 	userID := []byte{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1}
-	validLocator := `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`
 
 	type seed struct {
 		c          *database.Catalog
@@ -163,7 +163,7 @@ func TestCreateCitedBridge(t *testing.T) {
 				BridgeTypeKey: "participation",
 				Citation: citations.CreateInput{
 					ArtifactID:  s.artifact.ID,
-					LocatorJSON: validLocator,
+					LocatorJSON: depictionvaluetest.Locator,
 				},
 				Observations: []observations.Input{
 					{PropertyID: s.personProp.ID, ValueSubjectID: s.person.ID},
@@ -224,7 +224,7 @@ func TestCreateCitedBridge(t *testing.T) {
 				BridgeTypeKey: "relationship",
 				Citation: citations.CreateInput{
 					ArtifactID:  s.artifact.ID,
-					LocatorJSON: validLocator,
+					LocatorJSON: depictionvaluetest.Locator,
 				},
 				Observations: []observations.Input{
 					{PropertyID: s.personProp.ID, ValueSubjectID: s.person.ID},
@@ -248,7 +248,7 @@ func TestCreateCitedBridge(t *testing.T) {
 				BridgeTypeKey: "relationship",
 				Citation: citations.CreateInput{
 					ArtifactID:  s.artifact.ID,
-					LocatorJSON: validLocator,
+					LocatorJSON: depictionvaluetest.Locator,
 				},
 				Observations: []observations.Input{
 					{PropertyID: s.personProp.ID, ValueSubjectID: s.person.ID},
@@ -274,7 +274,7 @@ func TestCreateCitedBridge(t *testing.T) {
 				BridgeTypeKey: "location",
 				Citation: citations.CreateInput{
 					ArtifactID:  s.artifact.ID,
-					LocatorJSON: validLocator,
+					LocatorJSON: depictionvaluetest.Locator,
 				},
 				Observations: []observations.Input{
 					{PropertyID: s.eventProp.ID, ValueSubjectID: s.event.ID},
@@ -297,7 +297,7 @@ func TestCreateCitedBridge(t *testing.T) {
 				BridgeTypeKey: "location",
 				Citation: citations.CreateInput{
 					ArtifactID:  s.artifact.ID,
-					LocatorJSON: validLocator,
+					LocatorJSON: depictionvaluetest.Locator,
 				},
 				Observations: []observations.Input{
 					{PropertyID: s.personProp.ID, ValueSubjectID: s.person.ID},
@@ -349,7 +349,7 @@ func TestCreateCitedBridge(t *testing.T) {
 				BridgeTypeKey: "location",
 				Citation: citations.CreateInput{
 					ArtifactID:  s.artifact.ID,
-					LocatorJSON: validLocator,
+					LocatorJSON: depictionvaluetest.Locator,
 				},
 				Observations: []observations.Input{
 					{PropertyID: s.eventProp.ID, ValueSubjectID: s.event.ID},
@@ -366,7 +366,7 @@ func TestCreateCitedBridge(t *testing.T) {
 	t.Run("attach existing citation", func(t *testing.T) {
 		s := mustSeed(t)
 		graph := evidencegraphstest.SoleGraph(t, s.c, s.source.ID).ID
-		cited, _, err := observationstest.Cite(s.c, userID, graph, s.artifact.ID, validLocator)
+		cited, _, err := observationstest.Cite(s.c, userID, graph, s.artifact.ID, depictionvaluetest.Locator)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -388,7 +388,7 @@ func TestCreateCitedBridge(t *testing.T) {
 		if string(res.Citation.ID) != string(cited.Citation.ID) {
 			t.Fatal("did not attach")
 		}
-		if res.Citation.LocatorJSON != validLocator {
+		if res.Citation.LocatorJSON != depictionvaluetest.Locator {
 			t.Fatalf("locator %q", res.Citation.LocatorJSON)
 		}
 	})
@@ -396,7 +396,7 @@ func TestCreateCitedBridge(t *testing.T) {
 	t.Run("attach with citation fields invalid", func(t *testing.T) {
 		s := mustSeed(t)
 		graph := evidencegraphstest.SoleGraph(t, s.c, s.source.ID).ID
-		cited, _, err := observationstest.Cite(s.c, userID, graph, s.artifact.ID, validLocator)
+		cited, _, err := observationstest.Cite(s.c, userID, graph, s.artifact.ID, depictionvaluetest.Locator)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -464,7 +464,7 @@ func TestCreateCitedBridge(t *testing.T) {
 		s := g.seed
 		s.person, s.event = g.jonesPerson, g.jonesEvent
 		res, err := bridge(s, g.jonesPerson, g.jonesEvent, CreateInput{
-			Citation: citations.CreateInput{ArtifactID: g.p2.ID, LocatorJSON: validLocator},
+			Citation: citations.CreateInput{ArtifactID: g.p2.ID, LocatorJSON: depictionvaluetest.Locator},
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -491,7 +491,7 @@ func TestCreateCitedBridge(t *testing.T) {
 		s := g.seed
 		s.event = g.jonesEvent
 		_, err := bridge(s, g.person, g.jonesEvent, CreateInput{
-			Citation: citations.CreateInput{ArtifactID: g.artifact.ID, LocatorJSON: validLocator},
+			Citation: citations.CreateInput{ArtifactID: g.artifact.ID, LocatorJSON: depictionvaluetest.Locator},
 		})
 		if !errors.Is(err, observations.ErrOtherGraph) {
 			t.Fatalf("got %v want ErrOtherGraph", err)
@@ -503,7 +503,7 @@ func TestCreateCitedBridge(t *testing.T) {
 
 	t.Run("attached citation in another graph refused", func(t *testing.T) {
 		g := mustTwoGraphs(t)
-		cited, _, err := observationstest.Cite(g.c, userID, g.jones.ID, g.p2.ID, validLocator)
+		cited, _, err := observationstest.Cite(g.c, userID, g.jones.ID, g.p2.ID, depictionvaluetest.Locator)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -531,7 +531,7 @@ func TestCreateCitedBridge(t *testing.T) {
 				BridgeTypeKey: "location",
 				Citation: citations.CreateInput{
 					ArtifactID:  s.artifact.ID,
-					LocatorJSON: validLocator,
+					LocatorJSON: depictionvaluetest.Locator,
 				},
 				Observations: []observations.Input{
 					{PropertyID: s.eventProp.ID, ValueSubjectID: s.event.ID},

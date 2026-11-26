@@ -8,6 +8,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
 	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/google/uuid"
 )
 
@@ -399,8 +400,8 @@ func TestRenderSeededPage(t *testing.T) {
 	t.Run("AC-1.1 and AC-1.5 each Citation holds its own page", func(t *testing.T) {
 		src := newspaper()
 		art, graph := newArtifact(t, w.dir, w.userID, src, "Issue PDF")
-		first := newCitation(t, w.dir, w.userID, art, graph, likenessLocatorJSON)
-		second := newCitation(t, w.dir, w.userID, art, graph, likenessLocatorJSON)
+		first := newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator)
+		second := newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator)
 		setValues(t, w.dir, w.userID, ids, "citation", first, map[string]string{"page": "2", "column": "4"})
 		setValues(t, w.dir, w.userID, ids, "citation", second, map[string]string{"page": "7", "column": "1"})
 		p1, k1 := plain(t, first)
@@ -408,7 +409,7 @@ func TestRenderSeededPage(t *testing.T) {
 		if p1 != gazette+"p. 2, col. 4." || p2 != gazette+"p. 7, col. 1." || k1 == k2 {
 			t.Errorf("plains %q %q, group keys %q %q", p1, p2, k1, k2)
 		}
-		third := newCitation(t, w.dir, w.userID, art, graph, likenessLocatorJSON)
+		third := newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator)
 		mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
 			ProjectDir: w.dir, UserId: w.userID, Owner: &engine.MetadataOwner{Level: "citation", Id: third},
 			FieldId: ids["page"], Mark: &engine.ValueMark{Unknown: true},
@@ -424,7 +425,7 @@ func TestRenderSeededPage(t *testing.T) {
 		setValues(t, w.dir, w.userID, ids, "graph", graph, map[string]string{"page": "3", "column": "2"})
 		var keys []string
 		for range 5 {
-			p, k := plain(t, newCitation(t, w.dir, w.userID, art, graph, likenessLocatorJSON))
+			p, k := plain(t, newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator))
 			if p != gazette+"p. 3, col. 2." {
 				t.Errorf("plain = %q", p)
 			}
