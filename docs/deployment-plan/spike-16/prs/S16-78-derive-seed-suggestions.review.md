@@ -64,3 +64,7 @@ One fresh reviewer (opus) worked both lenses with the plan and this log and foun
 **Answer:** Fixed. It has one definition and two call sites.
 
 **Final verdict:** Fits · Ready with changes, two rounds; no blocker open; To user: none.
+
+## Refresh — 2026-11-26 against `5b2606d`
+
+`main` moved from `0886b43`. In `core/database/sourcevocab` only S15-58 landed (a1cdcdf, f4e573e): seeded formats read `{meta.page}` where they read `{meta.page|citation.page}`, and `registry_test.go` gained `TestFieldKeysMatchSeed`. `citation.page` was never a suggested field, so every derived list is unchanged; `TestSeedSuggestionsFollowFormats` passes at `5b2606d`, and census still suggests 18 fields, `creator` first and `citing` last. Every Current state row, symbol and quoted doc line was rechecked and holds. No Decision changed; only the planning base moved.
