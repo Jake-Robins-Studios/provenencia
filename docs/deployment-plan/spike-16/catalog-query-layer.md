@@ -12,7 +12,7 @@ Design for Batch 6's slice 6g (S16-68, S16-69, S16-70). Moved from `docs/ideas/c
 
 - `.sourceWorkspace` declares `deletedWith: .source`, so a hidden page for the deleted Source is evicted as a handle's page is. The Source page on screen still leaves through `leavingPage:`, as today.
 - `CatalogQueryFollows` gains one slot, `.deleted(CatalogDeletedEntity)`, and `CatalogQueryPatch` one generic row-removal patch on it. `.sourcesList` declares that patch, so the deleted row drops from the engine's report instead of reloading the whole list. (The `source_holdings` re-read is not an option: a Source with no Artifacts or graphs reports none, and a delete of a Source holding either is refused.)
-- `.sourceTypesList` restates `usedBy` on any `.deleted(.source)` id, by the hidden policy it already applies for `source_vocabulary`. (`.list(.counts)` was the other signal: it would also retire `.createdSource` here, but fires on every handle create, delete and merge.)
+- The engine reports a catalog-wide `source_type_usage` list on a Source create or delete (`sources` declares it beside `ListCounts`, with `ListsOnCreateDelete`), as `property_usage` and `metadata_field_usage` report their counts; `.sourceTypesList` follows it, and stops naming `.createdSource` (user, 2026-11-26). (`.list(.counts)` was another signal, but fires on every handle create, delete and merge.)
 
 Then `.deletedSource` and its `CatalogMutationKind` go. `FakeStore.deleteSource` stays scripted (`nextWriteEffects`): what a delete reports is the Go effects test's claim, not FakeStore's.
 
