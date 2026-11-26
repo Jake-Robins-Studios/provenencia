@@ -196,7 +196,12 @@ struct CatalogWriteEffects: Sendable, Equatable {
 
     /// The handles this write deleted: the `canonical_entity` entry of `deleted`.
     var deletedHandles: [String] {
-        deleted.first { $0.entity == .handle }?.ids ?? []
+        deletedIDs(of: .handle)
+    }
+
+    /// The ids this write deleted of one entity: that entity's entry of `deleted`.
+    func deletedIDs(of entity: CatalogDeletedEntity) -> [String] {
+        deleted.first { $0.entity == entity }?.ids ?? []
     }
 
     var touchedHandles: [String] {

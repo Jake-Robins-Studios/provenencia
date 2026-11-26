@@ -52,7 +52,7 @@ enum CatalogQueryFollows: Sendable, Hashable {
         case .structure:
             return effects.structure ? ["structure"] : []
         case .deleted(let entity):
-            return effects.deleted.first { $0.entity == entity }?.ids ?? []
+            return effects.deletedIDs(of: entity)
         }
     }
 
