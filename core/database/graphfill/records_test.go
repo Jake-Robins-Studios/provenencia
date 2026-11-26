@@ -296,7 +296,7 @@ func TestGraphRecordsCarryCitationWords(t *testing.T) {
 		f := newSeededFamily(t)
 		id := cite(t, f, citations.CreateInput{
 			Label: "Baptism of Ada", TranscriptionUncertain: true,
-			LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_label":"9"}]}`,
+			LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":37}]}`,
 		}, "14")
 		loaded, cold := fills(t, f)
 		for _, rec := range []*graphfill.GraphRecords{loaded, cold} {

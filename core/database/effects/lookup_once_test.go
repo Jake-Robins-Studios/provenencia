@@ -12,6 +12,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue/datevaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
@@ -45,7 +46,7 @@ func TestResolveRunsEachLookupOnce(t *testing.T) {
 	t.Run("observation date", func(t *testing.T) {
 		tx, userID, _, jones, art := readsFixture(t)
 		_, changes, err := citations.CreateWithObservations(tx, userID, citations.CreateInput{
-			GraphID: jones.ID, ArtifactID: art.ID, LocatorJSON: evidenceLocator,
+			GraphID: jones.ID, ArtifactID: art.ID, LocatorJSON: depictionvaluetest.Locator,
 		}, nil)
 		if err != nil {
 			t.Fatal(err)

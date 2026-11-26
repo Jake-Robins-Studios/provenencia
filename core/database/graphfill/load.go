@@ -216,8 +216,7 @@ func loadGraphObservations(q database.Querier, graphID []byte) ([]graphcache.Evi
 		if !seen {
 			w = citationWords{artifactID: append([]byte(nil), o.ArtifactID...), label: o.CitationLabel, uncertain: o.TranscriptionUncertain}
 			if citationLocator.Valid {
-				ref := locator.Page(citationLocator.String)
-				w.page = ref.ArtifactPage
+				w.page = locator.ArtifactPage(citationLocator.String)
 			}
 			words[string(o.CitationID)] = w
 		}

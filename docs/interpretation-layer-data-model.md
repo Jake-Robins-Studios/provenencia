@@ -200,29 +200,14 @@ There is intentionally no separate `locator_type` database column. A composable 
 
 ## 3.2 `page` selector
 
-The `page` selector identifies a page by its position in the Artifact itself.
+The `page` selector names a page by its 1-based position in the Artifact: `artifact_page`, required, at least 1, and the selector's only key. For a PDF it is the page position the application uses to navigate the PDF and is the authoritative locator value. An image Artifact has no file page, so its locator has no `page` selector.
 
-For a PDF, `artifact_page` is the 1-based page position the application uses to navigate the PDF and is the authoritative locator value.
-
-A scanned book, register, newspaper, or archival document may display a different page number or label on the scanned page itself. That source pagination is retained separately as optional descriptive information in `page_label`.
-
-An image Artifact (a census page saved as a JPEG) has no file page. Its `page` selector holds `page_label` alone, and `artifact_page` is omitted. When the original prints no page number, it holds `page_unknown` alone.
+The page the original prints, and its unknown and supplied marks, are the Citation's own Page metadata value (the seeded `page` field, edited on its board in the composer), not a locator fact. The Conclusion detail, the Citation menu and the citation line read it there.
 
 ```json
 {
   "type": "page",
-  "artifact_page": 37,
-  "page_label": "23"
-}
-```
-
-A file page whose original prints no number:
-
-```json
-{
-  "type": "page",
-  "artifact_page": 37,
-  "page_unknown": true
+  "artifact_page": 37
 }
 ```
 
@@ -231,30 +216,13 @@ Schema:
 ```text
 PageSelector {
     type: "page"
-    artifact_page?: integer >= 1
-    page_label?: string
-    page_unknown?: boolean
-    page_supplied?: boolean
+    artifact_page: integer >= 1
 }
 ```
 
-A page selector holds `artifact_page`, a non-blank `page_label`, or both, or is marked `page_unknown`; one with none of these is invalid, as is `artifact_page` below 1. A locator, and a depiction's region document, holds at most one `page` selector. A depiction's region document names the file page it is drawn on, so its `page` selector must hold `artifact_page`.
+A locator, and a depiction's region document, holds at most one `page` selector. A depiction's region document names the file page it is drawn on, so its `page` selector must hold `artifact_page`.
 
-`page_label` is deliberately text rather than an integer because source pagination may contain values such as:
-
-```text
-iv
-xii
-A-3
-23a
-folio 17r
-```
-
-A page whose original prints no number omits `page_label` and is marked `page_unknown`; a printed page the researcher took from elsewhere is marked `page_supplied`. The two never appear together, an unknown page has no `page_label`, and a supplied one has a non-blank one (`core/valuemark`). No citation reads these marks; a citation prints the Page field's marks. The composer no longer writes `page_label`: the printed page is the Citation's own Page metadata value (the seeded `page` field, edited on its board in the composer), which the Conclusion detail, the Citation menu and the citation line read; the locator keeps the file page only.
-
-The general rule is:
-
-> `artifact_page` answers where the Citation is in the digital Artifact. `page_label` records how that page identifies itself in the underlying source.
+Locators stored before 0.46.0 may hold `page_label`, `page_unknown` and `page_supplied`. Reads ignore them, a write holding one is refused, and the composer's next save of the Citation's locator leaves them out.
 
 ## 3.3 `region` selector
 
@@ -313,8 +281,7 @@ A crop within a PDF is represented compositionally:
   "selectors": [
     {
       "type": "page",
-      "artifact_page": 37,
-      "page_label": "23"
+      "artifact_page": 37
     },
     {
       "type": "region",
@@ -472,8 +439,7 @@ For a PDF with a text layer, a page plus text quote can identify a paragraph or 
   "selectors": [
     {
       "type": "page",
-      "artifact_page": 37,
-      "page_label": "23"
+      "artifact_page": 37
     },
     {
       "type": "text_quote",
@@ -516,7 +482,7 @@ For locator version 1:
 8. Region vertices use normalized coordinates relative to the selected media context, not a particular UI rendering.
 9. Region polygons contain at least three distinct points, are non-self-intersecting, and have non-zero area, and the document holds at most 256 region points.
 10. For paginated digital Artifacts, the Artifact page position is authoritative for navigation.
-11. Printed or marked source pagination is supplementary descriptive data and does not replace the Artifact page position.
+11. The page the original prints is the Citation's Page metadata value, not part of the locator.
 12. Locator JSON identifies where the evidence is; transcription, label, and interpretation remain separate concerns.
 13. An `artifact` selector, when present, is the first (outermost) selector and may stand alone or be followed by narrowing selectors (`page`, `region`, …).
 14. On paginated Artifacts, `region` must follow `page` (a polygon is always relative to a chosen Artifact page).

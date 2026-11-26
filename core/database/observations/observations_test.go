@@ -32,6 +32,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
 	"github.com/Jake-Robins-Studios/provenencia/core/locator"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
@@ -865,7 +866,6 @@ func TestObservations(t *testing.T) {
 					t.Fatal(err)
 				}
 				page2 := `{"version":1,"selectors":[{"type":"page","artifact_page":2},{"type":"region","unit":"normalized","points":[{"x":0.1,"y":0.1},{"x":0.4,"y":0.1},{"x":0.4,"y":0.5}]}]}`
-				noRegion := `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`
 				like := func(region, path string) observations.Input {
 					return observations.Input{SubjectID: s.person.ID, PropertyID: s.likeness.ID,
 						Depiction: &observations.DepictionInput{RegionJSON: region, ImagePath: path}}
@@ -886,7 +886,7 @@ func TestObservations(t *testing.T) {
 					{name: "symlink crop", art: art, inputs: []observations.Input{like(observationstest.LikenessRegion, symlink)}, want: ingest.ErrSymlink},
 					{name: "html named png", art: art, inputs: []observations.Input{like(observationstest.LikenessRegion, html)}, want: ingest.ErrUnsupportedImage},
 					{name: "region on another page", art: art, inputs: []observations.Input{like(page2, good)}, want: locator.ErrInvalid},
-					{name: "region with no region selector", art: art, inputs: []observations.Input{like(noRegion, good)}, want: locator.ErrInvalid},
+					{name: "region with no region selector", art: art, inputs: []observations.Input{like(depictionvaluetest.Locator, good)}, want: locator.ErrInvalid},
 					{name: "region not a locator", art: art, inputs: []observations.Input{like(`not json`, good)}, want: locator.ErrInvalid},
 					{name: "artifact with no file", art: s.artifact, inputs: []observations.Input{like(observationstest.LikenessRegion, good)}, want: observations.ErrInvalid},
 					{name: "likeness with text", art: art, inputs: []observations.Input{withText}, want: observations.ErrInvalid},

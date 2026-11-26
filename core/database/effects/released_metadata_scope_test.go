@@ -12,6 +12,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
@@ -62,7 +63,7 @@ func TestReleasedMetadataScopesThroughDeletedOwner(t *testing.T) {
 				tx, userID, def, _, art := readsFixture(t)
 				res, _, err := citations.CreateWithObservations(tx, userID, citations.CreateInput{
 					ArtifactID: art.ID, GraphID: def.ID,
-					LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`,
+					LocatorJSON: depictionvaluetest.Locator,
 				}, nil)
 				if err != nil {
 					t.Fatal(err)

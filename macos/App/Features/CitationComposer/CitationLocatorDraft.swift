@@ -5,9 +5,6 @@ import Foundation
 /// plus unknown extra selectors preserved losslessly on edit.
 struct CitationLocatorDraft: Equatable, Sendable {
     var page: Int?
-    /// The page the original prints (`page_label`), as typed; `""` is none. It is
-    /// not a layer of where the Citation sits in the file, so no reset clears it.
-    var pageLabel: String = ""
     var region: ArtifactRegionDraft?
     /// Raw JSON objects for selector types this client does not model (e.g. text_quote).
     var extras: [String]
@@ -69,13 +66,8 @@ struct CitationLocatorDraft: Equatable, Sendable {
 
     func encodeJSON() -> String {
         var selectors: [[String: Any]] = [["type": "artifact"]]
-        let label = pageLabel.trimmingCharacters(in: .whitespacesAndNewlines)
-        let filePage = page.flatMap { $0 >= 1 ? $0 : nil }
-        if filePage != nil || !label.isEmpty {
-            var selector: [String: Any] = ["type": "page"]
-            if let filePage { selector["artifact_page"] = filePage }
-            if !label.isEmpty { selector["page_label"] = label }
-            selectors.append(selector)
+        if let page, page >= 1 {
+            selectors.append(["type": "page", "artifact_page": page])
         }
         if let region {
             let points = region.points.map { ["x": $0.x, "y": $0.y] }
@@ -118,9 +110,6 @@ struct CitationLocatorDraft: Equatable, Sendable {
             case "page":
                 if let page = intValue(selector["artifact_page"]), page >= 1 {
                     draft.page = page
-                }
-                if let label = selector["page_label"] as? String {
-                    draft.pageLabel = label.trimmingCharacters(in: .whitespacesAndNewlines)
                 }
             case "region":
                 if let region = decodeRegion(selector) {

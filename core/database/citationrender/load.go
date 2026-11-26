@@ -18,11 +18,11 @@ import (
 // whose graph, Source or type row is missing has a nil source (or an empty
 // typeLabel): it has no format to render.
 type subject struct {
-	cited     *citations.Cited
-	source    *sources.Source
-	typeLabel string
-	page      locator.PageRef
-	values    sourcemetadata.CitationValues
+	cited        *citations.Cited
+	source       *sources.Source
+	typeLabel    string
+	artifactPage int
+	values       sourcemetadata.CitationValues
 }
 
 // owners lists the records whose metadata the subject reads: a Citation and
@@ -75,7 +75,7 @@ func loadCitations(tx *sql.Tx, ids [][]byte) ([]*subject, error) {
 			continue
 		}
 		seen[string(id)] = true
-		subs = append(subs, &subject{cited: &c, page: locator.Page(c.LocatorJSON)})
+		subs = append(subs, &subject{cited: &c, artifactPage: locator.ArtifactPage(c.LocatorJSON)})
 		if c.SourceID != nil {
 			sourceIDs = append(sourceIDs, c.SourceID)
 		}
@@ -162,8 +162,8 @@ func fillValues(tx *sql.Tx, subs []*subject, templates []*citationformat.Templat
 		if c := s.cited; c != nil {
 			v.Builtins[citationformat.ArtifactLabel] = citationformat.Value{Text: c.ArtifactLabel}
 			v.Builtins[citationformat.GraphName] = citationformat.Value{Text: c.GraphName}
-			if s.page.ArtifactPage > 0 {
-				v.Builtins[citationformat.CitationImage] = citationformat.Value{Text: strconv.Itoa(s.page.ArtifactPage)}
+			if s.artifactPage > 0 {
+				v.Builtins[citationformat.CitationImage] = citationformat.Value{Text: strconv.Itoa(s.artifactPage)}
 			}
 			v.Builtins[citationformat.CitationLabel] = citationformat.Value{Text: c.Label}
 		}

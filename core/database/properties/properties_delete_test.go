@@ -27,13 +27,12 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes/subjecttypestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 )
-
-const testLocator = `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`
 
 func TestDelete(t *testing.T) {
 	userID := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
@@ -362,7 +361,7 @@ func insertObservationOn(t *testing.T, c *database.Catalog, userID, propertyID [
 	res, err := writes.Call(c, writes.Op{Action: "create_citation_with_observations", UserID: userID}, func(tx *database.Tx) (citations.CreateResult, []rowchange.Change, error) {
 		return citations.CreateWithObservations(tx, userID, citations.CreateInput{
 			GraphID:    graph,
-			ArtifactID: art.ID, LocatorJSON: testLocator, Transcription: "Leeds",
+			ArtifactID: art.ID, LocatorJSON: depictionvaluetest.Locator, Transcription: "Leeds",
 		}, []observations.Input{{
 			SubjectID: place.ID, PropertyID: propertyID, Scalar: propertymeta.TextScalar("Leeds"),
 		}})
@@ -537,7 +536,7 @@ func TestUsedByCountsObservationsAndTerms(t *testing.T) {
 	}
 	if _, err := writes.Call(c, writes.Op{Action: "create_citation_with_observations", UserID: userID}, func(tx *database.Tx) (citations.CreateResult, []rowchange.Change, error) {
 		return citations.CreateWithObservations(tx, userID, citations.CreateInput{
-			GraphID: graph, ArtifactID: art.ID, LocatorJSON: testLocator, Transcription: "Alice",
+			GraphID: graph, ArtifactID: art.ID, LocatorJSON: depictionvaluetest.Locator, Transcription: "Alice",
 		}, inputs)
 	}); err != nil {
 		t.Fatal(err)

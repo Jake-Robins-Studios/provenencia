@@ -20,7 +20,9 @@ func TestValidateDepictionRegion(t *testing.T) {
 	}
 	page := func(n string) string { return `{"type":"page","artifact_page":` + n + `}` }
 	art := `{"type":"artifact"}`
+	// stored before S15-59
 	label := `{"type":"page","page_label":"14"}`
+	// stored before S15-59
 	unknown := `{"type":"page","page_unknown":true}`
 	tests := []struct {
 		name     string
@@ -53,8 +55,8 @@ func TestValidateDepictionRegion(t *testing.T) {
 		{"file page beside an unknown printed page", doc(page("1"), tri), doc(`{"type":"page","artifact_page":1,"page_unknown":true}`), false},
 		{"unknown-only citation, region without page", doc(tri), doc(art, unknown), false},
 		{"unknown-only citation, region on page 1", doc(page("1"), tri), doc(art, unknown), true},
-		{"region page selector carries an unpaired mark", doc(`{"type":"page","artifact_page":1,"page_label":"3","page_unknown":true}`, tri), doc(page("1")), false},
-		{"citation page selector carries an unpaired mark", doc(page("1"), tri), doc(`{"type":"page","artifact_page":1,"page_label":"3","page_unknown":true}`), false},
+		{"region page selector carries retired keys", doc(`{"type":"page","artifact_page":1,"page_label":"3","page_unknown":true}`, tri), doc(page("1")), false},
+		{"citation page selector carries retired keys", doc(page("1"), tri), doc(`{"type":"page","artifact_page":1,"page_label":"3","page_unknown":true}`), false},
 		{"invalid region json", `{`, doc(page("1")), true},
 		{"invalid citation json", doc(page("1"), tri), `{`, true},
 	}

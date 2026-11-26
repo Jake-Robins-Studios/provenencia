@@ -13,6 +13,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties/propertiestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/sourcecredibilitygradestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
@@ -47,8 +48,6 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 	"github.com/google/uuid"
 )
-
-const testLocator = `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`
 
 func TestImpactGates(t *testing.T) {
 	c, userID := testCatalog(t)
@@ -251,7 +250,7 @@ func TestImpactCitationAndSubject(t *testing.T) {
 		res, err := writes.Call(c, writes.Op{Action: "create_citation_with_observations", UserID: userID}, func(tx *database.Tx) (citations.CreateResult, []rowchange.Change, error) {
 			return citations.CreateWithObservations(tx, userID, citations.CreateInput{
 				GraphID:    graph,
-				ArtifactID: art.ID, LocatorJSON: testLocator, Transcription: "Leeds",
+				ArtifactID: art.ID, LocatorJSON: depictionvaluetest.Locator, Transcription: "Leeds",
 			}, []observations.Input{{
 				SubjectID: place.ID, PropertyID: toponym.ID, Scalar: propertymeta.TextScalar("Leeds"),
 			}})
@@ -285,7 +284,7 @@ func TestImpactCitationAndSubject(t *testing.T) {
 			t.Fatal(err)
 		}
 		term := createTerm(t, c, userID, eventTypeProp.ID, "Land Grant")
-		if _, _, err := observationstest.Cite(c, userID, graph, art.ID, testLocator, []observations.Input{{
+		if _, _, err := observationstest.Cite(c, userID, graph, art.ID, depictionvaluetest.Locator, []observations.Input{{
 			SubjectID: wedding.ID, PropertyID: eventTypeProp.ID, ValueTermID: term.ID,
 		}}...); err != nil {
 			t.Fatal(err)
@@ -307,7 +306,7 @@ func TestImpactCitationAndSubject(t *testing.T) {
 				Scalar: propertymeta.TextScalar(fmt.Sprintf("name-%02d", i)),
 			}
 		}
-		res, _, err := observationstest.Cite(c, userID, graph, art.ID, testLocator, inputs...)
+		res, _, err := observationstest.Cite(c, userID, graph, art.ID, depictionvaluetest.Locator, inputs...)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -347,7 +346,7 @@ func TestImpactCitationAndSubject(t *testing.T) {
 			return connect.CreateCitedBridge(tx, userID, connect.CreateInput{
 				FromSubjectID: alice.ID, ToSubjectID: wedding.ID,
 				BridgeTypeKey: "participation",
-				Citation:      citations.CreateInput{ArtifactID: art.ID, LocatorJSON: testLocator},
+				Citation:      citations.CreateInput{ArtifactID: art.ID, LocatorJSON: depictionvaluetest.Locator},
 				Observations: []observations.Input{
 					{PropertyID: personProp.ID, ValueSubjectID: alice.ID},
 					{PropertyID: eventProp.ID, ValueSubjectID: wedding.ID},
@@ -484,7 +483,7 @@ func TestImpactCitationAndSubject(t *testing.T) {
 			t.Fatalf("user role %+v", userRole)
 		}
 		subjectvocabtest.Assign(t, c, userID, personType.ID, userRole.ID)
-		res, _, err := observationstest.Cite(c, userID, graph, art.ID, testLocator, []observations.Input{{
+		res, _, err := observationstest.Cite(c, userID, graph, art.ID, depictionvaluetest.Locator, []observations.Input{{
 			SubjectID: alice.ID, PropertyID: userRole.ID, Scalar: propertymeta.TextScalar("witness"),
 		}}...)
 		if err != nil {
@@ -531,7 +530,7 @@ func TestImpactCitationAndSubject(t *testing.T) {
 			t.Fatal(err)
 		}
 		bob := subjectstest.At(t, c, userID, graph, personType.ID, "Bob", subjects.Placement{GridX: 8, GridY: 0})
-		if _, _, err := observationstest.Cite(c, userID, graph, art.ID, testLocator, []observations.Input{{
+		if _, _, err := observationstest.Cite(c, userID, graph, art.ID, depictionvaluetest.Locator, []observations.Input{{
 			SubjectID: bob.ID, PropertyID: roleProp.ID, ValueTermID: roleTerm.ID,
 		}}...); err != nil {
 			t.Fatal(err)
@@ -719,7 +718,7 @@ func TestImpactSourceAndArtifact(t *testing.T) {
 	srcGraph := evidencegraphstest.SoleGraph(t, c, src.ID).ID
 	cit, err := citationstest.Create(c, userID, citations.CreateInput{
 		GraphID:    srcGraph,
-		ArtifactID: art.ID, LocatorJSON: testLocator,
+		ArtifactID: art.ID, LocatorJSON: depictionvaluetest.Locator,
 		Transcription: "John Hartley, worsted weaver, of 14 Back Nile Street",
 	})
 	if err != nil {
@@ -852,7 +851,7 @@ func TestImpactEvidenceGraph(t *testing.T) {
 	})
 
 	t.Run("a graph's Citations go with it", func(t *testing.T) {
-		cit, _, err := observationstest.Cite(c, userID, jones.ID, art.ID, testLocator)
+		cit, _, err := observationstest.Cite(c, userID, jones.ID, art.ID, depictionvaluetest.Locator)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1033,7 +1032,7 @@ func TestListedGroup(t *testing.T) {
 	graph := evidencegraphstest.SoleGraph(t, c, src.ID).ID
 	var rows []deleteimpact.Listed
 	for i := 0; i < 25; i++ {
-		res, _, err := observationstest.Cite(c, userID, graph, art.ID, testLocator)
+		res, _, err := observationstest.Cite(c, userID, graph, art.ID, depictionvaluetest.Locator)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1124,7 +1123,7 @@ func TestLocationsNameTheirGraph(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cited, _, err := observationstest.Cite(c, userID, jones.ID, page.ID, testLocator, []observations.Input{{SubjectID: subject.ID, PropertyID: toponym.ID, Scalar: propertymeta.TextScalar("Leeds")}}...)
+	cited, _, err := observationstest.Cite(c, userID, jones.ID, page.ID, depictionvaluetest.Locator, []observations.Input{{SubjectID: subject.ID, PropertyID: toponym.ID, Scalar: propertymeta.TextScalar("Leeds")}}...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1135,7 +1134,7 @@ func TestLocationsNameTheirGraph(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	bare, _, err := observationstest.Cite(c, userID, jones.ID, page.ID, testLocator)
+	bare, _, err := observationstest.Cite(c, userID, jones.ID, page.ID, depictionvaluetest.Locator)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1325,7 +1324,7 @@ func TestInboundTotals(t *testing.T) {
 	place := subjectstest.OfType(t, c, userID, g1.ID, placeType.ID, "Leeds")
 	if _, err := writes.Call(c, writes.Op{Action: "create_citation_with_observations", UserID: userID}, func(tx *database.Tx) (citations.CreateResult, []rowchange.Change, error) {
 		return citations.CreateWithObservations(tx, userID, citations.CreateInput{
-			GraphID: g1.ID, ArtifactID: a1.ID, LocatorJSON: testLocator, Transcription: "Leeds",
+			GraphID: g1.ID, ArtifactID: a1.ID, LocatorJSON: depictionvaluetest.Locator, Transcription: "Leeds",
 		}, []observations.Input{{SubjectID: place.ID, PropertyID: toponym.ID, Scalar: propertymeta.TextScalar("Leeds")}})
 	}); err != nil {
 		t.Fatal(err)
@@ -1491,7 +1490,7 @@ func TestImpactEvidenceGraphLeavesNoGraph(t *testing.T) {
 			}
 
 			for i := 0; i < tt.citations; i++ {
-				if _, _, err := observationstest.Cite(c, userID, jones.ID, jonesAndDefArts[0].ID, testLocator); err != nil {
+				if _, _, err := observationstest.Cite(c, userID, jones.ID, jonesAndDefArts[0].ID, depictionvaluetest.Locator); err != nil {
 					t.Fatal(err)
 				}
 			}

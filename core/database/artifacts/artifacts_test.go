@@ -27,6 +27,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/derivatives"
 	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
@@ -515,7 +516,6 @@ func TestArtifactDelete(t *testing.T) {
 		t.Fatalf("audit %q", action)
 	}
 
-	const locator = `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`
 	cited, err := runCreate(c, userID, artifacts.CreateInput{SourceID: src.ID, Label: "Cited scan"})
 	if err != nil {
 		t.Fatal(err)
@@ -523,7 +523,7 @@ func TestArtifactDelete(t *testing.T) {
 	citedGraph := evidencegraphstest.SoleGraph(t, c, src.ID).ID
 	if _, err := citationstest.Create(c, userID, citations.CreateInput{
 		GraphID:    citedGraph,
-		ArtifactID: cited.ID, LocatorJSON: locator,
+		ArtifactID: cited.ID, LocatorJSON: depictionvaluetest.Locator,
 	}); err != nil {
 		t.Fatal(err)
 	}

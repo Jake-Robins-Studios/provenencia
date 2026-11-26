@@ -23,6 +23,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties/propertiestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
 	"github.com/Jake-Robins-Studios/provenencia/core/locator"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
@@ -30,8 +31,6 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 )
-
-const validLocatorJSON = `{"version":1,"selectors":[{"type":"page","artifact_page":12,"page_label":"10"}]}`
 
 func citationFixture(t *testing.T) (projectDir, userID, sourceID, artifactID, placeSubjectID, toponymPropertyID string) {
 	t.Helper()
@@ -69,7 +68,6 @@ func citationFixture(t *testing.T) (projectDir, userID, sourceID, artifactID, pl
 }
 
 const (
-	likenessLocatorJSON = `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`
 	likenessRegionJSON  = `{"version":1,"selectors":[{"type":"page","artifact_page":1},{"type":"region","unit":"normalized","points":[{"x":0.1,"y":0.1},{"x":0.4,"y":0.1},{"x":0.4,"y":0.5}]}]}`
 	likenessRegion2JSON = `{"version":1,"selectors":[{"type":"page","artifact_page":1},{"type":"region","unit":"normalized","points":[{"x":0.5,"y":0.5},{"x":0.9,"y":0.5},{"x":0.9,"y":0.9}]}]}`
 )
@@ -159,7 +157,7 @@ func likenessDraft(personID, likenessID, region, imagePath string) *engine.Obser
 func saveLikeness(t *testing.T, dir, userID, artifactID, personID, likenessID, crop string) *engine.CreateCitationWithObservationsResponse {
 	t.Helper()
 	out, err := CreateCitationWithObservations(marshalProto(t, &engine.CreateCitationWithObservationsRequest{
-		ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: likenessLocatorJSON,
+		ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: depictionvaluetest.Locator,
 		Observations: []*engine.ObservationDraft{likenessDraft(personID, likenessID, likenessRegionJSON, crop)},
 	}))
 	if err != nil {
@@ -216,7 +214,7 @@ func TestCreateCitationRefusesSymlinkedCrop(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err := CreateCitationWithObservations(marshalProto(t, &engine.CreateCitationWithObservationsRequest{
-		ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: likenessLocatorJSON,
+		ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: depictionvaluetest.Locator,
 		Observations: []*engine.ObservationDraft{likenessDraft(personID, likenessID, likenessRegionJSON, link)},
 	}))
 	if !errors.Is(err, ingest.ErrSymlink) {
@@ -304,7 +302,7 @@ func TestCreateCitationWithObservations(t *testing.T) {
 			reqFn: func(t *testing.T) proto.Message {
 				dir, userID, _, artifactID, _, _ := citationFixture(t)
 				return &engine.CreateCitationWithObservationsRequest{
-					ProjectDir: dir, UserId: userID, ArtifactId: artifactID, LocatorJson: validLocatorJSON,
+					ProjectDir: dir, UserId: userID, ArtifactId: artifactID, LocatorJson: depictionvaluetest.Locator,
 				}
 			},
 			wantErr: true,
@@ -318,7 +316,7 @@ func TestCreateCitationWithObservations(t *testing.T) {
 					UserId:        userID,
 					ArtifactId:    artifactID,
 					GraphId:       graphLinking(t, dir, artifactID),
-					LocatorJson:   validLocatorJSON,
+					LocatorJson:   depictionvaluetest.Locator,
 					Transcription: "transcribe first",
 				}
 			},
@@ -373,7 +371,7 @@ func TestCreateCitationWithObservations(t *testing.T) {
 				dir, userID, _, artifactID, personID, likenessID := likenessFixture(t)
 				objectsBefore = objectRelPaths(t, dir)
 				return &engine.CreateCitationWithObservationsRequest{
-					ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: likenessLocatorJSON,
+					ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{likenessDraft(personID, likenessID, likenessRegionJSON, writeCrop(t, 300, 200, 128))},
 				}
 			},
@@ -403,7 +401,7 @@ func TestCreateCitationWithObservations(t *testing.T) {
 					UserId:        userID,
 					ArtifactId:    artifactID,
 					GraphId:       graphLinking(t, dir, artifactID),
-					LocatorJson:   validLocatorJSON,
+					LocatorJson:   depictionvaluetest.Locator,
 					Transcription: "Boston",
 					Observations: []*engine.ObservationDraft{{
 						SubjectId:  placeID,
@@ -444,7 +442,7 @@ func TestAddObservationsToCitation(t *testing.T) {
 			reqFn: func(t *testing.T) proto.Message {
 				dir, userID, _, artifactID, personID, likenessID := likenessFixture(t)
 				createOut, err := CreateCitationWithObservations(marshalProto(t, &engine.CreateCitationWithObservationsRequest{
-					ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: likenessLocatorJSON,
+					ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: depictionvaluetest.Locator,
 				}))
 				if err != nil {
 					t.Fatal(err)
@@ -478,7 +476,7 @@ func TestAddObservationsToCitation(t *testing.T) {
 					UserId:      userID,
 					ArtifactId:  artifactID,
 					GraphId:     graphLinking(t, dir, artifactID),
-					LocatorJson: validLocatorJSON,
+					LocatorJson: depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{{
 						SubjectId:  placeID,
 						PropertyId: propID,
@@ -554,7 +552,7 @@ func TestListObservationsByEvidenceGraph(t *testing.T) {
 					UserId:      userID,
 					ArtifactId:  artifactID,
 					GraphId:     graphLinking(t, dir, artifactID),
-					LocatorJson: validLocatorJSON,
+					LocatorJson: depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{{
 						SubjectId:  placeID,
 						PropertyId: propID,
@@ -625,7 +623,7 @@ func TestListObservationsByEvidenceGraph(t *testing.T) {
 					UserId:      userID,
 					ArtifactId:  artifactID,
 					GraphId:     graphLinking(t, dir, artifactID),
-					LocatorJson: validLocatorJSON,
+					LocatorJson: depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{{
 						SubjectId:   event.Subject.GetId(),
 						PropertyId:  propID,
@@ -676,7 +674,7 @@ func TestCitationCountsByEvidenceGraph(t *testing.T) {
 					UserId:      userID,
 					ArtifactId:  artifactID,
 					GraphId:     graphLinking(t, dir, artifactID),
-					LocatorJson: validLocatorJSON,
+					LocatorJson: depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{{
 						SubjectId:  placeID,
 						PropertyId: propID,
@@ -690,7 +688,7 @@ func TestCitationCountsByEvidenceGraph(t *testing.T) {
 					UserId:      userID,
 					ArtifactId:  artifactID,
 					GraphId:     graphLinking(t, dir, artifactID),
-					LocatorJson: validLocatorJSON,
+					LocatorJson: depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{{
 						SubjectId:  placeID,
 						PropertyId: propID,
@@ -745,7 +743,7 @@ func TestListCitationsByArtifact(t *testing.T) {
 					UserId:        userID,
 					ArtifactId:    artifactID,
 					GraphId:       graphLinking(t, dir, artifactID),
-					LocatorJson:   validLocatorJSON,
+					LocatorJson:   depictionvaluetest.Locator,
 					Transcription: "empty reading",
 				})); err != nil {
 					t.Fatal(err)
@@ -755,7 +753,7 @@ func TestListCitationsByArtifact(t *testing.T) {
 					UserId:        userID,
 					ArtifactId:    artifactID,
 					GraphId:       graphLinking(t, dir, artifactID),
-					LocatorJson:   validLocatorJSON,
+					LocatorJson:   depictionvaluetest.Locator,
 					Transcription: "Boston",
 					Observations: []*engine.ObservationDraft{{
 						SubjectId:  placeID,
@@ -826,7 +824,7 @@ func TestGetCitation(t *testing.T) {
 					UserId:        userID,
 					ArtifactId:    artifactID,
 					GraphId:       graphLinking(t, dir, artifactID),
-					LocatorJson:   validLocatorJSON,
+					LocatorJson:   depictionvaluetest.Locator,
 					Transcription: "Boston",
 					CitationNotes: []string{"note A"},
 					Observations: []*engine.ObservationDraft{{
@@ -905,7 +903,7 @@ func TestGetCitation(t *testing.T) {
 					UserId:      userID,
 					ArtifactId:  artifactID,
 					GraphId:     graphLinking(t, dir, artifactID),
-					LocatorJson: validLocatorJSON,
+					LocatorJson: depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{{
 						SubjectId:   event.Subject.GetId(),
 						PropertyId:  propID,
@@ -942,7 +940,7 @@ func TestGetCitationSecondReadUsesTheLoadedSource(t *testing.T) {
 		UserId:      userID,
 		ArtifactId:  artifactID,
 		GraphId:     graphLinking(t, dir, artifactID),
-		LocatorJson: validLocatorJSON,
+		LocatorJson: depictionvaluetest.Locator,
 		Observations: []*engine.ObservationDraft{
 			{SubjectId: placeID, PropertyId: propID, ValueText: "Boston"},
 			{SubjectId: placeID, PropertyId: propID, ValueText: "Cambridge"},
@@ -960,7 +958,7 @@ func TestGetCitationSecondReadUsesTheLoadedSource(t *testing.T) {
 		UserId:      userID,
 		ArtifactId:  artifactID,
 		GraphId:     graphLinking(t, dir, artifactID),
-		LocatorJson: validLocatorJSON,
+		LocatorJson: depictionvaluetest.Locator,
 		Observations: []*engine.ObservationDraft{
 			{SubjectId: placeID, PropertyId: propID, ValueText: "Elsewhere"},
 		},
@@ -1034,7 +1032,7 @@ func TestUpdateCitation(t *testing.T) {
 					UserId:        userID,
 					ArtifactId:    artifactID,
 					GraphId:       graphLinking(t, dir, artifactID),
-					LocatorJson:   validLocatorJSON,
+					LocatorJson:   depictionvaluetest.Locator,
 					Transcription: "was",
 					Observations: []*engine.ObservationDraft{{
 						SubjectId:  placeID,
@@ -1053,7 +1051,7 @@ func TestUpdateCitation(t *testing.T) {
 					ProjectDir:    dir,
 					UserId:        userID,
 					CitationId:    created.Citation.GetId(),
-					LocatorJson:   validLocatorJSON,
+					LocatorJson:   depictionvaluetest.Locator,
 					Transcription: "now",
 				}
 			},
@@ -1172,7 +1170,7 @@ func TestUpdateObservation(t *testing.T) {
 					UserId:      userID,
 					ArtifactId:  artifactID,
 					GraphId:     graphLinking(t, dir, artifactID),
-					LocatorJson: validLocatorJSON,
+					LocatorJson: depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{{
 						SubjectId:  placeID,
 						PropertyId: propID,
@@ -1221,7 +1219,7 @@ func TestDeleteCitation(t *testing.T) {
 					UserId:      userID,
 					ArtifactId:  artifactID,
 					GraphId:     graphLinking(t, dir, artifactID),
-					LocatorJson: validLocatorJSON,
+					LocatorJson: depictionvaluetest.Locator,
 				}))
 				if err != nil {
 					t.Fatal(err)
@@ -1251,7 +1249,7 @@ func TestDeleteCitation(t *testing.T) {
 					UserId:      userID,
 					ArtifactId:  artifactID,
 					GraphId:     graphLinking(t, dir, artifactID),
-					LocatorJson: validLocatorJSON,
+					LocatorJson: depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{{
 						SubjectId:  placeID,
 						PropertyId: propID,
@@ -1289,7 +1287,7 @@ func TestDeleteObservation(t *testing.T) {
 					UserId:      userID,
 					ArtifactId:  artifactID,
 					GraphId:     graphLinking(t, dir, artifactID),
-					LocatorJson: validLocatorJSON,
+					LocatorJson: depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{{
 						SubjectId:  placeID,
 						PropertyId: propID,
@@ -1336,7 +1334,7 @@ func TestDepictionStagesBeforeSession(t *testing.T) {
 		done := make(chan result, 1)
 		go func() {
 			out, err := CreateCitationWithObservations(marshalProto(t, &engine.CreateCitationWithObservationsRequest{
-				ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphID, LocatorJson: likenessLocatorJSON,
+				ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphID, LocatorJson: depictionvaluetest.Locator,
 				Observations: []*engine.ObservationDraft{likenessDraft(personID, likenessID, likenessRegionJSON, crop)},
 			}))
 			done <- result{out, err}
@@ -1411,7 +1409,7 @@ func TestCreateCitationBooleanObservation(t *testing.T) {
 	no := false
 	var created engine.CreateCitationWithObservationsResponse
 	mustRPC(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
-		ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: validLocatorJSON,
+		ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: depictionvaluetest.Locator,
 		Observations: []*engine.ObservationDraft{{SubjectId: placeID, PropertyId: propID, ValueBoolean: &no}},
 	}, &created)
 	if len(created.Observations) != 1 {
@@ -1444,7 +1442,7 @@ func TestCreateCitationWithObservationsMetadata(t *testing.T) {
 		var resp engine.CreateCitationWithObservationsResponse
 		err := rpc(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
 			ProjectDir: m.dir, UserId: m.userID, ArtifactId: m.page2, GraphId: graphLinking(t, m.dir, m.page2),
-			LocatorJson: validLocatorJSON, Metadata: draft,
+			LocatorJson: depictionvaluetest.Locator, Metadata: draft,
 		}, &resp)
 		return &resp, err
 	}
@@ -1486,7 +1484,7 @@ func TestCreateCitationWithObservationsMetadata(t *testing.T) {
 		// count shows the whole write rolled back.
 		err := rpc(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
 			ProjectDir: m.dir, UserId: m.userID, ArtifactId: m.page2, GraphId: graphLinking(t, m.dir, m.page2),
-			LocatorJson: validLocatorJSON, Metadata: draftOf("01890000-0000-7000-8000-000000000001", "x"),
+			LocatorJson: depictionvaluetest.Locator, Metadata: draftOf("01890000-0000-7000-8000-000000000001", "x"),
 			Observations: []*engine.ObservationDraft{{
 				SubjectId: m.subjectID, PropertyId: propertyIDByKey(t, m.dir, "toponym"), ValueText: "Boston",
 			}},
@@ -1512,7 +1510,7 @@ func TestUpdateCitationMetadata(t *testing.T) {
 		t.Helper()
 		var resp engine.UpdateCitationResponse
 		mustRPC(t, UpdateCitation, &engine.UpdateCitationRequest{
-			ProjectDir: m.dir, UserId: m.userID, CitationId: m.citationID, LocatorJson: validLocatorJSON, Metadata: draft,
+			ProjectDir: m.dir, UserId: m.userID, CitationId: m.citationID, LocatorJson: depictionvaluetest.Locator, Metadata: draft,
 		}, &resp)
 		return &resp
 	}
@@ -1540,7 +1538,7 @@ func TestDeleteCitationReleasesMetadata(t *testing.T) {
 	var created engine.CreateCitationWithObservationsResponse
 	mustRPC(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
 		ProjectDir: m.dir, UserId: m.userID, ArtifactId: m.page2, GraphId: graphLinking(t, m.dir, m.page2),
-		LocatorJson: validLocatorJSON,
+		LocatorJson: depictionvaluetest.Locator,
 		Metadata: &engine.MetadataDraft{
 			Values: []*engine.MetadataValue{{FieldId: m.suggested, ValueText: "FamilySearch"}, {FieldId: m.extra, ValueText: "14"}},
 			Layout: []*engine.MetadataLayoutRow{{FieldId: m.suggested, SortOrder: 0}},
@@ -1614,7 +1612,7 @@ func TestListCitationsByArtifactBoards(t *testing.T) {
 	page := pageFieldID(t, f.dir)
 	var second engine.CreateCitationWithObservationsResponse
 	mustRPC(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
-		ProjectDir: f.dir, UserId: f.userID, ArtifactId: f.page1, GraphId: f.defaultGraphID, LocatorJson: validLocatorJSON,
+		ProjectDir: f.dir, UserId: f.userID, ArtifactId: f.page1, GraphId: f.defaultGraphID, LocatorJson: depictionvaluetest.Locator,
 	}, &second)
 	mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
 		ProjectDir: f.dir, UserId: f.userID, Owner: &engine.MetadataOwner{Level: "graph", Id: f.defaultGraphID}, FieldId: page, ValueText: "2",
@@ -1662,7 +1660,7 @@ func TestListCitationsByArtifactScale(t *testing.T) {
 		}
 		mustRPC(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
 			ProjectDir: f.dir, UserId: f.userID, ArtifactId: f.page2, GraphId: graphLinking(t, f.dir, f.page2),
-			LocatorJson: validLocatorJSON, Label: "c" + strconv.Itoa(i), Metadata: draft,
+			LocatorJson: depictionvaluetest.Locator, Label: "c" + strconv.Itoa(i), Metadata: draft,
 		}, &engine.CreateCitationWithObservationsResponse{})
 	}
 	start := time.Now()

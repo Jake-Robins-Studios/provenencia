@@ -22,12 +22,11 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 )
-
-const testLocator = `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`
 
 func TestCitationDeleteConnectionOnly(t *testing.T) {
 	userID := []byte{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1}
@@ -98,7 +97,7 @@ func TestCitationDeleteConnectionOnly(t *testing.T) {
 		return connect.CreateCitedBridge(tx, userID, connect.CreateInput{
 			FromSubjectID: alice.ID, ToSubjectID: wedding.ID,
 			BridgeTypeKey: "participation",
-			Citation:      citations.CreateInput{ArtifactID: art.ID, LocatorJSON: testLocator},
+			Citation:      citations.CreateInput{ArtifactID: art.ID, LocatorJSON: depictionvaluetest.Locator},
 			Observations: []observations.Input{
 				{PropertyID: personProp.ID, ValueSubjectID: alice.ID},
 				{PropertyID: eventProp.ID, ValueSubjectID: wedding.ID},

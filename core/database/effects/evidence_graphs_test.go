@@ -22,6 +22,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
@@ -207,7 +208,7 @@ func TestEvidenceGraphsResolve(t *testing.T) {
 	subjectID := only(subjChange, "subject")[0].EntityID
 	cited, citChanges, err := citations.CreateWithObservations(tx, userID, citations.CreateInput{
 		GraphID:    jones.ID,
-		ArtifactID: srcArt.ID, LocatorJSON: evidenceLocator,
+		ArtifactID: srcArt.ID, LocatorJSON: depictionvaluetest.Locator,
 	}, []observations.Input{{SubjectID: subjectID, PropertyID: nameProp.ID, Name: &namevalue.Value{Form: "Ada"}}})
 	if err != nil {
 		t.Fatal(err)
@@ -285,7 +286,7 @@ func TestEvidenceGraphsResolve(t *testing.T) {
 	}
 	_, baseCit, err := citations.CreateWithObservations(tx, userID, citations.CreateInput{
 		GraphID:    baseGraph,
-		ArtifactID: baseArt.ID, LocatorJSON: evidenceLocator,
+		ArtifactID: baseArt.ID, LocatorJSON: depictionvaluetest.Locator,
 	}, nil)
 	if err != nil {
 		t.Fatal(err)

@@ -33,6 +33,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
@@ -197,8 +198,6 @@ func TestSourceOf(t *testing.T) {
 	}
 }
 
-const pageLocator = `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`
-
 // run runs fn as one write and returns the changes it produced.
 func run(t *testing.T, c *database.Catalog, fn func(tx *database.Tx) ([]rowchange.Change, error)) ([]rowchange.Change, error) {
 	t.Helper()
@@ -270,7 +269,7 @@ func (f fixture) subjectAndCitation(t *testing.T, src sources.Source, artifactID
 	}
 	graph := evidencegraphstest.SoleGraph(t, f.c, src.ID).ID
 	subject := subjectstest.OfType(t, f.c, userID, graph, person.ID, "Ada")
-	res, _, err := observationstest.Cite(f.c, userID, graph, artifactID, pageLocator, []observations.Input{
+	res, _, err := observationstest.Cite(f.c, userID, graph, artifactID, depictionvaluetest.Locator, []observations.Input{
 		{SubjectID: subject.ID, PropertyID: nameProp.ID, Name: &namevalue.Value{Form: "Ada"}},
 	}...)
 	if err != nil {
@@ -283,7 +282,7 @@ func (f fixture) subjectAndCitation(t *testing.T, src sources.Source, artifactID
 // Observation. The graph must be linked to the Artifact.
 func (f fixture) bareCitation(t *testing.T, graphID, artifactID []byte) citations.Citation {
 	t.Helper()
-	res, _, err := observationstest.Cite(f.c, userID, graphID, artifactID, pageLocator)
+	res, _, err := observationstest.Cite(f.c, userID, graphID, artifactID, depictionvaluetest.Locator)
 	if err != nil {
 		t.Fatal(err)
 	}

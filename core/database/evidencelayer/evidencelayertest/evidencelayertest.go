@@ -28,6 +28,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue/datevaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue/namevaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
@@ -39,7 +40,7 @@ import (
 var UserID = []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
 
 // Locator is the citation locator every Records citation uses.
-const Locator = `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`
+const Locator = depictionvaluetest.Locator
 
 // Records is a catalog with one Source and its Artifact, and the builders for
 // the Subjects, Observations and bridges cited on any Source in it.

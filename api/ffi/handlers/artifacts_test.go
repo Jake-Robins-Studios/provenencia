@@ -15,6 +15,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
 	"google.golang.org/protobuf/proto"
 )
@@ -207,7 +208,7 @@ func TestDeleteArtifact(t *testing.T) {
 					UserId:      userID,
 					ArtifactId:  art.Artifact.Id,
 					GraphId:     graphLinking(t, dir, art.Artifact.Id),
-					LocatorJson: `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`,
+					LocatorJson: depictionvaluetest.Locator,
 				})); err != nil {
 					t.Fatal(err)
 				}
@@ -323,7 +324,7 @@ func TestUpdateArtifactGraphLinks(t *testing.T) {
 	t.Run("a refused unlink rolls back the label", func(t *testing.T) {
 		id := newPage("P3").GetArtifact().GetId()
 		mustRPC(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
-			ProjectDir: f.dir, UserId: f.userID, ArtifactId: id, GraphId: graphLinking(t, f.dir, id), LocatorJson: validLocatorJSON,
+			ProjectDir: f.dir, UserId: f.userID, ArtifactId: id, GraphId: graphLinking(t, f.dir, id), LocatorJson: depictionvaluetest.Locator,
 		}, &engine.CreateCitationWithObservationsResponse{})
 		_, err := update(id, "P3 renamed", &engine.GraphLinks{})
 		if !errors.Is(err, evidencegraphs.ErrArtifactInUse) {
@@ -499,7 +500,7 @@ func TestUpdateArtifactMetadata(t *testing.T) {
 	t.Run("a refused unlink drops the draft", func(t *testing.T) {
 		pageID := m.createArtifact(t, m.sourceID, "P6", &engine.GraphLinks{GraphIds: []string{m.defaultGraphID}})
 		mustRPC(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
-			ProjectDir: m.dir, UserId: m.userID, ArtifactId: pageID, GraphId: graphLinking(t, m.dir, pageID), LocatorJson: validLocatorJSON,
+			ProjectDir: m.dir, UserId: m.userID, ArtifactId: pageID, GraphId: graphLinking(t, m.dir, pageID), LocatorJson: depictionvaluetest.Locator,
 		}, &engine.CreateCitationWithObservationsResponse{})
 		before := latestRevisionTypes(t, m.dir)
 		err := rpc(t, UpdateArtifact, &engine.UpdateArtifactRequest{

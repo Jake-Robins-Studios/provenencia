@@ -8,6 +8,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
 	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/google/uuid"
 )
 
@@ -16,12 +17,6 @@ const (
 	renderCensusShort = "1880 Westmark census, Calder County, Westmark, ED 236, fol. 22, p. 14, dwell. 112, fam. 118, Ada Robins."
 	renderCensusList  = "Calder County, Westmark. 1880 Westmark census, population schedule."
 )
-
-// pageLocatorJSON is a Citation's locator with a page selector. Its page_label
-// no longer prints: a Citation's own Page value does. S15-59 removes the label.
-func pageLocatorJSON(label string) string {
-	return `{"version":1,"selectors":[{"type":"page","page_label":"` + label + `"}]}`
-}
 
 // renderWorld is AC-1.1's catalog built by RPC.
 type renderWorld struct {
@@ -79,7 +74,7 @@ func newRenderWorld(t *testing.T) renderWorld {
 		"format": "digital image", "provider": "Westmark Heritage", "url": "https://example.org/calder/1880",
 		"accessed_date": "12 March 2025", "citing": "county film 7, item 3",
 	})
-	w.citation = newCitation(t, dir, userID, w.artifact, w.graph, pageLocatorJSON("14"))
+	w.citation = newCitation(t, dir, userID, w.artifact, w.graph, depictionvaluetest.Locator)
 	setValues(t, dir, userID, ids, "citation", w.citation, map[string]string{"page": "14"})
 	return w
 }
@@ -118,8 +113,8 @@ func TestRenderCitations(t *testing.T) {
 	})
 
 	t.Run("AC-1.2 equal pages group", func(t *testing.T) {
-		same := newCitation(t, w.dir, w.userID, w.artifact, w.graph, pageLocatorJSON("14"))
-		other := newCitation(t, w.dir, w.userID, w.artifact, w.graph, pageLocatorJSON("15"))
+		same := newCitation(t, w.dir, w.userID, w.artifact, w.graph, depictionvaluetest.Locator)
+		other := newCitation(t, w.dir, w.userID, w.artifact, w.graph, depictionvaluetest.Locator)
 		pageIDs := fieldIDsByKey(t, w.dir)
 		setValues(t, w.dir, w.userID, pageIDs, "citation", same, map[string]string{"page": "14"})
 		setValues(t, w.dir, w.userID, pageIDs, "citation", other, map[string]string{"page": "15"})
@@ -173,9 +168,9 @@ func TestRenderCitations(t *testing.T) {
 			return newCitation(t, w.dir, w.userID, art, graph, locatorJSON)
 		}
 		a := made("A", "", &engine.ValueMark{Unknown: true}, nil, &engine.ValueMark{Unknown: true},
-			`{"version":1,"selectors":[{"type":"page","page_unknown":true}]}`)
+			`{"version":1,"selectors":[{"type":"artifact"}]}`)
 		b := made("B", "Ashby Press", &engine.ValueMark{Supplied: true}, qualifiedDate("ABT", 1880, 0, 0), &engine.ValueMark{Supplied: true},
-			`{"version":1,"selectors":[{"type":"page","page_label":"23","page_supplied":true}]}`)
+			`{"version":1,"selectors":[{"type":"artifact"}]}`)
 		page := fieldIDsByKey(t, w.dir)["page"]
 		for _, set := range []struct {
 			id, text string
@@ -405,8 +400,8 @@ func TestRenderSeededPage(t *testing.T) {
 	t.Run("AC-1.1 and AC-1.5 each Citation holds its own page", func(t *testing.T) {
 		src := newspaper()
 		art, graph := newArtifact(t, w.dir, w.userID, src, "Issue PDF")
-		first := newCitation(t, w.dir, w.userID, art, graph, likenessLocatorJSON)
-		second := newCitation(t, w.dir, w.userID, art, graph, likenessLocatorJSON)
+		first := newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator)
+		second := newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator)
 		setValues(t, w.dir, w.userID, ids, "citation", first, map[string]string{"page": "2", "column": "4"})
 		setValues(t, w.dir, w.userID, ids, "citation", second, map[string]string{"page": "7", "column": "1"})
 		p1, k1 := plain(t, first)
@@ -414,7 +409,7 @@ func TestRenderSeededPage(t *testing.T) {
 		if p1 != gazette+"p. 2, col. 4." || p2 != gazette+"p. 7, col. 1." || k1 == k2 {
 			t.Errorf("plains %q %q, group keys %q %q", p1, p2, k1, k2)
 		}
-		third := newCitation(t, w.dir, w.userID, art, graph, likenessLocatorJSON)
+		third := newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator)
 		mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
 			ProjectDir: w.dir, UserId: w.userID, Owner: &engine.MetadataOwner{Level: "citation", Id: third},
 			FieldId: ids["page"], Mark: &engine.ValueMark{Unknown: true},
@@ -430,7 +425,7 @@ func TestRenderSeededPage(t *testing.T) {
 		setValues(t, w.dir, w.userID, ids, "graph", graph, map[string]string{"page": "3", "column": "2"})
 		var keys []string
 		for range 5 {
-			p, k := plain(t, newCitation(t, w.dir, w.userID, art, graph, likenessLocatorJSON))
+			p, k := plain(t, newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator))
 			if p != gazette+"p. 3, col. 2." {
 				t.Errorf("plain = %q", p)
 			}
@@ -444,7 +439,7 @@ func TestRenderSeededPage(t *testing.T) {
 	})
 
 	t.Run("AC-1.3 a Citation's own page answers", func(t *testing.T) {
-		cit := newCitation(t, w.dir, w.userID, w.artifact, w.graph, pageLocatorJSON("14"))
+		cit := newCitation(t, w.dir, w.userID, w.artifact, w.graph, depictionvaluetest.Locator)
 		setValues(t, w.dir, w.userID, ids, "citation", cit, map[string]string{"line_number": "21", "page": "15"})
 		want := strings.NewReplacer("p. 14,", "p. 15,", "line 14,", "line 21,").Replace(renderCensusFull)
 		if got, _ := plain(t, cit); got != want {

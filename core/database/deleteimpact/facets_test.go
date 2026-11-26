@@ -30,6 +30,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
@@ -266,7 +267,7 @@ func TestFacetReleaseAuditsSourceSide(t *testing.T) {
 		graph := evidencegraphstest.SoleGraph(t, c, src.ID).ID
 		cit, err := citationstest.Create(c, userID, citations.CreateInput{
 			GraphID:    graph,
-			ArtifactID: art.ID, LocatorJSON: testLocator, Notes: []string{"Faded ink", "Second hand"},
+			ArtifactID: art.ID, LocatorJSON: depictionvaluetest.Locator, Notes: []string{"Faded ink", "Second hand"},
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -365,7 +366,7 @@ func TestReleaseCitationChangeNamesEveryColumn(t *testing.T) {
 		t.Fatal(err)
 	}
 	graph := evidencegraphstest.SoleGraph(t, c, src.ID).ID
-	res, _, err := observationstest.Cite(c, userID, graph, art.ID, testLocator)
+	res, _, err := observationstest.Cite(c, userID, graph, art.ID, depictionvaluetest.Locator)
 	if err != nil {
 		t.Fatal(err)
 	}

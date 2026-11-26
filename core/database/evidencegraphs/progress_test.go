@@ -25,14 +25,13 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue/namevaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 )
-
-const validLocator = `{"version":1,"selectors":[{"type":"page","artifact_page":12,"page_label":"10"}]}`
 
 func TestGraphProgress(t *testing.T) {
 	userID := []byte{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1}
@@ -111,7 +110,7 @@ func TestGraphProgress(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, _, err := observationstest.Cite(c, userID, place.GraphID, art.ID, validLocator, []observations.Input{{
+		if _, _, err := observationstest.Cite(c, userID, place.GraphID, art.ID, depictionvaluetest.Locator, []observations.Input{{
 			SubjectID: place.ID, PropertyID: toponym.ID,
 			Scalar: propertymeta.TextScalar("Boston"),
 		}}...); err != nil {
@@ -229,7 +228,7 @@ func TestGraphProgress(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, _, err := observationstest.Cite(s.c, userID, ada.GraphID, art1.ID, validLocator, []observations.Input{{SubjectID: ada.ID, PropertyID: nameProp.ID, Name: namevaluetest.Western("Ada Lee")}}...); err != nil {
+		if _, _, err := observationstest.Cite(s.c, userID, ada.GraphID, art1.ID, depictionvaluetest.Locator, []observations.Input{{SubjectID: ada.ID, PropertyID: nameProp.ID, Name: namevaluetest.Western("Ada Lee")}}...); err != nil {
 			t.Fatal(err)
 		}
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -18,7 +19,7 @@ func filedSubject(t *testing.T, observed bool) (dir, userID, sourceID, subjectID
 	dir, userID, sourceID, artifactID, subjectID, propID := citationFixture(t)
 	if observed {
 		if _, err := CreateCitationWithObservations(marshalProto(t, &engine.CreateCitationWithObservationsRequest{
-			ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: validLocatorJSON,
+			ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: depictionvaluetest.Locator,
 			Observations: []*engine.ObservationDraft{{SubjectId: subjectID, PropertyId: propID, ValueText: "Boston"}},
 		})); err != nil {
 			t.Fatal(err)

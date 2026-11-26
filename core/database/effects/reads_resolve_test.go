@@ -21,6 +21,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
@@ -126,7 +127,7 @@ func sameGraphs(t *testing.T, what string, got [][]byte, want ...[]byte) {
 func TestCitationReadsNameItsGraph(t *testing.T) {
 	tx, userID, _, jones, art := readsFixture(t)
 	_, changes, err := citations.CreateWithObservations(tx, userID, citations.CreateInput{
-		GraphID: jones.ID, ArtifactID: art.ID, LocatorJSON: evidenceLocator,
+		GraphID: jones.ID, ArtifactID: art.ID, LocatorJSON: depictionvaluetest.Locator,
 	}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -151,7 +152,7 @@ func TestCitationReadsNameItsGraph(t *testing.T) {
 func TestFirstObservationMovesNoOtherGraph(t *testing.T) {
 	tx, userID, _, jones, art := readsFixture(t)
 	_, changes, err := citations.CreateWithObservations(tx, userID, citations.CreateInput{
-		GraphID: jones.ID, ArtifactID: art.ID, LocatorJSON: evidenceLocator,
+		GraphID: jones.ID, ArtifactID: art.ID, LocatorJSON: depictionvaluetest.Locator,
 	}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -186,7 +187,7 @@ func TestFirstObservationMovesNoOtherGraph(t *testing.T) {
 func TestMetadataValuesNameCitationGraphs(t *testing.T) {
 	tx, userID, def, jones, art := readsFixture(t)
 	_, changes, err := citations.CreateWithObservations(tx, userID, citations.CreateInput{
-		GraphID: jones.ID, ArtifactID: art.ID, LocatorJSON: evidenceLocator,
+		GraphID: jones.ID, ArtifactID: art.ID, LocatorJSON: depictionvaluetest.Locator,
 	}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -250,7 +251,7 @@ func TestMetadataValuesNameCitationGraphs(t *testing.T) {
 func TestCitationLayoutNamesCitationGraph(t *testing.T) {
 	tx, userID, _, jones, art := readsFixture(t)
 	_, changes, err := citations.CreateWithObservations(tx, userID, citations.CreateInput{
-		GraphID: jones.ID, ArtifactID: art.ID, LocatorJSON: evidenceLocator,
+		GraphID: jones.ID, ArtifactID: art.ID, LocatorJSON: depictionvaluetest.Locator,
 	}, nil)
 	if err != nil {
 		t.Fatal(err)

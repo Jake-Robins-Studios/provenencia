@@ -25,10 +25,10 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/locator"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
-	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 	"github.com/google/uuid"
@@ -36,8 +36,6 @@ import (
 
 func TestCitations(t *testing.T) {
 	userID := []byte{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1}
-
-	validLocator := `{"version":1,"selectors":[{"type":"page","artifact_page":12,"page_label":"10"}]}`
 
 	type seed struct {
 		artifact    artifacts.Artifact
@@ -164,7 +162,7 @@ func TestCitations(t *testing.T) {
 				res, err := createCitation(c, userID, CreateInput{
 					GraphID:       s.graph,
 					ArtifactID:    s.artifact.ID,
-					LocatorJSON:   validLocator,
+					LocatorJSON:   depictionvaluetest.Locator,
 					Transcription: "Alice, female, of Boston",
 					Label:         "entry on page 10",
 				}, []observations.Input{
@@ -198,7 +196,7 @@ func TestCitations(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if got.Transcription != "Alice, female, of Boston" || got.LocatorJSON != validLocator {
+				if got.Transcription != "Alice, female, of Boston" || got.LocatorJSON != depictionvaluetest.Locator {
 					t.Fatalf("got %+v", got)
 				}
 				bySubject, err := observations.ListBySubject(c, s.person.ID)
@@ -224,7 +222,7 @@ func TestCitations(t *testing.T) {
 				res, err := createCitation(c, userID, CreateInput{
 					GraphID:     s.graph,
 					ArtifactID:  s.artifact.ID,
-					LocatorJSON: validLocator,
+					LocatorJSON: depictionvaluetest.Locator,
 					Notes:       []string{"see folio 12"},
 				}, []observations.Input{{
 					SubjectID: s.person.ID, PropertyID: s.sexProp.ID,
@@ -289,7 +287,7 @@ func TestCitations(t *testing.T) {
 				res, err := createCitation(c, userID, CreateInput{
 					GraphID:       s.graph,
 					ArtifactID:    s.artifact.ID,
-					LocatorJSON:   validLocator,
+					LocatorJSON:   depictionvaluetest.Locator,
 					Transcription: "was",
 					Notes:         []string{"keep"},
 				}, []observations.Input{{
@@ -301,7 +299,7 @@ func TestCitations(t *testing.T) {
 				}
 				got, err := writes.Call(c, writes.Op{Action: "update_citation", UserID: userID}, func(tx *database.Tx) (Citation, []rowchange.Change, error) {
 					return Update(tx, userID, res.Citation.ID, CitationFieldsInput{
-						LocatorJSON:   validLocator,
+						LocatorJSON:   depictionvaluetest.Locator,
 						Transcription: "now",
 					})
 				})
@@ -329,7 +327,7 @@ func TestCitations(t *testing.T) {
 				}
 				if _, err := writes.Call(c, writes.Op{Action: "update_citation", UserID: userID}, func(tx *database.Tx) (Citation, []rowchange.Change, error) {
 					return Update(tx, userID, res.Citation.ID, CitationFieldsInput{
-						LocatorJSON:   validLocator,
+						LocatorJSON:   depictionvaluetest.Locator,
 						Transcription: "now",
 					})
 				}); err != nil {
@@ -371,24 +369,32 @@ func TestCitations(t *testing.T) {
 			},
 		},
 		{
-			name: "a printed page alone is a valid locator, two page selectors are not",
+			name: "a page selector holds a file page",
 			run: func(t *testing.T) {
 				c, s := mustSeed(t)
 				obs := []observations.Input{{
 					SubjectID: s.person.ID, PropertyID: s.sexProp.ID,
 					ValueTermID: s.femaleTerm.ID,
 				}}
-				res, err := createCitation(c, userID, CreateInput{
+				_, err := createCitation(c, userID, CreateInput{
 					GraphID:     s.graph,
 					ArtifactID:  s.artifact.ID,
 					LocatorJSON: `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","page_label":"14"}]}`,
 				}, obs)
+				if !errors.Is(err, locator.ErrInvalid) {
+					t.Fatalf("create with a printed page: got %v want locator.ErrInvalid", err)
+				}
+				res, err := createCitation(c, userID, CreateInput{
+					GraphID:     s.graph,
+					ArtifactID:  s.artifact.ID,
+					LocatorJSON: depictionvaluetest.Locator,
+				}, obs)
 				if err != nil {
-					t.Fatalf("create with a label-only page selector: %v", err)
+					t.Fatal(err)
 				}
 				_, err = writes.Call(c, writes.Op{Action: "update_citation", UserID: userID}, func(tx *database.Tx) (Citation, []rowchange.Change, error) {
 					return Update(tx, userID, res.Citation.ID, CitationFieldsInput{
-						LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":1},{"type":"page","page_label":"14"}]}`,
+						LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":1},{"type":"page","artifact_page":2}]}`,
 					})
 				})
 				if !errors.Is(err, locator.ErrInvalid) {
@@ -405,39 +411,63 @@ func TestCitations(t *testing.T) {
 			},
 		},
 		{
-			name: "a printed page can be marked unknown, not unknown with a label",
+			name: "a stored printed page reads and saves",
 			run: func(t *testing.T) {
 				c, s := mustSeed(t)
-				obs := []observations.Input{{
-					SubjectID: s.person.ID, PropertyID: s.sexProp.ID,
-					ValueTermID: s.femaleTerm.ID,
-				}}
-				const unknown = `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","page_unknown":true}]}`
+				const created = `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","artifact_page":37}]}`
+				const stored = `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","artifact_page":37,"page_label":"23","page_supplied":true}]}`
 				res, err := createCitation(c, userID, CreateInput{
 					GraphID:     s.graph,
 					ArtifactID:  s.artifact.ID,
-					LocatorJSON: " " + unknown + " ",
-				}, obs)
-				if err != nil {
-					t.Fatalf("create with an unknown page: %v", err)
-				}
-				if res.Citation.LocatorJSON != unknown {
-					t.Fatalf("LocatorJSON = %q, want %q", res.Citation.LocatorJSON, unknown)
-				}
-				_, err = writes.Call(c, writes.Op{Action: "update_citation", UserID: userID}, func(tx *database.Tx) (Citation, []rowchange.Change, error) {
-					return Update(tx, userID, res.Citation.ID, CitationFieldsInput{
-						LocatorJSON: `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","page_label":"14","page_unknown":true}]}`,
-					})
-				})
-				if !errors.Is(err, valuemark.ErrInvalid) {
-					t.Fatalf("update with a label and unknown: got %v want valuemark.ErrInvalid", err)
-				}
-				got, err := Get(c, res.Citation.ID)
+					LocatorJSON: created,
+				}, []observations.Input{{
+					SubjectID: s.person.ID, PropertyID: s.sexProp.ID,
+					ValueTermID: s.femaleTerm.ID,
+				}})
 				if err != nil {
 					t.Fatal(err)
 				}
-				if got.LocatorJSON != unknown {
-					t.Fatalf("stored LocatorJSON = %q, want %q", got.LocatorJSON, unknown)
+				if _, err := dbtest.MustDB(t, c).Exec("UPDATE citations SET locator_json = ? WHERE id = ?", stored, res.Citation.ID); err != nil {
+					t.Fatal(err)
+				}
+				got, err := Get(c, res.Citation.ID)
+				if err != nil || got.LocatorJSON != stored {
+					t.Fatalf("Get = %q, %v; want the stored locator verbatim", got.LocatorJSON, err)
+				}
+				update := func(in CitationFieldsInput) (Citation, []rowchange.Change, error) {
+					var changes []rowchange.Change
+					cit, err := writes.Call(c, writes.Op{Action: "update_citation", UserID: userID}, func(tx *database.Tx) (Citation, []rowchange.Change, error) {
+						cit, ch, err := Update(tx, userID, res.Citation.ID, in)
+						changes = ch
+						return cit, ch, err
+					})
+					return cit, changes, err
+				}
+				// AC-1.3: the sheet sends the stored text back unchanged.
+				if _, changes, err := update(CitationFieldsInput{LocatorJSON: stored}); err != nil || len(changes) != 0 {
+					t.Fatalf("update with the stored locator: changes %+v, err %v; want none", changes, err)
+				}
+				cit, changes, err := update(CitationFieldsInput{LocatorJSON: stored, Label: "entry"})
+				if err != nil || len(changes) != 1 || cit.LocatorJSON != stored || cit.Label != "entry" {
+					t.Fatalf("update with a new label: %+v, changes %+v, err %v", cit, changes, err)
+				}
+				// AC-2.2: a different locator that holds a retired key is refused.
+				_, _, err = update(CitationFieldsInput{
+					LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_unknown":true}]}`,
+					Label:       "entry",
+				})
+				if !errors.Is(err, locator.ErrInvalid) {
+					t.Fatalf("update with a retired key: got %v want locator.ErrInvalid", err)
+				}
+				if got, err := Get(c, res.Citation.ID); err != nil || got.LocatorJSON != stored {
+					t.Fatalf("stored LocatorJSON = %q, %v; want %q", got.LocatorJSON, err, stored)
+				}
+				// AC-1.4: the composer's re-encoded locator saves.
+				if cit, _, err := update(CitationFieldsInput{LocatorJSON: created, Label: "entry"}); err != nil || cit.LocatorJSON != created {
+					t.Fatalf("update with the re-encoded locator: %q, %v", cit.LocatorJSON, err)
+				}
+				if got, err := Get(c, res.Citation.ID); err != nil || got.LocatorJSON != created {
+					t.Fatalf("stored LocatorJSON = %q, %v; want %q", got.LocatorJSON, err, created)
 				}
 			},
 		},
@@ -447,7 +477,7 @@ func TestCitations(t *testing.T) {
 				c, s := mustSeed(t)
 				if _, err := createCitation(c, userID, CreateInput{
 					GraphID:    s.graph,
-					ArtifactID: s.artifact.ID, LocatorJSON: validLocator,
+					ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator,
 				}, []observations.Input{{
 					SubjectID: s.person.ID, PropertyID: s.sexProp.ID,
 					ValueTermID: s.femaleTerm.ID,
@@ -481,7 +511,7 @@ func TestCitations(t *testing.T) {
 					if subject != nil {
 						obs = []observations.Input{{SubjectID: subject, PropertyID: s.sexProp.ID, ValueTermID: s.femaleTerm.ID}}
 					}
-					res, err := createCitation(c, userID, CreateInput{GraphID: graph, ArtifactID: s.artifact.ID, LocatorJSON: validLocator}, obs)
+					res, err := createCitation(c, userID, CreateInput{GraphID: graph, ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator}, obs)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -537,10 +567,10 @@ func TestCitations(t *testing.T) {
 				in := func(subject []byte) observations.Input {
 					return observations.Input{SubjectID: subject, PropertyID: s.sexProp.ID, ValueTermID: s.femaleTerm.ID}
 				}
-				if _, err := createCitation(c, userID, CreateInput{GraphID: def.ID, ArtifactID: s.artifact.ID, LocatorJSON: validLocator}, []observations.Input{in(s.person.ID), in(ben.ID)}); err != nil {
+				if _, err := createCitation(c, userID, CreateInput{GraphID: def.ID, ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator}, []observations.Input{in(s.person.ID), in(ben.ID)}); err != nil {
 					t.Fatal(err)
 				}
-				if _, err := createCitation(c, userID, CreateInput{GraphID: smith.ID, ArtifactID: s.artifact.ID, LocatorJSON: validLocator}, []observations.Input{in(clara.ID)}); err != nil {
+				if _, err := createCitation(c, userID, CreateInput{GraphID: smith.ID, ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator}, []observations.Input{in(clara.ID)}); err != nil {
 					t.Fatal(err)
 				}
 				d, err := ListByArtifact(c, def.ID, s.artifact.ID)
@@ -574,7 +604,7 @@ func TestCitations(t *testing.T) {
 					{GraphID: def.ID, ArtifactID: art2.ID},
 					{GraphID: smith.ID, ArtifactID: s.artifact.ID},
 				} {
-					in.LocatorJSON = validLocator
+					in.LocatorJSON = depictionvaluetest.Locator
 					if _, err := createCitation(c, userID, in, nil); err != nil {
 						t.Fatal(err)
 					}
@@ -600,7 +630,7 @@ func TestCitations(t *testing.T) {
 				c, s := mustSeed(t)
 				def := evidencegraphstest.SoleGraph(t, c, s.artifact.SourceID)
 				jones := evidencegraphstest.Create(t, c, userID, s.artifact.SourceID, "Jones", s.artifact.ID)
-				res, err := createCitation(c, userID, CreateInput{GraphID: jones.ID, ArtifactID: s.artifact.ID, LocatorJSON: validLocator}, nil)
+				res, err := createCitation(c, userID, CreateInput{GraphID: jones.ID, ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator}, nil)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -639,9 +669,9 @@ func TestCitations(t *testing.T) {
 				}
 				jones := evidencegraphstest.Create(t, c, userID, s.artifact.SourceID, "Jones", s.artifact.ID)
 				for name, in := range map[string]CreateInput{
-					"no graph":       {ArtifactID: s.artifact.ID, LocatorJSON: validLocator},
-					"unlinked graph": {GraphID: jones.ID, ArtifactID: art2.ID, LocatorJSON: validLocator},
-					"unknown graph":  {GraphID: bytes.Repeat([]byte{9}, 16), ArtifactID: s.artifact.ID, LocatorJSON: validLocator},
+					"no graph":       {ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator},
+					"unlinked graph": {GraphID: jones.ID, ArtifactID: art2.ID, LocatorJSON: depictionvaluetest.Locator},
+					"unknown graph":  {GraphID: bytes.Repeat([]byte{9}, 16), ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator},
 				} {
 					if _, err := createCitation(c, userID, in, nil); !errors.Is(err, ErrInvalid) {
 						t.Fatalf("%s: err %v, want citations.invalid", name, err)
@@ -661,7 +691,7 @@ func TestCitations(t *testing.T) {
 				res, err := createCitation(c, userID, CreateInput{
 					GraphID:       s.graph,
 					ArtifactID:    s.artifact.ID,
-					LocatorJSON:   validLocator,
+					LocatorJSON:   depictionvaluetest.Locator,
 					Transcription: "transcribe first",
 				}, nil)
 				if err != nil {
@@ -695,7 +725,7 @@ func TestCitations(t *testing.T) {
 				}
 				if _, err := createCitation(c, userID, CreateInput{
 					GraphID:    s.graph,
-					ArtifactID: s.artifact.ID, LocatorJSON: validLocator,
+					ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator,
 				}, []observations.Input{{
 					SubjectID: s.person.ID, PropertyID: s.sexProp.ID,
 					ValueTermID: s.femaleTerm.ID,
@@ -704,7 +734,7 @@ func TestCitations(t *testing.T) {
 				}
 				if _, err := createCitation(c, userID, CreateInput{
 					GraphID:    s.graph,
-					ArtifactID: s.artifact.ID, LocatorJSON: validLocator,
+					ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator,
 				}, []observations.Input{{
 					SubjectID: s.person.ID, PropertyID: s.sexProp.ID,
 					ValueTermID: s.femaleTerm.ID,
@@ -713,7 +743,7 @@ func TestCitations(t *testing.T) {
 				}
 				if _, err := createCitation(c, userID, CreateInput{
 					GraphID:    s.graph,
-					ArtifactID: art2.ID, LocatorJSON: validLocator,
+					ArtifactID: art2.ID, LocatorJSON: depictionvaluetest.Locator,
 				}, []observations.Input{{
 					SubjectID: s.person.ID, PropertyID: s.sexProp.ID,
 					ValueTermID: s.femaleTerm.ID,
@@ -737,7 +767,7 @@ func TestCitations(t *testing.T) {
 				c, s := mustSeed(t)
 				if _, err := createCitation(c, userID, CreateInput{
 					GraphID:    s.graph,
-					ArtifactID: s.artifact.ID, LocatorJSON: validLocator,
+					ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator,
 				}, nil); err != nil {
 					t.Fatal(err)
 				}
@@ -766,7 +796,7 @@ func TestCitations(t *testing.T) {
 				c, s := mustSeed(t)
 				cit, err := createCitation(c, userID, CreateInput{
 					GraphID:    s.graph,
-					ArtifactID: s.artifact.ID, LocatorJSON: validLocator,
+					ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator,
 					Notes: []string{"keep me", "and me"},
 				}, nil)
 				if err != nil {
@@ -796,7 +826,7 @@ func TestCitations(t *testing.T) {
 				c, s := mustSeed(t)
 				cit, err := createCitation(c, userID, CreateInput{
 					GraphID:    s.graph,
-					ArtifactID: s.artifact.ID, LocatorJSON: validLocator,
+					ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator,
 				}, []observations.Input{{
 					SubjectID: s.person.ID, PropertyID: s.sexProp.ID,
 					ValueTermID: s.femaleTerm.ID,
@@ -871,10 +901,9 @@ func TestListCitedTx(t *testing.T) {
 		t.Fatal(err)
 	}
 	graph := evidencegraphstest.SoleGraph(t, c, src.ID)
-	locatorJSON := `{"version":1,"selectors":[{"type":"page","page_label":"10"}]}`
 	var cits []Citation
 	for _, label := range []string{"first", "second"} {
-		res, err := createCitation(c, userID, CreateInput{GraphID: graph.ID, ArtifactID: art.ID, LocatorJSON: locatorJSON, Label: label}, nil)
+		res, err := createCitation(c, userID, CreateInput{GraphID: graph.ID, ArtifactID: art.ID, LocatorJSON: depictionvaluetest.Locator, Label: label}, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -973,10 +1002,9 @@ func TestFirstOfSource(t *testing.T) {
 	}
 	defGraph := evidencegraphstest.SoleGraph(t, c, src.ID)
 	second := evidencegraphstest.Create(t, c, userID, src.ID, "Second graph", art.ID)
-	locatorJSON := `{"version":1,"selectors":[{"type":"page","page_label":"10"}]}`
 	var ids [][]byte
 	for _, graphID := range [][]byte{second.ID, defGraph.ID, second.ID} {
-		res, err := createCitation(c, userID, CreateInput{GraphID: graphID, ArtifactID: art.ID, LocatorJSON: locatorJSON}, nil)
+		res, err := createCitation(c, userID, CreateInput{GraphID: graphID, ArtifactID: art.ID, LocatorJSON: depictionvaluetest.Locator}, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
