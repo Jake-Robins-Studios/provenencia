@@ -1,7 +1,7 @@
 # Ship log — S15-56 The composer edits a Citation's metadata
 
 **Plan:** [`S15-56-composer-citation-metadata.md`](S15-56-composer-citation-metadata.md) · **Branch:** `s15-56-composer-citation-metadata` · **PR:** #982
-**State:** fixing 2
+**State:** ready
 
 Base: `main` @ `b42ec2c` (plan written against `620ddaa`).
 
@@ -94,8 +94,11 @@ Failing test first: `selectArtifactDraftReadAfterFailedLoad` (new) — switch to
 Do: in `selectArtifactAndLoad`, when `showingLoadFailure(...)` returns nil, call `refreshDraftMetadata()` as the `else` branch does, e.g. `if await showingLoadFailure(...) == nil { refreshDraftMetadata() }`. Add a clause to the plan's Landed note.
 Check: the test fails before the change and passes after; scripts/check-pr.sh PASS.
 
+## Round 2 — fix
+Head `7ce5a4ed0`. Gate PASS (orchestrator run). F-7 done: `selectArtifactDraftReadAfterFailedLoad` red first, green after; FakeStore gained `getCitationErrorsByID`. CON-5: Resolved — read `selectArtifactAndLoad`: a nil `showingLoadFailure` now calls `refreshDraftMetadata()`.
+
 ## Result
-Gate PASS · CI pending · open: none blocker/major · follow-ups: — · to user: CON-5 (minor)
+Gate PASS · CI pending · open: none blocker/major · follow-ups: — · to user: CON-5 → fixed (F-7)
 
 ## Cost
 Plan: 6,425 words (check-plan-docs info line).
@@ -111,4 +114,5 @@ Plan: 6,425 words (check-plan-docs info line).
 | 2 | CON | opus | 59k |
 | 2 | MNT | opus | 51k |
 | 2 | UX | opus | 32k |
-| | **Total** | | **1,160k** |
+| 2 | implementer | sonnet | 98k |
+| | **Total** | | **1,258k** |
