@@ -104,14 +104,67 @@ func CitationPages(q database.Querier, citationIDs [][]byte) (map[string]string,
 		return nil, err
 	}
 	for _, r := range rows {
-		if !bytes.Equal(r.FieldID, fieldID) {
-			continue
-		}
-		if text := PageText(r, field); text != "" {
+		if text := ownPage(fieldID, r, field); text != "" {
 			out[string(r.Owner.ID)] = text
 		}
 	}
 	return out, nil
+}
+
+// ownPage is the printed page a Citation's own row gives: PageText when the
+// row is of the page field pageID, "" for any other row or a row that prints
+// nothing. It is the one selector CitationPages and ListCitationWorkspaces
+// share.
+func ownPage(pageID []byte, r Row, f metadatafields.Field) string {
+	if pageID == nil || !bytes.Equal(r.FieldID, pageID) {
+		return ""
+	}
+	return PageText(r, f)
+}
+
+// ListCitationWorkspaces is ListWorkspaces over Citations, with each one's own
+// printed page: the text ownPage gives for the Citation's own Page row on its
+// board, "" when it has none. The boards and the page field id are read in one
+// transaction, so a page is always of the board it came with. No Citations
+// return nil without opening a transaction.
+func ListCitationWorkspaces(c *database.Catalog, citationIDs [][]byte) ([]Board, []string, error) {
+	if len(citationIDs) == 0 {
+		return nil, nil, nil
+	}
+	owners := make([]Owner, len(citationIDs))
+	for i, id := range citationIDs {
+		owners[i] = Owner{Level: vocabkey.LevelCitation, ID: id}
+	}
+	db, err := c.DB()
+	if err != nil {
+		return nil, nil, err
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	byOwner, err := listWorkspaces(tx, owners)
+	if err != nil {
+		return nil, nil, err
+	}
+	pageID, err := PageFieldID(tx)
+	if err != nil {
+		return nil, nil, err
+	}
+	boards := make([]Board, len(owners))
+	pages := make([]string, len(owners))
+	for i, o := range owners {
+		boards[i] = byOwner[o.key()]
+		for _, e := range boards[i].Entries {
+			if e.Value != nil {
+				if text := ownPage(pageID, *e.Value, e.Field); text != "" {
+					pages[i] = text
+				}
+			}
+		}
+	}
+	return boards, pages, nil
 }
 
 // CitationValues answers a format's targets from what one render or board
