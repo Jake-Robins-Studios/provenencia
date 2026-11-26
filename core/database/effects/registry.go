@@ -394,6 +394,10 @@ var registry = map[string]Effect{
 		EvidenceGraph: from("citation_id", citationObservationGraphs),
 		Reads:         []ReadPath{{ReadCitationBoards, up("citation_id", "graph_id")}},
 	},
+	// A reorder or dismiss moves the board's rows without a value.
+	"citation_metadata_layout": {
+		Reads: []ReadPath{{ReadCitationBoards, up("citation_id", "graph_id")}},
+	},
 	// An Artifact's own fields move no loaded graph row and no citation
 	// membership: its Citations and Observations carry their own graphs.
 	"artifacts": {

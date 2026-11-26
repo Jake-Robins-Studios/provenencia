@@ -14,7 +14,7 @@ func TestReadsDeclare(t *testing.T) {
 			"citations", "date_values", "depiction_values", "name_values", "observations",
 		},
 		ReadCitationBoards: {
-			"artifact_metadata", "citation_metadata", "evidence_graph_metadata", "source_metadata",
+			"artifact_metadata", "citation_metadata", "citation_metadata_layout", "evidence_graph_metadata", "source_metadata",
 		},
 		ReadEvidenceGraphProgress: {
 			"identity_claims", "observations", "subjects",

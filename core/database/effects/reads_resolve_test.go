@@ -244,3 +244,33 @@ func TestMetadataValuesNameCitationGraphs(t *testing.T) {
 		}
 	})
 }
+
+// TestCitationLayoutNamesCitationGraph: a layout-only save on a Citation (a
+// reorder or a dismiss) moves the citation_boards read of the Citation's graph.
+func TestCitationLayoutNamesCitationGraph(t *testing.T) {
+	tx, userID, _, jones, art := readsFixture(t)
+	_, changes, err := citations.CreateWithObservations(tx, userID, citations.CreateInput{
+		GraphID: jones.ID, ArtifactID: art.ID, LocatorJSON: evidenceLocator,
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	citationID := only(changes, "citation")[0].EntityID
+	field, _, err := metadatafields.Create(tx, "Page", metadatafields.DataTypeText, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ch, err := sourcemetadata.Apply(tx, userID, sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: citationID},
+		sourcemetadata.Draft{Layout: []sourcemetadata.LayoutRow{{FieldID: field.ID, SortOrder: 3, Dismissed: true}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(only(ch, "citation_metadata_layout")) == 0 {
+		t.Fatalf("no layout change in %v", ch)
+	}
+	set, err := effects.Resolve(tx.Tx, ch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sameGraphs(t, "citation_boards", set.IDsOf(effects.ReadCitationBoards), jones.ID)
+}
