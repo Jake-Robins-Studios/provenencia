@@ -425,7 +425,7 @@ enum CitationNeed {
 }
 
 // CitationRequirement is what a Source type's citation formats ask of one field
-// on a board, or of the Source date or the printed page.
+// on a board, or of the Source date.
 message CitationRequirement {
   CitationNeed need = 1;
   // Another option of every needed chain the field heads already has a value (the

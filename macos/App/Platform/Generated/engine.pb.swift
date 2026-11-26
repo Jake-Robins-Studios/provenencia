@@ -1816,7 +1816,7 @@ public nonisolated struct Provenencia_Engine_V1_InheritedMetadataValue: Sendable
 }
 
 /// CitationRequirement is what a Source type's citation formats ask of one field
-/// on a board, or of the Source date or the printed page.
+/// on a board, or of the Source date.
 public nonisolated struct Provenencia_Engine_V1_CitationRequirement: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for

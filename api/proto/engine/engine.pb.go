@@ -3202,7 +3202,7 @@ func (x *InheritedMetadataValue) GetOpenHref() string {
 }
 
 // CitationRequirement is what a Source type's citation formats ask of one field
-// on a board, or of the Source date or the printed page.
+// on a board, or of the Source date.
 type CitationRequirement struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Need  CitationNeed           `protobuf:"varint,1,opt,name=need,proto3,enum=provenencia.engine.v1.CitationNeed" json:"need,omitempty"`

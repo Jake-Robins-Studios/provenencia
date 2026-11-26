@@ -172,8 +172,10 @@ func TestRenderCitations(t *testing.T) {
 			art, graph := newArtifact(t, w.dir, w.userID, id, "Scan")
 			return newCitation(t, w.dir, w.userID, art, graph, locatorJSON)
 		}
-		a := made("A", "", &engine.ValueMark{Unknown: true}, nil, &engine.ValueMark{Unknown: true}, pageLocatorJSON("1"))
-		b := made("B", "Ashby Press", &engine.ValueMark{Supplied: true}, qualifiedDate("ABT", 1880, 0, 0), &engine.ValueMark{Supplied: true}, pageLocatorJSON("1"))
+		a := made("A", "", &engine.ValueMark{Unknown: true}, nil, &engine.ValueMark{Unknown: true},
+			`{"version":1,"selectors":[{"type":"page","page_unknown":true}]}`)
+		b := made("B", "Ashby Press", &engine.ValueMark{Supplied: true}, qualifiedDate("ABT", 1880, 0, 0), &engine.ValueMark{Supplied: true},
+			`{"version":1,"selectors":[{"type":"page","page_label":"23","page_supplied":true}]}`)
 		page := fieldIDsByKey(t, w.dir)["page"]
 		for _, set := range []struct {
 			id, text string

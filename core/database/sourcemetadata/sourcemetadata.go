@@ -815,9 +815,8 @@ func ListWorkspace(c *database.Catalog, owner Owner) ([]WorkspaceEntry, error) {
 
 // ListWorkspaces is ListWorkspace over many owners in one read transaction: the
 // board at index i is owners[i]'s, and a repeated owner gets the same board. A
-// Source owner's board also carries what its type asks of the Source date and
-// the printed page. No owners returns nil without opening a transaction. An
-// owner at a level with no store, or one that does not exist, is ErrInvalid.
+// Source owner's board also carries what its type asks of the Source date.
+// No owners returns nil without opening a transaction. An owner at a level with no store, or one that does not exist, is ErrInvalid.
 func ListWorkspaces(c *database.Catalog, owners []Owner) ([]Board, error) {
 	for _, o := range owners {
 		if _, err := storeFor(o); err != nil {
