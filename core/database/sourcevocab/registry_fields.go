@@ -2,11 +2,10 @@ package sourcevocab
 
 import "github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
 
-// The 69 metadata fields: the 64 of the Spike 15 map, section 6.8, `subdistrict`,
-// and four place fields for the types whose place is not a jurisdiction: label and a
-// description that says to enter the value as it should appear in a citation.
-// Publisher and place of publication carry the unknown text "n.p." and page
-// carries "unpaginated".
+// The seeded metadata fields. `docs/seeded-vocabulary.md` § Implementation
+// counts them and says where each came from. Each description says to enter the
+// value as it should appear in a citation. Publisher and place of publication
+// carry the unknown text "n.p." and page carries "unpaginated".
 var seedFields = []seedField{
 	{Key: "creator", Label: "Creator", DataType: metadatafields.DataTypeText,
 		Description: "The office, church, company or person that made the record, as it should appear in a citation (Calder County Clerk)."},
@@ -88,6 +87,12 @@ var seedFields = []seedField{
 		Description: "The census enumeration district, as it should appear in a citation (236)."},
 	{Key: "subdistrict", Label: "Sub-district", DataType: metadatafields.DataTypeText,
 		Description: "The census sub-district, as it should appear in a citation (B-3)."},
+	{Key: "election", Label: "Election or register", DataType: metadatafields.DataTypeText,
+		Description: "The election or registration the list was made for, with its year, in the list's own words, as it should appear in a citation (1882 general election; 1921 spring register)."},
+	{Key: "electoral_district", Label: "Electoral district", DataType: metadatafields.DataTypeText,
+		Description: "The riding, constituency, division or other electoral district, with its province or state when the jurisdiction does not name it, as it should appear in a citation (St. Paul's, Ontario)."},
+	{Key: "polling_division", Label: "Polling division", DataType: metadatafields.DataTypeText,
+		Description: "The polling division, polling district, ward, precinct or subdivision, with the word the list uses, as it should appear in a citation (urban polling division 52)."},
 	{Key: "schedule", Label: "Schedule", DataType: metadatafields.DataTypeText,
 		Description: "Which census schedule, as it should appear in a citation (population schedule)."},
 	{Key: "piece", Label: "Piece", DataType: metadatafields.DataTypeText,

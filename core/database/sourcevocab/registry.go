@@ -106,6 +106,16 @@ var seedTypes = []seedType{
 		},
 	},
 	{
+		Key: "voters_list", Label: "Voters list",
+		Description: "A voters list, poll book or register of electors made for an election or a registration year.",
+		IconKey:     "type_document",
+		Formats: sourcetypes.Formats{
+			Full:  `{meta.jurisdiction}, {meta.election}[, {meta.electoral_district}][, {meta.polling_division}][, vol. {meta.volume}][, p. {meta.page}][, line {meta.line_number}][, no. {meta.entry_number}][, {meta.item}]; {meta.collection|source.title}[, {meta.call_number}][, Record Group {meta.record_group}], {meta.repository}[; film {meta.film_number}]` + copyLayer + `.`,
+			Short: `{meta.jurisdiction}, {meta.election}[, {meta.electoral_district}][, {meta.polling_division}][, vol. {meta.volume}][, p. {meta.page}][, line {meta.line_number}][, no. {meta.entry_number}][, {meta.item}].`,
+			List:  `{meta.jurisdiction}. {meta.collection|source.title}[, {meta.coverage}].[ {meta.call_number}.][ Record Group {meta.record_group}.] {meta.repository}.`,
+		},
+	},
+	{
 		Key: "case_file", Label: "Case file",
 		Description: "The loose papers of one court, probate, naturalization or land case.",
 		IconKey:     "type_folder_archive",
