@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 )
@@ -20,7 +21,7 @@ func TestListEvidenceGraphProgress(t *testing.T) {
 					UserId:      userID,
 					ArtifactId:  artifactID,
 					GraphId:     graphLinking(t, dir, artifactID),
-					LocatorJson: validLocatorJSON,
+					LocatorJson: depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{{
 						SubjectId:  placeID,
 						PropertyId: propID,
@@ -118,7 +119,7 @@ func TestGetEvidenceGraphProgress(t *testing.T) {
 					UserId:      userID,
 					ArtifactId:  artifactID,
 					GraphId:     graphLinking(t, dir, artifactID),
-					LocatorJson: validLocatorJSON,
+					LocatorJson: depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{{
 						SubjectId:  placeID,
 						PropertyId: propID,

@@ -8,6 +8,7 @@ import (
 
 	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -29,7 +30,7 @@ func newGraphFixture(t *testing.T) graphFixture {
 	f.page2 = f.createArtifact(t, sourceID, "Page 2", nil)
 	var cit engine.CreateCitationWithObservationsResponse
 	mustRPC(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
-		ProjectDir: dir, UserId: userID, ArtifactId: page1, GraphId: graphLinking(t, dir, page1), LocatorJson: validLocatorJSON,
+		ProjectDir: dir, UserId: userID, ArtifactId: page1, GraphId: graphLinking(t, dir, page1), LocatorJson: depictionvaluetest.Locator,
 		Observations: []*engine.ObservationDraft{{SubjectId: subjectID, PropertyId: toponymID, ValueText: "Boston"}},
 	}, &cit)
 	f.citationID = cit.GetCitation().GetId()
@@ -395,7 +396,7 @@ func TestDeleteEvidenceGraphReleasesCitationMetadata(t *testing.T) {
 	empty := m.createGraph(t, "Empty", m.page2).GetGraph().GetId()
 	var cit engine.CreateCitationWithObservationsResponse
 	mustRPC(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
-		ProjectDir: m.dir, UserId: m.userID, ArtifactId: m.page2, GraphId: empty, LocatorJson: validLocatorJSON,
+		ProjectDir: m.dir, UserId: m.userID, ArtifactId: m.page2, GraphId: empty, LocatorJson: depictionvaluetest.Locator,
 		Metadata: draftOf(m.suggested, "FamilySearch"),
 	}, &cit)
 	if countCatalogRows(t, m.dir, "citation_metadata") != 1 {
@@ -422,7 +423,7 @@ func TestGetEvidenceGraphUnlinkImpact(t *testing.T) {
 	needy := f.createArtifact(t, f.sourceID, "Needy", &engine.GraphLinks{GraphIds: []string{f.defaultGraphID}})
 	var needyCit engine.CreateCitationWithObservationsResponse
 	mustRPC(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
-		ProjectDir: f.dir, UserId: f.userID, ArtifactId: needy, GraphId: graphLinking(t, f.dir, needy), LocatorJson: validLocatorJSON,
+		ProjectDir: f.dir, UserId: f.userID, ArtifactId: needy, GraphId: graphLinking(t, f.dir, needy), LocatorJson: depictionvaluetest.Locator,
 	}, &needyCit)
 	lone := f.createArtifact(t, f.sourceID, "Lone", &engine.GraphLinks{GraphIds: []string{f.defaultGraphID}})
 	solo := f.createGraph(t, "Solo", lone).GetGraph().GetId()

@@ -11,6 +11,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 )
@@ -260,7 +261,7 @@ func TestDeleteSubject(t *testing.T) {
 					UserId:      userID,
 					ArtifactId:  artifactID,
 					GraphId:     graphLinking(t, dir, artifactID),
-					LocatorJson: validLocatorJSON,
+					LocatorJson: depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{{
 						SubjectId:  placeID,
 						PropertyId: propID,

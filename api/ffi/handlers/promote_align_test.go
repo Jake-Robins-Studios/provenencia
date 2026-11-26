@@ -305,7 +305,7 @@ func TestProposeSendsEachConnection(t *testing.T) {
 	var bridge engine.CreateCitedBridgeResponse
 	mustRPC(t, CreateCitedBridge, &engine.CreateCitedBridgeRequest{
 		ProjectDir: dir, UserId: userID, FromSubjectId: personID, ToSubjectId: eventID,
-		BridgeTypeKey: "participation", ArtifactId: artifactID, LocatorJson: validLocatorJSON,
+		BridgeTypeKey: "participation", ArtifactId: artifactID, LocatorJson: depictionvaluetest.Locator,
 		Observations: []*engine.ObservationDraft{
 			{PropertyId: personProp, ValueSubjectId: personID},
 			{PropertyId: eventProp, ValueSubjectId: eventID},

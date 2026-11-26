@@ -16,6 +16,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/databasetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/promote"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue/namevaluetest"
 	"github.com/google/uuid"
@@ -563,7 +564,7 @@ func derivedRowsFixture(t *testing.T) (dir string, person, event promote.Result)
 
 	if _, err := CreateCitedBridge(marshalProto(t, &engine.CreateCitedBridgeRequest{
 		ProjectDir: dir, UserId: userID, FromSubjectId: personID, ToSubjectId: eventID,
-		BridgeTypeKey: "participation", ArtifactId: artifactID, LocatorJson: validLocatorJSON,
+		BridgeTypeKey: "participation", ArtifactId: artifactID, LocatorJson: depictionvaluetest.Locator,
 		Observations: []*engine.ObservationDraft{
 			{PropertyId: personProp, ValueSubjectId: personID},
 			{PropertyId: eventProp, ValueSubjectId: eventID},
@@ -584,13 +585,13 @@ func derivedRowsFixture(t *testing.T) (dir string, person, event promote.Result)
 		{{SubjectId: eventID, PropertyId: dateProp, Date: day()}},
 	} {
 		if _, err := CreateCitationWithObservations(marshalProto(t, &engine.CreateCitationWithObservationsRequest{
-			ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: validLocatorJSON, Observations: drafts,
+			ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: depictionvaluetest.Locator, Observations: drafts,
 		})); err != nil {
 			t.Fatalf("citation %d: %v", i, err)
 		}
 	}
 	if _, err := CreateCitationWithObservations(marshalProto(t, &engine.CreateCitationWithObservationsRequest{
-		ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: validLocatorJSON,
+		ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: depictionvaluetest.Locator,
 		Observations: []*engine.ObservationDraft{{SubjectId: personID, PropertyId: propertyIDByKey(t, dir, "name"), Name: &engine.NameValueInput{Form: "Ada Lovelace"}}},
 	})); err != nil {
 		t.Fatalf("name citation: %v", err)

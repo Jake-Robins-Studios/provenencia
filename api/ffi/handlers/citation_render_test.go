@@ -74,7 +74,7 @@ func newRenderWorld(t *testing.T) renderWorld {
 		"format": "digital image", "provider": "Westmark Heritage", "url": "https://example.org/calder/1880",
 		"accessed_date": "12 March 2025", "citing": "county film 7, item 3",
 	})
-	w.citation = newCitation(t, dir, userID, w.artifact, w.graph, validLocatorJSON)
+	w.citation = newCitation(t, dir, userID, w.artifact, w.graph, depictionvaluetest.Locator)
 	setValues(t, dir, userID, ids, "citation", w.citation, map[string]string{"page": "14"})
 	return w
 }
@@ -113,8 +113,8 @@ func TestRenderCitations(t *testing.T) {
 	})
 
 	t.Run("AC-1.2 equal pages group", func(t *testing.T) {
-		same := newCitation(t, w.dir, w.userID, w.artifact, w.graph, validLocatorJSON)
-		other := newCitation(t, w.dir, w.userID, w.artifact, w.graph, validLocatorJSON)
+		same := newCitation(t, w.dir, w.userID, w.artifact, w.graph, depictionvaluetest.Locator)
+		other := newCitation(t, w.dir, w.userID, w.artifact, w.graph, depictionvaluetest.Locator)
 		pageIDs := fieldIDsByKey(t, w.dir)
 		setValues(t, w.dir, w.userID, pageIDs, "citation", same, map[string]string{"page": "14"})
 		setValues(t, w.dir, w.userID, pageIDs, "citation", other, map[string]string{"page": "15"})
@@ -439,7 +439,7 @@ func TestRenderSeededPage(t *testing.T) {
 	})
 
 	t.Run("AC-1.3 a Citation's own page answers", func(t *testing.T) {
-		cit := newCitation(t, w.dir, w.userID, w.artifact, w.graph, validLocatorJSON)
+		cit := newCitation(t, w.dir, w.userID, w.artifact, w.graph, depictionvaluetest.Locator)
 		setValues(t, w.dir, w.userID, ids, "citation", cit, map[string]string{"line_number": "21", "page": "15"})
 		want := strings.NewReplacer("p. 14,", "p. 15,", "line 14,", "line 21,").Replace(renderCensusFull)
 		if got, _ := plain(t, cit); got != want {

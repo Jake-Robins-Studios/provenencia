@@ -10,6 +10,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/connect"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/identityclaims"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
@@ -136,7 +137,7 @@ func TestCreateCitedBridge(t *testing.T) {
 					ToSubjectId:   eventID,
 					BridgeTypeKey: "participation",
 					ArtifactId:    artifactID,
-					LocatorJson:   validLocatorJSON,
+					LocatorJson:   depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{
 						{PropertyId: personProp, ValueSubjectId: personID},
 						{PropertyId: eventProp, ValueSubjectId: eventID},
@@ -170,7 +171,7 @@ func TestCreateCitedBridge(t *testing.T) {
 					ToSubjectId:   eventID,
 					BridgeTypeKey: "participation",
 					ArtifactId:    artifactID,
-					LocatorJson:   validLocatorJSON,
+					LocatorJson:   depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{
 						{PropertyId: personProp, ValueSubjectId: personID},
 						{PropertyId: eventProp, ValueSubjectId: eventID},
@@ -233,7 +234,7 @@ func TestCreateCitedBridge(t *testing.T) {
 					ToSubjectId:   otherID,
 					BridgeTypeKey: "relationship",
 					ArtifactId:    artifactID,
-					LocatorJson:   validLocatorJSON,
+					LocatorJson:   depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{
 						{PropertyId: personProp, ValueSubjectId: personID},
 						{PropertyId: propertyIDByKey(t, dir, "related_to"), ValueSubjectId: otherID},
@@ -264,7 +265,7 @@ func TestCreateCitedBridge(t *testing.T) {
 					ToSubjectId:   eventID,
 					BridgeTypeKey: "participation",
 					ArtifactId:    artifactID,
-					LocatorJson:   validLocatorJSON,
+					LocatorJson:   depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{
 						{PropertyId: personProp, ValueSubjectId: personID},
 						{PropertyId: eventProp, ValueSubjectId: eventID},
@@ -304,7 +305,7 @@ func TestCreateCitedBridge(t *testing.T) {
 					ToSubjectId:   place.Subject.GetId(),
 					BridgeTypeKey: "location",
 					ArtifactId:    artifactID,
-					LocatorJson:   validLocatorJSON,
+					LocatorJson:   depictionvaluetest.Locator,
 					Observations: []*engine.ObservationDraft{
 						{PropertyId: personProp, ValueSubjectId: personID},
 						{PropertyId: placeProp, ValueSubjectId: place.Subject.GetId()},
@@ -325,7 +326,7 @@ func TestDeleteBridgeReportsPropertyUsage(t *testing.T) {
 	var bridge engine.CreateCitedBridgeResponse
 	mustRPC(t, CreateCitedBridge, &engine.CreateCitedBridgeRequest{
 		ProjectDir: dir, UserId: userID, FromSubjectId: personID, ToSubjectId: eventID,
-		BridgeTypeKey: "participation", ArtifactId: artifactID, LocatorJson: validLocatorJSON,
+		BridgeTypeKey: "participation", ArtifactId: artifactID, LocatorJson: depictionvaluetest.Locator,
 		Observations: []*engine.ObservationDraft{
 			{PropertyId: personProp, ValueSubjectId: personID},
 			{PropertyId: eventProp, ValueSubjectId: eventID},

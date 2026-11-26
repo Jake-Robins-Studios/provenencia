@@ -6,6 +6,7 @@ import (
 
 	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 )
 
 // TestVocabularyWritesReturnEffects: every vocabulary write reports which
@@ -111,7 +112,7 @@ func TestVocabularyWritesReturnEffects(t *testing.T) {
 			ProjectDir: dir, UserId: userID, SubjectTypeId: subjectTypeIDByKey(t, dir, "place"), PropertyId: propID,
 		}, &engine.AssignSubjectTypePropertyResponse{})
 		mustRPC(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
-			ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: validLocatorJSON,
+			ProjectDir: dir, UserId: userID, ArtifactId: artifactID, GraphId: graphLinking(t, dir, artifactID), LocatorJson: depictionvaluetest.Locator,
 			Observations: []*engine.ObservationDraft{{SubjectId: subjectID, PropertyId: propID, ValueText: "x"}},
 		}, &engine.CreateCitationWithObservationsResponse{})
 		promoted := promoteInDir(t, dir, userID, subjectID, "")

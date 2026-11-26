@@ -37,8 +37,6 @@ import (
 func TestCitations(t *testing.T) {
 	userID := []byte{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1}
 
-	validLocator := depictionvaluetest.Locator
-
 	type seed struct {
 		artifact    artifacts.Artifact
 		graph       []byte
@@ -164,7 +162,7 @@ func TestCitations(t *testing.T) {
 				res, err := createCitation(c, userID, CreateInput{
 					GraphID:       s.graph,
 					ArtifactID:    s.artifact.ID,
-					LocatorJSON:   validLocator,
+					LocatorJSON:   depictionvaluetest.Locator,
 					Transcription: "Alice, female, of Boston",
 					Label:         "entry on page 10",
 				}, []observations.Input{
@@ -198,7 +196,7 @@ func TestCitations(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if got.Transcription != "Alice, female, of Boston" || got.LocatorJSON != validLocator {
+				if got.Transcription != "Alice, female, of Boston" || got.LocatorJSON != depictionvaluetest.Locator {
 					t.Fatalf("got %+v", got)
 				}
 				bySubject, err := observations.ListBySubject(c, s.person.ID)
@@ -224,7 +222,7 @@ func TestCitations(t *testing.T) {
 				res, err := createCitation(c, userID, CreateInput{
 					GraphID:     s.graph,
 					ArtifactID:  s.artifact.ID,
-					LocatorJSON: validLocator,
+					LocatorJSON: depictionvaluetest.Locator,
 					Notes:       []string{"see folio 12"},
 				}, []observations.Input{{
 					SubjectID: s.person.ID, PropertyID: s.sexProp.ID,
@@ -289,7 +287,7 @@ func TestCitations(t *testing.T) {
 				res, err := createCitation(c, userID, CreateInput{
 					GraphID:       s.graph,
 					ArtifactID:    s.artifact.ID,
-					LocatorJSON:   validLocator,
+					LocatorJSON:   depictionvaluetest.Locator,
 					Transcription: "was",
 					Notes:         []string{"keep"},
 				}, []observations.Input{{
@@ -301,7 +299,7 @@ func TestCitations(t *testing.T) {
 				}
 				got, err := writes.Call(c, writes.Op{Action: "update_citation", UserID: userID}, func(tx *database.Tx) (Citation, []rowchange.Change, error) {
 					return Update(tx, userID, res.Citation.ID, CitationFieldsInput{
-						LocatorJSON:   validLocator,
+						LocatorJSON:   depictionvaluetest.Locator,
 						Transcription: "now",
 					})
 				})
@@ -329,7 +327,7 @@ func TestCitations(t *testing.T) {
 				}
 				if _, err := writes.Call(c, writes.Op{Action: "update_citation", UserID: userID}, func(tx *database.Tx) (Citation, []rowchange.Change, error) {
 					return Update(tx, userID, res.Citation.ID, CitationFieldsInput{
-						LocatorJSON:   validLocator,
+						LocatorJSON:   depictionvaluetest.Locator,
 						Transcription: "now",
 					})
 				}); err != nil {
@@ -389,7 +387,7 @@ func TestCitations(t *testing.T) {
 				res, err := createCitation(c, userID, CreateInput{
 					GraphID:     s.graph,
 					ArtifactID:  s.artifact.ID,
-					LocatorJSON: validLocator,
+					LocatorJSON: depictionvaluetest.Locator,
 				}, obs)
 				if err != nil {
 					t.Fatal(err)
@@ -479,7 +477,7 @@ func TestCitations(t *testing.T) {
 				c, s := mustSeed(t)
 				if _, err := createCitation(c, userID, CreateInput{
 					GraphID:    s.graph,
-					ArtifactID: s.artifact.ID, LocatorJSON: validLocator,
+					ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator,
 				}, []observations.Input{{
 					SubjectID: s.person.ID, PropertyID: s.sexProp.ID,
 					ValueTermID: s.femaleTerm.ID,
@@ -513,7 +511,7 @@ func TestCitations(t *testing.T) {
 					if subject != nil {
 						obs = []observations.Input{{SubjectID: subject, PropertyID: s.sexProp.ID, ValueTermID: s.femaleTerm.ID}}
 					}
-					res, err := createCitation(c, userID, CreateInput{GraphID: graph, ArtifactID: s.artifact.ID, LocatorJSON: validLocator}, obs)
+					res, err := createCitation(c, userID, CreateInput{GraphID: graph, ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator}, obs)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -569,10 +567,10 @@ func TestCitations(t *testing.T) {
 				in := func(subject []byte) observations.Input {
 					return observations.Input{SubjectID: subject, PropertyID: s.sexProp.ID, ValueTermID: s.femaleTerm.ID}
 				}
-				if _, err := createCitation(c, userID, CreateInput{GraphID: def.ID, ArtifactID: s.artifact.ID, LocatorJSON: validLocator}, []observations.Input{in(s.person.ID), in(ben.ID)}); err != nil {
+				if _, err := createCitation(c, userID, CreateInput{GraphID: def.ID, ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator}, []observations.Input{in(s.person.ID), in(ben.ID)}); err != nil {
 					t.Fatal(err)
 				}
-				if _, err := createCitation(c, userID, CreateInput{GraphID: smith.ID, ArtifactID: s.artifact.ID, LocatorJSON: validLocator}, []observations.Input{in(clara.ID)}); err != nil {
+				if _, err := createCitation(c, userID, CreateInput{GraphID: smith.ID, ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator}, []observations.Input{in(clara.ID)}); err != nil {
 					t.Fatal(err)
 				}
 				d, err := ListByArtifact(c, def.ID, s.artifact.ID)
@@ -606,7 +604,7 @@ func TestCitations(t *testing.T) {
 					{GraphID: def.ID, ArtifactID: art2.ID},
 					{GraphID: smith.ID, ArtifactID: s.artifact.ID},
 				} {
-					in.LocatorJSON = validLocator
+					in.LocatorJSON = depictionvaluetest.Locator
 					if _, err := createCitation(c, userID, in, nil); err != nil {
 						t.Fatal(err)
 					}
@@ -632,7 +630,7 @@ func TestCitations(t *testing.T) {
 				c, s := mustSeed(t)
 				def := evidencegraphstest.SoleGraph(t, c, s.artifact.SourceID)
 				jones := evidencegraphstest.Create(t, c, userID, s.artifact.SourceID, "Jones", s.artifact.ID)
-				res, err := createCitation(c, userID, CreateInput{GraphID: jones.ID, ArtifactID: s.artifact.ID, LocatorJSON: validLocator}, nil)
+				res, err := createCitation(c, userID, CreateInput{GraphID: jones.ID, ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator}, nil)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -671,9 +669,9 @@ func TestCitations(t *testing.T) {
 				}
 				jones := evidencegraphstest.Create(t, c, userID, s.artifact.SourceID, "Jones", s.artifact.ID)
 				for name, in := range map[string]CreateInput{
-					"no graph":       {ArtifactID: s.artifact.ID, LocatorJSON: validLocator},
-					"unlinked graph": {GraphID: jones.ID, ArtifactID: art2.ID, LocatorJSON: validLocator},
-					"unknown graph":  {GraphID: bytes.Repeat([]byte{9}, 16), ArtifactID: s.artifact.ID, LocatorJSON: validLocator},
+					"no graph":       {ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator},
+					"unlinked graph": {GraphID: jones.ID, ArtifactID: art2.ID, LocatorJSON: depictionvaluetest.Locator},
+					"unknown graph":  {GraphID: bytes.Repeat([]byte{9}, 16), ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator},
 				} {
 					if _, err := createCitation(c, userID, in, nil); !errors.Is(err, ErrInvalid) {
 						t.Fatalf("%s: err %v, want citations.invalid", name, err)
@@ -693,7 +691,7 @@ func TestCitations(t *testing.T) {
 				res, err := createCitation(c, userID, CreateInput{
 					GraphID:       s.graph,
 					ArtifactID:    s.artifact.ID,
-					LocatorJSON:   validLocator,
+					LocatorJSON:   depictionvaluetest.Locator,
 					Transcription: "transcribe first",
 				}, nil)
 				if err != nil {
@@ -727,7 +725,7 @@ func TestCitations(t *testing.T) {
 				}
 				if _, err := createCitation(c, userID, CreateInput{
 					GraphID:    s.graph,
-					ArtifactID: s.artifact.ID, LocatorJSON: validLocator,
+					ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator,
 				}, []observations.Input{{
 					SubjectID: s.person.ID, PropertyID: s.sexProp.ID,
 					ValueTermID: s.femaleTerm.ID,
@@ -736,7 +734,7 @@ func TestCitations(t *testing.T) {
 				}
 				if _, err := createCitation(c, userID, CreateInput{
 					GraphID:    s.graph,
-					ArtifactID: s.artifact.ID, LocatorJSON: validLocator,
+					ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator,
 				}, []observations.Input{{
 					SubjectID: s.person.ID, PropertyID: s.sexProp.ID,
 					ValueTermID: s.femaleTerm.ID,
@@ -745,7 +743,7 @@ func TestCitations(t *testing.T) {
 				}
 				if _, err := createCitation(c, userID, CreateInput{
 					GraphID:    s.graph,
-					ArtifactID: art2.ID, LocatorJSON: validLocator,
+					ArtifactID: art2.ID, LocatorJSON: depictionvaluetest.Locator,
 				}, []observations.Input{{
 					SubjectID: s.person.ID, PropertyID: s.sexProp.ID,
 					ValueTermID: s.femaleTerm.ID,
@@ -769,7 +767,7 @@ func TestCitations(t *testing.T) {
 				c, s := mustSeed(t)
 				if _, err := createCitation(c, userID, CreateInput{
 					GraphID:    s.graph,
-					ArtifactID: s.artifact.ID, LocatorJSON: validLocator,
+					ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator,
 				}, nil); err != nil {
 					t.Fatal(err)
 				}
@@ -798,7 +796,7 @@ func TestCitations(t *testing.T) {
 				c, s := mustSeed(t)
 				cit, err := createCitation(c, userID, CreateInput{
 					GraphID:    s.graph,
-					ArtifactID: s.artifact.ID, LocatorJSON: validLocator,
+					ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator,
 					Notes: []string{"keep me", "and me"},
 				}, nil)
 				if err != nil {
@@ -828,7 +826,7 @@ func TestCitations(t *testing.T) {
 				c, s := mustSeed(t)
 				cit, err := createCitation(c, userID, CreateInput{
 					GraphID:    s.graph,
-					ArtifactID: s.artifact.ID, LocatorJSON: validLocator,
+					ArtifactID: s.artifact.ID, LocatorJSON: depictionvaluetest.Locator,
 				}, []observations.Input{{
 					SubjectID: s.person.ID, PropertyID: s.sexProp.ID,
 					ValueTermID: s.femaleTerm.ID,
@@ -903,10 +901,9 @@ func TestListCitedTx(t *testing.T) {
 		t.Fatal(err)
 	}
 	graph := evidencegraphstest.SoleGraph(t, c, src.ID)
-	locatorJSON := depictionvaluetest.Locator
 	var cits []Citation
 	for _, label := range []string{"first", "second"} {
-		res, err := createCitation(c, userID, CreateInput{GraphID: graph.ID, ArtifactID: art.ID, LocatorJSON: locatorJSON, Label: label}, nil)
+		res, err := createCitation(c, userID, CreateInput{GraphID: graph.ID, ArtifactID: art.ID, LocatorJSON: depictionvaluetest.Locator, Label: label}, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1005,10 +1002,9 @@ func TestFirstOfSource(t *testing.T) {
 	}
 	defGraph := evidencegraphstest.SoleGraph(t, c, src.ID)
 	second := evidencegraphstest.Create(t, c, userID, src.ID, "Second graph", art.ID)
-	locatorJSON := depictionvaluetest.Locator
 	var ids [][]byte
 	for _, graphID := range [][]byte{second.ID, defGraph.ID, second.ID} {
-		res, err := createCitation(c, userID, CreateInput{GraphID: graphID, ArtifactID: art.ID, LocatorJSON: locatorJSON}, nil)
+		res, err := createCitation(c, userID, CreateInput{GraphID: graphID, ArtifactID: art.ID, LocatorJSON: depictionvaluetest.Locator}, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
