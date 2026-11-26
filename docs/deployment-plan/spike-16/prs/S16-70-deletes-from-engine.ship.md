@@ -1,7 +1,7 @@
 # Ship log — S16-70 A Source or Source type delete is learned from the engine
 
 **Plan:** [`S16-70-deletes-from-engine.md`](S16-70-deletes-from-engine.md) · **Branch:** `s16-70-deletes-from-engine` · **PR:** #988
-**State:** fixing 1b
+**State:** fixing 2
 
 ## Round 0 — implement
 Head `ac8306de8`. Gate PASS (orchestrator run). Report deviations: STEP-3/4 and STEP-5 in one commit; three existing tests edited beyond §8 as direct consequences (`lastUpdatedPatchesAreDeclaredOnTheFourLists`, `invalidationsComeFromRegistrySpecs`, `SourceTypesModelTests.createAndDeleteCommitThroughWorkspaceNavigation`); `evidenceGraphEffectsReloadOnlyThatGraph` checks `.changedSourceType` in place of the removed `.deletedSource`; manual check not run.
@@ -85,4 +85,6 @@ Plan: 6,300 words (check-plan-docs info line).
 | 1 | UX | opus | 62k |
 | 1 | SEC+PRF | opus | 73k |
 | 1 | implementer (fix) | sonnet | 86k |
-| | **Total** | | **619k** |
+| 1b | implementer (fix) | sonnet | 100k |
+| 2 | CON | opus | 56k |
+| 2 | MNT | opus | 62k |
