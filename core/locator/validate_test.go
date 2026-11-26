@@ -80,7 +80,7 @@ func TestValidate(t *testing.T) {
 			json: `{"version":1,"selectors":[{"type":"page","artifact_page":37}]}`,
 		},
 		{
-			name:    "page only",
+			name:    "file page with a printed page",
 			json:    `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_label":"23"}]}`,
 			wantErr: ErrInvalid,
 		},

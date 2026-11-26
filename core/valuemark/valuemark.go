@@ -2,8 +2,7 @@
 // researcher answered that the record does not give it (unknown), or took it
 // from elsewhere (supplied). It imports no database package. The stores that
 // keep a mark call Validate before they write: the Source's metadata values
-// and date. The citation format
-// engine (core/citationformat) prints a mark.
+// and date. The citation format engine (core/citationformat) prints a mark.
 package valuemark
 
 import "github.com/Jake-Robins-Studios/provenencia/core/apperr"
