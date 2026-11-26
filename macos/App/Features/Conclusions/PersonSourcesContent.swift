@@ -10,9 +10,9 @@ import Foundation
 struct PersonSourcesContent: Equatable {
     /// Lines shown under a Source before "Show N more", and the fewest a fold must hide:
     /// six lines show whole; seven show five and "Show 2 more".
-    static let lineFold = ConclusionFold(limit: 5, minimumHidden: 2)
+    static let lineFold = PagedFold(limit: 5, minimumHidden: 2)
     /// Source rows shown before "Show N more": fifty show whole; fifty-one show fifty and "Show 1 more".
-    static let rowFold = ConclusionFold(limit: 50, minimumHidden: 1)
+    static let rowFold = PagedFold(limit: 50, minimumHidden: 1)
 
     /// A list that can be folded: the Source rows, or one Source's record lines.
     enum Fold: Hashable {
@@ -113,7 +113,7 @@ struct PersonSourcesContent: Equatable {
         groups: [CatalogPersonClaimGroup],
         sourceTypes: [CatalogSourceType],
         orders: NameFormatOrders,
-        folds: ConclusionFoldState<Fold> = ConclusionFoldState()
+        folds: PagedFoldState<Fold> = PagedFoldState()
     ) {
         var graphLocations: [String: WorkspaceLocation] = [:]
         var claimGraphs: [String: String] = [:]
@@ -217,7 +217,7 @@ extension PersonSourcesContent {
     /// What the content is built from beside its read and the Source types; it is built again
     /// when either changes.
     struct Inputs: Equatable {
-        var folds: ConclusionFoldState<Fold>
+        var folds: PagedFoldState<Fold>
         var orders: NameFormatOrders
     }
 }

@@ -15,7 +15,7 @@ struct PersonSourcesSection: View {
 
     /// The pages of each Source's lines and of the Sources the researcher has unfolded; another
     /// person's page is another view, so it starts folded on every mount.
-    @State private var folds = ConclusionFoldState<PersonSourcesContent.Fold>()
+    @State private var folds = PagedFoldState<PersonSourcesContent.Fold>()
     /// The Unpromote confirm; another person's page is another view, so it starts fresh.
     @State private var unpromote = UnpromoteFlow()
 
@@ -529,10 +529,10 @@ private struct PersonSourcesPreview: View {
     var claimsFailure: Bool
     var claimsGone: Bool
     var width: CGFloat
-    var foldsAtStart: ConclusionFoldState<PersonSourcesContent.Fold>
+    var foldsAtStart: PagedFoldState<PersonSourcesContent.Fold>
 
     @State private var unpromote = UnpromoteFlow()
-    @State private var folds = ConclusionFoldState<PersonSourcesContent.Fold>()
+    @State private var folds = PagedFoldState<PersonSourcesContent.Fold>()
     @State private var session: WorkspaceSession
     @State private var navigation = PersonSourcesPreview.makeNavigation()
 
@@ -543,7 +543,7 @@ private struct PersonSourcesPreview: View {
         claimsFailure: Bool = false,
         claimsGone: Bool = false,
         width: CGFloat = 1102,
-        foldsAtStart: ConclusionFoldState<PersonSourcesContent.Fold> = ConclusionFoldState<PersonSourcesContent.Fold>()
+        foldsAtStart: PagedFoldState<PersonSourcesContent.Fold> = PagedFoldState<PersonSourcesContent.Fold>()
     ) {
         self.groups = groups
         self.claimsFailure = claimsFailure

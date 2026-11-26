@@ -14,7 +14,7 @@ struct PersonTimelineSection: View {
     @Environment(\.pvWidthClass) private var widthClass
 
     /// The pages of each list the researcher has unfolded. Reset when the page is another person.
-    @State private var folds = ConclusionFoldState<PersonTimelineContent.Fold>()
+    @State private var folds = PagedFoldState<PersonTimelineContent.Fold>()
 
     private var root: String { ConclusionPageSection.timeline.accessibilityIdentifierRoot(pageIdentifier: pageIdentifier) }
 
@@ -588,9 +588,9 @@ private enum PersonTimelineDrawing {
 private struct PersonTimelinePreview: View {
     let timeline: CatalogPersonTimeline
     var width: CGFloat = 1102
-    var foldsAtStart = ConclusionFoldState<PersonTimelineContent.Fold>()
+    var foldsAtStart = PagedFoldState<PersonTimelineContent.Fold>()
 
-    @State private var folds = ConclusionFoldState<PersonTimelineContent.Fold>()
+    @State private var folds = PagedFoldState<PersonTimelineContent.Fold>()
 
     var body: some View {
         PVPageColumns(primaryFill: true) {
@@ -627,7 +627,7 @@ private struct PersonTimelinePreview: View {
 #Preview("Large event") { PersonTimelinePreview(timeline: PersonTimelinePreviewData.largeEvent) }
 #Preview("Large event, unfolded") {
     PersonTimelinePreview(timeline: PersonTimelinePreviewData.largeEvent, foldsAtStart: {
-        var folds = ConclusionFoldState<PersonTimelineContent.Fold>()
+        var folds = PagedFoldState<PersonTimelineContent.Fold>()
         folds.revealPage(.participants(eventId: "big"))
         return folds
     }())

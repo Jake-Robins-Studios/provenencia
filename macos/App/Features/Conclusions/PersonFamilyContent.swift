@@ -25,7 +25,7 @@ enum PersonFamilyRole: Equatable {
 /// Pure; the layout places it and the view draws it.
 struct PersonFamilyContent: Equatable {
     /// How many tiles a list shows before it folds, and the fewest it hides.
-    static let fold = ConclusionFold(limit: 30, minimumHidden: 1)
+    static let fold = PagedFold(limit: 30, minimumHidden: 1)
 
     /// A list that can be folded. `children` takes the group's index in Go's
     /// order (before the partner fold).
@@ -120,7 +120,7 @@ struct PersonFamilyContent: Equatable {
 
     init(
         family: CatalogPersonFamily,
-        folds: ConclusionFoldState<Fold> = ConclusionFoldState(),
+        folds: PagedFoldState<Fold> = PagedFoldState(),
         locale: Locale = .autoupdatingCurrent,
         orders: NameFormatOrders = NameFormatOrders()
     ) {
@@ -278,7 +278,7 @@ struct PersonFamilyContent: Equatable {
 extension PersonFamilyContent {
     /// What the content is built from beside its read; it is built again when any of them changes.
     struct Inputs: Equatable {
-        var folds: ConclusionFoldState<Fold>
+        var folds: PagedFoldState<Fold>
         var orders: NameFormatOrders
         var locale: Locale
     }

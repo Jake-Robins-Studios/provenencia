@@ -13,7 +13,7 @@ struct PersonFamilySection: View {
     @Environment(\.pvWidthClass) private var widthClass
 
     /// The pages of each list the researcher has unfolded. Reset when the page is another person.
-    @State private var folds = ConclusionFoldState<PersonFamilyContent.Fold>()
+    @State private var folds = PagedFoldState<PersonFamilyContent.Fold>()
 
     private var root: String { ConclusionPageSection.family.accessibilityIdentifierRoot(pageIdentifier: pageIdentifier) }
 

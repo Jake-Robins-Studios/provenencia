@@ -10,14 +10,14 @@ import Foundation
 /// and never sorts or dates anything itself.
 struct PersonTimelineContent: Equatable {
     /// Dated events shown before "Show N more", and likewise the undated ones.
-    static let eventFold = ConclusionFold(limit: 50, minimumHidden: 1)
+    static let eventFold = PagedFold(limit: 50, minimumHidden: 1)
 
     /// Other people shown on one event before "Show N more": the board's five
     /// at Regular and twelve at Wide, so a fold is one or two rows of cards.
-    static func participantFold(_ widthClass: PVWidthClass) -> ConclusionFold {
+    static func participantFold(_ widthClass: PVWidthClass) -> PagedFold {
         switch widthClass {
-        case .regular: ConclusionFold(limit: 5, minimumHidden: 1)
-        case .wide: ConclusionFold(limit: 12, minimumHidden: 1)
+        case .regular: PagedFold(limit: 5, minimumHidden: 1)
+        case .wide: PagedFold(limit: 12, minimumHidden: 1)
         }
     }
 
@@ -216,7 +216,7 @@ struct PersonTimelineContent: Equatable {
 
     init(
         timeline: CatalogPersonTimeline,
-        folds: ConclusionFoldState<Fold> = ConclusionFoldState(),
+        folds: PagedFoldState<Fold> = PagedFoldState(),
         locale: Locale = .autoupdatingCurrent,
         orders: NameFormatOrders = NameFormatOrders(),
         widthClass: PVWidthClass = .regular
@@ -381,8 +381,8 @@ struct PersonTimelineContent: Equatable {
 
     private static func row(
         _ event: CatalogPersonEvent,
-        folds: ConclusionFoldState<Fold>,
-        fold participantFold: ConclusionFold,
+        folds: PagedFoldState<Fold>,
+        fold participantFold: PagedFold,
         locale: Locale,
         orders: NameFormatOrders
     ) -> Row {
@@ -428,7 +428,7 @@ struct PersonTimelineContent: Equatable {
 extension PersonTimelineContent {
     /// What the content is built from beside its read; it is built again when any of them changes.
     struct Inputs: Equatable {
-        var folds: ConclusionFoldState<Fold>
+        var folds: PagedFoldState<Fold>
         var orders: NameFormatOrders
         var widthClass: PVWidthClass
         var locale: Locale
