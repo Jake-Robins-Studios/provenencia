@@ -5,22 +5,10 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/Jake-Robins-Studios/provenencia/core/database/dbsql"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 )
-
-// countingQuerier counts the single-row lookups a walk issues.
-type countingQuerier struct {
-	dbsql.Querier
-	rows int
-}
-
-func (c *countingQuerier) QueryRow(query string, args ...any) *sql.Row {
-	c.rows++
-	return c.Querier.QueryRow(query, args...)
-}
 
 // TestReadRowsColumnLooksUpEachIDOnce pins that a path step looks each
 // distinct id up once: three Observations of one Subject read that Subject's
@@ -40,14 +28,14 @@ func TestReadRowsColumnLooksUpEachIDOnce(t *testing.T) {
 		id(1), id(9), id(2), id(8)); err != nil {
 		t.Fatal(err)
 	}
-	cq := &countingQuerier{Querier: db}
+	cq := &QueryLog{Querier: db}
 	w := &walk{q: cq, table: "subjects"}
 	got, err := readRowsColumn(w, "subjects", [][]byte{id(1), id(1), id(2), id(1)}, "graph_id")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cq.rows != 2 {
-		t.Errorf("lookups = %d, want 2", cq.rows)
+	if n := cq.Total(); n != 2 {
+		t.Errorf("lookups = %d, want 2", n)
 	}
 	if len(got) != 2 || !bytes.Equal(got[0], id(9)) || !bytes.Equal(got[1], id(8)) {
 		t.Errorf("got %x, want 9s then 8s", got)

@@ -285,7 +285,7 @@ func TestFacetReleaseAuditsSourceSide(t *testing.T) {
 	})
 }
 
-// effects.Handles on the released changes is the set subject delete recomputes.
+// effects.Resolve (Set.Handles) on the released changes is the set subject delete recomputes.
 func TestReleaseFacetsReportsHandles(t *testing.T) {
 	f := newConclusionFixture(t)
 	tx, err := f.c.BeginWrite()
@@ -301,10 +301,11 @@ func TestReleaseFacetsReportsHandles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	handles, err := effects.Handles(tx.Tx, got)
+	set, err := effects.Resolve(tx.Tx, got)
 	if err != nil {
 		t.Fatal(err)
 	}
+	handles := set.Handles
 	if len(handles) != 1 || !bytes.Equal(handles[0], f.entityID) {
 		t.Fatalf("handles %v", handles)
 	}
