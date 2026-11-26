@@ -1035,7 +1035,9 @@ final class CitationComposerModel {
         await reloadListedCitations()
         let ordered = CitationComposerAuthoring.stepperOrder(listedCitations)
         if let first = ordered.first {
-            _ = await showingLoadFailure(citationID: first.citation.id) { try await loadCitation(first.citation.id) }
+            if await showingLoadFailure(citationID: first.citation.id, { try await loadCitation(first.citation.id) }) == nil {
+                refreshDraftMetadata()
+            }
         } else {
             refreshDraftMetadata()
         }

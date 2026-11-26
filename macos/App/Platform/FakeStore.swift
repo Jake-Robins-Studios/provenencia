@@ -226,6 +226,8 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     var edgeObservationIDs: Set<String> = []
     var citationsByID: [String: CatalogCitation] = [:]
     var citationNotesByID: [String: [String]] = [:]
+    /// When a Citation id is here, `getCitation` throws its error for that Citation.
+    var getCitationErrorsByID: [String: Error] = [:]
     /// Metadata rows by owner: the one stored map, whatever the level.
     var metadataByOwner: [MetadataOwner: [CatalogMetadataEntry]] = [:]
     /// Project dir for which a catalog RPC has “held” a session (tests only).
@@ -2869,6 +2871,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         return try withState {
             markCatalogSessionHeld(projectDir)
             recordedCalls.append("getCitation \(citationID) graphID=\(graphID)")
+            if let failure = getCitationErrorsByID[citationID] { throw failure }
             guard let citation = citationsByID[citationID] else { throw StoreBoom.boom }
             let notes = citationNotesByID[citationID] ?? []
             let observations = (observationsByGraph[graphID] ?? [])

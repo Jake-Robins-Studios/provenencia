@@ -995,6 +995,37 @@ struct CitationComposerModelTests {
         #expect(!model.canEditMetadata)
     }
 
+    /// A failed load of the new Artifact's first Citation leaves nothing open, so the line reads that
+    /// Artifact's draft board, not the previous Artifact's.
+    @Test func selectArtifactDraftReadAfterFailedLoad() async throws {
+        enum LoadFailure: Error { case boom }
+        let store = metadataStore()
+        store.artifactsBySource[sourceID] = scans(2)
+        store.draftMetadataBoardEntries["art-1,\(graphID)/citation"] = inheritedBoard()
+        let model = makeModel(store: store, citationID: "cit-1")
+        await model.prepare()
+        let before = store.draftMetadataBoardCalls.count
+        store.citationsByID["cit-2"] = CatalogCitation(
+            id: "cit-2", ref: "CIT-2", artifactID: "art-1", locatorJSON: #"{"version":1,"selectors":[{"type":"artifact"}]}"#,
+            transcription: "", description: "", transcriptionUncertain: false, transcriptionNote: ""
+        )
+        store.getCitationErrorsByID["cit-2"] = LoadFailure.boom
+        // The graph's cache cannot answer for it, so the load reaches the store.
+        store.listSubjectsError = LoadFailure.boom
+        let graphHandle: QueryHandle<EvidenceGraphRows>? = model.session.queryHandle(model.graphKey)
+        graphHandle?.resetForInvalidation()
+        model.requestSelectArtifact("art-1")
+        await model.awaitIdentitySwitch()
+        #expect(model.selectedArtifactID == "art-1")
+        #expect(model.activeCitationID == nil)
+        #expect(model.citationLoadError != nil)
+        #expect(await waitUntil { model.draftMetadataRows != nil })
+        #expect(store.draftMetadataBoardCalls.count == before + 1)
+        let call = try #require(store.draftMetadataBoardCalls.last)
+        #expect(Set(call.parents) == [MetadataOwner(level: .graph, id: graphID), MetadataOwner(level: .artifact, id: "art-1")])
+        #expect(model.metadataCount == L10n.CitationComposer.metadataInheritsNew(count: 4))
+    }
+
     /// Switching to an Artifact whose Citation opens reads no draft board: nothing would show it.
     @Test func selectArtifactSkipsDraftReadWhenACitationOpens() async throws {
         let store = metadataStore()
