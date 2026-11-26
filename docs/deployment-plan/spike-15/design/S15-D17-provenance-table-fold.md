@@ -146,7 +146,7 @@ Each frame is the 1102 × 900 pane (Regular) or the 2296 × 1440 pane (Wide) dim
 | --- | --- | --- | --- | --- |
 | Provenance sheet | Recipe | Ship | `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceSheet.swift` | Its scroll area scrolls a keyboard reveal into view; no new chrome |
 | Record table | Recipe | Extend | `…/ProvenanceSheet/PVProvenanceRecordTable.swift` | Shows the folded runs and ends with the Show more row. Owner lines, value headings and rules as S15-D9 drew them |
-| Record row | Recipe | Ship | `…/ProvenanceSheet/PVProvenanceRecordRow.swift` | Unchanged; its citation link is where focus lands after a press |
+| Record row | Recipe | Extend | `…/ProvenanceSheet/PVProvenanceRecordRow.swift` | Gains an optional focus handle on its citation link, where focus lands after a press; nothing visible changes |
 | Show more row | Component | Ship | `macos/App/DesignSystem/Components/ShowMoreRow/PVShowMoreRow.swift` | The kit's row and its "Show N more" wording, as the Person page sections use it. Not a new Show all control, a link, or a count of records |
 | Rule before the row | Component | Ship | `PVDivider` | The same rule a normal row boundary draws |
 
