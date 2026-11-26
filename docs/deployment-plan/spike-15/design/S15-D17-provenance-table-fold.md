@@ -4,7 +4,7 @@
 **Spike:** Provenencia Spike 15, slice 8
 **View:** the provenance sheet (a sheet over the Person page; the same sheet opens from Event and Place rows after S15-31)
 **Implements later as:** PR **S15-27** (RF-1 – RF-8, RF-W1)
-**Board:** — (not drawn yet)
+**Board:** agreed 2026-11-26 (user) — [Person page board](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ), page *Vitals*, turn 21 "S15-D17 · Provenance sheet — the record table's fold": frames 21a – 21g, 21i, 21j and the notes Kit, RF-4, RF-3, RF-6, Scroll area. Frame 3 shows "Show 20 more" after one press of 120 runs (the brief's "two presses" needed about 170 runs); frame 5, owner groups, is not drawn. Where the app departs from a note (the scroll after a keyboard press goes into view, not to the top; the row keeps the record row's padding): plan § 6
 **Depends on:** S15-21 (landed [#930](https://github.com/Jake-Robins-Studios/provenencia/pull/930)): the formatted citations and their same-citation runs ([S15-D9](archive/S15-D9-provenance-sheet-citations.md)); S15-30 (landed [#996](https://github.com/Jake-Robins-Studios/provenencia/pull/996)): the kit's Show more row
 **Related:** working rule "The provenance table folds a page at a time" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); [`../provenance-loading.md`](../provenance-loading.md) "Cap the records a provenance table draws"; plan [`../prs/S15-27-provenance-table-fold.md`](../prs/S15-27-provenance-table-fold.md). The next brief on this sheet: S15-D18 (records loading on open)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)

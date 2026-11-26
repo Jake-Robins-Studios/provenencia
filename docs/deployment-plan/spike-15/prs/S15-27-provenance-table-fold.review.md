@@ -2,7 +2,7 @@
 
 Plan: [`S15-27-provenance-table-fold.md`](S15-27-provenance-table-fold.md). Brief: [S15-D17](../design/S15-D17-provenance-table-fold.md), reviewed with the plan.
 
-**Verdict:** Fits with changes (maintainability) · Ready with changes (executability). One round: the one blocker (M-1) was Fixed with no change to the plan's shape, so no second round ran. Nothing is open. The plan stays `Blocked — on board S15-D17`.
+**Verdict:** Fits with changes (maintainability) · Ready with changes (executability). One round: the one blocker (M-1) was Fixed with no change to the plan's shape, so no second round ran. Nothing is open. Board S15-D17 agreed 2026-11-26 (user, turn 21); the plan is `Planned`.
 
 ## Before review (user, 2026-11-26)
 
