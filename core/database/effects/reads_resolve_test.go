@@ -9,9 +9,11 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/observations"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
@@ -176,4 +178,69 @@ func TestFirstObservationMovesNoOtherGraph(t *testing.T) {
 		t.Fatal(err)
 	}
 	sameGraphs(t, "first Observation: citation reads", citationReads(t, tx, only(obsChanges, "observation")), jones.ID)
+}
+
+// TestMetadataValuesNameCitationGraphs: a value set on a Citation, its graph,
+// its Artifact or its Source moves the citation_boards read of the graph the
+// Citation was made in, and no value moves the citations read (its counts).
+func TestMetadataValuesNameCitationGraphs(t *testing.T) {
+	tx, userID, def, jones, art := readsFixture(t)
+	_, changes, err := citations.CreateWithObservations(tx, userID, citations.CreateInput{
+		GraphID: jones.ID, ArtifactID: art.ID, LocatorJSON: evidenceLocator,
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	citationID := only(changes, "citation")[0].EntityID
+	field, _, err := metadatafields.Create(tx, "Page", metadatafields.DataTypeText, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var sourceID []byte
+	if err := tx.QueryRow(`SELECT source_id FROM evidence_graphs WHERE id = ?`, jones.ID).Scan(&sourceID); err != nil {
+		t.Fatal(err)
+	}
+	owners := []struct {
+		name  string
+		owner sourcemetadata.Owner
+		want  [][]byte
+	}{
+		{"citation", sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: citationID}, [][]byte{jones.ID}},
+		{"graph", sourcemetadata.Owner{Level: vocabkey.LevelGraph, ID: jones.ID}, [][]byte{jones.ID}},
+		{"artifact", sourcemetadata.Owner{Level: vocabkey.LevelArtifact, ID: art.ID}, [][]byte{jones.ID}},
+	}
+	for _, o := range owners {
+		t.Run(o.name, func(t *testing.T) {
+			_, ch, err := sourcemetadata.Set(tx, userID, o.owner, sourcemetadata.Input{FieldID: field.ID, ValueText: "2"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			set, err := effects.Resolve(tx.Tx, ch)
+			if err != nil {
+				t.Fatal(err)
+			}
+			sameGraphs(t, "citation_boards", set.IDsOf(effects.ReadCitationBoards), o.want...)
+			if got := set.IDsOf(effects.ReadCitations); len(got) != 0 {
+				t.Errorf("citations read %x, want none", got)
+			}
+		})
+	}
+	t.Run("source", func(t *testing.T) {
+		_, ch, err := sourcemetadata.Set(tx, userID, sourcemetadata.Owner{Level: vocabkey.LevelSource, ID: sourceID},
+			sourcemetadata.Input{FieldID: field.ID, ValueText: "2"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		set, err := effects.Resolve(tx.Tx, ch)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := set.IDsOf(effects.ReadCitationBoards)
+		if len(got) != 2 || !((bytes.Equal(got[0], def.ID) && bytes.Equal(got[1], jones.ID)) || (bytes.Equal(got[0], jones.ID) && bytes.Equal(got[1], def.ID))) {
+			t.Errorf("citation_boards %x, want both graphs of the Source", got)
+		}
+		if got := set.IDsOf(effects.ReadCitations); len(got) != 0 {
+			t.Errorf("citations read %x, want none", got)
+		}
+	})
 }

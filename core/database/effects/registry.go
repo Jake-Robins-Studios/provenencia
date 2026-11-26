@@ -37,6 +37,9 @@ const (
 	// ReadCitations: the citation counts and the citations by Artifact of a
 	// graph.
 	ReadCitations Read = "citations"
+	// ReadCitationBoards: the Citation boards of a graph's Citations: their own
+	// and inherited metadata values.
+	ReadCitationBoards Read = "citation_boards"
 	// ReadEvidenceGraphProgress: the Subject, filed and Observation counts of
 	// a graph.
 	ReadEvidenceGraphProgress Read = "evidence_graph_progress"
@@ -58,12 +61,12 @@ const (
 )
 
 // KeyTable is the table whose ids key the read: Evidence graphs for
-// citations and evidence_graph_progress, Sources for evidence_graphs,
+// citations, citation_boards and evidence_graph_progress, Sources for evidence_graphs,
 // inherited_values, source_holdings and source_records, Properties for
 // property_terms. "" for an unknown read.
 func (r Read) KeyTable() string {
 	switch r {
-	case ReadCitations, ReadEvidenceGraphProgress:
+	case ReadCitations, ReadCitationBoards, ReadEvidenceGraphProgress:
 		return "evidence_graphs"
 	case ReadEvidenceGraphs, ReadInheritedValues, ReadSourceHoldings, ReadSourceRecords:
 		return "sources"
@@ -74,7 +77,7 @@ func (r Read) KeyTable() string {
 }
 
 // Reads is every keyed read, in the order Set.Reads reports them.
-var Reads = []Read{ReadCitations, ReadEvidenceGraphProgress, ReadEvidenceGraphs, ReadInheritedValues, ReadPropertyTerms, ReadSourceHoldings, ReadSourceRecords}
+var Reads = []Read{ReadCitations, ReadCitationBoards, ReadEvidenceGraphProgress, ReadEvidenceGraphs, ReadInheritedValues, ReadPropertyTerms, ReadSourceHoldings, ReadSourceRecords}
 
 // DeletedEntities is every Entity that reports deleted ids (an entry with a
 // non-zero Effect.Deleted), sorted: the wire keys of Set.Deleted.
@@ -361,9 +364,20 @@ var registry = map[string]Effect{
 	},
 	// The metadata tables' Entity, SourceScope and Lists come from
 	// catalogmodel.MetadataTables (metadataEffects); only extras are listed.
+	// Every value table reports citation_boards: a value moves the board of the
+	// Citations at and below its owner, which the graphs name.
 	"source_metadata": {
-		Reads:  []ReadPath{{ReadInheritedValues, field("source_id")}},
+		Reads: []ReadPath{
+			{ReadInheritedValues, field("source_id")},
+			{ReadCitationBoards, graphsOfSource(field("source_id"))},
+		},
 		Search: []SearchDoc{{Kind: DocSource, Path: field("source_id")}},
+	},
+	"artifact_metadata": {
+		Reads: []ReadPath{{ReadCitationBoards, from("artifact_id", chain(inbound("citations", "artifact_id"), field("graph_id")))}},
+	},
+	"evidence_graph_metadata": {
+		Reads: []ReadPath{{ReadCitationBoards, field("graph_id")}},
 	},
 	"source_credibility_assessments": {
 		Entity:      "source_credibility_assessment",
@@ -376,7 +390,10 @@ var registry = map[string]Effect{
 		Search: []SearchDoc{{Kind: DocSource, Path: field("source_id")}},
 	},
 	// A Citation's value names the graphs its Citation's Observations show.
-	"citation_metadata": {EvidenceGraph: from("citation_id", citationObservationGraphs)},
+	"citation_metadata": {
+		EvidenceGraph: from("citation_id", citationObservationGraphs),
+		Reads:         []ReadPath{{ReadCitationBoards, up("citation_id", "graph_id")}},
+	},
 	// An Artifact's own fields move no loaded graph row and no citation
 	// membership: its Citations and Observations carry their own graphs.
 	"artifacts": {
