@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc` (table tests)
 **Context:** map scope entry S15-59 ([`../deployment-plan.md`](../deployment-plan.md)); working rules "The locator only finds things in its Artifact", "The printed page is a metadata field", "A value can be marked unknown or supplied"; [`docs/interpretation-layer-data-model.md`](../../../interpretation-layer-data-model.md) §§ 3.2, 3.3, 3.6, 3.8
 **Planned:** 2026-11-26 against `main` @ `8d95af5`
-**Review:** — (not reviewed yet)
+**Review:** [`S15-59-locator-file-page-only.review.md`](S15-59-locator-file-page-only.review.md) — round 1 answered; round 2 running
 
 ### Implementer — read this first
 
@@ -73,8 +73,9 @@ A Citation's locator says where the Citation is in its Artifact, and nothing els
 | `PageRef` and `Page` give way to `ArtifactPage`; its two callers follow | STEP-1, STEP-2, AC-1.1 |
 | `citations.Update` checks the locator only when it changes | STEP-3, AC-1.3, AC-1.4, AC-2.2 |
 | Go tests that write a retired key through a write path drop it | STEP-1, STEP-3, STEP-4 |
-| `CitationLocatorDraft.pageLabel` goes; the draft reads and writes the file page alone | STEP-5, AC-3.1, AC-3.2 |
-| Domain doc | STEP-6 |
+| Go tests share `depictionvaluetest.Locator` for the page-1 locator (D-8) | STEP-5 |
+| `CitationLocatorDraft.pageLabel` goes; the draft reads and writes the file page alone | STEP-6, AC-3.1, AC-3.2 |
+| Domain doc | STEP-7 |
 
 | Out | Home |
 | --- | --- |
@@ -110,14 +111,15 @@ A Citation's locator says where the Citation is in its Artifact, and nothing els
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
 | D-1 | Reads (`parse`, so `ArtifactPage` and `ValidateDepictionRegion`) ignore `page_label`, `page_unknown` and `page_supplied` whatever their JSON type, and accept a page selector with no `artifact_page` as no page. `artifact_page` below 1 and a second page selector stay invalid | Rule "The locator only finds things in its Artifact": no read fails on the stored keys; with them ignored, a label-only selector is a selector with nothing in it | Keeping read-side decoding of the keys to settle them: nothing reads them |
-| D-2 | `Validate` refuses, with `ErrInvalid`, a page selector with no `artifact_page`, and a page selector holding any of the three keys by exact name, whatever its value. Only `type: "page"` selectors are checked | The map's Check: a new locator with one is refused. Exact names: `encoding/json` matched keys case-insensitively, but nothing reads them now, so a key in another case is an unknown key like any other | Silently stripping the keys on write: a client still writing them would never learn; case-insensitive matching: guards a reader that no longer exists |
-| D-3 | `PageRef` and `Page` go; `ArtifactPage(locatorJSON string) int` returns the file page, 0 for none, an invalid document, or a page above `math.MaxInt32`. `citationPage(doc document) int` returns the same for a parsed document, and `ArtifactPage` is `parse` then `citationPage` | One field left; both callers read `.ArtifactPage` alone | A one-field `PageRef`: a struct with nothing to group |
+| D-2 | `selectorRaw` keeps `PageLabel`, `PageUnknown` and `PageSupplied` as `json.RawMessage` fields that record presence only: the one `decode` fills them, whatever the value's JSON type (`null` included), matching the key's case as `encoding/json` does, and no read looks at them. `Validate` refuses, with `ErrInvalid`, a page selector with no file page and a page selector where any of the three is non-nil. Only `type: "page"` selectors are checked | The map's Check: a new locator with one is refused; one decode of the format, so a later rule added to `decode` cannot miss the check | A second map decode in `Validate`: a private decoder beside the package's own; silently stripping the keys on write: a client still writing them would never learn |
+| D-3 | `PageRef` and `Page` go; `ArtifactPage(locatorJSON string) int` returns the file page, 0 for none, an invalid document, or a page above `math.MaxInt32`. One method, `selectorRaw.filePage() (int, bool)`, holds the rule "`ArtifactPage` non-nil and at most `math.MaxInt32`"; `citationPage(doc document) int` (0 for none), `regionDocPages` and `Validate` call it, and `ArtifactPage` is `parse` then `citationPage` | One field left, both callers read `.ArtifactPage` alone; the file-page rule gets one home in the package | A one-field `PageRef`: a struct with nothing to group |
 | D-4 | `citations.Update` reads the stored row first and calls `locator.Validate` only when `in.LocatorJSON` differs from the stored `LocatorJSON`. Order: trims, id length, `RequireUserID`, the stored-row read, then the locator check; an unknown Citation id with an invalid locator now returns `citations.ErrInvalid` | The Metadata sheet sends the stored text back unchanged (§4 Sheet save); an unchanged locator was checked when it was written, and refusing it would refuse a metadata save on any Citation stored with a label | Re-encoding the locator in `CitationMetadataSheetModel.save`: a reformatted JSON string records a `citation` change on every metadata save; stripping the keys in `Update`: D-2's rejected option |
-| D-5 | `ValidateDepictionRegion` keeps its read-side checks for both documents (D-1) and does not call `Validate`; a region document's page selector must still hold `artifact_page` (`regionDocPages`) | It also runs on every read (`depictionvalue.Readable`), so it must not refuse stored text; the app writes region documents only through `CitationLocatorDraft.encodeJSON`, which after STEP-5 writes no retired key | A write-only region check: a second validator for documents no client writes the keys into |
-| D-6 | Every test that writes a retired key through `citations`, `connect` or the FFI drops the key and keeps its `artifact_page`; a selector left with nothing becomes `"artifact_page":1`. The handlers' `pageLocatorJSON` goes and its four callers pass `validLocatorJSON`; the locators at `citation_render_test.go` lines 176 and 178 become `{"version":1,"selectors":[{"type":"artifact"}]}`. Raw-SQL fixtures in `citationrender` keep their keys: they are the stored documents D-1 reads | The printed text of every render test comes from the Page value since S15-58, so expectations do not change | Rewriting the raw-SQL fixtures: they are the read-tolerance cases |
-| D-7 | The map's rule "The locator only finds things in its Artifact" and the S15-59 scope entry (Ships, Deletes, Check) say what D-3 and D-4 do: the composer's next save of a Citation's locator writes the keys out, and a save that sends the stored locator unchanged keeps it. Edited in planning; the implementer changes nothing in them | D-4; the plan and the map must agree | — |
+| D-5 | `ValidateDepictionRegion` keeps its read-side checks for both documents (D-1) and does not call `Validate`; a region document's page selector must still hold `artifact_page` (`regionDocPages`) | It also runs on every read (`depictionvalue.Readable`), so it must not refuse stored text; the app writes region documents only through `CitationLocatorDraft.encodeJSON`, which after STEP-6 writes no retired key | A write-only region check: a second validator for documents no client writes the keys into |
+| D-6 | A test that writes a retired key through `citations`, `connect` or the FFI drops the key; where its locator is a page-1 or page-12 file page or a label alone, it uses `depictionvaluetest.Locator`. Raw-SQL fixtures in `citationrender` keep their keys: they are the stored documents D-1 reads | The printed text of every render test comes from the Page value since S15-58, and no test reads page 12, so expectations do not change | Rewriting the raw-SQL fixtures: they are the read-tolerance cases |
+| D-8 | Every Go test copy of the literal `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}` reads `depictionvaluetest.Locator` (`core/depictionvalue/depictionvaluetest`, which imports nothing); the shared constants `citationstest.PageLocator` and `evidencelayertest.Locator` become `= depictionvaluetest.Locator` so their callers stay as they are (user, 2026-11-26: all copies) | This PR changes the locator format; the next change edits one constant | Only the copies this PR must edit: leaves about 16 |
+| D-7 | The map's rule "The locator only finds things in its Artifact" and the S15-59 scope entry (Ships, Deletes, Check) say what D-2 – D-4 do. Edited in planning with the user's answer below; the implementer changes nothing in them | The plan and the map must agree | — |
 
-**Rules this plan bends.** None. D-7 narrows the wording of rule "The locator only finds things in its Artifact" to what D-4 does; the rule's intent (no migration, no read or save fails on the keys) holds.
+**Rules this plan bends.** D-4 bends rule "The locator only finds things in its Artifact" (user, 2026-11-22), which said the next save of a Citation writes the retired keys out: a metadata-only save sends the stored locator unchanged and keeps them. The user's answer (2026-11-26): keep them; the composer's next save of the Citation's locator writes them out. The rule was updated in planning (D-7).
 
 ## 6. Design
 
@@ -126,10 +128,10 @@ A Citation's locator says where the Citation is in its Artifact, and nothing els
 | New *(this PR adds)* | Kind | Closest existing | Why not reuse or extend it |
 | --- | --- | --- | --- |
 | `locator.ArtifactPage(locatorJSON string) int` *(new)* | func | `locator.Page` | Replaces it (D-3) |
-| `retiredPageKeys` *(new)*, `holdsRetiredPageKey(locatorJSON string) bool` *(new)* in `core/locator/validate.go` | var, func | `decode` (`core/locator/validate.go`) | `decode` fills `document` structs, which drop unknown keys; presence of a key needs a map decode. Called from `Validate` only, after `parse` has bounded the document at `MaxDocumentBytes` |
+| `selectorRaw.filePage() (int, bool)` *(new)* | method | the nil and `MaxInt32` checks in `citationPage` and `regionDocPages` (`core/locator/depiction.go`) | Replaces them, and serves `Validate` (D-3) |
 
 **Builds on.** S15-44's `Validate`/`parse` split; `citations.Update`'s existing read of the stored row (`sqlGet`).
-**Deletes.** `selectorRaw.PageLabel`, `.PageUnknown`, `.PageSupplied`; `selectorRaw.pageMark`; `locator.PageRef` and `locator.Page`; the `valuemark` import in `core/locator` (package and tests); the label and mark branches of `validatePage` and of the package and `ValidateDepictionRegion` doc comments; `CitationLocatorDraft.pageLabel` and its reads in `encodeJSON` and `decode`; the handlers' `pageLocatorJSON`; the Swift tests `blankPrintedPageWritesNoSelector`, `printedPageSurvivesLocatorResets`, `nonStringPageLabelIsIgnored`; the `TestValidate` rows that assert a mark pair (now refused for the key alone).
+**Deletes.** The `*string` and `bool` meaning of `selectorRaw.PageLabel`, `.PageUnknown`, `.PageSupplied` (they become presence-only, D-2); `selectorRaw.pageMark`; `locator.PageRef` and `locator.Page`; the `valuemark` import in `core/locator` (package and tests); the label and mark branches of `validatePage` and of the package and `ValidateDepictionRegion` doc comments; `CitationLocatorDraft.pageLabel` and its reads in `encodeJSON` and `decode`; the handlers' `pageLocatorJSON`; every test-local copy of the page-1 locator literal (D-8); `core/locator` from `core/valuemark`'s package comment; the Swift tests `blankPrintedPageWritesNoSelector`, `printedPageSurvivesLocatorResets`, `nonStringPageLabelIsIgnored`; the `TestValidate` rows that assert a mark pair (now refused for the key alone).
 **Next adds.** None named: slice 11 ends here.
 
 ### Reach
@@ -142,15 +144,15 @@ A Citation's locator says where the Citation is in its Artifact, and nothing els
 
 ### Scale
 
-None — no list or loop changes. `Validate` runs once per Citation write and adds one map decode of a document already bounded at 64 KiB; `Update` already reads the stored row.
+None — no list or loop changes; `Update` already reads the stored row.
 
 ### Edges
 
 - **Assumptions.** `ValidateDepictionRegion` assumes a Citation with no file page has no page selector worth comparing; D-1 keeps that (a selector with no `artifact_page` is no page). `Readable` assumes the read check never refuses what the write accepted: every document `Validate` accepts still parses (D-2 is stricter than D-1). `FuzzValidate` holds both (T-3).
-- **Neighbors.** File page with a label → reads the file page, write refused (AC-1.1, AC-2.2). File page alone → read and write as today. Label alone → reads as no page, write refused (AC-1.2, AC-2.1). `{"type":"page"}` → reads as no page (was unreadable), write refused as today (AC-2.3). A retired key on a non-page selector → preserved, accepted (AC-2.4). `"Page_Label"` on a page selector → an unknown key: read ignores it, write accepts it (D-2).
+- **Neighbors.** File page with a label → reads the file page, write refused (AC-1.1, AC-2.2). File page alone → read and write as today. Label alone → reads as no page, write refused (AC-1.2, AC-2.1). `{"type":"page"}` → reads as no page (was unreadable), write refused as today (AC-2.3). A retired key on a non-page selector → preserved, accepted (AC-2.4). `"Page_Label"` or `"page_label": null` on a page selector → read ignores it, write refused (D-2).
 - **Removed inputs.** A stored `page_unknown` or `page_supplied` reaches nothing; since S15-58 no citation printed them. Accepted by the rule.
 - **Real data.** None — no table or seed drives the rule. The dogfood project's few stored labels (user, 2026-11-22) read as AC-1.1 and AC-1.2.
-- **Untrusted size.** `holdsRetiredPageKey` runs after `parse`, so the document is at most `MaxDocumentBytes`; it walks each selector's keys once.
+- **Untrusted size.** None — no new walk: the retired fields fill in the decode `parse` already bounds at `MaxDocumentBytes`.
 
 ### Schema
 
@@ -160,7 +162,8 @@ None — no catalog change; stored locators are not migrated.
 
 | Package | Change |
 | --- | --- |
-| `core/locator` | `validate.go`: `selectorRaw` keeps `Type`, `ArtifactPage`, `Points`, `Unit`, `Exact`, `Prefix`, `Suffix`. `validatePage` refuses only `artifact_page` below 1. `Validate`: after `parse`, a page selector with nil `ArtifactPage` → `ErrInvalid`; `holdsRetiredPageKey` true → `ErrInvalid`. `retiredPageKeys` is `[...]string{"page_label", "page_unknown", "page_supplied"}`. `holdsRetiredPageKey` decodes the trimmed text into `struct{ Selectors []map[string]json.RawMessage }`, reads each selector's `type` as a string and compares it after `strings.TrimSpace` to `TypePage`, as `validateDoc` does; a selector holding any `retiredPageKeys` name exactly is true. A decode error, a `null` selector or a non-string `type` is false: `parse` has already accepted the document. The package comment says a page selector holds `artifact_page`, that reads ignore the keys S15-59 retired, and that `Validate` refuses them. `depiction.go`: D-3; `ValidateDepictionRegion` reads `page := citationPage(citation)` and `hasPage := page > 0`; its comment drops the label-only and unknown-only clause and says a Citation page selector with no file page is no page |
+| `core/locator` | `validate.go`: `selectorRaw`'s `PageLabel`, `PageUnknown`, `PageSupplied` become `json.RawMessage` with tags `page_label`, `page_unknown`, `page_supplied` and the comment "retired by S15-59: presence only; reads never look at them". `filePage` (D-3). `validatePage` refuses only `artifact_page` below 1. `Validate`: after `parse`, a page selector whose `filePage` is not ok, or with any retired field non-nil, → `ErrInvalid`. The package comment says a page selector holds `artifact_page`, that reads ignore the keys S15-59 retired, and that `Validate` refuses them. `depiction.go`: D-3; `ValidateDepictionRegion` reads `page := citationPage(citation)` and `hasPage := page > 0`; its comment drops the label-only and unknown-only clause and says a Citation page selector with no file page is no page |
+| `core/valuemark` | `valuemark.go` package comment: the stores that call `Validate` are the Source's metadata values and date; "and a Citation's printed page (core/locator)" goes |
 | `core/database/citationrender` | `load.go`: `subject.page` becomes `artifactPage int`, set from `locator.ArtifactPage(c.LocatorJSON)`; `fillValues` reads it |
 | `core/database/graphfill` | `load.go`: `w.page = locator.ArtifactPage(citationLocator.String)` |
 | `core/database/citations` | `citations.go` `Update`: D-4. The `locator.Validate` call moves below the `prev` read and runs when `in.LocatorJSON != prev.LocatorJSON`; its comment says an unchanged locator was checked when written |
@@ -186,8 +189,8 @@ None — no copy names the locator's printed page since S15-56.
 ## 7. Steps
 
 **STEP-1 — The locator holds the file page alone**
-Files: `core/locator/validate.go`, `depiction.go`, `validate_test.go`, `fuzz_test.go`, `depiction_test.go`, `core/database/citationrender/load.go`, `core/database/graphfill/load.go`. Skill: `add-depiction-value`.
-Do: the `core/locator`, `citationrender` and `graphfill` rows of §6 Go core (the two callers change here so the tree builds). Tests: T-1, T-2, T-3, T-4.
+Files: `core/locator/validate.go`, `depiction.go`, `validate_test.go`, `fuzz_test.go`, `depiction_test.go`, `core/valuemark/valuemark.go`, `core/database/citationrender/load.go`, `core/database/graphfill/load.go`. Skill: `add-depiction-value`.
+Do: the `core/locator`, `core/valuemark`, `citationrender` and `graphfill` rows of §6 Go core (the two callers change here so the tree builds). Tests: T-1, T-2, T-3, T-4.
 Check: `go build ./... && go vet ./...` passes; `CGO_ENABLED=1 go test -tags fts5 ./core/locator/...` passes; `CGO_ENABLED=1 go test -tags fts5 -run FuzzValidate -fuzz FuzzValidate -fuzztime 20s ./core/locator` passes. Packages whose tests write a retired key fail until STEP-3 and STEP-4.
 
 **STEP-2 — Render keeps reading stored locators**
@@ -197,36 +200,41 @@ Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/citationrender/...` pas
 
 **STEP-3 — An unchanged locator saves without a second check**
 Files: `core/database/citations/citations.go`, `citations_test.go`.
-Do: the `core/database/citations` row of §6 Go core. In `citations_test.go`: `validLocator` (local to `TestCitations`) loses `,"page_label":"10"`; the `locatorJSON` literals in `TestListCitedTx` (line 874) and `TestFirstOfSource` (line 976) become `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}` (neither reads the page); the two subtests at lines 374 and 407 are replaced by T-5's two subtests.
+Do: the `core/database/citations` row of §6 Go core. In `citations_test.go`: `validLocator` (local to `TestCitations`) becomes `depictionvaluetest.Locator`; the `locatorJSON` literals in `TestListCitedTx` (line 874) and `TestFirstOfSource` (line 976) become `depictionvaluetest.Locator` (neither reads the page); the two subtests at lines 374 and 407 are replaced by T-5's two subtests.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/citations/...` passes.
 
 **STEP-4 — Tests stop writing the retired keys**
 Files: `core/database/conclusiondetails/conclusiondetails_test.go`, `core/database/graphfill/records_test.go`, `core/database/evidencegraphs/progress_test.go`, `api/ffi/handlers/citations_test.go`, `api/ffi/handlers/citation_render_test.go`.
-Do: D-6 at each §4 site in these files: drop `,"page_label":"9"` (conclusiondetails line 231, graphfill line 299), `,"page_label":"10"` (`validLocator`, `validLocatorJSON`); delete `pageLocatorJSON` and pass `validLocatorJSON` at its four callers; lines 176 and 178 become the artifact-only locator.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./...` passes; `rg -n 'page_label|page_unknown|page_supplied' --type go` hits only `core/locator` (the retired-key list, its tests, the package comment) and `core/database/citationrender/render_test.go`, plus `page_label` in `api/proto`, `api/ffi/handlers/conclusion_detail*.go`, `citations.go` and `citations_test.go` as the listed Citation's Page value (`GetPageLabel`, `PageLabel:`).
+Do: D-6 at each §4 site in these files: drop `,"page_label":"9"` (conclusiondetails line 231, graphfill line 299; they keep page 37); `validLocator` (progress) and `validLocatorJSON` (handlers) become `depictionvaluetest.Locator`; delete `pageLocatorJSON` and pass `validLocatorJSON` at its four callers; lines 176 and 178 become `{"version":1,"selectors":[{"type":"artifact"}]}`.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./...` passes; `rg -n 'page_label|page_unknown|page_supplied' --type go` hits only `core/locator` (the retired fields' tags, its tests, the package comment) and `core/database/citationrender/render_test.go`, plus `page_label` in `api/proto`, `api/ffi/handlers/conclusion_detail*.go`, `citations.go` and `citations_test.go` as the listed Citation's Page value (`GetPageLabel`, `PageLabel:`).
 
-**STEP-5 — The composer's draft writes the file page alone**
+**STEP-5 — Tests share one page-1 locator**
+Files: `core/database/citations/citationstest/citationstest.go`, `core/database/evidencelayer/evidencelayertest/evidencelayertest.go`, and each file `rg -n '`\{"version":1,"selectors":\[\{"type":"page","artifact_page":1\}\]\}`' --type go` lists outside `core/depictionvalue/depictionvaluetest`, `core/locator` and `core/database/citationrender` (at the planning base: `api/ffi/handlers/artifacts_test.go`, `api/ffi/handlers/conclusion_summaries_test.go`, `api/ffi/handlers/promote_align_test.go`, `core/database/connect/connect_test.go`, `core/database/effects/evidence_handles_test.go`, `core/database/effects/handle_paths_test.go`, `core/database/effects/released_metadata_scope_test.go`, `core/database/observations/observations_test.go`, `core/database/deleteimpact/impact_test.go`, `core/database/citations/delete_test.go`, `core/database/artifacts/artifacts_test.go`, `core/database/subjects/delete_test.go`, `core/database/evidencegraphs/evidencegraphs_test.go`, `core/database/graphfill/load_test.go`, `core/database/properties/properties_delete_test.go`, and `api/ffi/handlers/citations_test.go` `likenessLocatorJSON`).
+Do: D-8. A named constant or variable that only holds the literal is replaced at its uses by `depictionvaluetest.Locator` and deleted; an inline literal becomes `depictionvaluetest.Locator`.
+Check: the `rg` above hits only `core/depictionvalue/depictionvaluetest/depictionvaluetest.go`; `CGO_ENABLED=1 go test -tags fts5 ./...` passes.
+
+**STEP-6 — The composer's draft writes the file page alone**
 Files: `macos/App/Features/CitationComposer/CitationLocatorDraft.swift`, `macos/ProvenenciaTests/CitationLocatorDraftTests.swift`. Skill: `add-swift-test`.
 Do: the §6 macOS row. Tests: T-7; delete the three tests §6 Deletes names.
 Check: on the Mac, `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' -only-testing:ProvenenciaTests/CitationLocatorDraftTests -only-testing:ProvenenciaTests/CitationComposerModelTests` passes; `rg -n 'pageLabel' macos/App/Features/CitationComposer/CitationLocatorDraft.swift` has no hit.
 
-**STEP-6 — Docs**
+**STEP-7 — Docs**
 Files: `docs/interpretation-layer-data-model.md`.
 Do: `interpretation-layer-data-model.md` § 3.2: replace the section body with: the page selector names a page by its 1-based position in the Artifact (`artifact_page`, required, at least 1), its only key; an image Artifact has no file page, so its locator has no page selector; the page the original prints, and its unknown and supplied marks, are the Citation's Page metadata value (the seeded `page` field), not a locator fact; the schema `PageSelector { type: "page"; artifact_page: integer >= 1 }`; the one-page-selector rule and the region document's file page, kept from today's text; and one paragraph: locators stored before 0.46.0 may hold `page_label`, `page_unknown` and `page_supplied`; reads ignore them, a write holding one is refused, and the composer's next save of the Citation's locator leaves them out. Drop the "general rule" quote's `page_label` sentence, the `page_label` example and the pagination-values list. § 3.3 and § 3.6 examples: delete the `"page_label": "23"` line and the comma before it. § 3.8 invariant 11 reads "The page the original prints is the Citation's Page metadata value, not part of the locator."
 Check: `rg -n 'page_label|page_unknown|page_supplied' docs/*.md` hits only § 3.2's stored-locators paragraph; `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-59-locator-file-page-only.md` passes.
 
-**STEP-7 — Version and status**
+**STEP-8 — Version and status**
 Files: `VERSION`, `core/version.go`, every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj`, `docs/deployment-plan/spike-15/completed.md`, `deployment-plan.md` (map row), this plan.
 Do: the header's bump; the DoD's status, map row and `completed.md` lines.
 Check: `rg -n 'MARKETING_VERSION' macos/Provenencia.xcodeproj/project.pbxproj` shows the new version on every line; `scripts/check-pr.sh` prints `check-pr: PASS` (on the Mac).
 
-Commits: STEP-1 – STEP-4 are one commit, "Keep the locator to the file page; stored printed pages read and save.", because the test tree does not pass between them; STEP-5, STEP-6 and STEP-7 one commit each. The subject is one full imperative sentence that says what changed for the researcher, ending in a period. No WIP commits.
+Commits: STEP-1 – STEP-4 are one commit, "Keep the locator to the file page; stored printed pages read and save.", because the test tree does not pass between them; STEP-5 – STEP-8 one commit each (STEP-5: "Share one page locator across the Go tests."). The subject is one full imperative sentence that says what changed for the researcher, ending in a period. No WIP commits.
 
 ## 8. Tests
 
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
-| T-1 | Go | `core/locator/validate_test.go` `TestValidate` | Every row whose JSON holds a retired key wants `ErrInvalid` (the `valuemark.ErrInvalid` rows included); "page selector with nothing in it" stays `ErrInvalid`. New rows: "a retired key on a padded page type" `{"type":" page ","artifact_page":3,"page_label":"x"}` → `ErrInvalid`; "a retired key on an unknown selector type" (AC-2.4's JSON) → accepted; "page_label in another case" `{"type":"page","artifact_page":3,"Page_Label":"x"}` → accepted | AC-2.3, AC-2.4, D-2 |
+| T-1 | Go | `core/locator/validate_test.go` `TestValidate` | Every row whose JSON holds a retired key wants `ErrInvalid` (the `valuemark.ErrInvalid` rows included); "page selector with nothing in it" stays `ErrInvalid`. New rows: "a retired key on a padded page type" `{"type":" page ","artifact_page":3,"page_label":"x"}` → `ErrInvalid`; "a null retired key" `{"type":"page","artifact_page":3,"page_label":null}` → `ErrInvalid`; "a retired key in another case" `{"type":"page","artifact_page":3,"Page_Label":"x"}` → `ErrInvalid`; "a retired key on an unknown selector type" (AC-2.4's JSON) → accepted | AC-2.3, AC-2.4, D-2 |
 | T-2 | Go | `core/locator/validate_test.go` `TestArtifactPage` *(new; replaces `TestPage`)* | `TestPage`'s documents with the want reduced to the file page (37 for "page with label" and "file page, label, supplied"; 4 for "page without label" and "stored supplied without a label…"; 0 for the rest), plus "a non-bool mark beside a file page" `{"type":"page","artifact_page":5,"page_unknown":"yes"}` → 5 | AC-1.1, AC-1.2, D-1, D-3 |
 | T-3 | Go | `core/locator/fuzz_test.go` `FuzzValidate` | Same seeds. Nothing panics; when `Validate` accepts a document, `parse` accepts it, its page selector (if any) has a non-nil `ArtifactPage`, and `ArtifactPage(doc)` equals it when at most `math.MaxInt32`, else 0 | D-1, D-2 |
 | T-4 | Go | `core/locator/depiction_test.go` `TestValidateDepictionRegion` | Every row keeps its expectation. Rename "region page selector carries an unpaired mark" → "region page selector carries retired keys" and "citation page selector carries an unpaired mark" → "citation page selector carries retired keys"; the `label` and `unknown` fixtures get the comment "stored before S15-59" | AC-1.5, D-5 |
@@ -245,14 +253,14 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: th
 - [ ] scripts/check-pr.sh prints check-pr: PASS (gofmt, go vet, go test, Xcode tests with no Swift warning, catalog and plan-doc checks)
 - [ ] No Out line was implemented; no code outside §4 / §6 was refactored
 - [ ] New user-facing copy is in L10n + Localizable.xcstrings; no stale strings left — none: no copy changes
-- [ ] Sweep: each renamed or deleted name `rg`'d by its old, qualified name across `.agents/`, `.cursor/rules/`, `docs/*.md` and `L10n.swift` with no hit left; `scripts/check-guidance-names.py` passes (check-pr runs it). Names: `locator.PageRef`, `locator.Page(`, `pageMark`, `PageUnknown`, `PageSupplied`, `CitationLocatorDraft.pageLabel`
+- [ ] Sweep: each renamed or deleted name `rg`'d by its old, qualified name across `.agents/`, `.cursor/rules/`, `docs/*.md` and `L10n.swift` with no hit left; `scripts/check-guidance-names.py` passes (check-pr runs it). Names: `locator.PageRef`, `locator.Page(`, `pageMark`, `CitationLocatorDraft.pageLabel`, and `core/locator` in `core/valuemark`'s comment
 - [ ] Every row of **Rules this plan bends** has the user's answer, and its rule is updated — none
 - [ ] UI matches the brief inventory; no new kit primitive unless the brief marks it New — none: no brief
 - [ ] Version bump as the header says (VERSION, core/version.go, MARKETING_VERSION together)
 - [ ] This plan: Status → Landed in #N (date); a Landed note lists every difference from the plan
 - [ ] deployment-plan.md: map row status; completed.md: one short paragraph of what shipped
 - [ ] Brief moved to design/archive/ and design/README.md updated (if gated) — none: no brief
-- [ ] Domain doc updated if a rule in docs/*.md changed: docs/interpretation-layer-data-model.md §§ 3.2, 3.3, 3.6, 3.8 (STEP-6)
+- [ ] Domain doc updated if a rule in docs/*.md changed: docs/interpretation-layer-data-model.md §§ 3.2, 3.3, 3.6, 3.8 (STEP-7)
 - [ ] PR description: what shipped, AC evidence, deviations, manual check
 ```
 
