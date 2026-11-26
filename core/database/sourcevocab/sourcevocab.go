@@ -190,7 +190,6 @@ func Install(tx *database.Tx) ([]rowchange.Change, error) {
 		changes = append(changes, cs...)
 		fieldIDs[f.Key] = id
 	}
-	typeIDs := make(map[string][]byte, len(seedTypes))
 	for _, t := range seedTypes {
 		// The one storage step: keys become the product fields' ids, so a
 		// researcher's field with the same key never captures a seeded format.
@@ -212,19 +211,8 @@ func Install(tx *database.Tx) ([]rowchange.Change, error) {
 			return nil, err
 		}
 		changes = append(changes, cs...)
-		typeIDs[t.Key] = id
-	}
-	for _, s := range seedSuggestions {
-		typeID := typeIDs[s.TypeKey]
-		if len(typeID) == 0 {
-			return nil, ErrInvalid
-		}
-		for order, key := range s.FieldKeys {
-			fieldID := fieldIDs[key]
-			if len(fieldID) == 0 {
-				return nil, ErrInvalid
-			}
-			if err := ensureSuggestionTx(tx, typeID, fieldID, order); err != nil {
+		for order, key := range suggestedKeys(t.Formats) {
+			if err := ensureSuggestionTx(tx, id, fieldIDs[key], order); err != nil {
 				return nil, err
 			}
 		}

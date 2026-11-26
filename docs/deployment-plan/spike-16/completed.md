@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-78 — Install derives each seeded type's suggested fields from its formats
+
+**Landed 2026-11-26** in [#993](https://github.com/Jake-Robins-Studios/provenencia/pull/993). Seeded types' suggested fields are derived from their formats at install; new projects get the same rows in the same order. `suggestedKeys` holds the § 2.3 rule in `sourcevocab`, and the 26 hand-typed lists are gone.
+
 ## S16-70 — A Source or Source type delete is learned from the engine
 
 **Landed 2026-11-26** in [#988](https://github.com/Jake-Robins-Studios/provenencia/pull/988). Nothing a researcher sees changes. A Source or Source type delete reaches the Swift cache only through the write's `WriteEffects.deleted`: the Source types list drops the row with one patch (`deletedRows(_:of:)`) and no reload, because a type delete reports `deleted` and `metadata_field_usage` in place of `source_vocabulary` (the metadata field list follows `metadata_field_usage`, since a type's citation formats count toward a field's `usedBy`), the Sources list drops it by its `source_holdings` re-read, and the Source page and the type's suggestions evict through `deletedWith`. The engine reports a new `source_type_usage` list on a Source create, delete or type change, which restates a type's `usedBy`. `.deletedSource`, `.deletedSourceType` and the `removes:` closure are gone.
