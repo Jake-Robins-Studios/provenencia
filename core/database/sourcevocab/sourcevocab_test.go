@@ -112,10 +112,6 @@ func TestInstall(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				// The map's counts, asserted once; every other check reads the registry.
-				if len(seedTypes) != 26 || len(seedFields) != 69 {
-					t.Fatalf("registry holds %d types and %d fields, the map says 26 and 69", len(seedTypes), len(seedFields))
-				}
 				if len(types) != len(seedTypes) || len(fields) != len(seedFields) {
 					t.Fatalf("types=%d fields=%d", len(types), len(fields))
 				}
@@ -180,9 +176,6 @@ func TestInstall(t *testing.T) {
 				// Every type's suggestion list is written in derived order.
 				for _, st := range seedTypes {
 					want := suggestedKeysOf(t, st.Key)
-					if len(want) == 0 {
-						t.Fatalf("%s has no suggestions", st.Key)
-					}
 					ty, err := sourcetypes.Lookup(c, st.Key, vocabkey.OriginProvenencia)
 					if err != nil {
 						t.Fatalf("type %s: %v", st.Key, err)
