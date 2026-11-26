@@ -3769,7 +3769,7 @@ public nonisolated struct Provenencia_Engine_V1_WriteEffects: Sendable {
   public var evidenceGraphs: [String] = []
 
   /// Keyed partial reads this write moved, each with the ids of the read's key
-  /// table (Evidence graphs for "citations" and "evidence_graph_progress",
+  /// table (Evidence graphs for "citations", "citation_boards" and "evidence_graph_progress",
   /// Sources for "evidence_graphs", Properties for "property_terms"): effects.Read values. Swift refreshes only
   /// those keys' reads.
   public var reads: [Provenencia_Engine_V1_WriteEffectsRead] = []
@@ -8724,6 +8724,14 @@ public nonisolated struct Provenencia_Engine_V1_ListedCitation: Sendable {
 
   /// Person labels this Citation names, earliest Observation first, capped.
   public var subjectNames: [String] = []
+
+  /// The Citation's metadata board: its own values and what it inherits.
+  public var metadata: [Provenencia_Engine_V1_MetadataWorkspaceEntry] = []
+
+  /// The Citation's own Page value as a citation prints it ("14", "[14]",
+  /// "unpaginated"); empty when it has none. Named as
+  /// ReconcilerOutcomeDetail.page_label.
+  public var pageLabel: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -24076,7 +24084,7 @@ nonisolated extension Provenencia_Engine_V1_CitationCountsByEvidenceGraphRespons
 
 nonisolated extension Provenencia_Engine_V1_ListedCitation: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".ListedCitation"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}citation\0\u{3}observation_count\0\u{3}subject_names\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}citation\0\u{3}observation_count\0\u{3}subject_names\0\u{1}metadata\0\u{3}page_label\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -24087,6 +24095,8 @@ nonisolated extension Provenencia_Engine_V1_ListedCitation: SwiftProtobuf.Messag
       case 1: try { try decoder.decodeSingularMessageField(value: &self._citation) }()
       case 2: try { try decoder.decodeSingularInt32Field(value: &self.observationCount) }()
       case 3: try { try decoder.decodeRepeatedStringField(value: &self.subjectNames) }()
+      case 4: try { try decoder.decodeRepeatedMessageField(value: &self.metadata) }()
+      case 5: try { try decoder.decodeSingularStringField(value: &self.pageLabel) }()
       default: break
       }
     }
@@ -24106,6 +24116,12 @@ nonisolated extension Provenencia_Engine_V1_ListedCitation: SwiftProtobuf.Messag
     if !self.subjectNames.isEmpty {
       try visitor.visitRepeatedStringField(value: self.subjectNames, fieldNumber: 3)
     }
+    if !self.metadata.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.metadata, fieldNumber: 4)
+    }
+    if !self.pageLabel.isEmpty {
+      try visitor.visitSingularStringField(value: self.pageLabel, fieldNumber: 5)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -24113,6 +24129,8 @@ nonisolated extension Provenencia_Engine_V1_ListedCitation: SwiftProtobuf.Messag
     if lhs._citation != rhs._citation {return false}
     if lhs.observationCount != rhs.observationCount {return false}
     if lhs.subjectNames != rhs.subjectNames {return false}
+    if lhs.metadata != rhs.metadata {return false}
+    if lhs.pageLabel != rhs.pageLabel {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

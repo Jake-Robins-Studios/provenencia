@@ -796,8 +796,9 @@ private struct ThrowingStore: GenealogyStore {
         transcription _: String,
         description _: String,
         transcriptionUncertain _: Bool,
-        transcriptionNote _: String
-    ) async throws -> (CatalogCitation, CatalogWriteEffects) { throw StoreBoom.boom }
+        transcriptionNote _: String,
+        metadata _: CatalogMetadataDraft?
+    ) async throws -> (CatalogCitation, [CatalogMetadataEntry], CatalogWriteEffects) { throw StoreBoom.boom }
     func updateObservation(
         projectDir _: String,
         userID _: String,

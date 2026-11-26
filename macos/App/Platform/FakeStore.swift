@@ -268,6 +268,11 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     var createEvidenceGraphMetadata: [CatalogMetadataDraft?] = []
     /// The `metadata` of each `updateEvidenceGraph` call, in order. The fake applies none.
     var updateEvidenceGraphMetadata: [CatalogMetadataDraft?] = []
+    /// The `metadata` of each `updateCitation` call, in order. The fake applies none.
+    var updateCitationMetadata: [CatalogMetadataDraft?] = []
+    /// The `page_label` `listCitationsByArtifact` gives each Citation (absent is none). Seeded, never
+    /// computed from the entries: the engine's tests pin how a page is read.
+    var listedPageLabels: [String: String] = [:]
     /// When set, `updateArtifact` throws.
     var updateArtifactError: Error?
     /// When set, `createArtifact` records the call and then throws it.
@@ -2914,10 +2919,12 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         transcription: String,
         description: String,
         transcriptionUncertain: Bool,
-        transcriptionNote: String
-    ) async throws -> (CatalogCitation, CatalogWriteEffects) {
+        transcriptionNote: String,
+        metadata: CatalogMetadataDraft?
+    ) async throws -> (CatalogCitation, [CatalogMetadataEntry], CatalogWriteEffects) {
         return try withState {
             recordedCalls.append("updateCitation citationID=\(citationID)")
+            updateCitationMetadata.append(metadata)
             markCatalogSessionHeld(projectDir)
             guard var citation = citationsByID[citationID] else { throw StoreBoom.boom }
             citation.locatorJSON = locatorJSON
@@ -2927,7 +2934,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
             citation.transcriptionNote = transcriptionNote
             citationsByID[citationID] = citation
             bumpActivity(owningSource(ofCitation: citationID))
-            return (citation, nextWriteEffects)
+            return (citation, scriptedMetadataRows(MetadataOwner(level: .citation, id: citationID)), nextWriteEffects)
         }
     }
 
@@ -3543,7 +3550,9 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
                 return CatalogListedCitation(
                     citation: citation,
                     observationCount: count,
-                    subjectNames: personNames(for: citation.id, graphID: graphID, projectDir: projectDir)
+                    subjectNames: personNames(for: citation.id, graphID: graphID, projectDir: projectDir),
+                    metadata: metadataByOwner[MetadataOwner(level: .citation, id: citation.id)] ?? [],
+                    pageLabel: listedPageLabels[citation.id] ?? ""
                 )
             }
         }
