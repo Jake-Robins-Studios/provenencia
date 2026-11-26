@@ -304,7 +304,7 @@ struct CitationComposerEvidenceColumn: View {
             model.requestEditMetadata()
         }
         .disabled(isNew || !model.canEditMetadata)
-        .accessibilityHint(Text(verbatim: count ?? ""))
+        .accessibilityHint(Text(verbatim: count ?? String()))
         .accessibilityIdentifier("citationComposer.editMetadata")
     }
 
