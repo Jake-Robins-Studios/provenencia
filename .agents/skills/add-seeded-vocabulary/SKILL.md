@@ -33,13 +33,14 @@ new Install into **`onboarding.createCatalog` only**.
 ### Source vocabulary (`sourcevocab`)
 
 1. Edit the registry in **`core/database/sourcevocab/`** — declarative lists:
-   - `registry.go` `seedTypes` — `key`, `label`, `description`, `IconKey`, `Formats` (the three citation formats, fields written by key; `Install` stores them by id through `sourcetypes.ToStored` with `preferOrigin` `provenencia`, so a researcher's field with the same key never captures one). The three certificates share `certificateFormats`, the journal article and the broadcast `journalArticleFormats`.
+   - `registry.go` `seedTypes` — `key`, `label`, `description`, `IconKey`, `Formats` (the three citation formats, fields written by key; `Install` stores them by id through `sourcetypes.ToStored` with `preferOrigin` `provenencia`, so a researcher's field with the same key never captures one). The three certificates share `certificateFormats`, the journal article and the broadcast `journalArticleFormats`. A new or rewritten record type's full format reads general to specific: every locator from the jurisdiction down to the entry, then the archive that holds the original, then the copy the researcher viewed, through the shared `copyLayer`. Where a level's word differs by country (district, ward, precinct), the value carries the record's word and the format adds none. Formats written before this rule may still print the copy before the archive; `registry.go` is their record. Rule: Spike 16 "(Batch 6) A seeded citation format is written to find the record again".
    - `registry_fields.go` `seedFields` — `key`, `label`, `data_type` (`text`|`url`), `Description`, `UnknownText` (what a value marked unknown prints, "" for none; no date key is seeded)
    - `registry_suggestions.go` `suggestedKeys` — derives each type's suggested fields from its formats (§ 2.3); a type needs no list of its own
-2. The Source seed is the citation vocabulary of the Spike 15 map § 6.8, the one
-   exception to a small starter: the Spike 15 rule "The seed is the product
-   default" decided it. New projects get whatever is in the registry at
-   create time; existing catalogs are not backfilled on open.
+2. The Source seed began as the citation vocabulary of the Spike 15 map § 6.8 and
+   `registry.go` is now its record. It is the one exception to a small starter:
+   the Spike 15 rule "The seed is the product default" decided it. New projects
+   get whatever is in the registry at create time; existing catalogs are not
+   backfilled on open.
 3. All registry rows are **`origin = provenencia`**. Researcher rows use `Create` (`user`);
    plugin rows use `UpsertTx` (`plugin:<id>`) — never put those in the registry.
    Origins, primary kinds and the Property keys code reads by name come from

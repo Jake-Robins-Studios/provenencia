@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-79 — A seeded Voters list type cites a voter list down to the entry
+
+**Landed 2026-11-26** in [#1001](https://github.com/Jake-Robins-Studios/provenencia/pull/1001). New projects seed a Voters list type whose citation names the election, district, polling division, page and entry, then the archive, then the copy, in any country's words. Every citation that prints an online copy prints the database's title with it.
+
 ## S16-78 — Install derives each seeded type's suggested fields from its formats
 
 **Landed 2026-11-26** in [#993](https://github.com/Jake-Robins-Studios/provenencia/pull/993). Seeded types' suggested fields are derived from their formats at install; new projects get the same rows in the same order. `suggestedKeys` holds the § 2.3 rule in `sourcevocab`, and the 26 hand-typed lists are gone.

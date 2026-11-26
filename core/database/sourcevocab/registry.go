@@ -4,10 +4,10 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 )
 
-// Declarative provenencia seed registry (create-time starter for new catalogs):
-// the citation vocabulary of the Spike 15 map, section 6.8. The types and their
-// formats live here; the fields are in registry_fields.go, and Install derives
-// the suggestions from the formats (registry_suggestions.go).
+// Declarative provenencia seed registry (create-time starter for new catalogs).
+// It began as the citation vocabulary of the Spike 15 map, section 6.8. The
+// types and their formats live here; the fields are in registry_fields.go, and
+// Install derives the suggestions from the formats (registry_suggestions.go).
 
 // seedType is one Source type. Formats name fields by key; Install stores them
 // by id through sourcetypes.ToStored.
@@ -22,12 +22,18 @@ type seedField struct {
 	Key, Label, DataType, Description, UnknownText string
 }
 
+// copyLayer is the online copy a researcher viewed: "database title," format,
+// *provider* (url : accessed date), each part when set. Every format that
+// prints a copy of a record uses it; `website` cites the site itself and prints
+// its own URL clause.
+const copyLayer = `[; ["{meta.database_title}," ]{meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])]`
+
 // certificateFormats is the one pattern of the three civil certificates: word
 // is the certificate in a note ("birth certificate") and plural opens its list
 // entry ("Birth certificates").
 func certificateFormats(word, plural string) sourcetypes.Formats {
 	return sourcetypes.Formats{
-		Full:  `{meta.jurisdiction}, [{meta.creator}, ]` + word + `[ no. {meta.document_number}][ ({source.date:full})][, {meta.item}][, vol. {meta.volume}][, p. {meta.page}][, entry {meta.entry_number}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; {meta.repository}].`,
+		Full:  `{meta.jurisdiction}, [{meta.creator}, ]` + word + `[ no. {meta.document_number}][ ({source.date:full})][, {meta.item}][, vol. {meta.volume}][, p. {meta.page}][, entry {meta.entry_number}]` + copyLayer + `[; {meta.repository}].`,
 		Short: `{meta.jurisdiction}, [{meta.creator}, ]` + word + `[ no. {meta.document_number}][, {meta.item}].`,
 		List:  `{meta.jurisdiction}.[ {meta.creator}.] ` + plural + `.[ {meta.repository}.]`,
 	}
@@ -47,7 +53,7 @@ var seedTypes = []seedType{
 		Description: "A population, agricultural or other schedule from a government census.",
 		IconKey:     "type_census",
 		Formats: sourcetypes.Formats{
-			Full:  `{source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, {meta.schedule}][, ED {meta.enumeration_district}][, sub-district {meta.subdistrict}][, piece {meta.piece}][, fol. {meta.folio}][, p. {meta.page}][, schedule {meta.schedule_number}][, dwelling {meta.dwelling_number}][, family {meta.family_number}][, line {meta.line_number}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; citing {meta.citing}].`,
+			Full:  `{source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, {meta.schedule}][, ED {meta.enumeration_district}][, sub-district {meta.subdistrict}][, piece {meta.piece}][, fol. {meta.folio}][, p. {meta.page}][, schedule {meta.schedule_number}][, dwelling {meta.dwelling_number}][, family {meta.family_number}][, line {meta.line_number}][, {meta.item}]` + copyLayer + `[; citing {meta.citing}].`,
 			Short: `{source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, ED {meta.enumeration_district}][, sub-district {meta.subdistrict}][, fol. {meta.folio}][, p. {meta.page}][, dwell. {meta.dwelling_number}][, fam. {meta.family_number}][, {meta.item}].`,
 			List:  `{meta.jurisdiction}. {source.date:year} [{meta.creator} ]census[, {meta.schedule}].`,
 		},
@@ -75,7 +81,7 @@ var seedTypes = []seedType{
 		Description: "A parish register, church book or bishop's transcript of baptisms, marriages and burials.",
 		IconKey:     "type_scroll",
 		Formats: sourcetypes.Formats{
-			Full:  `{meta.creator}[ ({meta.church_location})], *{source.title}*[, vol. {meta.volume}][, p. {meta.page}][, fol. {meta.folio}][, no. {meta.entry_number}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; film {meta.film_number}[, item {meta.item_number}]][; {meta.repository}].`,
+			Full:  `{meta.creator}[ ({meta.church_location})], *{source.title}*[, vol. {meta.volume}][, p. {meta.page}][, fol. {meta.folio}][, no. {meta.entry_number}][, {meta.item}]` + copyLayer + `[; film {meta.film_number}[, item {meta.item_number}]][; {meta.repository}].`,
 			Short: `{meta.creator}, *{meta.short_title|source.title}*[, vol. {meta.volume}][, p. {meta.page}][, no. {meta.entry_number}].`,
 			List:  `{meta.creator}[ ({meta.church_location})]. *{source.title}*[, {meta.coverage}].[ {meta.repository}.]`,
 		},
@@ -85,7 +91,7 @@ var seedTypes = []seedType{
 		Description: "A deed, will, court, marriage or tax book kept by a public office.",
 		IconKey:     "type_book",
 		Formats: sourcetypes.Formats{
-			Full:  `{meta.jurisdiction}, [{meta.creator}, ]{meta.book|source.title}[: {meta.page}][, entry {meta.entry_number}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; film {meta.film_number}][; {meta.repository}].`,
+			Full:  `{meta.jurisdiction}, [{meta.creator}, ]{meta.book|source.title}[: {meta.page}][, entry {meta.entry_number}][, {meta.item}]` + copyLayer + `[; film {meta.film_number}][; {meta.repository}].`,
 			Short: `{meta.jurisdiction}, {meta.book|source.title}[: {meta.page}].`,
 			List:  `{meta.jurisdiction}.[ {meta.creator}.] {source.title}[, {meta.coverage}].[ {meta.repository}.]`,
 		},
@@ -95,9 +101,19 @@ var seedTypes = []seedType{
 		Description: "A ship's manifest or passenger list.",
 		IconKey:     "type_document",
 		Formats: sourcetypes.Formats{
-			Full:  `{source.title}[, p. {meta.page}][, line {meta.line_number}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; citing {meta.citing}][; {meta.film_publication}[, roll {meta.roll}]].`,
+			Full:  `{source.title}[, p. {meta.page}][, line {meta.line_number}][, {meta.item}]` + copyLayer + `[; citing {meta.citing}][; {meta.film_publication}[, roll {meta.roll}]].`,
 			Short: `{meta.short_title|source.title}[, p. {meta.page}][, line {meta.line_number}].`,
 			List:  `[{meta.creator}. ]{meta.collection|source.title}.[ {meta.repository}.]`,
+		},
+	},
+	{
+		Key: "voters_list", Label: "Voters list",
+		Description: "A voters list, poll book or register of electors made for an election or a registration year.",
+		IconKey:     "type_document",
+		Formats: sourcetypes.Formats{
+			Full:  `{meta.jurisdiction}, {meta.election}[, {meta.electoral_district}][, {meta.polling_division}][, vol. {meta.volume}][, p. {meta.page}][, line {meta.line_number}][, no. {meta.entry_number}][, {meta.item}]; {meta.collection|source.title}[, {meta.call_number}][, Record Group {meta.record_group}], {meta.repository}[; film {meta.film_number}]` + copyLayer + `.`,
+			Short: `{meta.jurisdiction}, {meta.election}[, {meta.electoral_district}][, {meta.polling_division}][, vol. {meta.volume}][, p. {meta.page}][, line {meta.line_number}][, no. {meta.entry_number}][, {meta.item}].`,
+			List:  `{meta.jurisdiction}. {meta.collection|source.title}[, {meta.coverage}].[ {meta.call_number}.][ Record Group {meta.record_group}.] {meta.repository}.`,
 		},
 	},
 	{
@@ -105,7 +121,7 @@ var seedTypes = []seedType{
 		Description: "The loose papers of one court, probate, naturalization or land case.",
 		IconKey:     "type_folder_archive",
 		Formats: sourcetypes.Formats{
-			Full:  `{meta.jurisdiction}, [{meta.creator}, ]{source.title}[ {meta.case_number}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; {meta.repository}].`,
+			Full:  `{meta.jurisdiction}, [{meta.creator}, ]{source.title}[ {meta.case_number}][, {meta.item}]` + copyLayer + `[; {meta.repository}].`,
 			Short: `{meta.jurisdiction}, {meta.short_title|source.title}[ {meta.case_number}][, {meta.item}].`,
 			List:  `{meta.jurisdiction}.[ {meta.creator}.] {meta.collection|source.title}.[ {meta.repository}.]`,
 		},
@@ -115,7 +131,7 @@ var seedTypes = []seedType{
 		Description: "Letters, diaries, business or institutional records held by an archive.",
 		IconKey:     "type_folder_archive",
 		Formats: sourcetypes.Formats{
-			Full:  `[{meta.creator}, ]{source.title}[ ({source.date:full})][, {meta.item}][; {meta.collection}][, {meta.call_number}][, box {meta.box}][, folder {meta.folder}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])]; {meta.repository}.`,
+			Full:  `[{meta.creator}, ]{source.title}[ ({source.date:full})][, {meta.item}][; {meta.collection}][, {meta.call_number}][, box {meta.box}][, folder {meta.folder}]` + copyLayer + `; {meta.repository}.`,
 			Short: `[{meta.creator}, ]{meta.short_title|source.title}[, {meta.collection}][, box {meta.box}][, folder {meta.folder}].`,
 			List:  `{meta.collection|source.title}[, {meta.coverage}].[ {meta.call_number}.] {meta.repository}.`,
 		},
@@ -125,7 +141,7 @@ var seedTypes = []seedType{
 		Description: "A military, pension, passport or agency file held by a national archive.",
 		IconKey:     "type_folder_archive",
 		Formats: sourcetypes.Formats{
-			Full:  `{source.title}[ ({source.date:full})][, {meta.item}][; {meta.collection}][; Record Group {meta.record_group}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; {meta.film_publication}[, roll {meta.roll}]]; {meta.repository}.`,
+			Full:  `{source.title}[ ({source.date:full})][, {meta.item}][; {meta.collection}][; Record Group {meta.record_group}]` + copyLayer + `[; {meta.film_publication}[, roll {meta.roll}]]; {meta.repository}.`,
 			Short: `{meta.short_title|source.title}[, {meta.item}].`,
 			List:  `{meta.repository}.[ Record Group {meta.record_group}.] {meta.collection|source.title}.`,
 		},
@@ -225,7 +241,7 @@ var seedTypes = []seedType{
 		Description: "A book, chapter, CD or film.",
 		IconKey:     "type_book",
 		Formats: sourcetypes.Formats{
-			Full:  `{meta.author}[, ed. {meta.editor}][, comp. {meta.compiler}][, trans. {meta.translator}], *{source.title}*[, {meta.edition} ed.][, vol. {meta.volume}][, {meta.series}][ ([{meta.publication_place}: ]{meta.publisher}[, {source.date:year}])][, {meta.page}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])].`,
+			Full:  `{meta.author}[, ed. {meta.editor}][, comp. {meta.compiler}][, trans. {meta.translator}], *{source.title}*[, {meta.edition} ed.][, vol. {meta.volume}][, {meta.series}][ ([{meta.publication_place}: ]{meta.publisher}[, {source.date:year}])][, {meta.page}]` + copyLayer + `.`,
 			Short: `{meta.author}, *{meta.short_title|source.title}*[, {meta.page}].`,
 			List:  `{meta.author_sort|meta.author}. *{source.title}*.[ {meta.edition} ed.][ [{meta.publication_place}: ]{meta.publisher}[, {source.date:year}].]`,
 		},
@@ -235,7 +251,7 @@ var seedTypes = []seedType{
 		Description: "A printed or hand-drawn map, plat or atlas.",
 		IconKey:     "type_map",
 		Formats: sourcetypes.Formats{
-			Full:  `[{meta.author}, ]*{source.title}*[ ([[{meta.publication_place}: ]{meta.publisher}, ]{source.date:year})][, p. {meta.page}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; citing {meta.citing}][; {meta.repository}].`,
+			Full:  `[{meta.author}, ]*{source.title}*[ ([[{meta.publication_place}: ]{meta.publisher}, ]{source.date:year})][, p. {meta.page}][, {meta.item}]` + copyLayer + `[; citing {meta.citing}][; {meta.repository}].`,
 			Short: `[{meta.author}, ]*{meta.short_title|source.title}*[, {meta.item}].`,
 			List:  `[{meta.author_sort|meta.author}. ]*{source.title}*.[ [[{meta.publication_place}: ]{meta.publisher}, ]{source.date:year}.][ {meta.repository}.]`,
 		},
@@ -257,7 +273,7 @@ var seedTypes = []seedType{
 		Description: "An article, notice or obituary in a newspaper.",
 		IconKey:     "type_newspaper",
 		Formats: sourcetypes.Formats{
-			Full:  `"{source.title}," *{meta.published_in}*[ ({meta.publication_place})], {source.date:full}[, p. {meta.page}][, col. {meta.column}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])].`,
+			Full:  `"{source.title}," *{meta.published_in}*[ ({meta.publication_place})], {source.date:full}[, p. {meta.page}][, col. {meta.column}]` + copyLayer + `.`,
 			Short: `"{meta.short_title|source.title}," *{meta.published_in}*, {source.date:full}.`,
 			List:  `*{meta.published_in}*[ ({meta.publication_place})].`,
 		},

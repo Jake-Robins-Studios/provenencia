@@ -1,6 +1,7 @@
 # S16-79 — A seeded Voters list type cites a voter list down to the entry
 
-**Status:** Planned
+**Status:** Landed in [#1001](https://github.com/Jake-Robins-Studios/provenencia/pull/1001) (2026-11-26)
+**Landed:** As planned, plus two changes from review and the gate: the `copyLayer` comment and `seeded-vocabulary.md` § 2.2 name `website` as the format that prints its own URL clause; `PVShowMoreRowHostedTests.revealScrollsAfterTheCallerLeaves` (S15-30) asks for the reveal only after its list is laid out, which fixed a race that failed the gate (user, 2026-11-26).
 **Spike / slice:** Spike 16 · Slice 6j — A Voters list type
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: a seeded type, its fields and formats are catalog data that today's Source type, board and citation views already show)
@@ -12,8 +13,8 @@
 **Skills to load:** [`add-seeded-vocabulary`](../../../../.agents/skills/add-seeded-vocabulary/SKILL.md)
 **Rules that bind:** `.cursor/rules/go-tests.mdc`; the seed is data, so no test validates registry entries (user, 2026-11-26, `add-seeded-vocabulary` step 6)
 **Context:** [`docs/citation-formats.md`](../../../citation-formats.md) (syntax, groups, nearest-level reads); [`docs/seeded-vocabulary.md`](../../../seeded-vocabulary.md) § Implementation, § 2.1, § 2.2, § 2.3; [Spike 15 citation map](../../spike-15/evidence-explained-citation-map.md) chapter 9 ("Voter registrations and poll books") and § 6.8; working rules "(Batch 6) A seeded citation format is written to find the record again" and the Spike 15 rule "The seed is the product default"
-**Planned:** 2026-11-26 against `origin/main` @ `0886b43`; refreshed 2026-11-26 against `4f0806f`, after S16-78 landed (fetch it; a local `main` may be older)
-**Review:** [`S16-79-voters-list-type.review.md`](S16-79-voters-list-type.review.md) — Fits with changes · Ready with changes, 2 rounds, then a 2-round refresh; no blocker open; To user answered
+**Planned:** 2026-11-26 against `origin/main` @ `0886b43`; refreshed 2026-11-26 against `4f0806f`, after S16-78 landed; refreshed again 2026-11-26 against `d96d26ccb`, after the Map type (#997) and seed-free tests (#999) landed (fetch it; a local `main` may be older)
+**Review:** [`S16-79-voters-list-type.review.md`](S16-79-voters-list-type.review.md) — Fits with changes · Ready with changes, 2 rounds, then a 2-round refresh, then a 1-round refresh against `d96d26ccb`; no blocker open; To user answered
 
 ### Implementer — read this first
 
@@ -70,7 +71,7 @@ Every seeded type that prints an online copy prints it from one shared copy laye
 | --- | --- | --- |
 | AC-4.1 | `record_book` full form with jurisdiction "Calder County, Westmark", creator "Calder County Recorder", book "Deed Book F", page "14", item "Ada Robins", database title "Calder County Deeds, 1850–1900", format "digital image", provider "Westmark Heritage", URL "https://example.org/calder", accessed "12 March 2025", repository "Calder County Archives, Port Ellis" | `Calder County, Westmark, Calder County Recorder, Deed Book F: 14, Ada Robins; "Calder County Deeds, 1850–1900," digital image, *Westmark Heritage* (https://example.org/calder : accessed 12 March 2025); Calder County Archives, Port Ellis.` |
 | AC-4.2 | The same values without database title | `Calder County, Westmark, Calder County Recorder, Deed Book F: 14, Ada Robins; digital image, *Westmark Heritage* (https://example.org/calder : accessed 12 March 2025); Calder County Archives, Port Ellis.` — today's output |
-| AC-4.3 | The twelve types that print a copy (census, the three certificates, church register, record book, passenger list, case file, manuscript, government file, book, newspaper item) | Each format reads the copy through `copyLayer` and no other text of it changes; each type's derived suggestions gain `database_title` just before `format` |
+| AC-4.3 | The thirteen types that print a copy (census, the three certificates, church register, record book, passenger list, case file, manuscript, government file, book, map, newspaper item) | Each format reads the copy through `copyLayer` and no other text of it changes; each type's derived suggestions gain `database_title` just before `format` |
 
 ## 3. Scope
 
@@ -79,7 +80,6 @@ Every seeded type that prints an online copy prints it from one shared copy laye
 | Seeded fields `election`, `electoral_district`, `polling_division` | STEP-1, AC-3.3 |
 | One shared copy layer with the database title, used by every full format that prints the online copy | STEP-2, AC-4.1 – AC-4.3 |
 | Seeded type `voters_list` with its three formats; its suggestion list (derived) | STEP-3, AC-1.1 – AC-3.2 |
-| `TestPlaceholders` drops its seed-entry subtest | STEP-3 |
 | Seeded vocabulary doc (counts, fields, where the formats live), the format rule in `add-seeded-vocabulary`, version | STEP-4 |
 
 | Out | Home |
@@ -98,13 +98,12 @@ Every seeded type that prints an online copy prints it from one shared copy laye
 
 | Area | Where | Today |
 | --- | --- | --- |
-| Types | `core/database/sourcevocab/registry.go` `seedTypes` | 26 types; voter lists have only `record_book` (P2 local: no electoral geography, no archive reference) |
+| Types | `core/database/sourcevocab/registry.go` `seedTypes` | 27 types; voter lists have only `record_book` (P2 local: no electoral geography, no archive reference) |
 | Fields | `core/database/sourcevocab/registry_fields.go` `seedFields` | 69 fields; the comment above it counts them ("The 69 metadata fields: …"); no election, electoral district or polling division |
 | Suggestions | `core/database/sourcevocab/registry_suggestions.go` `suggestedKeys` | `Install` derives each type's list from its formats; no hand list to edit |
-| Copy layer | `registry.go`: `[; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])]` typed by hand ten times (`certificateFormats`, census, church register, record book, passenger list, case file, manuscript, government file, book, newspaper item) | No format reads `database_title` |
-| Seed tests | `core/database/sourcevocab/sourcevocab_test.go` `TestInstall`; `registry_test.go` `TestSuggestedKeys`, `TestFieldKeysMatchSeed` | Check `Install` row for row against the registry and the rule on synthetic formats; no count, no render, no per-type check. They stay green with no edit |
-| Seed-entry test | `core/database/citationrender/placeholders_test.go` `TestPlaceholders`, subtest "every seeded type's formats load with no diagnostic" (from `len(types) != 26` to the end of the subtest) | Validates registry entries, which the user retired (2026-11-26; S16-78 missed it because it lives in another package), and fails at 27. `Install` already refuses a seed format with a diagnostic (`core/database/sourcevocab/sourcevocab.go` `Install`, `ErrInvalid` after `sourcetypes.ToStored`), so `TestInstall` fails on one |
-| Docs | `docs/seeded-vocabulary.md` § Implementation (line 83), § 2 (line 91: "The formats of each type are in the map's § 6.8."), § 2.1, § 2.2; `.agents/skills/add-seeded-vocabulary/SKILL.md` § Source vocabulary step 1 | 26 types, 69 fields; the formats' named home is the Spike 15 map, which has drifted from `registry.go` since #967 |
+| Copy layer | `registry.go`: `[; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])]` typed by hand eleven times (`certificateFormats`, census, church register, record book, passenger list, case file, manuscript, government file, book, map, newspaper item) | No format reads `database_title` |
+| Seed tests | `core/database/sourcevocab/sourcevocab_test.go` `TestInstall`; `registry_test.go` `TestSuggestedKeys`, `TestFieldKeysMatchSeed` | Check `Install` row for row against the registry and the rule on synthetic formats; no count, no render, no per-type check. They stay green with no edit. No test in another package reads the seed since #999 (`TestPlaceholders`' seed subtest is gone); `Install` refuses a seed format with a diagnostic (`core/database/sourcevocab/sourcevocab.go` `Install`, `ErrInvalid` after `sourcetypes.ToStored`), so `TestInstall` fails on one |
+| Docs | `docs/seeded-vocabulary.md` § Implementation (line 83), § 2 (line 91: "The formats of each type are in the map's § 6.8."), § 2.1, § 2.2; `.agents/skills/add-seeded-vocabulary/SKILL.md` § Source vocabulary step 1 | "§ 6.8, plus a Map type, `map` (user, 2026-11-26): 27 types", 69 fields; the formats' named home is the Spike 15 map, which has drifted from `registry.go` since #967 |
 
 **Precedent.** [#967](https://github.com/Jake-Robins-Studios/provenencia/pull/967) (`5314ca4`, "Census citations print an optional sub-district after the enumeration district.") added a seeded field and changed formats with `seeded-vocabulary.md` in one commit; copy its registry and `seeded-vocabulary.md` shape, not its test edits, which [#993](https://github.com/Jake-Robins-Studios/provenencia/pull/993) retired. The S16-78 review checked behavior with uncommitted tests through `go test -overlay` (its ship log); D-11 copies that.
 
@@ -116,9 +115,9 @@ Every seeded type that prints an online copy prints it from one shared copy laye
 | D-2 | The election, electoral district and polling division values carry the list's own words; the formats add no word before them ("urban polling division 52", "precinct 3", "Highbury ward, polling district B"). A province or state goes in the electoral district value or the jurisdiction | User, 2026-11-26: each country names these levels differently | A word in the format — wrong for a precinct or a ward; more fields per country — the board grows for every researcher |
 | D-3 | Full form order: the record and its locators (jurisdiction, election, district, division, volume, page, line, entry, item); then the archive as one unit (series, reference, record group, repository); then microfilm; then the online copy | User, 2026-11-26: archive first, copy after | Copy first with "citing" (Ancestry's and census's shape); repository last (`government_file`'s shape) |
 | D-4 | The record group prints `Record Group {meta.record_group}` | User, 2026-11-26: as `government_file` | Printing the value bare ("RG113-B") |
-| D-5 | Needed (outside any group): `jurisdiction` and `election` in all three forms, `repository` in full and list. The series reads `{meta.collection\|source.title}`. Everything else is in a group | Rule "(Batch 6) A seeded citation format is written to find the record again" | Repository optional — a researcher's copy of the type can drop it |
+| D-5 | Needed (outside any group): `jurisdiction` in all three forms, `election` in full and short, `repository` in full and list. The series reads `{meta.collection\|source.title}`. Everything else is in a group | Rule "(Batch 6) A seeded citation format is written to find the record again" | Repository optional — a researcher's copy of the type can drop it |
 | D-6 | No `source.date` in any form; the election value carries the year | "1949 1949 federal election" reads wrong | `{source.date:year}` as census does |
-| D-7 | One `copyLayer` const in `registry.go`: `[; ["{meta.database_title}," ]{meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])]`. Every format that types the copy layer by hand uses it, and so does `voters_list`. The URL group stays beside the copy group, as the ten have it | User, 2026-11-26: share it, with the title everywhere; quoted as `website` quotes its title | Italic database title — two italic runs side by side; nesting the URL in the copy group — changes the ten types' output beyond the title |
+| D-7 | One `copyLayer` const in `registry.go`: `[; ["{meta.database_title}," ]{meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])]`. Every format that types the copy layer by hand uses it, and so does `voters_list`. The URL group stays beside the copy group, as the eleven have it | User, 2026-11-26: share it, with the title everywhere; quoted as `website` quotes its title | Italic database title — two italic runs side by side; nesting the URL in the copy group — changes the eleven types' output beyond the title |
 | D-8 | The formats read no `creator`, no `citing`, no `film_publication` | The jurisdiction and the series name who made the list; the archive layer is what "citing" would say | Reading them — 3 more suggested fields no example needs |
 | D-9 | The formats are exactly the text in **Go core** below | Rendered at the planning base (`citationformat.Render`) for AC-1.1 – AC-2.3, and `suggestedKeys` gave AC-3.1 | — |
 | D-10 | Registry placement: the type follows `passenger_list`; the three fields follow `subdistrict`; `copyLayer` sits beside `certificateFormats` | Keeps the registers together | Appending at the end |
@@ -137,10 +136,10 @@ Every seeded type that prints an online copy prints it from one shared copy laye
 | `election` *(new)* | seeded field | `schedule`, `source.date` | `schedule` is described as a census schedule; the date cannot hold "spring register" or "federal" |
 | `electoral_district` *(new)* | seeded field | `enumeration_district` | Its description and the census format's "ED" say census |
 | `polling_division` *(new)* | seeded field | `subdistrict` | Census sub-district by description and by the census format's "sub-district" word |
-| `copyLayer` *(new)* | const | `certificateFormats`, `journalArticleFormats` (shared format text) | It is that pattern, for the one clause twelve types share |
+| `copyLayer` *(new)* | const | `certificateFormats`, `journalArticleFormats` (shared format text) | It is that pattern, for the one clause thirteen types share |
 
 **Builds on.** `sourcevocab` registries and `Install` (skill `add-seeded-vocabulary`), `suggestedKeys`, the citation engine's groups and chains.
-**Deletes.** The ten hand-typed copy layers (D-7); `TestPlaceholders`' subtest "every seeded type's formats load with no diagnostic".
+**Deletes.** The eleven hand-typed copy layers (D-7).
 **Next adds.** Another country's register is a new set of values, not a type. A researcher who wants a word before the division copies the type (`CopyType`) and edits its formats.
 
 ### Reach
@@ -149,12 +148,12 @@ None — a seeded type is one more row in lists that already show any number of 
 
 ### Scale
 
-None — 27 types and 72 fields install once at create; no list or loop changes.
+None — 28 types and 72 fields install once at create; no list or loop changes.
 
 ### Edges
 
 - **Assumptions.** `suggestedKeys` derives suggestions in first-read order (AC-3.1 was derived with it). `TestInstall` compares the catalog with `seedTypes` and `seedFields`, so new rows need no test edit.
-- **Neighbors.** The copy layer changes the twelve types that print a copy only when a database title is set (AC-4.2); the new fields are read by no other format.
+- **Neighbors.** The copy layer changes the thirteen types that print a copy only when a database title is set (AC-4.2); the new fields are read by no other format.
 - **Removed inputs.** An empty group drops with its punctuation; AC-2.1 (no page, reference or group) and AC-2.2 (no district, no database title) pin it. An empty `collection` falls to the Source title (AC-2.3).
 - **Copy without format or provider.** The title sits inside the copy group, so a database title with no format or no provider prints nothing, as format and provider already drop together today; accepted.
 - **Real data.** Three real-shaped lists from three countries (AC-1 – AC-2).
@@ -169,7 +168,7 @@ None — no catalog change; `Install` writes rows.
 | Package | Change |
 | --- | --- |
 | `core/database/sourcevocab` `registry_fields.go` | `seedFields` gains three rows after `subdistrict`; its comment drops the count (STEP-1) |
-| `registry.go` | `copyLayer` *(new)* (D-7); the ten hand copies use it |
+| `registry.go` | `copyLayer` *(new)* (D-7); the eleven hand copies use it |
 | `registry.go` | `seedTypes` gains `voters_list` (D-1) after `passenger_list`, with the formats below |
 
 Formats (each one line in Go, a raw string; the full one joins `copyLayer`):
@@ -211,25 +210,25 @@ Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/...` passes
 
 **STEP-2 — One copy layer with the database title**
 Files: `core/database/sourcevocab/registry.go`.
-Do: add `copyLayer` (D-7, D-10) with the comment "copyLayer is the online copy a researcher viewed: \"database title,\" format, *provider* (url : accessed date), each part when set. Every format that prints a copy uses it." and replace each of the ten hand copies with it (each format string splits at the old clause and joins `copyLayer`; no other character of a format changes).
-Check: `rg -n '\{meta\.format\}, \*\{meta\.provider\}\*' core/database/sourcevocab/registry.go` prints one line, the `copyLayer` const; `rg -c '\+ copyLayer \+' core/database/sourcevocab/registry.go` prints 10; `git diff -U0 core/database/sourcevocab/registry.go` shows each of the ten changed format lines differing only where the old clause became `` ` + copyLayer + ` ``; the D-11 scratch test renders AC-4.1 and AC-4.2 from `record_book` exactly; `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/... ./core/database/citationrender/...` passes.
+Do: add `copyLayer` (D-7, D-10) with the comment "copyLayer is the online copy a researcher viewed: \"database title,\" format, *provider* (url : accessed date), each part when set. Every format that prints a copy uses it." and replace each of the eleven hand copies with it (each format string splits at the old clause and joins `copyLayer`; no other character of a format changes). The file's header comment "the citation vocabulary of the Spike 15 map, section 6.8." becomes "began as the citation vocabulary of the Spike 15 map, section 6.8." (re-wrap the comment as gofmt leaves it).
+Check: `rg -n '\{meta\.format\}, \*\{meta\.provider\}\*' core/database/sourcevocab/registry.go` prints one line, the `copyLayer` const; `rg -c '\+ copyLayer \+' core/database/sourcevocab/registry.go` prints 11; `git diff -U0 core/database/sourcevocab/registry.go` shows each of the eleven changed format lines differing only where the old clause became `` ` + copyLayer + ` ``; the D-11 scratch test renders AC-4.1 and AC-4.2 from `record_book` exactly; `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/... ./core/database/citationrender/...` passes.
 
 **STEP-3 — Seed the type and its formats**
-Files: `registry.go`, `core/database/citationrender/placeholders_test.go`.
-Do: add `voters_list` (D-1, D-10) with the formats of **Go core**; its suggestions are derived. Delete `TestPlaceholders`' subtest "every seeded type's formats load with no diagnostic" whole, and any import only it used (the seed is data, user 2026-11-26; `TestInstall` fails on a seed format `Install` refuses).
-Check: `rg -c '\+ copyLayer \+' core/database/sourcevocab/registry.go` prints 11; the D-11 scratch test renders AC-1.1 – AC-2.3 exactly and prints `suggestedKeys` of the `voters_list` formats as AC-3.1's list; `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/... ./core/database/citationrender/... ./core/database/sourcemetadata/... ./core/onboarding/...` passes; `git status --short` lists no `zz_evidence_test.go`.
+Files: `registry.go`.
+Do: add `voters_list` (D-1, D-10) with the formats of **Go core**; its suggestions are derived.
+Check: `rg -c '\+ copyLayer \+' core/database/sourcevocab/registry.go` prints 12; the D-11 scratch test renders AC-1.1 – AC-2.3 exactly and prints `suggestedKeys` of the `voters_list` formats as AC-3.1's list; `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/... ./core/database/citationrender/... ./core/database/sourcemetadata/... ./core/onboarding/...` passes; `git status --short` lists no `zz_evidence_test.go`.
 
 **STEP-4 — Docs and version**
 Files: `docs/seeded-vocabulary.md`, `.agents/skills/add-seeded-vocabulary/SKILL.md`, `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj`.
 Do:
 - `docs/seeded-vocabulary.md` line 83: "69 fields" → "72 fields"; "The 69 are the map's 64, plus `subdistrict` for a census sub-district (Canada), printed after the enumeration district when set (user, 2026-11-24), plus four place fields" → "The 72 are the map's 64, plus `subdistrict` for a census sub-district (Canada), printed after the enumeration district when set (user, 2026-11-24), plus `election`, `electoral_district` and `polling_division` for the voters list, whose values carry the list's own words (user, 2026-11-26), plus four place fields"; the government-records parenthesis "(census, the three certificates, record book, case file, statute)" gains "voters list" after "record book". § 2.1: `voters_list` after `passenger_list`. § 2.2: `election` and `electoral_district` on the `source` line after `subdistrict`, and `polling_division` on the `graph` line after `line_number` (it changes from entry to entry, as § 10 sets it); after the sentence "`url` and `accessed_date` describe the copy a researcher used; the bytes of a capture still live on an Artifact/File." add "Every full format that prints the online copy prints it through one shared clause, `copyLayer` in `registry.go`: `\"database title,\" format, *provider* (url : accessed date)`, each part when set (user, 2026-11-26)."
-- `docs/seeded-vocabulary.md` line 83: in the sentence that begins "The create-time Source seed is the citation vocabulary of", "is the citation vocabulary of" → "began as the citation vocabulary of", and "§ 6.8: 26 types" → "§ 6.8 and is now what `registry.go` holds: 27 types"; the link stays. `.agents/skills/add-seeded-vocabulary/SKILL.md` § Source vocabulary step 2: "The Source seed is the citation vocabulary of the Spike 15 map § 6.8" → "The Source seed began as the citation vocabulary of the Spike 15 map § 6.8; `registry.go` is now its record".
+- `docs/seeded-vocabulary.md` line 83: in the sentence that begins "The create-time Source seed is the citation vocabulary of", "is the citation vocabulary of" → "began as the citation vocabulary of", and "§ 6.8, plus a Map type, `map` (user, 2026-11-26): 27 types" → "§ 6.8, plus a Map type, `map` (user, 2026-11-26), and is now what `registry.go` holds: 28 types"; the link stays. `.agents/skills/add-seeded-vocabulary/SKILL.md` § Source vocabulary step 2: the sentence "The Source seed is the citation vocabulary of the Spike 15 map § 6.8, the one exception to a small starter: the Spike 15 rule "The seed is the product default" decided it." → "The Source seed began as the citation vocabulary of the Spike 15 map § 6.8 and `registry.go` is now its record. It is the one exception to a small starter: the Spike 15 rule "The seed is the product default" decided it." (re-wrap the paragraph at its current width).
 - `docs/seeded-vocabulary.md` line 91: "The formats of each type are in the map's § 6.8." → "The formats of each type are in `core/database/sourcevocab/registry.go` `seedTypes`; the map's § 6.8 is Spike 15's record of what it planned." Leave the Spike 15 citation map itself alone.
-- `.agents/skills/add-seeded-vocabulary/SKILL.md` § Source vocabulary, step 1, after the `seedTypes` bullet: "A new or rewritten record type's full format reads general to specific: every locator from the jurisdiction down to the entry, then the archive that holds the original, then the copy the researcher viewed, through the shared `copyLayer`. Where a level's word differs by country (district, ward, precinct), the value carries the record's word and the format adds none. Older formats (the certificates, church register, record book, case file, manuscript, government file) still print the copy before the archive. Rule: Spike 16 \"(Batch 6) A seeded citation format is written to find the record again\"."
-- Version: `VERSION`, `core/version.go` `Version` and every `MARKETING_VERSION` in `macos/Provenencia.xcodeproj/project.pbxproj` move to the next minor of `origin/main`'s `VERSION` at the time (0.47.0 from 0.46.0), in one commit.
-Check: `python3 scripts/check-guidance-names.py` passes; `rg -n '26 types|69 fields' docs/seeded-vocabulary.md` prints nothing.
+- `.agents/skills/add-seeded-vocabulary/SKILL.md` § Source vocabulary, step 1, appended to the end of the `seedTypes` bullet (not a new bullet; the three bullets stay one per file): "A new or rewritten record type's full format reads general to specific: every locator from the jurisdiction down to the entry, then the archive that holds the original, then the copy the researcher viewed, through the shared `copyLayer`. Where a level's word differs by country (district, ward, precinct), the value carries the record's word and the format adds none. Formats written before this rule may still print the copy before the archive; `registry.go` is their record. Rule: Spike 16 \"(Batch 6) A seeded citation format is written to find the record again\"."
+- Version: `VERSION`, `core/version.go` `Version` and every `MARKETING_VERSION` in `macos/Provenencia.xcodeproj/project.pbxproj` move to the next minor of `origin/main`'s `VERSION` at the time (0.48.0 from 0.47.0), in one commit.
+Check: `python3 scripts/check-guidance-names.py` passes; `rg -n '27 types|69 fields|The 69 are' docs/seeded-vocabulary.md` prints nothing; `rg -n 'is the citation vocabulary of' docs/seeded-vocabulary.md .agents/skills/add-seeded-vocabulary` prints nothing.
 
-Commits: STEP-1 with STEP-3 (the fields have no reader before the type); STEP-2 its own; STEP-4's docs one, the version bump one; the Landed edits of § 9 a last commit once the PR number exists. The subject is one full imperative sentence that says what changed for the researcher, ending in a period ("Seed a Voters list type whose citation reaches the entry, the archive and the copy.").
+Commits: STEP-1 stays uncommitted through STEP-2; commit STEP-2's `registry.go` change alone, then STEP-1 and STEP-3 together (the fields have no reader before the type); STEP-4's docs one, the version bump one; the Landed edits of § 9 a last commit once the PR number exists. The subject is one full imperative sentence that says what changed for the researcher, ending in a period ("Seed a Voters list type whose citation reaches the entry, the archive and the copy.").
 
 ## 8. Tests
 
