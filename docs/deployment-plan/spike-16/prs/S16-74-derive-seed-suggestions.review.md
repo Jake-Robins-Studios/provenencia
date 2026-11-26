@@ -1,7 +1,7 @@
 # Review — S16-74 Install derives each seeded type's suggested fields from its formats
 
-**Verdict:** Round 1 — Maintainability: Fits with changes. Executability: Not ready. Blockers M-1, X-1 and X-2 fixed; round 2 pending.
-**Rounds:** 1 so far. **Reviewers:** maintainability (opus), executability (sonnet) ([`review-plan`](../../../../.agents/skills/review-plan/SKILL.md)).
+**Verdict:** Fits · Ready with changes, two rounds; no blocker open.
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet) ([`review-plan`](../../../../.agents/skills/review-plan/SKILL.md)).
 
 ## To user
 
@@ -49,3 +49,18 @@ None. The PR itself is the user's answer to S16-73's review finding M-5 (2026-11
 
 ### X-6 · minor · Smaller gaps
 **Answer:** Fixed. The unused `maps` import is dropped, `mustParseForm` stays, `TestInstall` loops once over `seedTypes`, and the not-empty check stays.
+
+## Round 2
+
+One fresh reviewer (opus) worked both lenses with the plan and this log and found no new blockers. Every round-1 answer holds, except where two edits had not reached every section.
+
+### X-7 · major · STEP-1 could not compile: the `maps` import was dropped only in STEP-2
+**Answer:** Fixed. STEP-1 drops it and names `registry_suggestions.go`'s new imports.
+
+### X-8 · major · § 6 Go core still gave `suggestedKeys` an error return
+**Answer:** Fixed. The row points at D-1, which holds the one signature.
+
+### X-9 · nit · "Three uses" of the helper
+**Answer:** Fixed. It has one definition and two call sites.
+
+**Final verdict:** Fits · Ready with changes, two rounds; no blocker open; To user: none.

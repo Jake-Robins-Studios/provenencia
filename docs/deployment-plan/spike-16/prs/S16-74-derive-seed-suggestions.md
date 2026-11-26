@@ -1,6 +1,6 @@
 # S16-74 — Install derives each seeded type's suggested fields from its formats
 
-**Status:** Draft
+**Status:** Planned
 **Spike / slice:** Spike 16 · Slice 6j — A Voters list type
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the suggestion rows a new project gets are the same, so every view looks the same)
@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc`
 **Context:** [`docs/seeded-vocabulary.md`](../../../seeded-vocabulary.md) § 2.3 (the suggestion rule, user 2026-11-20 and 2026-11-23); [`docs/citation-formats.md`](../../../citation-formats.md) § Needed and used; the S16-73 plan review, finding M-5 ([`S16-73-voters-list-type.review.md`](S16-73-voters-list-type.review.md)); user, 2026-11-26: "plan it first"
 **Planned:** 2026-11-26 against `origin/main` @ `0886b43` (fetch it; a local `main` may be older)
-**Review:** [`S16-74-derive-seed-suggestions.review.md`](S16-74-derive-seed-suggestions.review.md) — round 1 answered; round 2 pending
+**Review:** [`S16-74-derive-seed-suggestions.review.md`](S16-74-derive-seed-suggestions.review.md) — Fits · Ready with changes, 2 rounds; no blocker open; To user: none
 
 ### Implementer — read this first
 
@@ -83,7 +83,7 @@ Each seeded Source type suggests exactly the fields its formats read (§ 2.3's r
 | D-3 | STEP-1 keeps `seedSuggestions` and proves the derived lists equal it in `TestInstall` before STEP-2 deletes it | Proves AC-1.1 against the hand lists rather than against the rule itself | A golden of the lists — a third copy |
 | D-4 | `TestSeedSuggestionsFollowFormats` becomes `TestSuggestedKeys` *(renamed)* (cases: § 8 T-3) | The comparison it made is now the code; `TestSeedFieldsAreRead` owns "formats read only seeded fields" | — |
 | D-5 | In STEP-1 the "unknown type" `TestInstall` case becomes "a seed format reading an unseeded field is rejected": it swaps `seedTypes` (restored by `t.Cleanup`) for `[]seedType{{Key: "bad_type", Label: "Bad", Description: "Bad.", IconKey: "type_document", Formats: sourcetypes.Formats{Full: "{meta.no_such_field}", Short: "{source.title}", List: "{source.title}"}}}` and keeps the `ErrInvalid` and rollback assertions; the error comes from `ToStored` | The case it covered (a suggestion naming no type) cannot be written once `Install` stops reading `seedSuggestions` | Dropping the case — loses the rollback check |
-| D-6 | Tests read a seeded type's list through `suggestedKeysOf(t *testing.T, typeKey string) []string` *(renamed from `seedSuggestionKeys`)*, which returns `suggestedKeys(findSeedType(t, typeKey).Formats)` | The new name stops `rg seedSuggestion` matching a live helper | Inlining it at three call sites |
+| D-6 | Tests read a seeded type's list through `suggestedKeysOf(t *testing.T, typeKey string) []string` *(renamed from `seedSuggestionKeys`)*, which returns `suggestedKeys(findSeedType(t, typeKey).Formats)` | The new name stops `rg seedSuggestion` matching a live helper | Inlining it at two call sites |
 
 **Rules this plan bends.** None.
 
@@ -125,7 +125,7 @@ None — no catalog change.
 
 | Package | Change |
 | --- | --- |
-| `core/database/sourcevocab` | `func suggestedKeys(f sourcetypes.Formats) ([]string, error)` *(new)*; `Install` per D-2; `seedSuggestions`, `seedSuggestion` deleted |
+| `core/database/sourcevocab` | `suggestedKeys` *(new, D-1)*; `Install` per D-2; `seedSuggestions`, `seedSuggestion` deleted |
 
 Errors: none new.
 
@@ -145,12 +145,12 @@ None — no copy.
 
 **STEP-1 — Derive in Install**
 Files: `core/database/sourcevocab/registry_suggestions.go`, `sourcevocab.go`, `registry_test.go`, `sourcevocab_test.go`. Skill: `add-seeded-vocabulary`.
-Do: add `suggestedKeys` (D-1) above `seedSuggestions`; `derivedSuggestions` returns its result. `Install` writes the derived lists (D-2). Replace the "unknown type" case per D-5. `seedSuggestions` stays; `TestInstall`'s "empty catalog gets the seed" still compares the installed rows with `seedSuggestions` (D-3).
+Do: add `suggestedKeys` (D-1) above `seedSuggestions`; `derivedSuggestions` returns its result; `registry_test.go` drops its `maps` import (its one use moves) and `registry_suggestions.go` imports `maps`, `citationformat` and `sourcetypes`. `Install` writes the derived lists (D-2). Replace the "unknown type" case per D-5. `seedSuggestions` stays; `TestInstall`'s "empty catalog gets the seed" still compares the installed rows with `seedSuggestions` (D-3).
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/...` passes.
 
 **STEP-2 — Delete the hand lists**
 Files: `registry_suggestions.go`, `registry.go`, `registry_test.go`, `sourcevocab_test.go`.
-Do: delete `seedSuggestions`, `seedSuggestion` and `derivedSuggestions`; the header comment of `registry.go` says the suggestions are derived in `registry_suggestions.go`. `TestInstall`'s two loops (registry lists, then unlisted types) become one loop over `seedTypes` comparing each type's rows with `suggestedKeysOf(t, st.Key)` and requiring a non-empty list. Rename `seedSuggestionKeys` to `suggestedKeysOf` (D-6) at its three uses. `TestSuggestedKeys` per D-4, keeping today's "no empty list" check. `TestSeededFormatsNeedOnlySuggestedFields` and `TestSeedPlaceFields` iterate `seedTypes` with `suggestedKeysOf`. Drop the unused `maps` import.
+Do: delete `seedSuggestions`, `seedSuggestion` and `derivedSuggestions`; the header comment of `registry.go` says the suggestions are derived in `registry_suggestions.go`. `TestInstall`'s two loops (registry lists, then unlisted types) become one loop over `seedTypes` comparing each type's rows with `suggestedKeysOf(t, st.Key)` and requiring a non-empty list. Rename `seedSuggestionKeys` to `suggestedKeysOf` (D-6) at its definition and two call sites. `TestSuggestedKeys` per D-4, keeping today's "no empty list" check. `TestSeededFormatsNeedOnlySuggestedFields` and `TestSeedPlaceFields` iterate `seedTypes` with `suggestedKeysOf`.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/... ./core/database/sourcemetadata/... ./core/onboarding/...` passes; `rg -n "seedSuggestion|derivedSuggestions" core` prints nothing.
 
 **STEP-3 — Docs**
