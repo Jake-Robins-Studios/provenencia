@@ -40,7 +40,7 @@ Nits (logged): `F-2 · core/database/sourcemetadata/sourcemetadata.go:819 · the
 Not run: round 1 had no Fix-now blocker or major.
 
 ## Result
-Gate PASS · `origin/main` unmoved since the branch was cut · CI <pending> · open: none · follow-ups: UX-1 · to user: —
+Gate PASS · `origin/main` unmoved since the branch was cut · CI green · open: none · follow-ups: UX-1 · to user: —
 
 ## Cost
 Plan: 4,556 words (check-plan-docs info line).
