@@ -3,20 +3,18 @@ package locator
 import (
 	"math"
 	"strings"
-
-	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 )
 
 // ValidateDepictionRegion checks the region locator of a depiction value
 // against the locator of the Citation that holds it.
 //
-// Both documents must parse (Validate without its page mark check). The region has exactly one region
-// selector, at most one page selector, an optional leading artifact selector,
-// and no other selector. The region's page selector names a file page. The
-// Citation locator has at most one page selector, which may hold no file page
-// (only a page_label, or page_unknown). The file pages must agree: both absent, or both present with the
-// same artifact_page (page_label is not compared). The region need not lie
-// inside a region of the Citation's own locator.
+// Both documents must parse (Validate without its retired-key and file-page
+// checks). The region has exactly one region selector, at most one page
+// selector, an optional leading artifact selector, and no other selector. The
+// region's page selector names a file page. The Citation locator has at most
+// one page selector; one with no file page is no page. The file pages must
+// agree: both absent, or both present with the same artifact_page. The region
+// need not lie inside a region of the Citation's own locator.
 func ValidateDepictionRegion(regionJSON, citationLocatorJSON string) error {
 	regionPages, err := regionDocPages(regionJSON)
 	if err != nil {
@@ -26,70 +24,41 @@ func ValidateDepictionRegion(regionJSON, citationLocatorJSON string) error {
 	if err != nil {
 		return err
 	}
-	ref, ok := citationPage(citation)
-	hasPage := ok && ref.ArtifactPage > 0
+	page := citationPage(citation)
+	hasPage := page > 0
 	if hasPage != (len(regionPages) == 1) {
 		return ErrInvalid
 	}
-	if hasPage && regionPages[0] != ref.ArtifactPage {
+	if hasPage && regionPages[0] != page {
 		return ErrInvalid
 	}
 	return nil
 }
 
-// PageRef is the page of a Citation locator's page selector: the page of the
-// file, and the page the original prints. A selector marked unknown alone gives
-// no file page and no label, with Mark.Unknown set; only the zero value means no
-// page selector.
-type PageRef struct {
-	// ArtifactPage is the page of the file; 0 when the selector holds no file
-	// page.
-	ArtifactPage int
-	// Label is the trimmed page_label.
-	Label string
-	// Mark is the printed page's unknown and supplied facts, settled against
-	// Label (valuemark.Settle).
-	Mark valuemark.Mark
-}
-
-// Page returns the page selector of a Citation locator. It returns the zero
-// PageRef when the document is empty, invalid, longer than MaxDocumentBytes,
-// or has no page selector.
-func Page(locatorJSON string) PageRef {
+// ArtifactPage returns the file page of a Citation locator's page selector. It
+// returns 0 when the document is empty, invalid, longer than MaxDocumentBytes,
+// has no page selector, or the selector holds no file page.
+func ArtifactPage(locatorJSON string) int {
 	doc, err := parse(locatorJSON)
 	if err != nil {
-		return PageRef{}
+		return 0
 	}
-	ref, ok := citationPage(doc)
-	if !ok {
-		return PageRef{}
-	}
-	return ref
+	return citationPage(doc)
 }
 
-// citationPage reads the page selector of a validated document, which has at
-// most one; ok is false when it has none. ArtifactPage is 0 for a selector
-// that holds no file page. A page above math.MaxInt32 is no page, so no caller
-// narrows it. The stored mark is settled against the label, so a pair Validate
-// refuses reads as a pair it accepts.
-func citationPage(doc document) (PageRef, bool) {
+// citationPage reads the file page of a validated document's page selector,
+// which it has at most one of. It is 0 for no selector, a selector with no file
+// page, or a page above math.MaxInt32, so no caller narrows it.
+func citationPage(doc document) int {
 	sel, ok := pageSelector(doc)
 	if !ok {
-		return PageRef{}, false
+		return 0
 	}
-	var ref PageRef
-	if sel.ArtifactPage != nil {
-		ref.ArtifactPage = *sel.ArtifactPage
+	page, ok := sel.filePage()
+	if !ok || page > math.MaxInt32 {
+		return 0
 	}
-	if ref.ArtifactPage > math.MaxInt32 {
-		return PageRef{}, false
-	}
-	if sel.PageLabel != nil {
-		ref.Label = strings.TrimSpace(*sel.PageLabel)
-	}
-	mark, hasLabel := sel.pageMark()
-	ref.Mark = valuemark.Settle(mark, hasLabel)
-	return ref, true
+	return page
 }
 
 // regionDocPages validates a region document and returns the artifact_page of
@@ -106,10 +75,11 @@ func regionDocPages(regionJSON string) ([]int, error) {
 		switch strings.TrimSpace(sel.Type) {
 		case TypeArtifact:
 		case TypePage:
-			if sel.ArtifactPage == nil {
+			page, ok := sel.filePage()
+			if !ok {
 				return nil, ErrInvalid
 			}
-			pages = append(pages, *sel.ArtifactPage)
+			pages = append(pages, page)
 		case TypeRegion:
 			regions++
 		default:

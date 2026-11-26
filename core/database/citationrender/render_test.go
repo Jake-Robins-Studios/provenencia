@@ -162,8 +162,8 @@ func (w *world) graph(sourceID []byte) evidencegraphs.Graph {
 	return evidencegraphstest.SoleGraph(w.t, w.c, sourceID)
 }
 
-// pageLocator is a Citation's locator with a page selector. Its page_label no
-// longer prints: a Citation's own Page value does. S15-59 removes the label.
+// pageLocator is a Citation locator stored before S15-59, with a page_label
+// alone. Reads ignore the label, so the selector is no page.
 func pageLocator(label string) string {
 	return `{"version":1,"selectors":[{"type":"page","page_label":"` + label + `"}]}`
 }
@@ -373,8 +373,8 @@ func TestRenderCensus(t *testing.T) {
 	}
 }
 
-// TestRenderLocatorLabelAlone is AC-1.2: a locator's page_label prints nothing
-// when no level holds a page value.
+// TestRenderLocatorLabelAlone is AC-1.2: a stored locator's page_label is
+// ignored on read and prints nothing when no level holds a page value.
 func TestRenderLocatorLabelAlone(t *testing.T) {
 	w := newCensus(t)
 	id := w.cite(w.art.ID, w.graph.ID, "", pageLocator("23"))
@@ -410,6 +410,7 @@ func TestRender(t *testing.T) {
 		return w, typ, src, w.artifact(src.ID, "Scan"), w.graph(src.ID)
 	}
 
+	// stored with a page_label; the file page still reads
 	imageLocator := `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","artifact_page":37,"page_label":"23"}]}`
 	for _, tc := range []struct {
 		name         string

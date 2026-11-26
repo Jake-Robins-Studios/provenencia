@@ -4,12 +4,10 @@
 // Spike 7: artifact, page, region, text_quote. Unknown selector types are preserved
 // losslessly (Validate does not fail solely for an unrecognized type).
 //
-// A page selector holds artifact_page (the page of the file), page_label (the
-// page the original prints), or both, or is marked page_unknown. It may mark
-// the printed page page_unknown (the original prints none) or page_supplied
-// (the number is not printed on the page). Validate refuses a pair
-// valuemark.Validate refuses, and Page settles a stored one. A document has at
-// most one page selector.
+// A page selector holds artifact_page, the page of the file, and nothing else:
+// the page the original prints is the Citation's Page metadata value. Reads
+// ignore the page_label, page_unknown and page_supplied keys S15-59 retired,
+// and Validate refuses them. A document has at most one page selector.
 package locator
 
 import (
@@ -18,7 +16,6 @@ import (
 	"strings"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
-	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 )
 
 var ErrInvalid = apperr.New(apperr.CodeLocatorInvalid, apperr.KindUser)
@@ -49,10 +46,11 @@ type document struct {
 type selectorRaw struct {
 	Type string `json:"type"`
 	// page
-	ArtifactPage *int    `json:"artifact_page"`
-	PageLabel    *string `json:"page_label"`
-	PageUnknown  bool    `json:"page_unknown"`
-	PageSupplied bool    `json:"page_supplied"`
+	ArtifactPage *int `json:"artifact_page"`
+	// retired by S15-59: presence only; reads never look at them
+	PageLabel    json.RawMessage `json:"page_label"`
+	PageUnknown  json.RawMessage `json:"page_unknown"`
+	PageSupplied json.RawMessage `json:"page_supplied"`
 	// region
 	Points []point `json:"points"`
 	Unit   string  `json:"unit"`
@@ -68,26 +66,28 @@ type point struct {
 }
 
 // Validate is the write check: it checks locator JSON against version-1
-// invariants for known selector types, and refuses a page mark pair
-// valuemark.Validate refuses (valuemark.ErrInvalid). Reads go through parse,
-// which does not check the pair.
+// invariants for known selector types, and refuses a page selector with no
+// file page or with a key S15-59 retired. Reads go through parse, which
+// ignores those keys.
 func Validate(locatorJSON string) error {
 	doc, err := parse(locatorJSON)
 	if err != nil {
 		return err
 	}
 	if sel, ok := pageSelector(doc); ok {
-		return valuemark.Validate(sel.pageMark())
+		if _, ok := sel.filePage(); !ok || sel.PageLabel != nil || sel.PageUnknown != nil || sel.PageSupplied != nil {
+			return ErrInvalid
+		}
 	}
 	return nil
 }
 
-// pageMark returns the printed page's mark and whether the selector holds a
-// non-blank page_label (the mark's value). artifact_page is not a value: it is
-// where the Citation is in the file, not what the original prints.
-func (sel selectorRaw) pageMark() (valuemark.Mark, bool) {
-	hasLabel := sel.PageLabel != nil && strings.TrimSpace(*sel.PageLabel) != ""
-	return valuemark.Mark{Unknown: sel.PageUnknown, Supplied: sel.PageSupplied}, hasLabel
+// filePage returns the selector's artifact_page and whether it holds one.
+func (sel selectorRaw) filePage() (int, bool) {
+	if sel.ArtifactPage == nil {
+		return 0, false
+	}
+	return *sel.ArtifactPage, true
 }
 
 // pageSelector returns the page selector of a parsed document, which has at
@@ -174,15 +174,11 @@ func validateDoc(doc document) error {
 	return nil
 }
 
-// validatePage accepts a file page of 1 or more, a non-blank printed page, or
-// a selector marked page_unknown (an image whose original prints no page). The
-// mark pair is checked on write only, by Validate.
+// validatePage accepts a page selector with no file page, which reads as no
+// page, and a file page of 1 or more. Validate refuses the selector with no
+// file page on write.
 func validatePage(sel selectorRaw) error {
-	if sel.ArtifactPage != nil && *sel.ArtifactPage < 1 {
-		return ErrInvalid
-	}
-	mark, hasLabel := sel.pageMark()
-	if sel.ArtifactPage == nil && !hasLabel && !mark.Unknown {
+	if page, ok := sel.filePage(); ok && page < 1 {
 		return ErrInvalid
 	}
 	return nil

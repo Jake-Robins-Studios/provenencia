@@ -344,9 +344,6 @@ func Update(tx *database.Tx, userID, citationID []byte, in CitationFieldsInput) 
 	if len(citationID) != 16 {
 		return Citation{}, nil, ErrInvalid
 	}
-	if err := locator.Validate(in.LocatorJSON); err != nil {
-		return Citation{}, nil, err
-	}
 	if err := database.RequireUserID(userID, ErrInvalid); err != nil {
 		return Citation{}, nil, err
 	}
@@ -357,6 +354,13 @@ func Update(tx *database.Tx, userID, citationID []byte, in CitationFieldsInput) 
 	}
 	if err != nil {
 		return Citation{}, nil, err
+	}
+	// An unchanged locator was checked when it was written; a stored one may
+	// hold keys Validate now refuses (S15-59).
+	if in.LocatorJSON != prev.LocatorJSON {
+		if err := locator.Validate(in.LocatorJSON); err != nil {
+			return Citation{}, nil, err
+		}
 	}
 
 	change := rowchange.Updated("citation", citationID,

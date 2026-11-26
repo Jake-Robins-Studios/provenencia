@@ -228,7 +228,7 @@ func TestForEntityCitationParts(t *testing.T) {
 	res, err := writes.Call(f.C, writes.Op{Action: "create_citation_with_observations", UserID: userID}, func(tx *database.Tx) (citations.CreateResult, []rowchange.Change, error) {
 		return citations.CreateWithObservations(tx, userID, citations.CreateInput{
 			GraphID: a.GraphID, ArtifactID: art.ID, Label: "Baptism of Ada",
-			LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_label":"9"}]}`,
+			LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":37}]}`,
 		}, []observations.Input{f.nameIn(a, "given=Ada|surname=Lovelace")})
 	})
 	must(t, err)

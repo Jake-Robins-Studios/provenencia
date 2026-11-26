@@ -8,8 +8,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 )
 
 // ringPoints returns n points on a circle of radius 0.4 around (0.5, 0.5),
@@ -79,75 +77,64 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "page only",
-			json: `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_label":"23"}]}`,
+			json: `{"version":1,"selectors":[{"type":"page","artifact_page":37}]}`,
 		},
 		{
-			name: "printed page only",
-			json: `{"version":1,"selectors":[{"type":"page","page_label":"14"}]}`,
+			name:    "page only",
+			json:    `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_label":"23"}]}`,
+			wantErr: ErrInvalid,
+		},
+		{
+			name:    "printed page only",
+			json:    `{"version":1,"selectors":[{"type":"page","page_label":"14"}]}`,
+			wantErr: ErrInvalid,
 		},
 		{
 			name: "printed page then region",
 			json: `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","page_label":"14"},{"type":"region","unit":"normalized","points":[
 				{"x":0.1,"y":0.1},{"x":0.4,"y":0.1},{"x":0.4,"y":0.3},{"x":0.1,"y":0.3}
 			]}]}`,
+			wantErr: ErrInvalid,
 		},
 		{
-			name: "file page with blank printed page",
-			json: `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_label":""}]}`,
+			name:    "file page with blank printed page",
+			json:    `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_label":""}]}`,
+			wantErr: ErrInvalid,
 		},
 		{
-			name: "printed page unknown alone",
-			json: `{"version":1,"selectors":[{"type":"page","page_unknown":true}]}`,
+			name:    "printed page unknown alone",
+			json:    `{"version":1,"selectors":[{"type":"page","page_unknown":true}]}`,
+			wantErr: ErrInvalid,
 		},
 		{
-			name: "file page unknown",
-			json: `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_unknown":true}]}`,
+			name:    "file page unknown",
+			json:    `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_unknown":true}]}`,
+			wantErr: ErrInvalid,
 		},
 		{
-			name: "printed page supplied",
-			json: `{"version":1,"selectors":[{"type":"page","page_label":"23","page_supplied":true}]}`,
+			name:    "printed page supplied",
+			json:    `{"version":1,"selectors":[{"type":"page","page_label":"23","page_supplied":true}]}`,
+			wantErr: ErrInvalid,
 		},
 		{
-			name: "file page and printed page supplied",
-			json: `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_label":"23","page_supplied":true}]}`,
+			name:    "file page and printed page supplied",
+			json:    `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_label":"23","page_supplied":true}]}`,
+			wantErr: ErrInvalid,
 		},
 		{
-			name: "file page, blank label, unknown",
-			json: `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_label":"  ","page_unknown":true}]}`,
+			name:    "file page, blank label, unknown",
+			json:    `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_label":"  ","page_unknown":true}]}`,
+			wantErr: ErrInvalid,
 		},
 		{
-			name: "blank label, unknown, no file page",
-			json: `{"version":1,"selectors":[{"type":"page","page_label":"  ","page_unknown":true}]}`,
-		},
-		{
-			name:    "label with unknown",
-			json:    `{"version":1,"selectors":[{"type":"page","page_label":"23","page_unknown":true}]}`,
-			wantErr: valuemark.ErrInvalid,
-		},
-		{
-			name:    "supplied alone, file page",
-			json:    `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_supplied":true}]}`,
-			wantErr: valuemark.ErrInvalid,
-		},
-		{
-			name:    "supplied, file page, blank label",
-			json:    `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_label":"  ","page_supplied":true}]}`,
-			wantErr: valuemark.ErrInvalid,
+			name:    "blank label, unknown, no file page",
+			json:    `{"version":1,"selectors":[{"type":"page","page_label":"  ","page_unknown":true}]}`,
+			wantErr: ErrInvalid,
 		},
 		{
 			name:    "supplied alone, nothing else",
 			json:    `{"version":1,"selectors":[{"type":"page","page_supplied":true}]}`,
 			wantErr: ErrInvalid,
-		},
-		{
-			name:    "both facts",
-			json:    `{"version":1,"selectors":[{"type":"page","page_unknown":true,"page_supplied":true}]}`,
-			wantErr: valuemark.ErrInvalid,
-		},
-		{
-			name:    "both facts with file page",
-			json:    `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_unknown":true,"page_supplied":true}]}`,
-			wantErr: valuemark.ErrInvalid,
 		},
 		{
 			name:    "unknown false alone",
@@ -173,6 +160,25 @@ func TestValidate(t *testing.T) {
 			name:    "file page zero with unknown",
 			json:    `{"version":1,"selectors":[{"type":"page","artifact_page":0,"page_unknown":true}]}`,
 			wantErr: ErrInvalid,
+		},
+		{
+			name:    "a retired key on a padded page type",
+			json:    `{"version":1,"selectors":[{"type":" page ","artifact_page":3,"page_label":"x"}]}`,
+			wantErr: ErrInvalid,
+		},
+		{
+			name:    "a null retired key",
+			json:    `{"version":1,"selectors":[{"type":"page","artifact_page":3,"page_label":null}]}`,
+			wantErr: ErrInvalid,
+		},
+		{
+			name:    "a retired key in another case",
+			json:    `{"version":1,"selectors":[{"type":"page","artifact_page":3,"Page_Label":"x"}]}`,
+			wantErr: ErrInvalid,
+		},
+		{
+			name: "a retired key on an unknown selector type",
+			json: `{"version":1,"selectors":[{"type":"time_range","start_ms":0,"page_label":"x"}]}`,
 		},
 		{
 			name: "region rectangle",
@@ -340,36 +346,34 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-func TestPage(t *testing.T) {
+func TestArtifactPage(t *testing.T) {
 	tests := []struct {
 		name string
 		doc  string
-		want PageRef
+		want int
 	}{
-		{"printed page only", `{"version":1,"selectors":[{"type":"page","page_label":" 14 "}]}`, PageRef{Label: "14"}},
-		{"page with label", `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","artifact_page":37,"page_label":" 23 "}]}`, PageRef{ArtifactPage: 37, Label: "23"}},
-		{"page without label", `{"version":1,"selectors":[{"type":"page","artifact_page":4}]}`, PageRef{ArtifactPage: 4}},
-		{"artifact selector only", `{"version":1,"selectors":[{"type":"artifact"}]}`, PageRef{}},
-		{"two page selectors", `{"version":1,"selectors":[{"type":"page","artifact_page":1},{"type":"page","artifact_page":2}]}`, PageRef{}},
-		{"page selector without artifact_page", `{"version":1,"selectors":[{"type":"page"}]}`, PageRef{}},
-		{"page above int32", `{"version":1,"selectors":[{"type":"page","artifact_page":4294967333}]}`, PageRef{}},
-		{"empty", ``, PageRef{}},
-		{"truncated", `{`, PageRef{}},
-		{"version 2", `{"version":2,"selectors":[{"type":"page","artifact_page":3}]}`, PageRef{}},
-		{"over the byte cap", paddedArtifactDoc(MaxDocumentBytes + 1), PageRef{}},
-		{"unknown alone", `{"version":1,"selectors":[{"type":"page","page_unknown":true}]}`, PageRef{Mark: valuemark.Mark{Unknown: true}}},
-		{"file page, label, supplied", `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","artifact_page":37,"page_label":" 23 ","page_supplied":true}]}`, PageRef{ArtifactPage: 37, Label: "23", Mark: valuemark.Mark{Supplied: true}}},
-		{"stored label with unknown settles to the label", `{"version":1,"selectors":[{"type":"page","page_label":"23","page_unknown":true}]}`, PageRef{Label: "23"}},
-		{"stored label with both facts settles to supplied", `{"version":1,"selectors":[{"type":"page","page_label":"23","page_unknown":true,"page_supplied":true}]}`, PageRef{Label: "23", Mark: valuemark.Mark{Supplied: true}}},
-		{"stored both facts, no label, settles to unknown", `{"version":1,"selectors":[{"type":"page","page_unknown":true,"page_supplied":true}]}`, PageRef{Mark: valuemark.Mark{Unknown: true}}},
-		{"stored supplied without a label settles to none", `{"version":1,"selectors":[{"type":"page","artifact_page":4,"page_supplied":true}]}`, PageRef{ArtifactPage: 4}},
-		{"page above int32 with unknown", `{"version":1,"selectors":[{"type":"page","artifact_page":3000000000,"page_unknown":true}]}`, PageRef{}},
+		{"printed page only", `{"version":1,"selectors":[{"type":"page","page_label":" 14 "}]}`, 0},
+		{"page with label", `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","artifact_page":37,"page_label":" 23 "}]}`, 37},
+		{"page without label", `{"version":1,"selectors":[{"type":"page","artifact_page":4}]}`, 4},
+		{"artifact selector only", `{"version":1,"selectors":[{"type":"artifact"}]}`, 0},
+		{"two page selectors", `{"version":1,"selectors":[{"type":"page","artifact_page":1},{"type":"page","artifact_page":2}]}`, 0},
+		{"page selector without artifact_page", `{"version":1,"selectors":[{"type":"page"}]}`, 0},
+		{"page above int32", `{"version":1,"selectors":[{"type":"page","artifact_page":4294967333}]}`, 0},
+		{"empty", ``, 0},
+		{"truncated", `{`, 0},
+		{"version 2", `{"version":2,"selectors":[{"type":"page","artifact_page":3}]}`, 0},
+		{"over the byte cap", paddedArtifactDoc(MaxDocumentBytes + 1), 0},
+		{"unknown alone", `{"version":1,"selectors":[{"type":"page","page_unknown":true}]}`, 0},
+		{"file page, label, supplied", `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","artifact_page":37,"page_label":" 23 ","page_supplied":true}]}`, 37},
+		{"stored label with unknown", `{"version":1,"selectors":[{"type":"page","page_label":"23","page_unknown":true}]}`, 0},
+		{"stored supplied without a label", `{"version":1,"selectors":[{"type":"page","artifact_page":4,"page_supplied":true}]}`, 4},
+		{"a non-bool mark beside a file page", `{"version":1,"selectors":[{"type":"page","artifact_page":5,"page_unknown":"yes"}]}`, 5},
+		{"page above int32 with unknown", `{"version":1,"selectors":[{"type":"page","artifact_page":3000000000,"page_unknown":true}]}`, 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := Page(tt.doc)
-			if got != tt.want {
-				t.Fatalf("Page = %+v; want %+v", got, tt.want)
+			if got := ArtifactPage(tt.doc); got != tt.want {
+				t.Fatalf("ArtifactPage = %d; want %d", got, tt.want)
 			}
 		})
 	}

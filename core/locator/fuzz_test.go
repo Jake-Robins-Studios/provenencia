@@ -1,15 +1,14 @@
 package locator
 
 import (
+	"math"
 	"testing"
-
-	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 )
 
 // FuzzValidate feeds arbitrary documents to the locator parser, which reads
-// locator_json the app may not have written: nothing panics, the page's mark
-// read by Page always passes valuemark.Validate against its label, and a
-// document Validate accepts reads with the mark it was written with.
+// locator_json the app may not have written: nothing panics, and a document
+// Validate accepts still parses, holds a file page in its page selector, and
+// reads as that file page.
 func FuzzValidate(f *testing.F) {
 	for _, doc := range []string{
 		`{"version":1,"selectors":[{"type":"page","page_unknown":true}]}`,
@@ -25,24 +24,30 @@ func FuzzValidate(f *testing.F) {
 		f.Add(doc)
 	}
 	f.Fuzz(func(t *testing.T, doc string) {
-		err := Validate(doc)
-		ref := Page(doc)
-		if err := valuemark.Validate(ref.Mark, ref.Label != ""); err != nil {
-			t.Fatalf("Page(%q).Mark = %+v with label %q: %v", doc, ref.Mark, ref.Label, err)
-		}
-		if err != nil || ref == (PageRef{}) {
+		page := ArtifactPage(doc)
+		if Validate(doc) != nil {
 			return
 		}
-		d, derr := decode(doc)
-		if derr != nil {
-			t.Fatalf("Validate accepted %q but decode refused it: %v", doc, derr)
+		d, err := parse(doc)
+		if err != nil {
+			t.Fatalf("Validate accepted %q but parse refused it: %v", doc, err)
 		}
 		sel, ok := pageSelector(d)
 		if !ok {
-			t.Fatalf("Page(%q) = %+v with no page selector", doc, ref)
+			if page != 0 {
+				t.Fatalf("ArtifactPage(%q) = %d with no page selector", doc, page)
+			}
+			return
 		}
-		if raw, _ := sel.pageMark(); raw != ref.Mark {
-			t.Fatalf("Page(%q).Mark = %+v; written pair %+v", doc, ref.Mark, raw)
+		if sel.ArtifactPage == nil {
+			t.Fatalf("Validate accepted %q: page selector without a file page", doc)
+		}
+		want := *sel.ArtifactPage
+		if want > math.MaxInt32 {
+			want = 0
+		}
+		if page != want {
+			t.Fatalf("ArtifactPage(%q) = %d; want %d", doc, page, want)
 		}
 	})
 }
