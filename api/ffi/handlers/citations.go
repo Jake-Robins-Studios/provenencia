@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
@@ -229,13 +230,38 @@ func ListCitationsByArtifact(in []byte) ([]byte, error) {
 		if err != nil {
 			return err
 		}
+		// One board read for every listed Citation: the opened Citation's board
+		// and its printed page come from the same rows.
+		owners := make([]sourcemetadata.Owner, len(list))
+		for i, row := range list {
+			owners[i] = sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: row.Citation.ID}
+		}
+		boards, err := sourcemetadata.ListWorkspaces(c, owners)
+		if err != nil {
+			return err
+		}
+		db, err := c.DB()
+		if err != nil {
+			return err
+		}
+		pageID, err := sourcemetadata.PageFieldID(db)
+		if err != nil {
+			return err
+		}
 		out = &engine.ListCitationsByArtifactResponse{}
-		for _, row := range list {
-			out.Citations = append(out.Citations, &engine.ListedCitation{
+		for i, row := range list {
+			listed := &engine.ListedCitation{
 				Citation:         citationProto(row.Citation),
 				ObservationCount: row.ObservationCount,
 				SubjectNames:     row.SubjectNames,
-			})
+				Metadata:         metadataEntriesProto(boards[i].Entries),
+			}
+			for _, e := range boards[i].Entries {
+				if pageID != nil && e.Value != nil && bytes.Equal(e.Field.ID, pageID) {
+					listed.PageLabel = sourcemetadata.PageText(*e.Value, e.Field)
+				}
+			}
+			out.Citations = append(out.Citations, listed)
 		}
 		return nil
 	})

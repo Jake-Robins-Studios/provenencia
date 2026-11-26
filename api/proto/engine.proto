@@ -997,7 +997,7 @@ message WriteEffects {
   // Evidence graphs whose loaded rows this write changed (graphcache drops each).
   repeated string evidence_graphs = 14;
   // Keyed partial reads this write moved, each with the ids of the read's key
-  // table (Evidence graphs for "citations" and "evidence_graph_progress",
+  // table (Evidence graphs for "citations", "citation_boards" and "evidence_graph_progress",
   // Sources for "evidence_graphs", Properties for "property_terms"): effects.Read values. Swift refreshes only
   // those keys' reads.
   repeated WriteEffectsRead reads = 15;
@@ -2720,6 +2720,12 @@ message ListedCitation {
   int32 observation_count = 2;
   // Person labels this Citation names, earliest Observation first, capped.
   repeated string subject_names = 3;
+  // The Citation's metadata board: its own values and what it inherits.
+  repeated MetadataWorkspaceEntry metadata = 4;
+  // The Citation's own Page value as a citation prints it ("14", "[14]",
+  // "unpaginated"); empty when it has none. Named as
+  // ReconcilerOutcomeDetail.page_label.
+  string page_label = 5;
 }
 
 message ListCitationsByArtifactRequest {

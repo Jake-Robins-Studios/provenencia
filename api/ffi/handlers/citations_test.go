@@ -9,8 +9,10 @@ import (
 	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
 	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession"
@@ -1574,5 +1576,149 @@ func TestDeleteCitationReleasesMetadata(t *testing.T) {
 	}
 	if countCatalogRows(t, m.dir, "citation_metadata") != 0 || countCatalogRows(t, m.dir, "citation_metadata_layout") != 0 {
 		t.Fatal("citation metadata rows remain")
+	}
+}
+
+// pageFieldID is the id of the seeded Page metadata field.
+func pageFieldID(t *testing.T, dir string) string {
+	t.Helper()
+	var id string
+	err := catalogsession.Do(dir, func(c *database.Catalog) error {
+		db, err := c.DB()
+		if err != nil {
+			return err
+		}
+		raw, err := sourcemetadata.PageFieldID(db)
+		id = database.UUIDString(raw)
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return id
+}
+
+func listCitations(t *testing.T, f graphFixture, artifactID string) []*engine.ListedCitation {
+	t.Helper()
+	var list engine.ListCitationsByArtifactResponse
+	mustRPC(t, ListCitationsByArtifact, &engine.ListCitationsByArtifactRequest{
+		ProjectDir: f.dir, ArtifactId: artifactID, GraphId: f.defaultGraphID,
+	}, &list)
+	return list.GetCitations()
+}
+
+// TestListCitationsByArtifactBoards: each listed Citation carries its board and
+// its own printed page; a page only the graph holds is inherited, not its own.
+func TestListCitationsByArtifactBoards(t *testing.T) {
+	f := newGraphFixture(t)
+	page := pageFieldID(t, f.dir)
+	var second engine.CreateCitationWithObservationsResponse
+	mustRPC(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
+		ProjectDir: f.dir, UserId: f.userID, ArtifactId: f.page1, GraphId: f.defaultGraphID, LocatorJson: validLocatorJSON,
+	}, &second)
+	mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
+		ProjectDir: f.dir, UserId: f.userID, Owner: &engine.MetadataOwner{Level: "graph", Id: f.defaultGraphID}, FieldId: page, ValueText: "2",
+	}, &engine.SetMetadataResponse{})
+	mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
+		ProjectDir: f.dir, UserId: f.userID, Owner: &engine.MetadataOwner{Level: "citation", Id: f.citationID}, FieldId: page, ValueText: "14",
+	}, &engine.SetMetadataResponse{})
+
+	byID := map[string]*engine.ListedCitation{}
+	for _, row := range listCitations(t, f, f.page1) {
+		byID[row.GetCitation().GetId()] = row
+	}
+	own := byID[f.citationID]
+	if got := metadataByField(own.GetMetadata(), page); got == nil || !got.GetHasValue() || got.GetValueText() != "14" || own.GetPageLabel() != "14" {
+		t.Fatalf("own Page: page_label %q, entry %+v", own.GetPageLabel(), got)
+	}
+	inherits := byID[second.GetCitation().GetId()]
+	got := metadataByField(inherits.GetMetadata(), page)
+	if got == nil || got.GetHasValue() || got.GetInherited().GetDisplayText() != "2" || got.GetInherited().GetOwner().GetLevel() != "graph" {
+		t.Fatalf("inherited Page entry %+v", got)
+	}
+	if inherits.GetPageLabel() != "" {
+		t.Fatalf("page_label %q, want none: the graph's Page is not the Citation's", inherits.GetPageLabel())
+	}
+}
+
+// TestListCitationsByArtifactScale: an Artifact of 60 Citations with 8 values
+// each lists every board and every page, and logs the time.
+func TestListCitationsByArtifactScale(t *testing.T) {
+	f := newGraphFixture(t)
+	page := pageFieldID(t, f.dir)
+	fields := []string{page}
+	for i := 1; i < 8; i++ {
+		fields = append(fields, newUserField(t, f.dir, f.userID, "Field "+strings.Repeat("x", i)))
+	}
+	for i := 0; i < 60; i++ {
+		draft := &engine.MetadataDraft{}
+		for n, id := range fields {
+			text := "v" + strings.Repeat("y", n)
+			if id == page {
+				text = "p" + strconv.Itoa(i)
+			}
+			draft.Values = append(draft.Values, &engine.MetadataValue{FieldId: id, ValueText: text})
+			draft.Layout = append(draft.Layout, &engine.MetadataLayoutRow{FieldId: id, SortOrder: int32(n)})
+		}
+		mustRPC(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
+			ProjectDir: f.dir, UserId: f.userID, ArtifactId: f.page2, GraphId: graphLinking(t, f.dir, f.page2),
+			LocatorJson: validLocatorJSON, Label: "c" + strconv.Itoa(i), Metadata: draft,
+		}, &engine.CreateCitationWithObservationsResponse{})
+	}
+	start := time.Now()
+	rows := listCitations(t, f, f.page2)
+	t.Logf("listed %d Citations with their boards in %v", len(rows), time.Since(start))
+	if len(rows) != 60 {
+		t.Fatalf("listed %d Citations, want 60", len(rows))
+	}
+	for _, row := range rows {
+		withValue := 0
+		for _, e := range row.GetMetadata() {
+			if e.GetHasValue() {
+				withValue++
+			}
+		}
+		want := "p" + strings.TrimPrefix(row.GetCitation().GetLabel(), "c")
+		if withValue != 8 || row.GetPageLabel() != want {
+			t.Fatalf("%s: %d valued rows, page_label %q, want 8 and %q", row.GetCitation().GetRef(), withValue, row.GetPageLabel(), want)
+		}
+	}
+}
+
+// TestUpdateCitationMetadataOnly: an UpdateCitation that carries the stored
+// columns verbatim writes nothing for the Citation itself, so its only effect
+// is the metadata rows and the citation_boards read.
+func TestUpdateCitationMetadataOnly(t *testing.T) {
+	f := newGraphFixture(t)
+	page := pageFieldID(t, f.dir)
+	var stored *engine.Citation
+	for _, row := range listCitations(t, f, f.page1) {
+		if row.GetCitation().GetId() == f.citationID {
+			stored = row.GetCitation()
+		}
+	}
+	if stored == nil {
+		t.Fatal("the Citation is not listed")
+	}
+	var resp engine.UpdateCitationResponse
+	mustRPC(t, UpdateCitation, &engine.UpdateCitationRequest{
+		ProjectDir: f.dir, UserId: f.userID, CitationId: f.citationID,
+		LocatorJson: stored.GetLocatorJson(), Transcription: stored.GetTranscription(), Label: stored.GetLabel(),
+		TranscriptionUncertain: stored.GetTranscriptionUncertain(), TranscriptionNote: stored.GetTranscriptionNote(),
+		Metadata: draftOf(page, "2"),
+	}, &resp)
+	if got := metadataByField(resp.GetMetadata(), page); got == nil || got.GetValueText() != "2" {
+		t.Fatalf("reply metadata %+v", resp.GetMetadata())
+	}
+	types := latestRevisionTypes(t, f.dir)
+	if slices.Contains(types, "citation update") {
+		t.Fatalf("changes %v, want no write of the Citation itself", types)
+	}
+	reads := map[string]bool{}
+	for _, r := range resp.GetEffects().GetReads() {
+		reads[r.GetRead()] = true
+	}
+	if !reads["citation_boards"] || reads["citations"] {
+		t.Fatalf("reads %v, want citation_boards and not citations", reads)
 	}
 }
