@@ -12,7 +12,7 @@ struct PersonFamilyLayoutTests {
         width: CGFloat = 1038,
         _ widthClass: PVWidthClass = .regular
     ) -> (PersonFamilyContent, PersonFamilyLayout) {
-        var folds = ConclusionFoldState<PersonFamilyContent.Fold>()
+        var folds = PagedFoldState<PersonFamilyContent.Fold>()
         for fold in revealed { folds.revealPage(fold) }
         let content = PersonFamilyContent(family: family, folds: folds, locale: en)
         return (content, PersonFamilyLayout(content: content, width: width, widthClass: widthClass))

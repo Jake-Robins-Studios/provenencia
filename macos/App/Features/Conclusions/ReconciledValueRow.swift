@@ -25,7 +25,7 @@ struct ReconciledValueRow: View {
     @State private var showsOtherValues = false
     @State private var showsWhy = false
     /// How many pages of a long list of lines the row has revealed (`ReconciledValueRowModel.listFold`).
-    @State private var folds = ConclusionFoldState<String>()
+    @State private var folds = PagedFoldState<String>()
     /// Where the keyboard goes when the last page of lines is revealed and Show more leaves.
     @FocusState private var focusedStop: Stop?
 
@@ -51,7 +51,7 @@ struct ReconciledValueRow: View {
             .frame(minHeight: 52)
             .padding(.vertical, PVSpacing.space3)
             if folded.hidden > 0 {
-                ConclusionShowMoreRow(
+                PVShowMoreRow(
                     hidden: folded.hidden,
                     fold: ReconciledValueRowModel.listFold,
                     focus: $focusedStop,
@@ -75,7 +75,7 @@ struct ReconciledValueRow: View {
             }
         }
         .accessibilityIdentifier("conclusion.detail.row.\(model.id)")
-        .onChange(of: model.shown.listedValues.map(\.id)) { folds = ConclusionFoldState<String>() }
+        .onChange(of: model.shown.listedValues.map(\.id)) { folds = PagedFoldState<String>() }
     }
 
     /// The row's first disclosure stop: the Why (`.why`) or the provenance control (`.sheet`), else the

@@ -14,7 +14,7 @@ struct PersonTimelineSection: View {
     @Environment(\.pvWidthClass) private var widthClass
 
     /// The pages of each list the researcher has unfolded. Reset when the page is another person.
-    @State private var folds = ConclusionFoldState<PersonTimelineContent.Fold>()
+    @State private var folds = PagedFoldState<PersonTimelineContent.Fold>()
 
     private var root: String { ConclusionPageSection.timeline.accessibilityIdentifierRoot(pageIdentifier: pageIdentifier) }
 
@@ -69,7 +69,7 @@ struct PersonTimelineList: View {
     /// The scale once every item is measured, kept while the items, the line's years and the
     /// viewport stay as they were, so an unfold moves only the rows below it.
     @State private var keptScale: PersonTimelinePlacement.KeptScale?
-    /// The first item an unfold added, to scroll into view once it is placed.
+    /// The first item a keyboard Show more revealed, scrolled into view once placed.
     @State private var pendingReveal: String?
     /// Keeps the keyboard on a card across a width change or a reload that takes it.
     @State private var keeper = FocusKeeper<String>()
@@ -97,7 +97,7 @@ struct PersonTimelineList: View {
                             stacksPeople: PersonTimelinePlacement.stacksPeople(met, widthClass: widthClass),
                             open: open,
                             revealed: content.firstRevealed(by:),
-                            expand: unfold,
+                            expand: expand,
                             focused: $focused
                         )
                         .id(item.id)
@@ -109,6 +109,9 @@ struct PersonTimelineList: View {
                 }
             }
             .pvScrollsRowIntoView(scrollTarget, anchor: .top, whenRequested: scrollRequest)
+            // A keyboard Show more of the dated or undated list asks for its first revealed row
+            // (the `.more` row passes `String` ids); it scrolls to the top once placed (`rebuild()`).
+            .environment(\.pvShowMoreReveal, PVShowMoreReveal { pendingReveal = $0.base as? String })
         }
         .overlay(alignment: .topLeading) {
             if let lifeline = placement.lifeline {
@@ -156,13 +159,6 @@ struct PersonTimelineList: View {
             scrollTarget = target
             scrollRequest += 1
         }
-    }
-
-    /// "Show N more": the Show more row moves the keyboard to the first item it adds; a
-    /// fold of rows also scrolls it into view once placed.
-    private func unfold(_ fold: PersonTimelineContent.Fold) {
-        if case .participants = fold {} else { pendingReveal = content.firstRevealed(by: fold) }
-        expand(fold)
     }
 
     /// A click on a point or a cap: the list scrolls the item to the top, again on
@@ -242,12 +238,13 @@ private struct PersonTimelineItemView: View {
                     .foregroundStyle(PVColor.textMuted)
             }
         case .more(let fold, let count):
-            ConclusionShowMoreRow(
+            PVShowMoreRow(
                 hidden: count,
                 fold: PersonTimelineContent.eventFold,
                 focus: focused,
                 stop: item.id,
-                revealed: revealed(fold)
+                revealed: revealed(fold),
+                revealedRow: revealed(fold).map(AnyHashable.init)
             ) { expand(fold) }
         }
     }
@@ -338,7 +335,7 @@ private struct PersonTimelineEventRow: View {
                 ForEach(row.participants) { card($0) }
             }
             if row.participantsHidden > 0 {
-                ConclusionShowMoreRow(
+                PVShowMoreRow(
                     hidden: row.participantsHidden,
                     fold: PersonTimelineContent.participantFold(widthClass),
                     focus: focused,
@@ -588,9 +585,9 @@ private enum PersonTimelineDrawing {
 private struct PersonTimelinePreview: View {
     let timeline: CatalogPersonTimeline
     var width: CGFloat = 1102
-    var foldsAtStart = ConclusionFoldState<PersonTimelineContent.Fold>()
+    var foldsAtStart = PagedFoldState<PersonTimelineContent.Fold>()
 
-    @State private var folds = ConclusionFoldState<PersonTimelineContent.Fold>()
+    @State private var folds = PagedFoldState<PersonTimelineContent.Fold>()
 
     var body: some View {
         PVPageColumns(primaryFill: true) {
@@ -627,7 +624,7 @@ private struct PersonTimelinePreview: View {
 #Preview("Large event") { PersonTimelinePreview(timeline: PersonTimelinePreviewData.largeEvent) }
 #Preview("Large event, unfolded") {
     PersonTimelinePreview(timeline: PersonTimelinePreviewData.largeEvent, foldsAtStart: {
-        var folds = ConclusionFoldState<PersonTimelineContent.Fold>()
+        var folds = PagedFoldState<PersonTimelineContent.Fold>()
         folds.revealPage(.participants(eventId: "big"))
         return folds
     }())

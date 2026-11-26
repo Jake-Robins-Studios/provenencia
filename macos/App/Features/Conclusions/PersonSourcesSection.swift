@@ -15,7 +15,7 @@ struct PersonSourcesSection: View {
 
     /// The pages of each Source's lines and of the Sources the researcher has unfolded; another
     /// person's page is another view, so it starts folded on every mount.
-    @State private var folds = ConclusionFoldState<PersonSourcesContent.Fold>()
+    @State private var folds = PagedFoldState<PersonSourcesContent.Fold>()
     /// The Unpromote confirm; another person's page is another view, so it starts fresh.
     @State private var unpromote = UnpromoteFlow()
 
@@ -158,9 +158,6 @@ struct PersonSourcesList: View {
     /// nodes and the highlighted arcs and not by this view, so a hover rebuilds none of the diagram's
     /// content or layout.
     @State private var hover = CircularLinkHover<String>()
-    /// The line a keyboard Show more just revealed, to scroll into view.
-    @State private var scrollTarget: String?
-    @State private var scrollRequest = 0
 
     @Environment(WorkspaceSession.self) private var session
 
@@ -236,8 +233,8 @@ struct PersonSourcesList: View {
                 if index > 0 { PVDivider() }
                 let fold = PersonSourcesContent.Fold.lines(sourceID: row.id)
                 PersonSourcesRowView(
-                    row: row, accessibilityIdentifierRoot: accessibilityIdentifierRoot, open: open, expand: { unfold(fold) }, focused: $focus,
-                    revealed: content.firstRevealed(by: fold).map { .graph(claimID: $0) },
+                    row: row, accessibilityIdentifierRoot: accessibilityIdentifierRoot, open: open, expand: { expand(fold) }, focused: $focus,
+                    revealed: content.firstRevealed(by: fold),
                     foldedGraphIDs: content.foldedGraphIDs(by: fold),
                     hover: hover,
                     focusedGraphID: focusedGraphID,
@@ -253,16 +250,16 @@ struct PersonSourcesList: View {
                 PersonSourcesRowsShowMore(
                     hidden: content.hiddenRowCount,
                     focus: $focus,
-                    revealed: content.firstRevealed(by: .rows).map { .graph(claimID: $0) },
+                    revealed: content.firstRevealed(by: .rows),
                     foldedGraphIDs: content.foldedGraphIDs(by: .rows),
                     hover: hover,
                     focusedGraphID: focusedGraphID
-                ) { unfold(.rows) }
+                ) { expand(.rows) }
                 .padding(.vertical, PVSpacing.space3)
                 .accessibilityIdentifier("\(accessibilityIdentifierRoot).more")
             }
         }
-        .pvScrollsRowIntoView(scrollTarget, whenRequested: scrollRequest)
+        .pvScrollsShowMoreReveals()
         .conclusionAnchorRestore([.sourceTitle, .sourceLine], isReady: true, focus: $focus) { content.anchorStop(for: $0) }
     }
 
@@ -295,15 +292,6 @@ struct PersonSourcesList: View {
         }
     }
 
-    /// Unfolds a page; the Show more row moves the keyboard to the first line it adds, and the
-    /// list scrolls that line just into view.
-    private func unfold(_ fold: PersonSourcesContent.Fold) {
-        let revealed = content.firstRevealed(by: fold)
-        expand(fold)
-        scrollTarget = revealed
-        scrollRequest += 1
-    }
-
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: PersonSourcesColumns.spacing) {
             Text(L10n.Conclusions.sourcesColumnSource).personSourcesCitationCell()
@@ -324,7 +312,8 @@ struct PersonSourcesList: View {
 private struct PersonSourcesRowsShowMore: View {
     let hidden: Int
     var focus: FocusState<PersonSourcesFocus?>.Binding
-    let revealed: PersonSourcesFocus?
+    /// The claim id of the first line the page adds: its graph link takes the keyboard and the row scrolls into view.
+    let revealed: String?
     /// The graphs of the Sources the fold leaves out.
     let foldedGraphIDs: Set<String>
     let hover: CircularLinkHover<String>
@@ -333,12 +322,13 @@ private struct PersonSourcesRowsShowMore: View {
 
     var body: some View {
         let highlighted = hover.highlighted(focused: focusedGraphID).map(foldedGraphIDs.contains) ?? false
-        ConclusionShowMoreRow(
+        PVShowMoreRow(
             hidden: hidden,
             fold: PersonSourcesContent.rowFold,
             focus: focus,
             stop: .more(.rows),
-            revealed: revealed,
+            revealed: revealed.map { .graph(claimID: $0) },
+            revealedRow: revealed.map(AnyHashable.init),
             expand: expand
         )
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -354,7 +344,8 @@ private struct PersonSourcesRowView: View {
     let expand: () -> Void
     var focused: FocusState<PersonSourcesFocus?>.Binding
     /// The graph link the next page of this Source's lines starts with; nil when it folds nothing.
-    let revealed: PersonSourcesFocus?
+    /// The claim id of the first line the page adds: its graph link takes the keyboard and the row scrolls into view.
+    let revealed: String?
     /// The graphs whose lines are all behind this Source's Show more.
     let foldedGraphIDs: Set<String>
     let hover: CircularLinkHover<String>
@@ -419,12 +410,13 @@ private struct PersonSourcesRowView: View {
                 .id(line.id)
             }
             if row.hiddenCount > 0 {
-                ConclusionShowMoreRow(
+                PVShowMoreRow(
                     hidden: row.hiddenCount,
                     fold: PersonSourcesContent.lineFold,
                     focus: focused,
                     stop: .more(.lines(sourceID: row.id)),
-                    revealed: revealed,
+                    revealed: revealed.map { .graph(claimID: $0) },
+                    revealedRow: revealed.map(AnyHashable.init),
                     expand: expand
                 )
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -529,10 +521,10 @@ private struct PersonSourcesPreview: View {
     var claimsFailure: Bool
     var claimsGone: Bool
     var width: CGFloat
-    var foldsAtStart: ConclusionFoldState<PersonSourcesContent.Fold>
+    var foldsAtStart: PagedFoldState<PersonSourcesContent.Fold>
 
     @State private var unpromote = UnpromoteFlow()
-    @State private var folds = ConclusionFoldState<PersonSourcesContent.Fold>()
+    @State private var folds = PagedFoldState<PersonSourcesContent.Fold>()
     @State private var session: WorkspaceSession
     @State private var navigation = PersonSourcesPreview.makeNavigation()
 
@@ -543,7 +535,7 @@ private struct PersonSourcesPreview: View {
         claimsFailure: Bool = false,
         claimsGone: Bool = false,
         width: CGFloat = 1102,
-        foldsAtStart: ConclusionFoldState<PersonSourcesContent.Fold> = ConclusionFoldState<PersonSourcesContent.Fold>()
+        foldsAtStart: PagedFoldState<PersonSourcesContent.Fold> = PagedFoldState<PersonSourcesContent.Fold>()
     ) {
         self.groups = groups
         self.claimsFailure = claimsFailure

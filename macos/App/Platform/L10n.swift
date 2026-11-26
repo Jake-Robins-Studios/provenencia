@@ -144,6 +144,13 @@ enum L10n {
             defaultValue: "place unknown",
             comment: "A date · place line (a Person's birth or death line, an Event's summary): its place is not known"
         )
+        static func showMoreRowLabel(_ count: Int) -> String {
+            L10n.format(LocalizedStringResource(
+                "designSystem.showMoreRow.label",
+                defaultValue: "Show %lld more",
+                comment: "Button under a folded list that shows the next page of it; argument is how many that page adds"
+            ), count)
+        }
         static func segmentShortcutHelp(_ label: String, key: String) -> String {
             L10n.format(LocalizedStringResource(
                 "designSystem.segmentedControl.shortcutHelp",
@@ -10662,14 +10669,6 @@ enum L10n {
             defaultValue: "Undated",
             comment: "Heading over the Timeline events that have no date"
         )
-
-        static func showMore(_ count: Int) -> String {
-            L10n.format(LocalizedStringResource(
-                "conclusions.showMore",
-                defaultValue: "Show %lld more",
-                comment: "Button under a folded list on a Conclusion page that shows the next page of it; argument is how many that page adds"
-            ), count)
-        }
 
         static let portraitBadge = LocalizedStringResource(
             "conclusions.person.portraitBadge",

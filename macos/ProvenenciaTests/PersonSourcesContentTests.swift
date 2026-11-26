@@ -54,7 +54,7 @@ struct PersonSourcesContentTests {
     private func content(
         _ groups: [CatalogPersonClaimGroup], revealed: [PersonSourcesContent.Fold] = [], pages: Int = 1
     ) -> PersonSourcesContent {
-        var folds = ConclusionFoldState<PersonSourcesContent.Fold>()
+        var folds = PagedFoldState<PersonSourcesContent.Fold>()
         for fold in revealed { folds.reveal(fold, pages: pages) }
         return PersonSourcesContent(groups: groups, sourceTypes: [census], orders: NameFormatOrders(), folds: folds)
     }

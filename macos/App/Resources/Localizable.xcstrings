@@ -20050,30 +20050,6 @@
         }
       }
     },
-    "conclusions.showMore": {
-      "comment": "Button under a folded list on a Conclusion page that shows the next page of it; argument is how many that page adds",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Show %lld more"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Show %lld more"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "conclusions.timeline.asRole": {
       "comment": "VoiceOver tail of a Timeline row: the person's role on the event; argument is the role names",
       "extractionState": "manual",
@@ -20345,6 +20321,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "Place relationship bridge"
+          }
+        }
+      }
+    },
+    "designSystem.showMoreRow.label": {
+      "comment": "Button under a folded list that shows the next page of it; argument is how many that page adds",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Show %lld more"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Show %lld more"
+                }
+              }
+            }
           }
         }
       }

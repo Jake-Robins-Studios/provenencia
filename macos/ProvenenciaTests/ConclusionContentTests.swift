@@ -32,7 +32,7 @@ struct ConclusionContentTests {
         let key = try #require(section.read(.own, project: session.projectKey, entityId: "e1"))
         let inputs = section.reads(project: session.projectKey, entityId: "e1").map(\.key)
         let value = try #require((session.queryHandle(key) as QueryHandle<CatalogPersonTimeline>?)?.value)
-        var folds = ConclusionFoldState<PersonTimelineContent.Fold>()
+        var folds = PagedFoldState<PersonTimelineContent.Fold>()
         var builds = 0
         func read() {
             let extra = PersonTimelineContent.Inputs(

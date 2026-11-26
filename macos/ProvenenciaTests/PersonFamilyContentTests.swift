@@ -4,11 +4,11 @@ import Testing
 
 struct PersonFamilyContentTests {
     private let en = Locale(identifier: "en_US")
-    private func content(_ family: CatalogPersonFamily, folds: ConclusionFoldState<PersonFamilyContent.Fold> = ConclusionFoldState()) -> PersonFamilyContent {
+    private func content(_ family: CatalogPersonFamily, folds: PagedFoldState<PersonFamilyContent.Fold> = PagedFoldState()) -> PersonFamilyContent {
         PersonFamilyContent(family: family, folds: folds, locale: en)
     }
-    private func pages(_ revealed: [PersonFamilyContent.Fold], _ count: Int = 1) -> ConclusionFoldState<PersonFamilyContent.Fold> {
-        var state = ConclusionFoldState<PersonFamilyContent.Fold>()
+    private func pages(_ revealed: [PersonFamilyContent.Fold], _ count: Int = 1) -> PagedFoldState<PersonFamilyContent.Fold> {
+        var state = PagedFoldState<PersonFamilyContent.Fold>()
         for fold in revealed { state.reveal(fold, pages: count) }
         return state
     }

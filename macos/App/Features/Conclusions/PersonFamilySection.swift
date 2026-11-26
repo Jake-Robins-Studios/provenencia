@@ -13,7 +13,7 @@ struct PersonFamilySection: View {
     @Environment(\.pvWidthClass) private var widthClass
 
     /// The pages of each list the researcher has unfolded. Reset when the page is another person.
-    @State private var folds = ConclusionFoldState<PersonFamilyContent.Fold>()
+    @State private var folds = PagedFoldState<PersonFamilyContent.Fold>()
 
     private var root: String { ConclusionPageSection.family.accessibilityIdentifierRoot(pageIdentifier: pageIdentifier) }
 
@@ -56,9 +56,6 @@ struct PersonFamilyDiagram: View {
     @State private var width: CGFloat = 0
     /// The tile with the keyboard: a tile's id.
     @FocusState private var focused: String?
-    /// The tile a keyboard Show more just revealed, to scroll into view.
-    @State private var scrollTarget: String?
-    @State private var scrollRequest = 0
 
     var body: some View {
         Group {
@@ -70,7 +67,7 @@ struct PersonFamilyDiagram: View {
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
-        .pvScrollsRowIntoView(scrollTarget, whenRequested: scrollRequest)
+        .pvScrollsShowMoreReveals()
         .conclusionAnchorRestore([.family], isReady: width > 0, focus: $focused) { content.anchorStop(for: $0) }
     }
 
@@ -108,17 +105,14 @@ struct PersonFamilyDiagram: View {
                     }
                     ForEach(group.more, id: \.fold) { more in
                         let revealed = content.firstRevealed(by: more.fold)
-                        ConclusionShowMoreRow(
+                        PVShowMoreRow(
                             hidden: more.count,
                             fold: PersonFamilyContent.fold,
                             focus: $focused,
                             stop: PersonFamilyContent.moreID(more.fold),
-                            revealed: revealed
-                        ) {
-                            expand(more.fold)
-                            scrollTarget = revealed
-                            scrollRequest += 1
-                        }
+                            revealed: revealed,
+                            revealedRow: revealed.map(AnyHashable.init)
+                        ) { expand(more.fold) }
                             .id(PersonFamilyContent.moreID(more.fold))
                             .frame(width: more.frame.width, height: more.frame.height, alignment: .leading)
                             .offset(x: more.frame.minX, y: more.frame.minY)

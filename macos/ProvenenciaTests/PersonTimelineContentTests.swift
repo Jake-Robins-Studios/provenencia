@@ -12,7 +12,7 @@ struct PersonTimelineContentTests {
         of unfolded: [PersonTimelineContent.Fold] = [],
         widthClass: PVWidthClass = .regular
     ) -> PersonTimelineContent {
-        var folds = ConclusionFoldState<PersonTimelineContent.Fold>()
+        var folds = PagedFoldState<PersonTimelineContent.Fold>()
         // Every list in `unfolded` is open through `pages` pages (a hundred shows any list here).
         for fold in unfolded { folds.reveal(fold, pages: max(pages, 100)) }
         return PersonTimelineContent(timeline: timeline, folds: folds, locale: en, widthClass: widthClass)
@@ -23,7 +23,7 @@ struct PersonTimelineContentTests {
         _ revealed: [PersonTimelineContent.Fold: Int],
         widthClass: PVWidthClass = .regular
     ) -> PersonTimelineContent {
-        var folds = ConclusionFoldState<PersonTimelineContent.Fold>()
+        var folds = PagedFoldState<PersonTimelineContent.Fold>()
         for (fold, pages) in revealed { folds.reveal(fold, pages: pages) }
         return PersonTimelineContent(timeline: timeline, folds: folds, locale: en, widthClass: widthClass)
     }
