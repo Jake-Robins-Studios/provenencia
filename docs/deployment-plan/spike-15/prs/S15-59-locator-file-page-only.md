@@ -292,3 +292,10 @@ None.
 
 **Title:** S15-59 — The locator only finds things in its Artifact
 **Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-59-locator-file-page-only.md`.
+
+## Landed
+
+- The Status line reads `Landed in [#991](…) (2026-11-26)`, not `Landed #991`, because `check-plan-docs.py` rejects `Landed #991` in the header.
+- STEP-5 also replaced deleted package-level locator constants at their uses in sibling test files no Step names: `api/ffi/handlers/citation_render_test.go`, `api/ffi/handlers/person_detail_test.go`, `core/database/conclusiondetails/conclusiondetails_test.go`, `core/database/deleteimpact/conclusion_release_test.go`, `core/database/deleteimpact/conclusion_test.go`, `core/database/deleteimpact/facets_test.go`, `core/database/effects/conclusion_handles_test.go`, `core/database/effects/evidence_graphs_test.go`, `core/database/effects/lookup_once_test.go`, `core/database/effects/reads_resolve_test.go`, `core/database/graphfill/records_test.go` and `core/database/evidencegraphs/progress_test.go`.
+- STEP-5 first kept `validLocator` and `validLocatorJSON` as aliases of `depictionvaluetest.Locator` in `api/ffi/handlers`, `core/database/citations/citations_test.go` and `core/database/evidencegraphs/progress_test.go`; the fix round deleted them and the local `locatorJSON` copies, as STEP-5 and D-8 say.
+- The manual check (section 10) was not run by the implementer.
