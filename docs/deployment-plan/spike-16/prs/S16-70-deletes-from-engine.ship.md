@@ -1,7 +1,7 @@
 # Ship log — S16-70 A Source or Source type delete is learned from the engine
 
 **Plan:** [`S16-70-deletes-from-engine.md`](S16-70-deletes-from-engine.md) · **Branch:** `s16-70-deletes-from-engine` · **PR:** #988
-**State:** fixing 2
+**State:** ready
 
 ## Round 0 — implement
 Head `ac8306de8`. Gate PASS (orchestrator run). Report deviations: STEP-3/4 and STEP-5 in one commit; three existing tests edited beyond §8 as direct consequences (`lastUpdatedPatchesAreDeclaredOnTheFourLists`, `invalidationsComeFromRegistrySpecs`, `SourceTypesModelTests.createAndDeleteCommitThroughWorkspaceNavigation`); `evidenceGraphEffectsReloadOnlyThatGraph` checks `.changedSourceType` in place of the removed `.deletedSource`; manual check not run.
@@ -96,8 +96,13 @@ Do:
 - Docs: README "which changes move Lists" wording names the three knobs (MNT-9). Add the sentence CON-5 asks for to the `add-workspace-place` Vocabulary CRUD line and `macos-client-patterns.md:89`: a type delete reports `Deleted` and `metadata_field_usage`, not `source_vocabulary`. Update the Landed note: F-6 replaces F-5's Swift refresh.
 Check: the tests above pass. `rg -n 'applyHiddenPolicyOnAnyID|ListsNotOnDelete' core api macos .agents docs` prints only the ship log's history. scripts/check-pr.sh PASS.
 
+## Round 2 — fix
+Head `af2f2eb72`. Gate PASS (orchestrator run). F-6 done. The Go tests ran red first (`TestResolveLists/source_type_delete`, `TestDeleteSourceType/deletes_unused_user_type`, `TestVocabularyWritesReturnEffects`). The Swift tests could not go red, because the F-5 refresh still marked the list stale; they now pass on `metadata_field_usage` alone. Deviation: `validate` also checks that `ListsOnDelete` names declared lists.
+Read by the orchestrator: MNT-8 **Resolved**. `ListsOnDelete: []List{ListMetadataFieldUsage}` on `source_types`; `listsFor` in `resolve.go`; `applyHiddenPolicyOnAnyID` and its refresh are deleted. CON-4, CON-6 and MNT-9 are covered by the doc rewrites. `completed.md:7` still said the field list "follows `deleted`" (the implementer looked for `docs/deployment-plan/completed.md`); the orchestrator fixed that line in `ce4249b60`.
+Then merged `origin/main` (`d57b0d9e5`, S15-59 plan docs only): `9adca9927`. Gate PASS.
+
 ## Result
-Pending Fix plan 2.
+Gate PASS · CI see below · open: none · follow-ups: none (MNT-2 fixed on this PR on the user's direction) · to user: —
 
 ## Cost
 Plan: 6,300 words (check-plan-docs info line).
@@ -113,3 +118,6 @@ Plan: 6,300 words (check-plan-docs info line).
 | 1b | implementer (fix) | sonnet | 100k |
 | 2 | CON | opus | 56k |
 | 2 | MNT | opus | 62k |
+| 2 | implementer (fix, stopped: plan missing) | sonnet | 74k |
+| 2 | implementer (fix) | sonnet | 96k |
+| | **Total** | | **1,008k** |
