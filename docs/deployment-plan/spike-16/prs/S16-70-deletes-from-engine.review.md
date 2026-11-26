@@ -1,12 +1,14 @@
 # Review — S16-70 A Source or Source type delete is learned from the engine
 
-**Verdict:** (round 2 pending)
-**Rounds:** 1 so far. **Reviewers:** maintainability (opus), executability (sonnet)
+**Verdict:** Fits with changes — Ready with changes
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
 
 - ~~M-1: follow the Source types list's `usedBy` through a client "any id" refresh, as the working rule said, or through an engine usage list?~~ **Answered (user, 2026-11-26): the engine usage list `source_type_usage`.** The working rule, the S16-70 scope entry and the slice design are reworded.
 - ~~If the usage list is taken, drop `.createdSource` from the Source types list's `invalidateOn` now?~~ **Answered (user, 2026-11-26): drop it in S16-70.** The mutation stays for the Sources list's new row.
+- ~~M-8: the Sources list's row would drop twice on a Source delete (the removal patch and the existing `source_holdings` re-read). Keep which?~~ **Answered (user, 2026-11-26): the re-read.** No removal patch on the Sources list (D-9).
+- ~~M-9: report `source_type_usage` on a Source type change too, at the cost of one sidebar recount per type change?~~ **Answered (user, 2026-11-26): yes.** `sources` takes `ListsOnField: "source_type_id"`; the types list names no mutation (D-4, D-8).
 
 ## Writer's own calls
 
@@ -81,12 +83,26 @@ The plan put "a Source delete moves the types' `usedBy`" in Swift through a new 
 ### X-12 · minor · `.sourcesList`'s `whenHidden` unspecified
 **Answer:** Fixed. The Sources list row keeps `whenHidden: .markStale` and its `.merged` refresh.
 
+### M-8 · blocker · A Source delete drops the Sources-list row twice
+Every Source delete releases its graph, whose `evidence_graphs` entry reports `source_holdings` for the Source; with `.deletedSource` gone the list's `.merged` re-read runs beside the removal patch. Checked: `onField` reads a delete's old fields, and `releaseGraph` carries `source_id`.
+**Answer:** Fixed with the user's answer. D-9: the Sources list keeps its re-read and gets no removal patch; AC-2.1 and T-4 apply the effects a delete really reports; Scale says one by-id read; T-2 pins the `source_holdings` read; a stop condition guards it. The working rule, scope entry and design say so.
+
+### M-9 · blocker · A type change leaves the types list's `usedBy` on a client mutation
+**Answer:** Fixed with the user's answer. D-4: `ListsOnField: "source_type_id"` in place of `ListsOnCreateDelete`; D-8: `.sourceTypesList` has no `invalidateOn`; T-16 adds a type-change row; manual check step 5. The Out and Next adds lines for it are gone.
+
+### Round 2 · major · `CatalogMutationKind.createdSource` is dead after D-8
+**Answer:** Fixed (same as X-8).
+
+### Round 2 · log · A Source create also reaches the Sources list twice (`sourceRow()` and the `source_holdings` re-read)
+**Answer:** Logged: predates this PR; STEP-7's idea-file edit is the home. Not added to the plan's scope.
+
 ## Cost
 
-Plan: 4,976 words at round 1, 5,736 after the round-1 answers (check-plan-docs info line).
+Plan: 4,976 words at round 1, 6,266 at the verdict (check-plan-docs info line).
 
 | Round | Reviewer | Model | Tokens |
 | --- | --- | --- | --- |
 | 1 | maintainability | opus | — |
 | 1 | executability | sonnet | 146k |
+| 2 | maintainability | opus | 160k |
 | 2 | executability | sonnet | 177k |
