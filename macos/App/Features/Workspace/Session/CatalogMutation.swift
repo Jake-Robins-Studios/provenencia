@@ -67,6 +67,9 @@ enum CatalogList: String, Sendable, CaseIterable {
     /// A metadata value was created or deleted on a Source, Artifact,
     /// Evidence graph or Citation, so the field list's `usedBy` counts changed.
     case metadataFieldUsage = "metadata_field_usage"
+    /// A Source was created, deleted or moved to another type, so a Source
+    /// type's `usedBy` count changed.
+    case sourceTypeUsage = "source_type_usage"
     /// A Source or a handle (of any type) was created, deleted or merged, so a
     /// sidebar count may have changed. It names no cache key: the session
     /// recounts (`WorkspaceSession.onNavCountsMoved`).
@@ -112,6 +115,10 @@ struct CatalogWriteEffectsRead: Sendable, Equatable {
 enum CatalogDeletedEntity: String, Sendable, CaseIterable {
     /// Person, Event, Place and bridge handles.
     case handle = "canonical_entity"
+    /// A Source.
+    case source = "source"
+    /// A Source type.
+    case sourceType = "source_type"
 }
 
 /// The ids of one entity a write deleted.

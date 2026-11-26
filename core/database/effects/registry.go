@@ -130,13 +130,16 @@ const (
 	// Source, Artifact, Evidence graph or Citation, so the field list's usedBy counts
 	// changed. An edit of a held value moves no count.
 	ListMetadataFieldUsage List = "metadata_field_usage"
+	// ListSourceTypeUsage: a Source was created, deleted or moved to another
+	// type, so a Source type's usedBy count changed.
+	ListSourceTypeUsage List = "source_type_usage"
 	// ListCounts: a Source or a handle (of any type) was created, deleted or
 	// merged, so a sidebar count may have changed.
 	ListCounts List = "counts"
 )
 
 // Lists is every catalog-wide list, in the order Set.Lists reports them.
-var Lists = []List{ListSourceVocabulary, ListPropertyVocabulary, ListPropertyUsage, ListMetadataFieldUsage, ListCounts}
+var Lists = []List{ListSourceVocabulary, ListPropertyVocabulary, ListPropertyUsage, ListMetadataFieldUsage, ListSourceTypeUsage, ListCounts}
 
 // Set is what a batch of changes touches. Empty Handles or Search means that
 // job has nothing to do. Lists and Structure are the catalog-wide fields.
@@ -353,9 +356,11 @@ var registry = map[string]Effect{
 			{Kind: DocSource, Path: self()},
 			{Kind: DocEvidenceGraph, Path: onField("title", graphsOfSource(self()))},
 		},
-		// A rename or cover change moves no sidebar count.
-		Lists:               []List{ListCounts},
-		ListsOnCreateDelete: true,
+		Deleted: onDelete(self()),
+		// A create, a delete or a type change moves the sidebar count and the
+		// type's usage; a rename or cover change moves neither.
+		Lists:        []List{ListCounts, ListSourceTypeUsage},
+		ListsOnField: "source_type_id",
 	},
 	"source_notes": {
 		Entity:      "source_note",
@@ -469,8 +474,9 @@ var registry = map[string]Effect{
 	"name_values":      ownedValue("name_value", "value_name_id"),
 	"depiction_values": ownedValue("depiction_value", "value_depiction_id"),
 	"source_types": {
-		Entity: "source_type",
-		Lists:  []List{ListSourceVocabulary},
+		Entity:  "source_type",
+		Deleted: onDelete(self()),
+		Lists:   []List{ListSourceVocabulary},
 		// Each path lists the type columns its document reads, so a format-only
 		// change (citation_*) reprojects nothing. The type document is
 		// searchindex.ReprojectSourceType; the Source document, ReprojectSource.
