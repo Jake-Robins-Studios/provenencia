@@ -149,7 +149,7 @@ graph     item entry_number line_number polling_division dwelling_number family_
 citation  page
 ```
 
-`record_date` and `issue_date` are not seeded (the Source has its own date); a project made before they were dropped keeps its rows. `url` and `accessed_date` describe the copy a researcher used; the bytes of a capture still live on an Artifact/File. Every full format that prints the online copy prints it through one shared clause, `copyLayer` in `registry.go`: `"database title," format, *provider* (url : accessed date)`, each part when set (user, 2026-11-26).
+`record_date` and `issue_date` are not seeded (the Source has its own date); a project made before they were dropped keeps its rows. `url` and `accessed_date` describe the copy a researcher used; the bytes of a capture still live on an Artifact/File. Every full format that prints the online copy prints it through one shared clause, `copyLayer` in `registry.go`: `"database title," format, *provider* (url : accessed date)`, each part when set (user, 2026-11-26). `website` cites the site itself and prints its own URL clause.
 
 ## 2.3 `source_type_metadata_fields`
 
