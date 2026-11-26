@@ -30,6 +30,7 @@ Spike 16 is an odds-and-ends spike ([odd and even spikes](../README.md#odd-and-e
 | S16-61 | S15-39, S15-41, S15-25 | `MetadataBoardModel.swift` (the Add row's taken notice is reworded), which S15-39 and S15-41 change on every board; `SourceArtifactsSection.workspaceChanged` goes, so S15-25's move, if started from an open Artifact sheet, closes the sheet itself |
 | S16-68, S16-69, S16-70 | S15-54, S15-68, S15-70 | `CatalogQueryRegistry.swift`, `CatalogMutation.swift` and the query-cache type files S16-68 makes (S15-68 re-keys `.changedCitationFormats`); `effects/registry.go` and `path.go` (S15-54 adds the Citation level). Order, not a dependency: whichever lands second rebases. S15-70's format delete follows rule "(Batch 6) A Source or Source type delete is learned from the engine only" once S16-70 lands |
 | S16-58, S16-59 | S15-56, S15-63, S15-68, S15-69, S15-70 | `CitationComposerModel.swift` (S16-58 moves its toast; S15-56 adds the Citation's metadata board) and the Source type page model (S16-59 moves its toast; S15-63's one suggestion list, S15-68's moved format editor and its toast, S15-69's default-format picker, S15-70's Copy and Delete toasts; S15-54 no longer touches it, 2026-11-22); whichever lands second rebases |
+| S16-73, S16-74, S16-75 | S15-41, S15-42, S15-71 | The Add and Copy Source sheets and `CopySourceRequest`: S15-41 and S15-42 add the marks control to the sheets' board and date field once they land; S15-71 makes Copy carry a Source's chosen format. Order, not a dependency: whichever lands second adds its part to the other's sheet or request |
 
 
 Spike 16's Apply for Source records and the graph catalog must handle an Artifact or graph whose `source_id` changes (S15-24): both Sources are in the write's `source_records` read (Source records) and its `evidence_graphs` read (the graph index).
@@ -97,6 +98,12 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 33. **One window.** The File menu has no New Window and the Window menu no tab commands; ⌘N on the Properties page opens Create property; closing the window quits Provenencia, and the next launch opens as it does after ⌘Q.
 34. **Nothing waits on a second window.** `rg -n "another window|second window" macos/App core .agents/skills` finds nothing; on a Source page the Artifact sheet (edit and add) works as before, and the inline Add field row keeps working across a change of the Source's type, saying the picked field is now on the board; the review lenses no longer ask what another window does meanwhile.
 
+**Batch 8 — Add and Copy Source sheets** (user, 2026-11-26; lands before S16-99):
+
+44. **A new Source starts with its date and Private.** Add Source shows Title, Type, Published date, Description and Private. Create one with a date typed and Private on: its page shows that date and Private on, and the Sources table's Published column shows the date. Leave the date blank and Private off: the Source is undated and not private, as today. (S16-D15.)
+45. **A copy shows its date, description and Private, and each can be changed.** Copy Source on a dated, described, private Source shows the original's Published date in the date form, its description in the Description field and Private on. Change the year and the description and turn Private off: the copy's page shows the new year, the new description and Private off; the original is unchanged. Clear the date: the copy is undated. (S16-D16.)
+46. **A copy's metadata can be edited before it is made.** Copy Source shows the original's metadata as a board, in the original's order, each value editable. Change one value and clear another: the copy's board shows the changed value and not the cleared one; the original's values are unchanged. Change the copy's type: every value stays, and the empty suggestions are the new type's. (S16-D17.)
+
 **Scale.** Real data, which must stay as fast as today: a person in 50 Evidence graphs (Spike 13's budget) with one or two records per graph, 200 events with 10 participants each (12 shown per event at Wide), 20 children in four parent sets, one to three places per event. Crafted data, which only has to stay bounded: each axis in bar 2 and 3, at least 20 times past its cap.
 
 **Scale (Batch 2).** The S11-21 large fixture at 4,000 and 16,000 persons (8,000 town events; 18,000 and 37,000 handles); one place with 6,000 events, and 24,000 for growth; a person in 50 and in 80 Evidence graphs; for the entity records, 3,000 Sources, 10,000 Evidence graphs and 50,000 Observations. Every speed claim is measured at 4,000 and 16,000 (or at the input it grows with) against today on the same machine.
@@ -106,6 +113,8 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 **Scale (Batch 7).** No read, write or list changes; nothing to measure.
 
 **Scale (Batch 6, slice 6g).** A commit that writes 10,000 date values (an import), on the S11-21 large fixture at 16,000 persons with 3,000 Sources (Batch 2's line). The effects memo grows with the distinct lookups of one change and is dropped with it. A Source delete reports one id.
+
+**Scale (Batch 8).** A Source with 60 metadata values and 200 Artifacts (a census film). Each sheet saves in one write, as today; the Copy sheet reads its board once on open and once per type change, never per keystroke.
 
 ## Where the notes went
 
@@ -186,6 +195,14 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | The UX lens's "what happens when another window deletes or merges it meanwhile" check and its Known trap, which keep pulling plans toward a second window | S16-61 |
 | Code only a second window reaches: the Artifact sheet's close when its Artifact leaves the page (S15-34 AC-3.5, S15-10 AC-4.4) and the sheet's graph-deleted and graph-made handling (the lock re-reads after a refused save stay); the metadata Add row's taken notice (S15-34 D-13), which a type change also reaches and so is reworded; code comments naming another window | S16-61 |
 | Several windows with live data, and sync between two researchers' copies | Parked: [`ideas/multiple-windows-and-sync.md`](../../ideas/multiple-windows-and-sync.md) |
+
+**Batch 8** comes from a user request (2026-11-26):
+
+| Source | PR |
+| --- | --- |
+| The Add Source sheet should take the publication date and the Private switch, beside title, type and description | S16-D15, S16-73 |
+| The Copy Source sheet's date and description should be filled-in fields you can edit, not ticks; the copy sheet should look more like the Add sheet (with Private, pre-set from the original: user, 2026-11-26) | S16-D16, S16-74 |
+| Each metadata value on the Copy Source sheet should be editable (a type change keeps the values and swaps the empty suggestions: user, 2026-11-26) | S16-D17, S16-75 |
 
 **Back in the ideas folder** (user, 2026-11-08) —
 - [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md): P-8 (participants sent once per event), P-9 (record links memo and a household-sized budget), P-23 (siblings sent two or three times), and lazy Timeline cards after an unfold. Memoising section content went to Batch 2's S16-27.
@@ -289,6 +306,15 @@ These are the calls for this spike. PR plans treat them as binding.
 - **(Batch 7) One workspace window, and closing it quits** (user, 2026-11-18). `ProvenenciaApp` declares one `Window` scene in place of `WindowGroup`, keeping today's size, resizability, style and commands: no File › New Window, so ⌘N is only Properties' Create property; no window tabs (`NSWindow.allowsAutomaticWindowTabbing = false`); launch restores one window. Closing the window quits the app, through an app delegate's `applicationShouldTerminateAfterLastWindowClosed` (user, 2026-11-18, over staying open in the Dock); quitting leaves the catalog as ⌘Q does today. The app-wide coordinators (sign-out, Back and Forward, ⌘K) stay as they are: with one window they are right. Several windows and sync are parked, not refused for good ([idea](../../ideas/multiple-windows-and-sync.md)). Binds S16-60.
 - **(Batch 7) Nothing is built for a second window** (user, 2026-11-18). A plan, brief or review does not ask what another window does meanwhile, and code that only a second window reaches goes. What one window still meets stays handled: Back or Forward to a place whose entity was deleted or merged (`sources.not_found`, `leavesForSectionRoot`, "This person no longer exists"), and a write's effects on the caches of other places. Copy and comments name what one window meets, not another window. Replaces Spike 15's rule "No engineering for two windows editing the same data" (edited there, 2026-11-18). The UX lens's check and Known trap change with S16-61. Binds S16-60, S16-61 and every later plan.
 
+### Batch 8 — Add and Copy Source sheets
+
+- **(Batch 8) The Add and Copy sheets share one set of Source fields** (user, 2026-11-26). Title, Type, Published date, Description and Private are one shared view, used by both sheets. Today's `SourceTitleTypeFields` grows into it, or a sibling composes it; S16-73's plan picks the name. The Copy sheet fills it from the original. The date is the shared `DateValueEditorForm`, inline, where a blank date means undated; the Private switch is the Source page's `PVSwitch` copy (`L10n.Sources.privateSwitch` and its help). The Add sheet's own Description field moves into the shared view. Binds S16-73, S16-74.
+- **(Batch 8) A new Source and its parts are one write through one composer.** `CreateSourceRequest` gains the date (`DateValueInput`, absent means undated) and `is_public`. `CreateSource` writes them in its one `writes.Run` through the composer Copy already uses (`sourcecopy.CreateFromDraft` today), and `sources.CreateInput` gains `IsPublic`. There is no second Source-and-date writer. If the composer moves or is renamed so both callers read well, its package doc and [`add-date-value`](../../../.agents/skills/add-date-value/SKILL.md) say where it lives. Binds S16-73.
+- **(Batch 8) The Copy request carries values, not ticks.** `CopySourceRequest` sends the description text, the date (`DateValueInput`, absent means undated), `is_public` and, from S16-75, a `MetadataDraft` (the Artifact sheet's and graph form's type), beside today's title and type. `copy_description` and `copy_date` are reserved in S16-74, and `copy_metadata` in S16-75. The engine still reads credibility and the chosen Artifacts from the original: those stay ticks and the Artifact checklist. Binds S16-74, S16-75.
+- **(Batch 8) A copy carries Private** (user, 2026-11-26). The Copy sheet's Private switch starts as the original's. This replaces the "no Copy Source carry" clause of Spike 15's rule "Not public is a stored switch and nothing else" for this switch. Nothing else in the engine acts on it, as before. Binds S16-74.
+- **(Batch 8) The engine keeps a mark on a part left as the original had it.** The Swift draft types carry no unknown or supplied mark yet (S15-41 and S15-42 add the control). The engine keeps the original's mark on the date, and on each metadata value, when the request sends it as the original stored it. It drops the mark when the researcher changed or cleared that part. Add Source sends no mark. The sheets get the marks control when S15-41 and S15-42 land (see Shared with Spike 15). Binds S16-74, S16-75.
+- **(Batch 8) The engine lays out the Copy sheet's board.** The board is `GetDraftMetadataBoard` at level `source`, for the chosen type, seeded with the values the sheet holds (the original's on open). A type change reads it again with the sheet's current values, so every value stays and the empty suggestions are the new type's. Swift does not merge suggestions itself (working rule "Boards flag needed fields; the engine decides the rows", Spike 15). The sheet edits the board through `MetadataDraftHost` and `MetadataBoardModel`, as the Artifact sheet does. Binds S16-75.
+
 ## PR map
 
 | PR | Title | Slice | Scope | Brief | Depends on | Plan | Status |
@@ -337,6 +363,9 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-42 | Every event date line reads the engine's dating | 5a | Go and Swift: summaries date an event through the helper (every `eventDating` reader: list sort, Timeline span and its open sides on the lifeline, place folding; birth and death keep `date` or start); the summary sends the dating (kind, low, high, open sides); search indexes it; `DateRowDisplay` formats it on the Events list, the Event page header, Timeline rows, search hits, Promote's menus and Evidence graph cards | S16-D4, S16-D7 | S16-40, S16-D4, S16-D7 | [plan](prs/S16-42-event-dating-line.md) | Landed #876 |
 | S16-43 | The lifeline draws an as-of event's open sides | 5a | Merged into S16-42: the lifeline already draws a span's open sides from the engine (`CatalogTimelineSpan.openStart`, `openEnd`) (2026-11-16) | — | — | — | Descoped (2026-11-16) → S16-42 |
 | S16-44 | The Event page's Date row shows as-ofs | 5a | Go and Swift: the summary names the Properties behind its dating; the Date row shows those fields and lists the as-ofs with their records, earliest first (Go sends a multi-valued date field's values in date order), folded past 20; the summary's old date fields retire | [S16-D6](design/archive/S16-D6-event-date-row.md) | S16-42, S16-D6 | [plan](prs/S16-44-event-date-row.md) | Landed #881 |
+| S16-D15 | Add Source sheet: the shared Source fields (Title, Type, Published date inline, Description, Private) in order, blank and filled, with a date that does not parse | **S16-73** | Starts from today's Add Source frame and the Source date dialog's form |
+| S16-D16 | Copy Source sheet: the shared Source fields filled from the original, above the remaining ticks (credibility) and the Artifact checklist; an original with no date or description | **S16-74** | Iterates on S16-D15's board and the S15-D13 Copy Source frame |
+| S16-D17 | Copy Source sheet: the original's metadata as an editable board between the Source fields and the ticks; a value changed, one cleared, an empty suggestion; after a type change; the board's load and its failure | **S16-75** | Iterates on S16-D16's board; the board is the Artifact sheet's copy details board |
 | [S16-D12](design/archive/S16-D12-sources-list-outline.md) | The Sources list as a native outline: a row per Source, a row per Evidence graph under it, opening by double-click or Return, at Regular and Wide | **S16-66** | A rethink of the list body and rows; header and toolbar stay. Board to draw |
 | S16-D13 | The Persons, Events and Places lists on the native list: a header band across the pane, the list filling the pane, the system selection (click selects, double-click opens), loading, empty and failure states, at Regular and Wide | **S16-67** | A rethink of the three list pages within what SwiftUI's `List` can draw |
 | [S16-D14](design/archive/S16-D14-sources-table.md) | The Sources list as a native table: named, sortable columns, one Source open at a time, one status badge a Source, at Regular and Wide | **S16-71** | A rethink of the rows within what SwiftUI's `Table` can draw; the page header stays. Board agreed 2026-11-24 |
@@ -368,6 +397,9 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-70 | A Source or Source type delete is learned from the engine | 6g | Go and Swift: the `sources` and `source_types` registry entries report deleted ids; `CatalogDeletedEntity.source` and `.sourceType`; a `.deleted(entity)` follow and one row-removal patch; the Sources list, Source types list and Source page keys follow the write's effects; `.deletedSource`, `.deletedSourceType` and the `removes:` closure go; no visible change | — | S16-68 | — | Scoped |
 | S16-71 | The Sources list is a native table | 6h | Go and Swift: `Source` carries when it was made; the Sources rows move from the native list to SwiftUI's `Table` (Title with the ref under it, Evidence, Status, Type at Wide, Published, Added, Updated), sorted by their headers; one Source open at a time; one status badge a Source, matched by the status filter; the sort menu goes | S16-D14 | S16-66, S16-D14 | [plan](prs/S16-71-sources-table.md) | Landed [#969](https://github.com/Jake-Robins-Studios/provenencia/pull/969) |
 | S16-72 | Back returns to the scroll position | 6i | Swift: a history entry records the main scroll view's y offset (written to the history file) and, apart from it, a list's open row (not written); one kit modifier records and restores the offset on every main page's scroll view; the Sources list records its open Source; no usable offset opens at the top; row scrolls on arrival go | — | S16-71 | [plan](prs/S16-72-scroll-offset-history.md) | Landed [#973](https://github.com/Jake-Robins-Studios/provenencia/pull/973) |
+| S16-73 | Add Source takes the Published date and Private | 8a | Go and Swift: `CreateSourceRequest` gains the date and `is_public`, written in its one write through Copy's composer; the Add sheet shows the shared Source fields (Title, Type, Published date, Description, Private) | S16-D15 | S16-D15 | — | Scoped |
+| S16-74 | Copy Source edits the date, description and Private | 8a | Go and Swift: `CopySourceRequest` carries the description text, the date and `is_public` in place of their ticks; the Copy sheet shows the shared Source fields filled from the original; credibility and Artifacts stay ticks | S16-D16 | S16-73, S16-D16 | — | Scoped |
+| S16-75 | Copy Source edits each metadata value | 8a | Go and Swift: `CopySourceRequest` carries a `MetadataDraft` in place of `copy_metadata`; `GetDraftMetadataBoard` lays out a new Source's board for a type, seeded with values; the Copy sheet hosts that board and re-reads it on a type change | S16-D17 | S16-74, S16-D17 | — | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -528,6 +560,14 @@ SLICE 6i — Back and scroll                           (after 6h)
   S16-72  Back returns to the scroll position
   Check: bar 43.
 
+BATCH 8 — Add and Copy Source sheets               (lands before S16-99)
+
+SLICE 8a — The Add and Copy Source sheets           (any time; a chain)
+  ✎ S16-D15 ──▶ S16-73  Add Source takes the Published date and Private
+  ✎ S16-D16 ──▶ S16-74  Copy Source edits the date, description and Private
+  ✎ S16-D17 ──▶ S16-75  Copy Source edits each metadata value
+  Check: bar 44 to 46.
+
 S16-99 — Dogfood close / docs
 ```
 
@@ -609,6 +649,9 @@ S16-69: none
 S16-66 ──▶ S16-71
 S16-D14 ──▶ S16-71
 S16-71 ──▶ S16-72
+S16-D15 ──▶ S16-73 ──▶ S16-74 ──▶ S16-75
+S16-D16 ──▶ S16-74
+S16-D17 ──▶ S16-75
 ```
 
 Batch 5 runs in order: each PR reads what the one before added (the key and the samples rule, then the summary's dating).
@@ -618,6 +661,8 @@ Batch 7 lands before any Batch 6 PR (user, 2026-11-18), so no Batch 6 plan or re
 Batch 6's S16-45 has no dependency and shares no file with an open PR. Slice 6b needs nothing open: S16-46 builds on S16-03 (sections as places) and S16-07 (folds), both landed. S16-47 is a quick-pr. S16-46 edits `WorkspaceLocation.swift` and `NavigationHistoryStore.swift`, which S16-25 also touches if it is still open, so whichever lands second rebases. S16-46 also changes `ConclusionShowMoreRow` (it takes its section's focus stop) and Spike 15's S15-30 moves that row to the kit as `PVShowMoreRow`; whichever lands second rebases, and `PVShowMoreRow` keeps the `stop`.
 
 Slice 6g needs nothing open. S16-68 moves code and lands first, so S16-70's new follow slot and removal patch land in their new files; S16-69 is engine-only and runs in parallel with both. Shared files, so whichever lands second rebases: S16-70 and Spike 15's S15-68 and S15-70 (new Citation format keys) in `CatalogQueryRegistry.swift` and the type files S16-68 makes; S16-70 and S15-54 (a Citation level in the metadata entries) in `effects/registry.go`; S16-69 and any Spike 15 PR that adds a registry path, which then reads through the memo with no change of its own.
+
+Batch 8 needs nothing open and runs as one chain. S16-73 makes the shared Source fields view and routes `CreateSource` through the composer, which S16-74 then uses on the Copy sheet; S16-74 and S16-75 both change `SourceCopyDialog.swift`, `SourceCopyModel.swift` and `CopySourceRequest`. So each waits for the one before it.
 
 ---
 
@@ -1144,3 +1189,33 @@ Design: [`catalog-query-layer.md`](catalog-query-layer.md).
 **Settled in the plan.** Every main page's scroll view (user, 2026-11-25); Source types' top-row anchor goes; the selection stays as `listSelection`, restored but not scrolled to; `PVNativeListBehavior` keeps Home/End, the restart key and the opened-Source reveal, and loses its arrival scrolls; estimated heights are not touched and Sources drift is accepted (user, 2026-11-25); an offset fits when the document is tall enough to show it; the offset is written to the history file (user, 2026-11-25).
 **Check.** Bar 43.
 **Context.** `macos/App/Features/Workspace/WorkspaceNavigation.swift`, `WorkspaceLocation`, `NavigationHistoryStore`; `PVScrollRowIntoView`, `PVNativeListBehavior`; `SourcesListView.swift`; S16-71's Landed note and ship log; skill `add-workspace-location`.
+
+### Batch 8 — Add and Copy Source sheets
+
+A user request (2026-11-26): the Add sheet takes the date and Private, and the Copy sheet looks like it, with every part it carries filled in and editable.
+
+### Slice 8a — The Add and Copy Source sheets
+
+#### S16-73 — Add Source takes the Published date and Private
+
+**Today.** The Add sheet (`SourcesAddDialog` in `SourcesListView.swift`) has Title and Type (`SourceTitleTypeFields`) and its own Description field; `CreateSourceRequest` has no date or `is_public`, so a date or Private needs a second visit to the Source page.
+**Ships.** Go: `CreateSourceRequest` gains the date and `is_public`, `sources.CreateInput` gains `IsPublic`, and `CreateSource` writes them in its one write through the copy composer (working rule "A new Source and its parts are one write through one composer"). Swift: the shared Source fields view (working rule "The Add and Copy sheets share one set of Source fields") on the Add sheet; `SourcesModel.Draft` holds the date draft and Private; a date that does not parse blocks Create, as on the date dialog.
+**Not this PR.** The Copy sheet (S16-74); a marks control (S15-42).
+**Check.** Bar 44.
+**Context.** `SourcesListView.swift`, `SourcesModel.swift`, `SourceTitleTypeFields.swift`, `SourceDateFormModel.swift` (the date dialog's draft rules), `DateValueEditorForm.swift`, `SourcePageIdentityHeader.swift` (the Private switch); `core/database/sources`, `core/database/sourcecopy`, `api/ffi/handlers/sources.go`; skills `add-ffi-handler`, `add-date-value`, `add-localized-string`.
+
+#### S16-74 — Copy Source edits the date, description and Private
+
+**Today.** The Copy sheet (`SourceCopyDialog.swift`) shows Title and Type, then ticks for Published date, Description, Metadata and Credibility (`PVCopyPartTick`), then the Artifact checklist; the request sends a bool per part, and the copy is never private.
+**Ships.** Go: `CopySourceRequest` carries the description text, the date and `is_public`; `copy_description` and `copy_date` are reserved; `sourcecopy.apply` takes the values; the engine keeps the original's date mark when the date is sent unchanged (working rule "The engine keeps a mark on a part left as the original had it"). Swift: the Copy sheet shows the shared Source fields filled from the original once its workspace loads (Private as the original's, working rule "A copy carries Private"); the Date and Description ticks and their strings go; Metadata and Credibility stay ticks. Dirty means a change from the filled-in values.
+**Not this PR.** Editable metadata (S16-75); the format a Source chose (S15-71).
+**Check.** Bar 45.
+**Context.** `SourceCopyDialog.swift`, `SourceCopyModel.swift`, `PVCopyPartTick`; `core/database/sourcecopy/sourcecopy.go`; S15-32's and S15-43's plans (the date tick and its mark); skills `add-ffi-handler`, `add-date-value`, `add-localized-string`.
+
+#### S16-75 — Copy Source edits each metadata value
+
+**Today.** Metadata is one tick that copies every value with its layout; `GetDraftMetadataBoard` serves `artifact`, `graph` and `citation` only, and from parents, not from a type.
+**Ships.** Go: `GetDraftMetadataBoard` serves level `source` for a type, seeded with values; `CopySourceRequest` carries a `MetadataDraft`, `copy_metadata` is reserved, and the engine keeps a value's mark when its text is unchanged. Swift: the Copy sheet hosts `MetadataDraftHost` and `MetadataBoardModel` as the Artifact sheet does, read on open and again on a type change with its current values (working rule "The engine lays out the Copy sheet's board"); the Metadata tick goes. Fan-out at scale: one board read on open and one per type change, at 60 values.
+**Not this PR.** A marks control on the board (S15-41); the Add sheet's metadata (not asked for).
+**Check.** Bar 46.
+**Context.** `MetadataDraftHost.swift`, `MetadataBoardModel.swift`, `ArtifactSheetModel.swift` (the pattern), `SourcePageContext.readDraftBoardForAdd`; `core/database/sourcemetadata` (the draft board and `Apply`); skills `add-ffi-handler`, `add-ui-component`.
