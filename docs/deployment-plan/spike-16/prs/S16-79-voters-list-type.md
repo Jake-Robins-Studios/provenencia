@@ -211,8 +211,8 @@ Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/...` passes
 
 **STEP-2 — One copy layer with the database title**
 Files: `core/database/sourcevocab/registry.go`.
-Do: add `copyLayer` (D-7, D-10) and replace each of the ten hand copies with it (each format string splits at the old clause and joins `copyLayer`; no other character of a format changes).
-Check: `rg -n '\{meta\.format\}, \*\{meta\.provider\}\*' core/database/sourcevocab/registry.go` prints one line, the `copyLayer` const; `rg -c '\+ copyLayer \+' core/database/sourcevocab/registry.go` prints 10; the D-11 scratch test renders AC-4.1 and AC-4.2 from `record_book` exactly; `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/... ./core/database/citationrender/...` passes.
+Do: add `copyLayer` (D-7, D-10) with the comment "copyLayer is the online copy a researcher viewed: \"database title,\" format, *provider* (url : accessed date), each part when set. Every format that prints a copy uses it." and replace each of the ten hand copies with it (each format string splits at the old clause and joins `copyLayer`; no other character of a format changes).
+Check: `rg -n '\{meta\.format\}, \*\{meta\.provider\}\*' core/database/sourcevocab/registry.go` prints one line, the `copyLayer` const; `rg -c '\+ copyLayer \+' core/database/sourcevocab/registry.go` prints 10; `git diff -U0 core/database/sourcevocab/registry.go` shows each of the ten changed format lines differing only where the old clause became `` ` + copyLayer + ` ``; the D-11 scratch test renders AC-4.1 and AC-4.2 from `record_book` exactly; `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/... ./core/database/citationrender/...` passes.
 
 **STEP-3 — Seed the type and its formats**
 Files: `registry.go`, `core/database/citationrender/placeholders_test.go`.
@@ -228,7 +228,7 @@ Do:
 - Version: `VERSION`, `core/version.go` `Version` and every `MARKETING_VERSION` in `macos/Provenencia.xcodeproj/project.pbxproj` move to the next minor of `origin/main`'s `VERSION` at the time (0.47.0 from 0.46.0), in one commit.
 Check: `python3 scripts/check-guidance-names.py` passes; `rg -n '26 types|69 fields' docs/seeded-vocabulary.md` prints nothing.
 
-Commits: one per behavior. The subject is one full imperative sentence that says what changed for the researcher, ending in a period ("Seed a Voters list type whose citation reaches the entry, the archive and the copy.").
+Commits: STEP-1 with STEP-3 (the fields have no reader before the type); STEP-2 its own; STEP-4's docs one, the version bump one; the Landed edits of § 9 a last commit once the PR number exists. The subject is one full imperative sentence that says what changed for the researcher, ending in a period ("Seed a Voters list type whose citation reaches the entry, the archive and the copy.").
 
 ## 8. Tests
 
