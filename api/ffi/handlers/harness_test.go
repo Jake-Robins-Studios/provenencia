@@ -344,17 +344,6 @@ func seededTypeID(t *testing.T, projectDir, key string) string {
 	return ""
 }
 
-// seededSourceOfType creates a Source of the product-seeded type with the key
-// and returns its id.
-func seededSourceOfType(t *testing.T, projectDir, userID, key string) string {
-	t.Helper()
-	var created engine.CreateSourceResponse
-	mustRPC(t, CreateSource, &engine.CreateSourceRequest{
-		ProjectDir: projectDir, UserId: userID, SourceTypeId: seededTypeID(t, projectDir, key), Title: key,
-	}, &created)
-	return created.GetSource().GetId()
-}
-
 func assertIdentityNotFound(t *testing.T, out []byte, _ proto.Message) {
 	t.Helper()
 	var resp engine.GetInstallIdentityResponse
