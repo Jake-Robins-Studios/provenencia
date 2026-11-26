@@ -294,7 +294,7 @@ None.
 
 - The kit commit `98d25b8ce` does not build alone: the strings it needs land in `9a003305f`.
 - An extra T-4 commit, `d333cc4f2`, lays the test's list out before the caller asks for the scroll.
-- The T-4 harness turns animations off (`.transaction { $0.disablesAnimations = true }`), because an unshown window has no display link to step the scroll animation.
+- `pvScrollsShowMoreReveals` takes `animated:` (default `true`, passed on to `pvScrollsRowIntoView`), and the T-4 harness passes `false`: an unshown window, or a CI runner with no display, steps no animation, so an animated scroll may never land. A first try, `.transaction { $0.disablesAnimations = true }` on the harness, left the scroll animated (traced: about 200 ms from 0 to 520) and CI failed on it.
 - After the fix round, T-4's probe is shown from the start; on appear it asks `reveal(AnyHashable(11))` and then calls a `leave()` closure from the harness that clears `probing` in the same action, as `PVShowMoreRow.press` does on the last page. It no longer defers the leave with `DispatchQueue.main.async`.
 - The Timeline's `.environment(\.pvShowMoreReveal, …)` sits on the `PVWidthBreakpoints` list beside `pvScrollsRowIntoView`.
 - The manual check (section 10) was not run by the implementer.

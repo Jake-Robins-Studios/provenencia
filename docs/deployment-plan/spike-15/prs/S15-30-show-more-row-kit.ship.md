@@ -58,8 +58,10 @@ Nits (logged): `CON-4 · PVShowMoreRowTests.swift:62 and plan ## Landed · the l
 ## Finish
 `origin/main` moved (`70f8a08fa`, docs only: S16-79 plan); merged into the branch. Gate PASS against `70f8a08fa`.
 
-## Result
-Gate PASS · CI green · open: none · follow-ups: `CatalogListMergeTests.listRowsLargeWriteTakesTheOnePass` timing assertion failed once under load in the implementer's round-0 gate (outside this PR; home to ask the user) · to user: —
+## CI fix
+CI `macOS tests` failed on `8fe422cba`: `PVShowMoreRowHostedTests.revealScrollsAfterTheCallerLeaves` (`PVShowMoreRowTests.swift:72`, `visible` false after 10.2 s), the third failure of T-4. Cause, traced locally: gate fix 1's `.transaction { $0.disablesAnimations = true }` did not stop the animation — the scroll still ran 0 → 520 over ~200 ms, and `.transaction { $0.animation = nil }` behaved the same, because `PVScrollRowIntoView` calls `proxy.scrollTo` inside its own `withAnimation`. On the runner (no display) the animation never steps. Fix (orchestrator, at the user's request): `pvScrollsShowMoreReveals(animated:)`, default `true`, passed to `pvScrollsRowIntoView`; T-4 passes `false` and the trace shows 520 on the first layout. Production callers unchanged. Landed note updated. Gate PASS.
+
+Gate PASS · CI see PR #996 · open: none · follow-ups: `CatalogListMergeTests.listRowsLargeWriteTakesTheOnePass` timing assertion failed once under load in the implementer's round-0 gate (outside this PR; home to ask the user) · to user: —
 
 ## Cost
 Plan: 4,091 words (check-plan-docs info line).

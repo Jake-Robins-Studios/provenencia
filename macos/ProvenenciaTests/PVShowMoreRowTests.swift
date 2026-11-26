@@ -49,10 +49,9 @@ struct PVShowMoreRowHostedTests {
                     if probing { Probe { probing = false } }
                 }
             }
-            // An unshown window has no display link to step the scroll animation, so a
-            // loaded machine decides when (or whether) it lands. The scroll jumps instead.
-            .transaction { $0.disablesAnimations = true }
-            .pvScrollsShowMoreReveals()
+            // An unshown window, and a CI runner with no display, steps no animation, so
+            // an animated scroll may never land. Unanimated, it lands on the next layout.
+            .pvScrollsShowMoreReveals(animated: false)
             .frame(width: 300, height: 200)
         }
     }
