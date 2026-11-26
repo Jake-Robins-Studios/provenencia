@@ -1,0 +1,34 @@
+import Foundation
+
+/// What a metadata board needs from the place that holds one owner's rows: the
+/// rows, the owner's writes, the field vocabulary, and where its failures show.
+/// A page instances one host per owner; the board never learns which page it is on.
+@MainActor
+protocol MetadataBoardHost: AnyObject {
+    /// The owner's whole board in display order. The board patches it after a write.
+    var entries: [CatalogMetadataEntry] { get set }
+    /// Every metadata field the researcher can add.
+    var fields: [CatalogMetadataField] { get }
+    /// True when clearing a value asks first (a live board writes at once); a draft board clears with no confirm.
+    var confirmsClear: Bool { get }
+    /// True when the rows differ from what the host opened with. A live board writes at once, so it is never changed.
+    var isChanged: Bool { get }
+
+    /// Saves a value; answers the owner's whole board.
+    func set(fieldID: String, valueText: String) async throws -> ([CatalogMetadataEntry], CatalogWriteEffects)
+    /// Clears a value; answers the owner's whole board.
+    func clear(fieldID: String) async throws -> ([CatalogMetadataEntry], CatalogWriteEffects)
+    /// Permanently hides an unfilled suggestion; answers the owner's whole board.
+    func dismissSuggestion(fieldID: String) async throws -> ([CatalogMetadataEntry], CatalogWriteEffects)
+    /// Saves the display order; answers the owner's whole board.
+    func reorder(fieldIDs: [String]) async throws -> ([CatalogMetadataEntry], CatalogWriteEffects)
+
+    /// Applies a write's effects once the board has patched `entries`.
+    func didWrite(_ effects: CatalogWriteEffects)
+    /// Clears the failure a previous write showed, before a new write.
+    func clearFailure()
+    /// The message for a failed write; nil means the owner is gone and its host is leaving, so no state is written.
+    func failureMessage(for error: Error) -> String?
+    /// Shows a failure message where this host's failures show.
+    func showFailure(_ message: String)
+}
