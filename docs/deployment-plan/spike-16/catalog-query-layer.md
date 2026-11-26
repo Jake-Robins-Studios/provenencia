@@ -18,7 +18,7 @@ Then `.deletedSource` and its `CatalogMutationKind` go. `FakeStore.deleteSource`
 
 A Source type delete goes the same way: `source_types` declares `Deleted: onDelete(self())`, Swift adds `CatalogDeletedEntity.sourceType`, and `.sourceTypesList` drops the type through the same removal patch. `.deletedSourceType` and `CatalogQueryPatch.row`'s `removes:` closure (its one user) go, and the type page applies `apply(effects, leavingPage:)`.
 
-This is one row-removal mechanism for every delete from its own page. The next one, Spike 15's S15-70 (a Citation format delete), is one registry line and one descriptor entry.
+This is one row-removal mechanism for every delete from its own page. The next one is one registry line and one descriptor entry.
 
 **Stays later.** The other Swift mutations that sit beside a write's effects: `.createdSource`, `.changedSourceType`, `.createdSourceType`, `.updatedSourceType`, and the field relabel and delete mutations (`.updatedMetadataField`, `.deletedMetadataField`, S14-17) that reach Source pages. They are parked in [`ideas/catalog-query-layer.md`](../../ideas/catalog-query-layer.md).
 

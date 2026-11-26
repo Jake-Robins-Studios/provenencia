@@ -32,9 +32,9 @@
 
 ## 1. Objective
 
-A Source delete reaches the Swift query cache twice today: the client's own `.deletedSource(id:)` mutation, and the engine's `WriteEffects`. A Source type delete reaches it only through `.deletedSourceType(id:)`. After this PR both reach it only through the engine's `WriteEffects.deleted`, as a handle delete already does, so the next delete from its own page (Spike 15's S15-70, a Citation format) is one registry line and one descriptor entry. From the catalog query layer idea (S13-37 plan).
+A Source delete reaches the Swift query cache twice today: the client's own `.deletedSource(id:)` mutation, and the engine's `WriteEffects`. A Source type delete reaches it only through `.deletedSourceType(id:)`. After this PR both reach it only through the engine's `WriteEffects.deleted`, as a handle delete already does, so the next delete from its own page is one registry line and one descriptor entry. From the catalog query layer idea (S13-37 plan).
 
-**Why now.** S16-68 put the follow slots and patches in files of their own, so this PR's edits read as edits. S15-70 is waiting to follow this shape instead of adding a third `.deletedX` mutation.
+**Why now.** S16-68 put the follow slots and patches in files of their own, so this PR's edits read as edits.
 
 **What stays.** What a researcher sees: the Source page and the Source type page leave as today, the Sources list and the Source types list drop the row, and the type's `usedBy` count moves by one on a Source delete, create or type change. The other Swift mutations (`.createdSource`, which the Sources list still reads for its new row, `.changedSourceType`, `.createdSourceType`, `.updatedSourceType`, the metadata field mutations). `FakeStore.deleteSource` and `FakeStore.deleteSourceType`.
 
@@ -98,7 +98,7 @@ A Source delete reaches the Swift query cache twice today: the client's own `.de
 | Out | Home |
 | --- | --- |
 | `.createdSource` as a mutation (the Sources list's new row), `.changedSourceType` as a mutation (the row and page shell, the Source page's suggested rows), `.createdSourceType`, `.updatedSourceType`, `.updatedMetadataField`, `.deletedMetadataField` | [`docs/ideas/catalog-query-layer.md`](../../../ideas/catalog-query-layer.md) |
-| Deletes of other resources (Citation format) | S15-70 |
+| Deletes of other resources (a Citation format, once formats have pages of their own) | [`docs/ideas/citation-formats-apart-from-types.md`](../../../ideas/citation-formats-apart-from-types.md) |
 | The `engine.proto` comment on `WriteEffects.deleted`, which names `canonical_entity` as its example | not planned (still true; a comment edit regenerates `engine.pb.go` for nothing) |
 | A scripted `deleted` entry in `FakeStore.deleteSource` or `.deleteSourceType` | not planned (rule: what a delete reports is the Go test's claim) |
 | `CatalogWriteEffects.deletedHandles` read through the new slot | not planned (one reader, `UnpromoteFlow`; it reads the same entry) |
@@ -163,7 +163,7 @@ Searched: `rg -n "deleted" macos/App/Features/Workspace/Session/CatalogQuery*.sw
 
 **Builds on.** The effects registry's `Deleted` field and `DeletedEntities()` (wire keys); its `Lists` and `ListsOnCreateDelete`; `CatalogQueryDescriptor.deletedWith` and `WorkspaceSession.evict(_:ids:)` (S16-09); `requireRowIDs()` (S16-68).
 **Deletes.** `CatalogMutation.deletedSource(id:)` and `.deletedSourceType(id:)`; `CatalogMutationKind.deletedSource` and its `invalidationKind` arm; `CatalogMutationKind.createdSource` and its arm, since D-8 leaves no descriptor naming it (`.createdSource` joins the nil arm: patch-only, read by `sourceRow()`); `row`'s `removes:` parameter, its default, and its removal branch; `sourceTypeRow()`'s `removes:` argument; `.sourcesList`'s `invalidateOn` and `invalidation`; `.sourceTypesList`'s `invalidateOn` and `invalidation`, `.deletedSource` in `.sourceWorkspace`'s `invalidateOn` and in `.sourceWorkspace`'s `invalidation` switch; the revision guard in `applyPatches` (moved, D-3).
-**Next adds.** S15-70's format delete: `Deleted: onDelete(self())` on its table's entry, one `CatalogDeletedEntity` case, and `.deletedRows(Row.self, of: .citationFormat)` on the list that shows it (or `deletedWith:` on its page key).
+**Next adds.** A Citation format delete from its own page ([`docs/ideas/citation-formats-apart-from-types.md`](../../../ideas/citation-formats-apart-from-types.md), parked from Spike 15's slice 12): `Deleted: onDelete(self())` on its table's entry, one `CatalogDeletedEntity` case, and `.deletedRows(Row.self, of: .citationFormat)` on the list that shows it (or `deletedWith:` on its page key).
 
 ### Reach
 

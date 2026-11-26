@@ -204,3 +204,29 @@ One fresh maintainability reviewer on slice 6g (S16-68, S16-69, S16-70) and its 
 
 ### K6g-8 · minor · No seam for the query-counting test
 **Answer:** Fixed. `Resolve` and `resolve` take a `dbsql.Querier`.
+
+## Batch 8 — Add and Copy Source sheets (2026-11-26)
+
+**Verdict:** Fits with changes; four blockers, all answered. **Reviewer:** maintainability (map review).
+
+### To user
+
+- **Two preparatory PRs (K8-1, K8-4).** S16-76 "Drafts carry the marks they read" and S16-77 "A draft board for a new Source". **Answered (user, 2026-11-26): fine; check Spike 15 slice 9.** Done: S15-41 and S15-42 now depend on S16-76, S15-39's flags reach the Copy board through S16-77, and S15-42's empty-date flag reaches both sheets.
+
+### Writer's own calls
+
+- An owner's draft write settles a mark against its text (`valuemark.Settle`): typing into an unknown value drops Unknown; clearing a supplied value drops Supplied. Until S15-41 the researcher cannot see a mark, so the alternative, a refusal they cannot understand, is worse. Veto if a typed value should keep Unknown and be refused.
+- `sourcecopy.CreateFromDraft` stays the one composer for Add and Copy, under its current name (K8-8).
+
+### Findings
+
+- **K8-1 · blocker** — "Engine keeps a mark on an unchanged part" was a second mechanism that S15-41/42 would have to undo, and the date round trip changes values. **Fixed:** rule "Swift carries the marks it reads"; new S16-76; this also fixes the Artifact and graph sheets, which drop a stored mark today.
+- **K8-2 · blocker** — A plain `is_public` bool defaults to private for 150-odd existing callers. **Fixed:** `is_private` on the wire, `Private` in `CreateInput`.
+- **K8-3 · blocker** — Copy's handling of metadata the sheet does not send was undefined, which loses dismissed suggestions and resets after a type change. **Fixed:** rule "A copy's metadata is the original's, with the sheet's draft laid over it".
+- **K8-4 · blocker** — `GetDraftMetadataBoard` refuses a level with no parents and reads the date of a Source that does not exist yet. **Fixed:** new S16-77, a Go-only PR.
+- **K8-5 · should** — The Copy sheet opens from the Sources list, which has no `SourcePageContext`. **Fixed** in S16-75's scope.
+- **K8-6 · should** — Docs made false. **Fixed:** Updates lines on S16-73 – S16-77; Spike 15's date rule edited.
+- **K8-7 · should** — S16-75 was about 14 steps. **Fixed** by the S16-77 split.
+- **K8-8 · nit** — The composer's home. **Fixed:** it stays in `sourcecopy`.
+- **K8-9 · nit** — Date validity in `Draft.validation`; the prefill built at first load; one Private switch view. **Fixed** in the rules and scopes.
+- **K8-10 · nit** — Fan-out lines; S15-71's format added to what Copy reads from the original. **Fixed.**

@@ -49,6 +49,7 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 
 - [`source-page-followups.md`](source-page-followups.md) — missing-Source errors outside the page context, delete after a delete elsewhere, the fake's blank Source for a missing id
 - [`source-type-packages.md`](source-type-packages.md) — citation styles as installable packages of types, fields and formats; raised in Spike 15, which seeds the *Evidence Explained*-style set as the product default
+- [`citation-formats-apart-from-types.md`](citation-formats-apart-from-types.md) — formats as their own vocabulary: shared formats, a type's default, a Source's own choice (Spike 15 slice 12, descoped 2026-11-26)
 - [`event-as-of-followups.md`](event-as-of-followups.md) — Spike 16 Batch 5 leftovers: as-of on a Place, hide as-of on instantaneous event types
 - [`properties-and-terms.md`](properties-and-terms.md) — binding order, event-type-scoped properties, Occupation seed, term management (direction / inverses), failed bind after create
 - [`source-to-source-relationships.md`](source-to-source-relationships.md)
