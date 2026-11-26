@@ -109,7 +109,22 @@ S16-78 landed with a user change: the seed is data, and no test validates regist
 - **X-4 · nit · Map line 870 still says 26.** Logged; the map is left whole as Spike 15's record (M-3).
 - **X-5 · nit · Doc comments.** Logged.
 
+
+### Refresh round 2
+
+**Reviewers:** maintainability (opus), executability (sonnet). Verdicts: Fits with changes · Ready with changes. Every round-1 answer holds; no new blocker.
+
+- **Maintainability, below the bar · § 6.8 still named as the seed in two lines.** Fixed — STEP-4 rewords `seeded-vocabulary.md` line 83 and the skill's step 2: the seed began as § 6.8 and `registry.go` is now its record.
+- **X-6 · minor · AC-4.3 unchecked for eleven types.** Fixed — STEP-2's check adds `git diff -U0` on `registry.go`: each changed line differs only by the clause. Their suggestions follow from `suggestedKeys`, which `TestSuggestedKeys` covers.
+- **X-7 · minor · Xcode and app boxes off macOS.** Declined — `implement-pr` and `ship-pr` say how a box that cannot run is reported; D-11 gives the evidence that runs anywhere.
+- **X-8 · minor · Commit boundaries.** Fixed — STEP-4's Commits line maps steps to commits and puts the Landed edits last.
+- **X-9 · nit · `copyLayer` comment.** Fixed — STEP-2 gives it.
+
+**Verdict (refresh):** Fits with changes · Ready with changes, two rounds; no blocker open; To user: none.
+
 | Round | Reviewer | Model | Tokens |
 | --- | --- | --- | --- |
 | R1 | maintainability | opus | 131k |
 | R1 | executability | sonnet | 105k |
+| R2 | maintainability | opus | 133k |
+| R2 | executability | sonnet | 115k |
