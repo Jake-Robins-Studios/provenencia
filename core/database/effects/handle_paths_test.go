@@ -360,11 +360,11 @@ func observationSubject(subjectID []byte) rowchange.Change {
 
 func mustHandles(t *testing.T, tx *sql.Tx, changes ...rowchange.Change) [][]byte {
 	t.Helper()
-	got, err := effects.Handles(tx, changes)
+	set, err := effects.Resolve(tx, changes)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return got
+	return set.Handles
 }
 
 func mustHandleScopes(t *testing.T, tx *sql.Tx, changes ...rowchange.Change) [][]byte {

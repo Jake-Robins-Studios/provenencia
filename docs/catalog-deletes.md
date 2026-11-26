@@ -36,14 +36,14 @@ Research rows that a delete takes with it are removed **explicitly** and audited
 | Field | Role |
 | --- | --- |
 | `Parent`, `Via` | The parent kind and the FK covered (`child_table.fk_col`). The honesty test checks it against the register. |
-| `Release` | Deletes the rows and returns their audit changes. Handles come from `effects.Handles` on those changes. |
+| `Release` | Deletes the rows and returns their audit changes. Handles are `Set.Handles` from `effects.Resolve` on those changes. |
 | `Remaining` | A count of rows still pointing at the parent. It must be zero after `Release`, or the delete fails with `deleteimpact.release_incomplete`. So the `CASCADE` or `SET NULL` backstop can never fire silently on an official delete. |
 | `Named` + `Count` / `List` / `Child` | Named releases also appear in `Report.Cascades`, from the same predicate `Release` deletes. |
 
 - **One call per delete.** Domain `Delete` calls `deleteimpact.ReleaseFacets(tx, kind, id)` once, after `Refuse` and before the parent `DELETE`. Then it prepends the changes it returns to its own audit change. It never hand-calls a per-table helper.
 - **Releases compose.** A released row that is itself a parent (a claim, a connection Observation) has its own facets released first, through the same function.
 - **The registry owns ordering.** Callers don't sequence anything.
-- **Handles come from the released changes.** `effects.Handles` reads them and `Run` recomputes them; the rows that read a released link come from the [input index](deployment-plan/archive/spike-14/summary-inputs.md).
+- **Handles come from the released changes.** `effects.Resolve` reads them into `Set.Handles` and `Run` recomputes them; the rows that read a released link come from the [input index](deployment-plan/archive/spike-14/summary-inputs.md).
 
 | Audited (released) | Silent (`CASCADE` only) |
 | --- | --- |

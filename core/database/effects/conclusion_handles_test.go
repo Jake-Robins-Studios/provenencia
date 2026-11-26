@@ -41,7 +41,7 @@ import (
 
 // observerHandles are the handles whose members' Observations point at
 // subjectID as a subject-valued end: the oracle the claim cases compare
-// effects.Handles with.
+// effects.Resolve (Set.Handles) with.
 func observerHandles(tx *sql.Tx, subjectID []byte) ([][]byte, error) {
 	rows, err := tx.Query(`SELECT DISTINCT ic.entity_id
 		FROM observations o
@@ -65,7 +65,7 @@ func observerHandles(tx *sql.Tx, subjectID []byte) ([][]byte, error) {
 
 // TestConclusionHandleSets builds the change lists promote, claim create,
 // credibility, and a cardinality edit actually produce, on a transaction that
-// rolls back, and checks effects.Handles covers the set those writes recompute
+// rolls back, and checks effects.Resolve (Set.Handles) covers the set those writes recompute
 // by hand. A short set is a registry bug. A strict superset is kept.
 func TestConclusionHandleSets(t *testing.T) {
 	userID := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
@@ -259,10 +259,11 @@ func TestConclusionHandleSets(t *testing.T) {
 		if len(assocs) != 0 {
 			t.Fatalf("unpromoted other end filed %d associations", len(assocs))
 		}
-		got, err := effects.Handles(tx.Tx, changes)
+		set, err := effects.Resolve(tx.Tx, changes)
 		if err != nil {
 			t.Fatal(err)
 		}
+		got := set.Handles
 		obs, err := observerHandles(tx.Tx, bob.ID)
 		if err != nil {
 			t.Fatal(err)
@@ -285,10 +286,11 @@ func TestConclusionHandleSets(t *testing.T) {
 		tx, done := open()
 		defer done()
 		entity, _, changes := claim(tx.Tx, bob, adaPromoted.Entity.ID, identityclaims.StatusAccepted, true)
-		got, err := effects.Handles(tx.Tx, changes)
+		set, err := effects.Resolve(tx.Tx, changes)
 		if err != nil {
 			t.Fatal(err)
 		}
+		got := set.Handles
 		obs, err := observerHandles(tx.Tx, bob.ID)
 		if err != nil {
 			t.Fatal(err)
@@ -300,10 +302,11 @@ func TestConclusionHandleSets(t *testing.T) {
 		tx, done := open()
 		defer done()
 		entity, _, changes := claim(tx.Tx, bob, nil, identityclaims.StatusProvisional, false)
-		got, err := effects.Handles(tx.Tx, changes)
+		set, err := effects.Resolve(tx.Tx, changes)
 		if err != nil {
 			t.Fatal(err)
 		}
+		got := set.Handles
 		if !sameIDs(got, [][]byte{entity.ID}) {
 			t.Fatalf("provisional handles = %d, want 1", len(got))
 		}
@@ -316,10 +319,11 @@ func TestConclusionHandleSets(t *testing.T) {
 		if len(assocs) == 0 {
 			t.Fatal("expected the participation to file")
 		}
-		got, err := effects.Handles(tx.Tx, changes)
+		set, err := effects.Resolve(tx.Tx, changes)
 		if err != nil {
 			t.Fatal(err)
 		}
+		got := set.Handles
 		obs, err := observerHandles(tx.Tx, birth.ID)
 		if err != nil {
 			t.Fatal(err)
@@ -349,10 +353,11 @@ func TestConclusionHandleSets(t *testing.T) {
 		}
 		changes := append(bobChanges, birthChanges...)
 		changes = append(changes, filed...)
-		got, err := effects.Handles(tx.Tx, changes)
+		set, err := effects.Resolve(tx.Tx, changes)
 		if err != nil {
 			t.Fatal(err)
 		}
+		got := set.Handles
 		bobObs, err := observerHandles(tx.Tx, bob.ID)
 		if err != nil {
 			t.Fatal(err)
@@ -383,10 +388,11 @@ func TestConclusionHandleSets(t *testing.T) {
 				"credibility_grade_id": {New: mustUUID(t, grades[0].ID)},
 			},
 		}}
-		got, err := effects.Handles(tx.Tx, changes)
+		set, err := effects.Resolve(tx.Tx, changes)
 		if err != nil {
 			t.Fatal(err)
 		}
+		got := set.Handles
 		want, err := autoreconciler.HandlesForSource(tx.Tx, src.ID)
 		if err != nil {
 			t.Fatal(err)
@@ -409,7 +415,7 @@ func TestConclusionHandleSets(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		got, err := effects.Handles(tx.Tx, []rowchange.Change{{
+		set, err := effects.Resolve(tx.Tx, []rowchange.Change{{
 			EntityType: "source_credibility_assessment",
 			EntityID:   id[:],
 			Action:     rowchange.ActionUpdate,
@@ -421,6 +427,7 @@ func TestConclusionHandleSets(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		got := set.Handles
 		if len(got) != 0 {
 			t.Fatalf("argument handles = %d", len(got))
 		}
@@ -429,7 +436,7 @@ func TestConclusionHandleSets(t *testing.T) {
 	t.Run("cardinality matches property handles", func(t *testing.T) {
 		tx, done := open()
 		defer done()
-		got, err := effects.Handles(tx.Tx, []rowchange.Change{{
+		set, err := effects.Resolve(tx.Tx, []rowchange.Change{{
 			EntityType: "property",
 			EntityID:   append([]byte(nil), nameProp.ID...),
 			Action:     rowchange.ActionUpdate,
@@ -440,6 +447,7 @@ func TestConclusionHandleSets(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		got := set.Handles
 		want, err := autoreconciler.HandlesForProperty(tx.Tx, nameProp.ID)
 		if err != nil {
 			t.Fatal(err)
@@ -466,7 +474,7 @@ func TestConclusionHandleSets(t *testing.T) {
 	t.Run("label edit resolves no handles", func(t *testing.T) {
 		tx, done := open()
 		defer done()
-		got, err := effects.Handles(tx.Tx, []rowchange.Change{{
+		set, err := effects.Resolve(tx.Tx, []rowchange.Change{{
 			EntityType: "property",
 			EntityID:   append([]byte(nil), nameProp.ID...),
 			Action:     rowchange.ActionUpdate,
@@ -477,6 +485,7 @@ func TestConclusionHandleSets(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		got := set.Handles
 		if len(got) != 0 {
 			t.Fatalf("label handles = %d", len(got))
 		}

@@ -31,7 +31,7 @@ var ErrReleaseIncomplete = apperr.New(apperr.CodeDeleteImpactReleaseIncomplete, 
 type released struct {
 	// Changes are audit rows for every removed facet, ready to append ahead of
 	// the parent's own delete change in the same revision. Handles come from
-	// effects.Handles on these changes, including through ghosts when a claim
+	// Set.Handles of effects.Resolve on these changes, including through ghosts when a claim
 	// row is already gone.
 	Changes []rowchange.Change
 	// Objects are the stored bytes of Files the release deleted. The exported

@@ -36,7 +36,7 @@ import (
 const evidenceLocator = `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`
 
 // TestEvidenceHandleSets builds the change an evidence write actually returns
-// and checks effects.Handles against HandlesForSubjects and HandlesForCitation.
+// and checks effects.Resolve (Set.Handles) against HandlesForSubjects and HandlesForCitation.
 // A short set is a registry bug: Run would recompute less than those sets.
 func TestEvidenceHandleSets(t *testing.T) {
 	userID := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
@@ -152,10 +152,11 @@ func TestEvidenceHandleSets(t *testing.T) {
 	}
 	expectSubjects := func(tx *sql.Tx, changes []rowchange.Change, subjectID []byte) {
 		t.Helper()
-		got, err := effects.Handles(tx, changes)
+		set, err := effects.Resolve(tx, changes)
 		if err != nil {
 			t.Fatal(err)
 		}
+		got := set.Handles
 		want, err := autoreconciler.HandlesForSubjects(tx, [][]byte{subjectID})
 		if err != nil {
 			t.Fatal(err)
@@ -251,10 +252,11 @@ func TestEvidenceHandleSets(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		got, err := effects.Handles(tx.Tx, changes)
+		set, err := effects.Resolve(tx.Tx, changes)
 		if err != nil {
 			t.Fatal(err)
 		}
+		got := set.Handles
 		want, err := autoreconciler.HandlesForCitation(tx.Tx, created.Citation.ID)
 		if err != nil {
 			t.Fatal(err)
@@ -273,10 +275,11 @@ func TestEvidenceHandleSets(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		got, err := effects.Handles(tx.Tx, changes)
+		set, err := effects.Resolve(tx.Tx, changes)
 		if err != nil {
 			t.Fatal(err)
 		}
+		got := set.Handles
 		if len(got) != 0 {
 			t.Fatalf("locator-only handles = %d", len(got))
 		}
