@@ -89,5 +89,5 @@ Plan: 2,488 words (check-plan-docs info line).
 | 1 | SEC+PRF | opus | 46k |
 | U | implementer | sonnet | 88k |
 | U | CON | opus | 60k |
-| U2 | implementer | sonnet | — |
-| | **Total** | | **427k+** |
+| U2 | implementer | sonnet | 69k |
+| | **Total** | | **496k** |
