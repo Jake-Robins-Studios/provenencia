@@ -453,46 +453,88 @@ func TestRenderSeededPage(t *testing.T) {
 
 // TestRenderSeededMap: on a new project the seeded map type cites a printed
 // map by its maker, title and imprint, the spot on the map at the Citation,
-// and the digital copy the researcher used.
+// and the copy the researcher used.
 func TestRenderSeededMap(t *testing.T) {
 	w := newRenderWorld(t)
 	ids := fieldIDsByKey(t, w.dir)
-	cite := func(t *testing.T, source map[string]string) (full, short string) {
-		t.Helper()
-		src := seededSourceOfType(t, w.dir, w.userID, "map")
-		mustRPC(t, SetSourceDate, &engine.SetSourceDateRequest{
-			ProjectDir: w.dir, UserId: w.userID, SourceId: src, Date: pointDate(1871, 0, 0),
-		}, &engine.SetSourceDateResponse{})
-		setValues(t, w.dir, w.userID, ids, "source", src, source)
-		art, graph := newArtifact(t, w.dir, w.userID, src, "Scan")
-		citation := newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator)
-		setValues(t, w.dir, w.userID, ids, "citation", citation, map[string]string{"item": "Con. 5, lot 12"})
-		out, err := renderCitations(t, w.dir, citation)
-		if err != nil {
-			t.Fatal(err)
-		}
-		c := out.GetCitations()[0]
-		return c.GetFull().GetPlain(), c.GetShort().GetPlain()
+	const digital = "; digital image, Westmark Heritage (https://example.org/calder-1871 : accessed 26 November 2026)"
+	tests := []struct {
+		name             string
+		source           map[string]string
+		unknownPublisher bool
+		full, short      string
+	}{
+		{
+			name: "a published map seen as a digital image",
+			source: map[string]string{
+				"author": "Ezra Hale", "publication_place": "Port Ellis", "publisher": "Hale & Sons",
+				"format": "digital image", "provider": "Westmark Heritage",
+				"url": "https://example.org/calder-1871", "accessed_date": "26 November 2026",
+			},
+			full:  "Ezra Hale, map (Port Ellis: Hale & Sons, 1871), Con. 5, lot 12" + digital + ".",
+			short: "Ezra Hale, map, Con. 5, lot 12.",
+		},
+		{
+			name:  "no maker or imprint still cites the year",
+			full:  "map (1871), Con. 5, lot 12.",
+			short: "map, Con. 5, lot 12.",
+		},
+		{
+			name:   "a publisher with no place",
+			source: map[string]string{"publisher": "Hale & Sons"},
+			full:   "map (Hale & Sons, 1871), Con. 5, lot 12.",
+			short:  "map, Con. 5, lot 12.",
+		},
+		{
+			name:   "a place with no publisher prints only with the publisher marked unknown",
+			source: map[string]string{"publication_place": "Port Ellis"},
+			full:   "map (1871), Con. 5, lot 12.",
+			short:  "map, Con. 5, lot 12.",
+		},
+		{
+			name:             "a place with the publisher marked unknown",
+			source:           map[string]string{"publication_place": "Port Ellis"},
+			unknownPublisher: true,
+			full:             "map (Port Ellis: n.p., 1871), Con. 5, lot 12.",
+			short:            "map, Con. 5, lot 12.",
+		},
+		{
+			name: "an atlas plate, the original it cites and its archive",
+			source: map[string]string{
+				"short_title": "Calder", "page": "12",
+				"citing": "original at Calder County Archives", "repository": "Calder County Archives",
+			},
+			full:  "map (1871), p. 12, Con. 5, lot 12; citing original at Calder County Archives; Calder County Archives.",
+			short: "Calder, Con. 5, lot 12.",
+		},
 	}
-
-	t.Run("a published map seen as a digital image", func(t *testing.T) {
-		full, short := cite(t, map[string]string{
-			"author": "Ezra Hale", "publication_place": "Port Ellis", "publisher": "Hale & Sons",
-			"format": "digital image", "provider": "Westmark Heritage",
-			"url": "https://example.org/calder-1871", "accessed_date": "26 November 2026",
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			src := seededSourceOfType(t, w.dir, w.userID, "map")
+			mustRPC(t, SetSourceDate, &engine.SetSourceDateRequest{
+				ProjectDir: w.dir, UserId: w.userID, SourceId: src, Date: pointDate(1871, 0, 0),
+			}, &engine.SetSourceDateResponse{})
+			setValues(t, w.dir, w.userID, ids, "source", src, tt.source)
+			if tt.unknownPublisher {
+				mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
+					ProjectDir: w.dir, UserId: w.userID, Owner: &engine.MetadataOwner{Level: "source", Id: src},
+					FieldId: ids["publisher"], Mark: &engine.ValueMark{Unknown: true},
+				}, &engine.SetMetadataResponse{})
+			}
+			art, graph := newArtifact(t, w.dir, w.userID, src, "Scan")
+			citation := newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator)
+			setValues(t, w.dir, w.userID, ids, "citation", citation, map[string]string{"item": "Con. 5, lot 12"})
+			out, err := renderCitations(t, w.dir, citation)
+			if err != nil {
+				t.Fatal(err)
+			}
+			c := out.GetCitations()[0]
+			if got := c.GetFull().GetPlain(); got != tt.full {
+				t.Errorf("full = %q\nwant %q", got, tt.full)
+			}
+			if got := c.GetShort().GetPlain(); got != tt.short {
+				t.Errorf("short = %q\nwant %q", got, tt.short)
+			}
 		})
-		if want := "Ezra Hale, map (Port Ellis: Hale & Sons, 1871), Con. 5, lot 12; digital image, Westmark Heritage (https://example.org/calder-1871 : accessed 26 November 2026)."; full != want {
-			t.Errorf("full = %q\nwant %q", full, want)
-		}
-		if want := "Ezra Hale, map, Con. 5, lot 12."; short != want {
-			t.Errorf("short = %q\nwant %q", short, want)
-		}
-	})
-
-	t.Run("a map with no maker or imprint still cites its year", func(t *testing.T) {
-		full, _ := cite(t, map[string]string{})
-		if want := "map (1871), Con. 5, lot 12."; full != want {
-			t.Errorf("full = %q\nwant %q", full, want)
-		}
-	})
+	}
 }

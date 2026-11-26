@@ -235,9 +235,9 @@ var seedTypes = []seedType{
 		Description: "A printed or hand-drawn map, plat or atlas.",
 		IconKey:     "type_map",
 		Formats: sourcetypes.Formats{
-			Full:  `[{meta.author}, ]*{source.title}*[ ([{meta.publication_place}: ][{meta.publisher}, ]{source.date:year})][, p. {meta.page}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; citing {meta.citing}][; {meta.repository}].`,
+			Full:  `[{meta.author}, ]*{source.title}*[ ([[{meta.publication_place}: ]{meta.publisher}, ]{source.date:year})][, p. {meta.page}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; citing {meta.citing}][; {meta.repository}].`,
 			Short: `[{meta.author}, ]*{meta.short_title|source.title}*[, {meta.item}].`,
-			List:  `[{meta.author_sort|meta.author}. ]*{source.title}*.[ [{meta.publication_place}: ][{meta.publisher}, ]{source.date:year}.][ {meta.repository}.]`,
+			List:  `[{meta.author_sort|meta.author}. ]*{source.title}*.[ [[{meta.publication_place}: ]{meta.publisher}, ]{source.date:year}.][ {meta.repository}.]`,
 		},
 	},
 	{
