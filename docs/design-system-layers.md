@@ -158,6 +158,7 @@ Bespoke UI for **one** screen (or private helpers inside one feature). Written o
 - **OK:** layout glue, one-off section chrome, a sheet body that will never be reused.
 - **Not OK:** quietly becoming the de-facto way we do dialogs while living as a one-off — promote into `Components/` or `Recipes/` instead.
 - **Second call site promotes** a snowflake → recipe (same product kind, now shared) or into `Components/` if it was content-agnostic all along.
+- **Icons go straight into the kit.** An icon affordance (an icon with a tooltip, an icon button, a new `PVSymbol`) is a generic tool: it goes into `Components/` with its first caller, never as a feature snowflake (user, 2026-11-26). The one-caller rule above is for product-shaped chrome.
 
 **Example:** Source Types icon grid (`SourceTypeIconGrid`) — snowflake grid, inline in the Add type dialog and the body of the Source type page's "Choose an icon" `.pvFormDialog` (chrome via FormDialog → `PVPanel`).
 

@@ -162,6 +162,8 @@ PVWidthBreakpoints([Self.compactBelow]) { met in
 4. Do not duplicate sunken footers, focus rings, or menu hosts — those stay in `Components/`.
 5. If only one caller exists, leave a snowflake and note “promote when reused.”
 
+Exception: an **icon affordance** (an icon with a tooltip, an icon button, a new `PVSymbol`) goes into `Components/` with its first caller. Icons are generic tools, so they never live as feature snowflakes ([`design-system-layers.md`](../../../docs/design-system-layers.md)).
+
 ## Steps when adding a snowflake
 
 1. Prefer `Features/<Feature>/` (`private`); use `DesignSystem/Snowflakes/<Name>/` only for named kit-side one-offs.
