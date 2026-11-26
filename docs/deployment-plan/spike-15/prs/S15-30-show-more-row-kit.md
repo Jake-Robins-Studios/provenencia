@@ -289,3 +289,12 @@ None.
 
 **Title:** S15-30 — The paged fold moves to the kit
 **Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-30-show-more-row-kit.md`.
+
+## Landed
+
+- The kit commit `98d25b8ce` does not build alone: the strings it needs land in `9a003305f`.
+- An extra T-4 commit, `d333cc4f2`, lays the test's list out before the caller asks for the scroll.
+- The T-4 harness turns animations off (`.transaction { $0.disablesAnimations = true }`), because an unshown window has no display link to step the scroll animation.
+- After the fix round, T-4's probe is shown from the start; on appear it asks `reveal(AnyHashable(11))` and then calls a `leave()` closure from the harness that clears `probing` in the same action, as `PVShowMoreRow.press` does on the last page. It no longer defers the leave with `DispatchQueue.main.async`.
+- The Timeline's `.environment(\.pvShowMoreReveal, …)` sits on the `PVWidthBreakpoints` list beside `pvScrollsRowIntoView`.
+- The manual check (section 10) was not run by the implementer.
