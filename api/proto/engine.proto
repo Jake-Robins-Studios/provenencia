@@ -501,10 +501,13 @@ message GetSourceWorkspaceResponse {
   // One board per Evidence graph of the Source, in graph list order: its type's
   // suggestions plus extras, by its layout.
   repeated MetadataBoard graph_metadata = 10;
-  // What the Source's type asks of the Source date and of the printed page; each
-  // absent when its citation formats do not read it.
+  // What the Source's type asks of the Source date; absent when its citation
+  // formats do not read it.
   CitationRequirement date_requirement = 11;
-  CitationRequirement page_requirement = 12;
+  // The printed page is a metadata field on the Citation board, not a Source
+  // requirement.
+  reserved 12;
+  reserved "page_requirement";
 }
 
 message CreateSourceRequest {

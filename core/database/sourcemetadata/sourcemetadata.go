@@ -1099,7 +1099,6 @@ func buildBoards(tx *sql.Tx, boards []ownerAbove) ([]Board, error) {
 		})}
 		if b.owner.Level == vocabkey.LevelSource {
 			out[i].Date = annotate(ln, citationformat.SourceDate, r, above, fields)
-			out[i].Page = annotate(ln, citationformat.CitationPage, r, above, fields)
 		}
 	}
 	return out, nil

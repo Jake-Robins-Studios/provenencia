@@ -40,12 +40,12 @@ func mustParse(t *testing.T, s string, f citationformat.Form) *citationformat.Te
 
 // A census format written out for the engine tests.
 const (
-	censusFull  = `{source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, {meta.schedule}][, ED {meta.enumeration_district}][, piece {meta.piece}][, fol. {meta.folio}][, p. {citation.page}][, schedule {meta.schedule_number}][, dwelling {meta.dwelling_number}][, family {meta.family_number}][, line {meta.line_number}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; citing {meta.citing}].`
-	censusShort = `{source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, ED {meta.enumeration_district}][, fol. {meta.folio}][, p. {citation.page}][, dwell. {meta.dwelling_number}][, fam. {meta.family_number}][, {meta.item}].`
+	censusFull  = `{source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, {meta.schedule}][, ED {meta.enumeration_district}][, piece {meta.piece}][, fol. {meta.folio}][, p. {meta.page}][, schedule {meta.schedule_number}][, dwelling {meta.dwelling_number}][, family {meta.family_number}][, line {meta.line_number}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; citing {meta.citing}].`
+	censusShort = `{source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, ED {meta.enumeration_district}][, fol. {meta.folio}][, p. {meta.page}][, dwell. {meta.dwelling_number}][, fam. {meta.family_number}][, {meta.item}].`
 )
 
 func censusValues() values {
-	src, cit := vocabkey.LevelSource, vocabkey.LevelCitation
+	src := vocabkey.LevelSource
 	return values{
 		builtin(src, "date"):         date(datevaluetest.YMD(1880, 0, 0)),
 		meta("creator"):              text("U.S."),
@@ -55,7 +55,7 @@ func censusValues() values {
 		meta("dwelling_number"):      text("112"),
 		meta("family_number"):        text("118"),
 		meta("item"):                 text("Ada Robins"),
-		builtin(cit, "page"):         text("14"),
+		meta("page"):                 text("14"),
 		meta("format"):               text("digital image"),
 		meta("provider"):             text("Ancestry"),
 		meta("url"):                  text("https://www.ancestry.com"),
@@ -151,7 +151,7 @@ func TestRender(t *testing.T) {
 }
 
 func TestRenderMarks(t *testing.T) {
-	src, cit := vocabkey.LevelSource, vocabkey.LevelCitation
+	src := vocabkey.LevelSource
 	unknown := valuemark.Mark{Unknown: true}
 	supplied := valuemark.Mark{Supplied: true}
 	tests := []struct {
@@ -167,7 +167,6 @@ func TestRenderMarks(t *testing.T) {
 		{"supplied text", "{meta.publication_place}", "full", values{meta("publication_place"): {Text: "Topeka", Mark: supplied}}, "[Topeka]"},
 		{"supplied date", "{source.date}", "full", values{builtin(src, "date"): {Date: datevaluetest.About(1880, 0, 0), Mark: supplied}}, "[ca. 1880]"},
 		{"unknown date", "{source.date}", "full", values{builtin(src, "date"): {Mark: unknown}}, "n.d."},
-		{"unknown page", "{citation.page}", "full", values{builtin(cit, "page"): {Mark: unknown}}, "unpaginated"},
 		{"unknown without text drops group", "x[, {meta.edition}]", "full", values{meta("edition"): {Mark: unknown}}, "x"},
 		{"unknown field wins", "{meta.short_title|source.title}", "full", values{
 			meta("short_title"): {Mark: unknown}, builtin(src, "title"): text("Kansas")}, ""},

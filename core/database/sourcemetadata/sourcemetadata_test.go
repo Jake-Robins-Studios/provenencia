@@ -3141,8 +3141,8 @@ func TestListWorkspacesAnnotations(t *testing.T) {
 		if len(b.Entries) != 1 || !reflect.DeepEqual(b.Entries[0].Annotation, Annotation{}) {
 			t.Errorf("entries = %+v, want the one suggestion with no annotation", b.Entries)
 		}
-		if b.Date.Need != "" || b.Page.Need != "" {
-			t.Errorf("date %+v, page %+v; want none", b.Date, b.Page)
+		if b.Date.Need != "" {
+			t.Errorf("date %+v; want none", b.Date)
 		}
 	})
 }
@@ -3264,15 +3264,14 @@ func TestSourceBoardBuiltins(t *testing.T) {
 	court := newSource(t, c, userID, seededType(t, c, "court_report").ID, "Report")
 	plain := sourcetypesLedger(t, c, userID)
 
-	if b := boardOf(t, c, sourceOwner(census.ID)); b.Date.Need != citationformat.NeedNeeded || b.Date.MetElsewhere || b.Page.Need != "" {
-		t.Errorf("census date %+v, page %+v; want date needed and unmet, page none", b.Date, b.Page)
+	if b := boardOf(t, c, sourceOwner(census.ID)); b.Date.Need != citationformat.NeedNeeded || b.Date.MetElsewhere {
+		t.Errorf("census date %+v; want needed and unmet", b.Date)
 	}
 	pages := seededField(t, c, "page_range")
 	e, ok := entryOf(boardOf(t, c, sourceOwner(court.ID)).Entries, "page")
-	if !ok || e.Annotation.Need != citationformat.NeedNeeded || e.Annotation.MetElsewhere || len(e.Annotation.Alternatives) != 2 ||
-		e.Annotation.Alternatives[0].Level != vocabkey.LevelCitation || e.Annotation.Alternatives[0].Builtin != "page" ||
-		e.Annotation.Alternatives[1].Field == nil || !bytes.Equal(e.Annotation.Alternatives[1].Field.ID, pages.ID) {
-		t.Errorf("court report page entry = %+v, %v; want suggested, needed, unmet, alternatives the citation page then page_range", e.Annotation, ok)
+	if !ok || e.Annotation.Need != citationformat.NeedNeeded || e.Annotation.MetElsewhere || len(e.Annotation.Alternatives) != 1 ||
+		e.Annotation.Alternatives[0].Field == nil || !bytes.Equal(e.Annotation.Alternatives[0].Field.ID, pages.ID) {
+		t.Errorf("court report page entry = %+v, %v; want suggested, needed, unmet, alternative page_range", e.Annotation, ok)
 	}
 	if _, err := runSet(c, userID, court.ID, Input{FieldID: pages.ID, ValueText: "12-14"}); err != nil {
 		t.Fatal(err)
@@ -3281,27 +3280,27 @@ func TestSourceBoardBuiltins(t *testing.T) {
 		t.Errorf("court report page entry with page_range = %+v, want met elsewhere", e.Annotation)
 	}
 	art := newLevelOwner(t, c, userID, census, vocabkey.LevelArtifact)
-	if ab := boardOf(t, c, art); ab.Date.Need != "" || ab.Page.Need != "" {
-		t.Errorf("artifact board date %+v, page %+v; want none", ab.Date, ab.Page)
+	if ab := boardOf(t, c, art); ab.Date.Need != "" {
+		t.Errorf("artifact board date %+v; want none", ab.Date)
 	}
-	if lb := boardOf(t, c, sourceOwner(plain.ID)); lb.Date.Need != "" || lb.Page.Need != "" {
-		t.Errorf("ledger date %+v, page %+v; want none", lb.Date, lb.Page)
+	if lb := boardOf(t, c, sourceOwner(plain.ID)); lb.Date.Need != "" {
+		t.Errorf("ledger date %+v; want none", lb.Date)
 	}
 
-	// The built-in page head stays held until S15-58 deletes it: a type whose
-	// format heads a chain with it.
+	// The built-in head path, held on the Source date: a type whose format
+	// heads a chain with it.
 	l := newLedger(t, c, userID)
-	l.setFormats(t, c, userID, sourcetypes.Formats{Full: "{citation.page|meta.page_range}."})
-	pb := boardOf(t, c, sourceOwner(l.src.ID)).Page
+	l.setFormats(t, c, userID, sourcetypes.Formats{Full: "{source.date|meta.page_range}."})
+	pb := boardOf(t, c, sourceOwner(l.src.ID)).Date
 	if pb.Need != citationformat.NeedNeeded || pb.MetElsewhere || len(pb.Alternatives) != 1 ||
 		pb.Alternatives[0].Field == nil || !bytes.Equal(pb.Alternatives[0].Field.ID, pages.ID) {
-		t.Errorf("built-in head page = %+v, want needed, unmet, one alternative page_range", pb)
+		t.Errorf("built-in head date = %+v, want needed, unmet, one alternative page_range", pb)
 	}
 	if _, err := runSet(c, userID, l.src.ID, Input{FieldID: pages.ID, ValueText: "12-14"}); err != nil {
 		t.Fatal(err)
 	}
-	if got := boardOf(t, c, sourceOwner(l.src.ID)).Page; !got.MetElsewhere {
-		t.Errorf("built-in head page with page_range = %+v, want met elsewhere", got)
+	if got := boardOf(t, c, sourceOwner(l.src.ID)).Date; !got.MetElsewhere {
+		t.Errorf("built-in head date with page_range = %+v, want met elsewhere", got)
 	}
 }
 
@@ -3424,8 +3423,8 @@ func TestSeedAnnotations(t *testing.T) {
 			if !slices.Equal(unsug, want.unsug) {
 				t.Errorf("unsuggested heads = %v, want %v", unsug, want.unsug)
 			}
-			if boards[0].Date.Need != want.date || boards[0].Page.Need != "" {
-				t.Errorf("date %q, page %q; want %q, none", boards[0].Date.Need, boards[0].Page.Need, want.date)
+			if boards[0].Date.Need != want.date {
+				t.Errorf("date %q; want %q", boards[0].Date.Need, want.date)
 			}
 			neededAtSource += len(needed)
 			unsuggested += len(unsug)

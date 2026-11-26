@@ -21,7 +21,6 @@ func TestBuiltins(t *testing.T) {
 		{vocabkey.LevelSource, "date", true, []citationformat.Option{"year", "full"}, false, "n.d."},
 		{vocabkey.LevelArtifact, "label", false, nil, true, ""},
 		{vocabkey.LevelGraph, "name", false, nil, true, ""},
-		{vocabkey.LevelCitation, "page", false, nil, false, "unpaginated"},
 		{vocabkey.LevelCitation, "image", false, nil, false, ""},
 		{vocabkey.LevelCitation, "label", false, nil, false, ""},
 	}
@@ -46,8 +45,8 @@ func TestBuiltins(t *testing.T) {
 			t.Errorf("row %d InListForm = %v", i, g.InListForm())
 		}
 	}
-	if _, ok := citationformat.LookupBuiltin(vocabkey.LevelCitation, "page"); !ok {
-		t.Error("citation.page not found")
+	if _, ok := citationformat.LookupBuiltin(vocabkey.LevelCitation, "page"); ok {
+		t.Error("citation.page found")
 	}
 	if _, ok := citationformat.LookupBuiltin(vocabkey.LevelSource, "page"); ok {
 		t.Error("source.page found")
@@ -89,7 +88,7 @@ func TestBuiltinTargets(t *testing.T) {
 	targets := []citationformat.Target{
 		citationformat.SourceTitle, citationformat.SourceType, citationformat.SourceDate,
 		citationformat.ArtifactLabel, citationformat.GraphName,
-		citationformat.CitationPage, citationformat.CitationImage, citationformat.CitationLabel,
+		citationformat.CitationImage, citationformat.CitationLabel,
 	}
 	seen := map[citationformat.Target]bool{}
 	for _, tg := range targets {

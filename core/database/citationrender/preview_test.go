@@ -82,7 +82,7 @@ func TestRenderPreview(t *testing.T) {
 			in:        PreviewInput{Form: citationformat.FormFull, Target: Target{SourceID: w.src.ID}},
 			wantPlain: censusFull},
 		{name: "AC-7.2 a Source target with no Citation renders from the Source alone",
-			in:        PreviewInput{Form: citationformat.FormShort, Target: Target{SourceID: bare.ID}, Format: strp(`{source.title}[, p. {citation.page}].`)},
+			in:        PreviewInput{Form: citationformat.FormShort, Target: Target{SourceID: bare.ID}, Format: strp(`{source.title}[, p. {meta.page}].`)},
 			wantPlain: "Bare census."},
 		{name: "AC-7.3 no target and a format that does not parse",
 			in:           PreviewInput{Form: citationformat.FormFull, Format: strp(`[, p.`)},

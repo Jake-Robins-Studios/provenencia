@@ -30,7 +30,6 @@ var (
 	SourceDate    = Target{Level: vocabkey.LevelSource, Builtin: "date"}
 	ArtifactLabel = Target{Level: vocabkey.LevelArtifact, Builtin: "label"}
 	GraphName     = Target{Level: vocabkey.LevelGraph, Builtin: "name"}
-	CitationPage  = Target{Level: vocabkey.LevelCitation, Builtin: "page"}
 	CitationImage = Target{Level: vocabkey.LevelCitation, Builtin: "image"}
 	CitationLabel = Target{Level: vocabkey.LevelCitation, Builtin: "label"}
 )
@@ -41,7 +40,6 @@ var builtins = []Builtin{
 	{Level: vocabkey.LevelSource, Name: "date", Date: true, Options: []Option{OptionYear, OptionFull}, UnknownText: "n.d."},
 	{Level: vocabkey.LevelArtifact, Name: "label", AlwaysSet: true},
 	{Level: vocabkey.LevelGraph, Name: "name", AlwaysSet: true},
-	{Level: vocabkey.LevelCitation, Name: "page", UnknownText: "unpaginated"},
 	{Level: vocabkey.LevelCitation, Name: "image"},
 	{Level: vocabkey.LevelCitation, Name: "label"},
 }
