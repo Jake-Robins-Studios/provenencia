@@ -1,7 +1,6 @@
 package effects
 
 import (
-	"database/sql"
 	"fmt"
 	"strings"
 
@@ -24,6 +23,47 @@ type walk struct {
 	ch     rowchange.Change
 	ghosts ghostMap
 	table  string
+	// memo holds each lookup's rows for the one change this walk resolves.
+	memo map[memoKey][][]byte
+}
+
+// memoKey names one lookup: its query text and the id it was run for.
+type memoKey struct {
+	query string
+	id    [16]byte
+}
+
+// lookup runs query for each 16-byte id and returns the 16-byte ids it
+// selects. The ids are the change's own when fromChange, else in. A walk lives
+// for one change and the catalog does not change while it resolves, so each
+// (query, id) runs once. The outer slice is new; its ids are shared with the
+// memo.
+func (w *walk) lookup(query string, in [][]byte, fromChange bool) ([][]byte, error) {
+	ids := in
+	if fromChange {
+		ids = [][]byte{w.ch.EntityID}
+	}
+	var out [][]byte
+	for _, id := range ids {
+		if len(id) != 16 {
+			continue
+		}
+		key := memoKey{query: query, id: [16]byte(id)}
+		rows, ok := w.memo[key]
+		if !ok {
+			got, err := dbsql.QueryIDs(w.q, query, id)
+			if err != nil {
+				return nil, err
+			}
+			rows = uuidsOnly(got)
+			if w.memo == nil {
+				w.memo = map[memoKey][][]byte{}
+			}
+			w.memo[key] = rows
+		}
+		out = append(out, rows...)
+	}
+	return out, nil
 }
 
 func self() Path {
@@ -152,24 +192,9 @@ func inbound(table, col string) Path {
 	ident(col)
 	return Path{
 		run: func(w *walk, in [][]byte, fromChange bool) ([][]byte, error) {
-			targets := in
-			if fromChange {
-				targets = [][]byte{w.ch.EntityID}
-			}
 			pk := pkOf(table)
 			q := fmt.Sprintf(`SELECT %s FROM %s WHERE %s = ?`, pk, table, col)
-			var out [][]byte
-			for _, id := range targets {
-				if len(id) != 16 {
-					continue
-				}
-				got, err := dbsql.QueryIDs(w.q, q, id)
-				if err != nil {
-					return nil, err
-				}
-				out = append(out, uuidsOnly(got)...)
-			}
-			return out, nil
+			return w.lookup(q, in, fromChange)
 		},
 		check: func(start string) (string, error) {
 			to, err := fkTarget(table, col)
@@ -195,10 +220,6 @@ func across(table, fromCol, toCol string, statuses ...string) Path {
 	}
 	return Path{
 		run: func(w *walk, in [][]byte, fromChange bool) ([][]byte, error) {
-			targets := in
-			if fromChange {
-				targets = [][]byte{w.ch.EntityID}
-			}
 			q := fmt.Sprintf(`SELECT %s FROM %s WHERE %s = ?`, toCol, table, fromCol)
 			if len(statuses) > 0 {
 				quoted := make([]string, len(statuses))
@@ -207,18 +228,7 @@ func across(table, fromCol, toCol string, statuses ...string) Path {
 				}
 				q += ` AND status IN (` + strings.Join(quoted, ", ") + `)`
 			}
-			var out [][]byte
-			for _, id := range targets {
-				if len(id) != 16 {
-					continue
-				}
-				got, err := dbsql.QueryIDs(w.q, q, id)
-				if err != nil {
-					return nil, err
-				}
-				out = append(out, uuidsOnly(got)...)
-			}
-			return out, nil
+			return w.lookup(q, in, fromChange)
 		},
 		check: func(start string) (string, error) {
 			to, err := fkTarget(table, fromCol)
@@ -354,22 +364,7 @@ func onDelete(inner Path) Path {
 func sqlPath(query string) Path {
 	return Path{
 		run: func(w *walk, in [][]byte, fromChange bool) ([][]byte, error) {
-			ids := in
-			if fromChange {
-				ids = [][]byte{w.ch.EntityID}
-			}
-			var out [][]byte
-			for _, id := range ids {
-				if len(id) != 16 {
-					continue
-				}
-				got, err := dbsql.QueryIDs(w.q, query, id)
-				if err != nil {
-					return nil, err
-				}
-				out = append(out, uuidsOnly(got)...)
-			}
-			return out, nil
+			return w.lookup(query, in, fromChange)
 		},
 		check: func(string) (string, error) { return "", nil },
 	}
@@ -440,13 +435,12 @@ func readRowsColumn(w *walk, table string, ids [][]byte, col string) ([][]byte, 
 		}
 		seen[string(id)] = true
 		var raw []byte
-		err := w.q.QueryRow(q, id).Scan(&raw)
-		if err == sql.ErrNoRows {
-			raw = nil
-			err = nil
-		}
+		rows, err := w.lookup(q, [][]byte{id}, false)
 		if err != nil {
 			return nil, err
+		}
+		if len(rows) > 0 {
+			raw = rows[0]
 		}
 		if len(raw) != 16 && entity != "" {
 			raw = w.ghosts.id(entity, id, col)
