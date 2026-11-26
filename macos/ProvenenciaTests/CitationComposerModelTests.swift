@@ -828,6 +828,15 @@ struct CitationComposerModelTests {
         return store
     }
 
+    /// Puts the composer place on screen, so its Citation list reloads on a write instead of going
+    /// stale: a test that settles writes then sees what the write's own reads did.
+    private func showComposerPlace(_ model: CitationComposerModel) {
+        model.session.apply(location: WorkspaceLocation(
+            section: .sources, sourceId: sourceID, graphId: graphID, subjectId: subjectID,
+            artifactId: "art-0", sourceSurface: .citationComposer
+        ))
+    }
+
     private func inheritedBoard(own: [String: String] = [:]) -> [CatalogMetadataEntry] {
         let fromGraph = CatalogInheritedMetadataValue(displayText: "2", isUnknown: false, level: .graph)
         let fromSource = CatalogInheritedMetadataValue(displayText: "Calder Gazette", isUnknown: false, level: .source)
@@ -844,6 +853,7 @@ struct CitationComposerModelTests {
     @Test func metadataSheetSavesOnItsOwn() async throws {
         let store = metadataStore()
         let model = makeModel(store: store, citationID: "cit-1")
+        showComposerPlace(model)
         await model.prepare()
         #expect(model.metadataCount == L10n.CitationComposer.metadataCountInherited(4))
 
@@ -878,7 +888,8 @@ struct CitationComposerModelTests {
         #expect(model.citationDescription == "typed, not saved")
         #expect(model.fields.isDirty)
 
-        await model.context.reloadListedCitations()
+        // The write's own citation_boards read reloads the list: no reload is asked for here.
+        await model.session.settleWrites()
         #expect(model.metadataCount == L10n.CitationComposer.metadataCount(own: 2, inherited: 2))
         #expect(model.hasUnsavedDocumentWork)  // the Label is still unsaved
     }
@@ -926,6 +937,82 @@ struct CitationComposerModelTests {
         #expect(!model.canEditMetadata)
     }
 
+    /// AC-1.3 after the first save, and D-12: while the first save runs the line has no error and no
+    /// button; once it ends the line counts what the new Citation inherits and the button is on.
+    @Test func newCitationLineAfterFirstSave() async throws {
+        let store = makeStore()
+        seedArtifact(store)
+        store.fieldsByProject[projectDir] = [pageField, columnField, publishedIn, provider]
+        store.draftMetadataBoardEntries["art-0,\(graphID)/citation"] = inheritedBoard()
+        store.nextWriteEffects = CatalogWriteEffects(
+            evidenceGraphs: [graphID],
+            reads: [
+                CatalogWriteEffectsRead(read: .citations, ids: [graphID]),
+                CatalogWriteEffectsRead(read: .citationBoards, ids: [graphID]),
+            ]
+        )
+        let model = makeModel(store: store)
+        showComposerPlace(model)
+        await model.prepare()
+        model.transcription = "note"
+
+        store.createCitationHold.isOn = true
+        let saving = Task { @MainActor in await model.fields.saveCitation() }
+        await store.createCitationHold.untilSuspended(1)
+        #expect(model.context.isCreatingCitation)
+        #expect(model.metadataLineError == nil)
+        #expect(!model.canEditMetadata)
+
+        // The Citation exists and is open, its list reload still running: the list lacks it, and the
+        // line shows no error and no button.
+        store.listCitationsHold.isOn = true
+        store.createCitationHold.isOn = false
+        store.createCitationHold.release()
+        await store.listCitationsHold.untilSuspended(1)
+        #expect(model.activeCitationID != nil)
+        #expect(model.listedCitation(model.activeCitationID ?? "") == nil)
+        #expect(model.metadataLineError == nil)
+        #expect(!model.canEditMetadata)
+
+        store.listCitationsHold.isOn = false
+        store.listCitationsHold.release()
+        await saving.value
+        await model.session.settleWrites()
+        #expect(model.activeCitationID != nil)
+        #expect(model.metadataLineError == nil)
+        #expect(model.metadataCount == L10n.CitationComposer.metadataCountInherited(4))
+        #expect(model.canEditMetadata)
+    }
+
+    /// A failed read of the Artifact's Citation list is the line's error, not a silent missing button.
+    @Test func metadataLineListFailure() async throws {
+        enum ListFailure: Error { case boom }
+        let store = metadataStore()
+        store.listCitationsByArtifactError = ListFailure.boom
+        let model = makeModel(store: store, citationID: "cit-1")
+        await model.prepare()
+        #expect(model.metadataLineError == L10n.Errors.message(for: ListFailure.boom))
+        #expect(!model.canEditMetadata)
+    }
+
+    /// Switching to an Artifact whose Citation opens reads no draft board: nothing would show it.
+    @Test func selectArtifactSkipsDraftReadWhenACitationOpens() async throws {
+        let store = metadataStore()
+        store.artifactsBySource[sourceID] = scans(2)
+        let model = makeModel(store: store, citationID: "cit-1")
+        await model.prepare()
+        let before = store.draftMetadataBoardCalls.count
+        store.citationsByID["cit-2"] = CatalogCitation(
+            id: "cit-2", ref: "CIT-2", artifactID: "art-1", locatorJSON: #"{"version":1,"selectors":[{"type":"artifact"}]}"#,
+            transcription: "", description: "", transcriptionUncertain: false, transcriptionNote: ""
+        )
+        model.requestSelectArtifact("art-1")
+        await model.awaitIdentitySwitch()
+        #expect(model.selectedArtifactID == "art-1")
+        #expect(model.activeCitationID == "cit-2")
+        #expect(store.draftMetadataBoardCalls.count == before)
+    }
+
     /// AC-1.6: a board that cannot be read is one error in place of the line.
     @Test func metadataLineFailure() async throws {
         let refusing = makeStore()
@@ -960,6 +1047,29 @@ struct CitationComposerModelTests {
         _ = await sheet.board.add(fieldID: pageField.id, valueText: "3")
         #expect(sheet.host.isChanged)
         #expect(sheet.canSave)
+    }
+
+    /// AC-1.5: text typed in a board row and not confirmed counts as a change: the sheet asks before
+    /// it closes, Save is on, and Save stops with the unconfirmed-input message at the top.
+    @Test func metadataSheetUnconfirmedInput() async throws {
+        let store = metadataStore()
+        let model = makeModel(store: store, citationID: "cit-1")
+        await model.prepare()
+        model.requestEditMetadata()
+        let sheet = try #require(model.metadataSheet)
+        #expect(!sheet.isDirty)
+        sheet.board.setTyped(true, fieldID: pageField.id)
+        #expect(!sheet.host.isChanged)
+        #expect(sheet.isDirty)
+        #expect(sheet.canSave)
+        #expect(model.metadataSheetIsChanged)
+
+        let opened = sheet.scrollRequest
+        #expect(!(await sheet.save()))
+        #expect(sheet.saveError == sheet.board.unconfirmedInputMessage)
+        #expect(sheet.scrollTarget == .top)
+        #expect(sheet.scrollRequest != opened)
+        #expect(store.updateCitationMetadata.isEmpty)
     }
 
     @Test func newCitationFromTheObservationDialogClearsTheLocator() async {

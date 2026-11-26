@@ -154,13 +154,14 @@ final class CitationComposerModel {
     var artifacts: [CatalogArtifact] {
         session.linkedArtifacts(graphID: graphID, artifacts: workspace?.artifacts ?? []) ?? []
     }
-    var listedCitations: [CatalogListedCitation] {
-        guard let artifactID = selectedArtifactID else { return [] }
-        let handle: QueryHandle<[CatalogListedCitation]>? = session.queryHandle(
-            context.citationsKey(artifactID: artifactID)
-        )
-        return handle?.value ?? []
+    /// The selected Artifact's Citation list handle, once the session holds it.
+    var listedCitationsHandle: QueryHandle<[CatalogListedCitation]>? {
+        guard let artifactID = selectedArtifactID else { return nil }
+        return session.queryHandle(context.citationsKey(artifactID: artifactID))
     }
+    /// The cached Citation list of the selected Artifact; nil until it first loads.
+    var listedCitationsValue: [CatalogListedCitation]? { listedCitationsHandle?.value }
+    var listedCitations: [CatalogListedCitation] { listedCitationsValue ?? [] }
 
     private(set) var identityAnnouncement: String = ""
     var landingColumn: Int64?
@@ -1031,11 +1032,12 @@ final class CitationComposerModel {
         if Task.isCancelled { return }
         await applySelectedArtifact(id)
         if Task.isCancelled { return }
-        refreshDraftMetadata()
         await reloadListedCitations()
         let ordered = CitationComposerAuthoring.stepperOrder(listedCitations)
         if let first = ordered.first {
             _ = await showingLoadFailure(citationID: first.citation.id) { try await loadCitation(first.citation.id) }
+        } else {
+            refreshDraftMetadata()
         }
         if Task.isCancelled { return }
         await presentAfterIdentityChange()

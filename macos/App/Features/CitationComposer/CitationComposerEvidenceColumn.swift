@@ -315,6 +315,8 @@ struct CitationComposerEvidenceColumn: View {
                 .font(PVFont.body(size: PVTypeScale.caption, italic: isNew))
                 .foregroundStyle(PVColor.textMuted)
                 .fixedSize(horizontal: false, vertical: true)
+                // The button speaks the count as its hint.
+                .accessibilityHidden(true)
                 .accessibilityIdentifier("citationComposer.metadataCount")
         }
     }

@@ -31,6 +31,8 @@ private struct CitationMetadataSheetModifier: ViewModifier {
             confirmDisabled: !(model?.canSave ?? false),
             accessibilityIdentifierPrefix: "citationComposer.metadataSheet",
             scrollsBody: true,
+            scrollTarget: model?.scrollTarget.map { AnyHashable($0) },
+            scrollRequest: model.map { AnyHashable($0.scrollRequest) },
             onConfirm: { await $0.save() },
             form: { current in CitationMetadataSheetForm(model: current) }
         )
@@ -55,5 +57,6 @@ private struct CitationMetadataSheetForm: View {
             )
             .disabled(model.isSaving)
         }
+        .id(CitationMetadataSheetModel.Section.top)
     }
 }

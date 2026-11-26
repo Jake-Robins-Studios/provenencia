@@ -6,15 +6,6 @@ import Foundation
 /// sheet save, a Citation create, a value moved at any level). A new Citation
 /// reads the board it would start with once, when it is opened.
 extension CitationComposerModel {
-    /// The cached Citation list of the selected Artifact; nil until it first loads.
-    private var listedCitationsValue: [CatalogListedCitation]? {
-        guard let artifactID = selectedArtifactID else { return nil }
-        let handle: QueryHandle<[CatalogListedCitation]>? = session.queryHandle(
-            context.citationsKey(artifactID: artifactID)
-        )
-        return handle?.value
-    }
-
     /// Every metadata field the researcher can add to a board.
     var metadataFields: [CatalogMetadataField] { context.metadataFields }
 
@@ -22,15 +13,17 @@ extension CitationComposerModel {
     /// list has no row for the open one.
     var metadataRows: [CatalogMetadataEntry]? {
         guard let id = activeCitationID else { return nil }
-        return listedCitationsValue?.first { $0.id == id }?.metadata
+        return listedCitation(id)?.metadata
     }
 
     /// Why the line shows an error in place of its button, or nil. A new Citation fails when its
-    /// board could not be read; a saved one when the cached list is loaded and lacks it, unless its
-    /// first save is still running (its id is set before the list reload ends).
+    /// board could not be read; a saved one when the list could not be read, or is loaded and lacks
+    /// it, unless its first save is still running (its id is set before the list reload ends).
     var metadataLineError: String? {
         guard let id = activeCitationID else { return draftMetadataFailure }
-        guard let list = listedCitationsValue else { return nil }
+        guard let list = listedCitationsValue else {
+            return listedCitationsHandle?.failure.map { L10n.Errors.message(for: $0) }
+        }
         if list.contains(where: { $0.id == id }) || context.isCreatingCitation { return nil }
         return L10n.string(L10n.CitationComposer.metadataBoardUnavailable)
     }
@@ -76,7 +69,7 @@ extension CitationComposerModel {
 
     /// True when the sheet, shown or stepped aside for a leave confirm, holds changes.
     var metadataSheetIsChanged: Bool {
-        sheet(in: presented)?.host.isChanged ?? false
+        sheet(in: presented)?.board.hasUnsavedChanges ?? false
     }
 
     private func sheet(in dialog: ComposerPresented?) -> CitationMetadataSheetModel? {

@@ -300,6 +300,14 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     private(set) var draftMetadataBoardCalls: [(parents: [MetadataOwner], level: Level)] = []
     /// Awaited first in `getDraftMetadataBoard`, so a test can act while an Add form's read is in flight.
     let draftMetadataBoardHold = FakeHold()
+    /// When set, `listCitationsByArtifact` throws it.
+    var listCitationsByArtifactError: Error?
+    /// Awaited in `createCitationWithObservations` after its call is recorded, so a test can look at
+    /// the composer while a first save is in flight.
+    let createCitationHold = FakeHold()
+    /// Awaited at the start of `listCitationsByArtifact`, so a test can look at the composer while a
+    /// Citation list reload is in flight.
+    let listCitationsHold = FakeHold()
     /// While on, `updateArtifact` suspends after recording the call and before it
     /// throws or writes, so a test can act mid-save.
     let updateArtifactHold = FakeHold()
@@ -2822,6 +2830,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
             recordedCalls.append("createCitationWithObservations graph=\(graphID) observations=\(drafts.count)")
             return createCitationDelayNanoseconds
         }
+        await createCitationHold.wait()
         if delay > 0 {
             try await Task.sleep(nanoseconds: delay)
         }
@@ -2839,6 +2848,9 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
             )
             citationsByID[citation.id] = citation
             citationNotesByID[citation.id] = citationNotes
+            // A new Citation holds no value of its own: its board is what it inherits.
+            metadataByOwner[MetadataOwner(level: .citation, id: citation.id)] =
+                draftMetadataBoardEntries["\([artifactID, graphID].sorted().joined(separator: ","))/citation"] ?? []
             let created = try appendFakeObservations(
                 projectDir: projectDir,
                 citationID: citation.id,
@@ -3539,8 +3551,10 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         graphID: String,
         artifactID: String
     ) async throws -> [CatalogListedCitation] {
-        return withState {
+        await listCitationsHold.wait()
+        return try withState {
             markCatalogSessionHeld(projectDir)
+            if let listCitationsByArtifactError { throw listCitationsByArtifactError }
             let listed = citationsByID.values
                 .filter { $0.artifactID == artifactID }
             return listed.map { citation in

@@ -15,6 +15,14 @@ final class CitationMetadataSheetModel {
     /// Why the last Save stopped, shown at the top of the sheet; nil otherwise.
     var saveError: String?
     private(set) var isSaving = false
+    /// Which part of the body a Save asks to scroll to; the save error sits at the top.
+    private(set) var scrollTarget: Section?
+    /// Changes each time a Save asks the body to scroll to `scrollTarget` again.
+    private(set) var scrollRequest = 0
+
+    enum Section: Hashable {
+        case top
+    }
 
     @ObservationIgnored private let context: CitationComposerContext
     @ObservationIgnored private let onSaved: @MainActor () -> Void
@@ -45,8 +53,10 @@ final class CitationMetadataSheetModel {
         )
     }
 
-    var isDirty: Bool { host.isChanged }
-    var canSave: Bool { host.isChanged && !isSaving }
+    /// Typed text not yet confirmed counts: the sheet asks before it closes over it, and Save is on
+    /// so it can say what is left to finish.
+    var isDirty: Bool { board.hasUnsavedChanges }
+    var canSave: Bool { board.hasUnsavedChanges && !isSaving }
 
     /// Writes the board's changes with the Citation's stored columns. True when the sheet may close.
     func save() async -> Bool {
@@ -54,6 +64,7 @@ final class CitationMetadataSheetModel {
         saveError = nil
         if let message = board.unconfirmedInputMessage {
             saveError = message
+            scrollToTop()
             return false
         }
         guard let draft = host.draft else { return true }
@@ -78,8 +89,15 @@ final class CitationMetadataSheetModel {
         } catch {
             if board.showRefusal(error) { return false }
             saveError = L10n.Errors.message(for: error)
+            scrollToTop()
             return false
         }
+    }
+
+    /// The save error sits at the top of the body: ask for it.
+    private func scrollToTop() {
+        scrollTarget = .top
+        scrollRequest += 1
     }
 }
 
