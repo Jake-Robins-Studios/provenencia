@@ -81,8 +81,8 @@ func TestPlaceholders(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(types) != 26 {
-			t.Fatalf("got %d seeded types, want 26", len(types))
+		if len(types) != 27 {
+			t.Fatalf("got %d seeded types, want 27", len(types))
 		}
 		for _, typ := range types {
 			view, err := sourcetypes.GetFormats(w.c, typ.ID)

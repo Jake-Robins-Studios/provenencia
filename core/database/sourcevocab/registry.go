@@ -222,12 +222,22 @@ var seedTypes = []seedType{
 	},
 	{
 		Key: "book", Label: "Book",
-		Description: "A book, chapter, map, CD or film.",
+		Description: "A book, chapter, CD or film.",
 		IconKey:     "type_book",
 		Formats: sourcetypes.Formats{
 			Full:  `{meta.author}[, ed. {meta.editor}][, comp. {meta.compiler}][, trans. {meta.translator}], *{source.title}*[, {meta.edition} ed.][, vol. {meta.volume}][, {meta.series}][ ([{meta.publication_place}: ]{meta.publisher}[, {source.date:year}])][, {meta.page}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])].`,
 			Short: `{meta.author}, *{meta.short_title|source.title}*[, {meta.page}].`,
 			List:  `{meta.author_sort|meta.author}. *{source.title}*.[ {meta.edition} ed.][ [{meta.publication_place}: ]{meta.publisher}[, {source.date:year}].]`,
+		},
+	},
+	{
+		Key: "map", Label: "Map",
+		Description: "A printed or hand-drawn map, plat or atlas.",
+		IconKey:     "type_map",
+		Formats: sourcetypes.Formats{
+			Full:  `[{meta.author}, ]*{source.title}*[ ([{meta.publication_place}: ][{meta.publisher}, ]{source.date:year})][, p. {meta.page}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; citing {meta.citing}][; {meta.repository}].`,
+			Short: `[{meta.author}, ]*{meta.short_title|source.title}*[, {meta.item}].`,
+			List:  `[{meta.author_sort|meta.author}. ]*{source.title}*.[ [{meta.publication_place}: ][{meta.publisher}, ]{source.date:year}.][ {meta.repository}.]`,
 		},
 	},
 	{

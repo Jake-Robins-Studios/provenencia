@@ -450,3 +450,49 @@ func TestRenderSeededPage(t *testing.T) {
 		}
 	})
 }
+
+// TestRenderSeededMap: on a new project the seeded map type cites a printed
+// map by its maker, title and imprint, the spot on the map at the Citation,
+// and the digital copy the researcher used.
+func TestRenderSeededMap(t *testing.T) {
+	w := newRenderWorld(t)
+	ids := fieldIDsByKey(t, w.dir)
+	cite := func(t *testing.T, source map[string]string) (full, short string) {
+		t.Helper()
+		src := seededSourceOfType(t, w.dir, w.userID, "map")
+		mustRPC(t, SetSourceDate, &engine.SetSourceDateRequest{
+			ProjectDir: w.dir, UserId: w.userID, SourceId: src, Date: pointDate(1871, 0, 0),
+		}, &engine.SetSourceDateResponse{})
+		setValues(t, w.dir, w.userID, ids, "source", src, source)
+		art, graph := newArtifact(t, w.dir, w.userID, src, "Scan")
+		citation := newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator)
+		setValues(t, w.dir, w.userID, ids, "citation", citation, map[string]string{"item": "Con. 5, lot 12"})
+		out, err := renderCitations(t, w.dir, citation)
+		if err != nil {
+			t.Fatal(err)
+		}
+		c := out.GetCitations()[0]
+		return c.GetFull().GetPlain(), c.GetShort().GetPlain()
+	}
+
+	t.Run("a published map seen as a digital image", func(t *testing.T) {
+		full, short := cite(t, map[string]string{
+			"author": "Ezra Hale", "publication_place": "Port Ellis", "publisher": "Hale & Sons",
+			"format": "digital image", "provider": "Westmark Heritage",
+			"url": "https://example.org/calder-1871", "accessed_date": "26 November 2026",
+		})
+		if want := "Ezra Hale, map (Port Ellis: Hale & Sons, 1871), Con. 5, lot 12; digital image, Westmark Heritage (https://example.org/calder-1871 : accessed 26 November 2026)."; full != want {
+			t.Errorf("full = %q\nwant %q", full, want)
+		}
+		if want := "Ezra Hale, map, Con. 5, lot 12."; short != want {
+			t.Errorf("short = %q\nwant %q", short, want)
+		}
+	})
+
+	t.Run("a map with no maker or imprint still cites its year", func(t *testing.T) {
+		full, _ := cite(t, map[string]string{})
+		if want := "map (1871), Con. 5, lot 12."; full != want {
+			t.Errorf("full = %q\nwant %q", full, want)
+		}
+	})
+}
