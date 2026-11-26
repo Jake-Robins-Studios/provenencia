@@ -1,9 +1,9 @@
 # S15-27 — The provenance table folds a page at a time
 
-**Status:** Planned
+**Status:** Landed in [#1006](https://github.com/Jake-Robins-Studios/provenencia/pull/1006) (2026-11-26)
 **Spike / slice:** Spike 15 · Slice 8 — Provenance loading
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D17](../design/S15-D17-provenance-table-fold.md), board agreed 2026-11-26
+**Brief:** [S15-D17](../design/archive/S15-D17-provenance-table-fold.md), board agreed 2026-11-26
 **Board:** agreed 2026-11-26 (user) — the [Person page board](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ), page *Vitals*, turn 21 "S15-D17 · Provenance sheet — the record table's fold": frames 21a – 21g, 21i, 21j and the decision notes Kit, RF-4, RF-3, RF-6, Scroll area. The frames are live (press Show more). No frame draws owner groups past the fold; T-3 holds AC-2.1. **§ 6 macOS** says where the app departs from a board note
 **Depends on:** S15-30 (landed [#996](https://github.com/Jake-Robins-Studios/provenencia/pull/996)), S15-21 (landed [#930](https://github.com/Jake-Robins-Studios/provenencia/pull/930)), S15-D17
 **Blocks:** —
@@ -296,3 +296,8 @@ None.
 
 **Title:** S15-27 — The provenance table folds a page at a time
 **Body:** objective in one sentence; what shipped against each US; AC evidence; the before and after first-layout figures; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-27-provenance-table-fold.md`.
+
+## Landed
+
+- The manual check (section 10) was not run by the implementer: the press, focus and Tab ACs (AC-1.4's presses, AC-3.1 – AC-3.4) and AC-1.6 are unchecked by hand.
+- First layout, Debug, best of 3: 300 records 1558 ms and a 24,900 pt document before, 271 ms and 4,185 pt after; 1,200 records 6691 ms and 99,600 pt before, 268 ms and 4,185 pt after.
