@@ -1,6 +1,6 @@
 # S15-58 — The page built-in goes
 
-**Status:** Draft
+**Status:** Planned
 **Spike / slice:** Spike 15 · Slice 11 — Metadata at any level
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: no view's layout or components change; the format editor's completion list is engine data and loses the `citation.page` row, as a deleted field would lose its row)
@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc` (table tests)
 **Context:** map scope entry S15-58 ([`../deployment-plan.md`](../deployment-plan.md)); working rules "The printed page is a metadata field", "A format reads a field from the nearest level that holds it", "Citation formats are data on the Source type", "Boards flag needed fields; the engine decides the rows", "The seed is the product default"; [`../evidence-explained-citation-map.md`](../evidence-explained-citation-map.md) §§ 1, 6.3, 6.8, 6.9, 6.10; [`docs/citation-formats.md`](../../../citation-formats.md); [`docs/source-layer-data-model.md`](../../../source-layer-data-model.md) § 5.2
 **Planned:** 2026-11-26 against `main` @ `674de5a`
-**Review:** [`S15-58-page-builtin-goes.review.md`](S15-58-page-builtin-goes.review.md) — Fits with changes / Not ready at round 1; round 2 pending
+**Review:** [`S15-58-page-builtin-goes.review.md`](S15-58-page-builtin-goes.review.md) — Fits with changes / Ready with changes, two rounds; every finding Fixed or Declined; nothing open
 
 ### Implementer — read this first
 
@@ -159,7 +159,7 @@ None — no catalog change (D-5).
 | `core/citationformat` | `builtins.go`: the `CitationPage` target and its row go (D-1) |
 | `core/database/sourcevocab` | `registry.go`: D-2's text edit |
 | `core/database/citationrender` | `load.go` `fillValues`: the `CitationPage` line goes |
-| `core/database/sourcemetadata` | `annotation.go`: `Board` keeps `Entries` and `Date`; its comment says only a Source board carries the date's annotation. `needsAt` drops `\|\| t == citationformat.CitationPage`; the `levelNeeds` and `needsAt` comments name the Source date alone (D-4). `sourcemetadata.go` `buildBoards`: the `Page` line goes |
+| `core/database/sourcemetadata` | `annotation.go`: `Board` keeps `Entries` and `Date`; its comment says only a Source board carries the date's annotation. `needsAt` drops `\|\| t == citationformat.CitationPage`; the `levelNeeds`, `needsAt` and `Annotation` comments name the Source date alone (D-4). `sourcemetadata.go` `buildBoards`: the `Page` line goes |
 
 Errors: none new; `citationformat.CodeUnknownBuiltin` covers `{citation.page}`.
 
@@ -195,7 +195,7 @@ Check: `rg -c 'citation\.page' core/database/sourcevocab/registry.go` prints not
 
 **STEP-3 — The Source board stops annotating a page**
 Files: `core/database/sourcemetadata/annotation.go`, `sourcemetadata.go`, `annotation_test.go`, `annotation_fuzz_test.go`, `sourcemetadata_test.go`.
-Do: the `sourcemetadata` row of §6 Go core. `TestNeedsAt`: "a built-in head leaves its options used" reads `{source.date|meta.<p>}` and its `page` column checks `builtinHeads[citationformat.SourceDate]` (rename the column `builtin`); "built-in heads only at the source level" reads `{source.date}`. `TestCitationValuesResolve` "a built-in that is not": target `citationformat.CitationImage`. `TestAppendOptions`: `CitationImage` in place of `CitationPage`. `FuzzAnnotate`: seed 1's third format `{citation.page|meta.<b>}` becomes `{source.date|meta.<b>}`, seed 2's first `{source.date}, {citation.page|meta.<a>|meta.<b>}` becomes `{source.date}, {meta.<a>|meta.<b>}`, and the call annotates `SourceDate`. `TestListWorkspacesAnnotations` and `TestSeedAnnotations`: their `Page` conditions and the page half of their messages go. `TestSourceBoardBuiltins`: drop each `.Page` assertion; the court report `page` entry asserts `len(Alternatives) == 1` and `Alternatives[0].Field.ID` equal to `pages.ID`, with its message "want suggested, needed, unmet, alternative page_range"; D-7.
+Do: the `sourcemetadata` row of §6 Go core. `TestNeedsAt`: "a built-in head leaves its options used" reads `{source.date|meta.<p>}` and its `page` column checks `builtinHeads[citationformat.SourceDate]` (rename the column `builtin`); "built-in heads only at the source level" reads `{source.date}`. `TestCitationValuesResolve` "a built-in that is not": target `citationformat.CitationImage`. `TestAppendOptions`: `CitationImage` in place of `CitationPage`. `FuzzAnnotate`: seed 1's third format `{citation.page|meta.<b>}` becomes `{source.date|meta.<b>}`, seed 2's first `{source.date}, {citation.page|meta.<a>|meta.<b>}` becomes `{source.date}, {meta.<a>|meta.<b>}`, and the call annotates `SourceDate`. `TestListWorkspacesAnnotations` and `TestSeedAnnotations`: their `Page` conditions and the page half of their messages go. `TestSourceBoardBuiltins`: drop each `.Page` assertion; the court report `page` entry asserts `len(Alternatives) == 1` and `Alternatives[0].Field.ID` equal to `pages.ID`, with its message "want suggested, needed, unmet, alternative page_range"; D-7, with the case's comment saying it holds the built-in-head path on the Source date.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcemetadata/...` passes; `CGO_ENABLED=1 go test -tags fts5 -run FuzzAnnotate -fuzz FuzzAnnotate -fuzztime 20s ./core/database/sourcemetadata` passes.
 
 **STEP-4 — The renderer stops setting it**
@@ -214,7 +214,7 @@ Do: the §6 macOS table and §6 Strings.
 Check: on the Mac, `CGO_ENABLED=1 go test -tags fts5 -run TestSwiftVocabularyMatchesGo ./api/ffi/` passes; `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS'` passes with no Swift warning.
 
 **STEP-7 — Docs**
-Files: `docs/citation-formats.md`, `docs/source-layer-data-model.md`, `docs/deployment-plan/spike-15/evidence-explained-citation-map.md`, `deployment-plan.md`, `completed.md`, this plan.
+Files: `docs/citation-formats.md`, `docs/source-layer-data-model.md`, `docs/interpretation-layer-data-model.md`, `docs/deployment-plan/spike-15/evidence-explained-citation-map.md`, `deployment-plan.md`, `completed.md`, this plan.
 Do: `citation-formats.md`: the `citation.page` row of the built-ins table goes; "The Citation level's built-ins are `citation.image` and `citation.label`"; "What each built-in reads" loses its `citation.page` clause. `source-layer-data-model.md` § 5.2: "A Source's board also carries what the formats ask of the Source date." `docs/interpretation-layer-data-model.md` § 3.2: "A citation prints an unknown page as \"unpaginated\" and a supplied one in square brackets." becomes "No citation reads these marks; a citation prints the Page field's marks." Citation map: § 1's Citation row drops the clause "; a locator's `page_label` answers until S15-58"; § 6.3's built-ins table loses the `{citation.page}` row; each `{meta.page|citation.page}` in §§ 6.8's format listings becomes `{meta.page}` and court report's becomes `{meta.page|meta.page_range}`; § 6.9 loses the sentence "Until S15-58 the seed reads `{meta.page|citation.page}`, so a locator's printed page answers when no level holds a value."; § 6.10's "Built-ins" paragraph reads "`{source.date}` is flagged in the Source page header where the date sits. Labels and titles always have a value." `deployment-plan.md`: rule "Citation formats are data on the Source type" loses "; `{citation.page}` until S15-58".
 Check: `rg -n 'citation\.page' docs --glob '!docs/deployment-plan/spike-15/prs/**' --glob '!docs/deployment-plan/spike-15/design/archive/**' --glob '!*.review.md'` hits only history that stays: `completed.md` (the S15-60 paragraph) and in `deployment-plan.md` the rule "The printed page is a metadata field", the S15-58 and S15-60 rows, the S15-60, S15-56 and S15-58 scope entries and the "S15-58 — S16-79" dependency line; and `docs/deployment-plan/spike-16/deployment-plan.md`'s S16-79 row; `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-58-page-builtin-goes.md` passes.
 

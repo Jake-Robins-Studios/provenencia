@@ -1,7 +1,7 @@
 # Review — S15-58 The page built-in goes
 
-**Verdict:** round 1: Fits with changes — Not ready; round 2 pending
-**Rounds:** 1. **Reviewers:** maintainability (opus), executability (sonnet)
+**Verdict:** Fits with changes — Ready with changes
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
 - None.
@@ -67,10 +67,30 @@ Also hits `completed.md`, rule "The printed page is a metadata field", the S15-6
 ### M-6 · nit · §1 What stays restates §3
 **Answer:** Fixed — trimmed to one sentence.
 
+## Round 2
+
+### X-10 · blocker · STEP-3's check cannot pass before the board and wire edits
+`citationrender` imports `sourcemetadata`, which still named `CitationPage`; the handlers need `sources.go` fixed.
+**Answer:** Fixed — the board step is now STEP-3 and the renderer STEP-4; the handler render tests run in STEP-5's check.
+
+### X-11 · major · STEP-7's docs check misses two history lines; § 1 edit ambiguous
+**Answer:** Fixed — the expected hits name the "S15-58 — S16-79" dependency line and Spike 16's S16-79 row; § 1 drops one named clause.
+
+### X-12 · minor · FuzzAnnotate seed edits
+**Answer:** Fixed — STEP-3 gives both seeds' exact text.
+
+### X-13 · minor · TestSourceBoardBuiltins court-report indexes
+**Answer:** Fixed — STEP-3 gives the length, index and message.
+
+### M-7 · blocker · STEP-7's check and Files
+**Answer:** Fixed — the hit list was corrected with X-11; STEP-7 Files adds `docs/interpretation-layer-data-model.md`. The `Annotation` comment and `TestSourceBoardBuiltins`' case comment are added to STEP-3; the proto comment is D-6's.
+
 ## Cost
-Plan: 4,065 words at round 1.
+Plan: 4,065 words at round 1, about 4,560 at the verdict.
 
 | Round | Reviewer | Model | Tokens |
 | --- | --- | --- | --- |
 | 1 | maintainability | opus | 140k |
 | 1 | executability | sonnet | 135k |
+| 2 | maintainability | opus | 143k |
+| 2 | executability | sonnet | 129k |
