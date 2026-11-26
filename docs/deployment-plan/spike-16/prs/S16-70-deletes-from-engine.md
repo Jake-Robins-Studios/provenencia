@@ -56,16 +56,16 @@ A Source delete reaches the Swift query cache twice today: the client's own `.de
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-2.1 | `.sourcesList` holds `s1`, `s2`; `apply(effects)` with `deleted: [.source: ["s1"]]`, revision 7 | The list holds `s2`; not stale; `store.listSourcesCalls` and `store.listSourcesByIDCalls` unchanged |
+| AC-2.1 | `.sourcesList` holds `s1`, `s2`; `apply(effects)` with `deleted: [CatalogWriteEffectsDeleted(entity: .source, ids: ["s1"])]`, revision 7 | The list holds `s2`; not stale; `store.listSourcesCalls` and `store.listSourcesByIDCalls` unchanged |
 | AC-2.2 | The same write with revision 0 (no activity) | The list holds `s2` |
 | AC-2.3 | The same write naming `"gone"`, an id the list lacks | The list holds `s1`, `s2`; not stale |
-| AC-2.4 | `.sourceTypesList` warmed and hidden; the store's `t1` row now has `usedBy` 1 (was 2); `apply(effects)` with `deleted: [.source: ["s1"]]` | After `settleWrites()`, the list's `t1` row has `usedBy` 1 (the default `.revalidate` policy reloads it) |
+| AC-2.4 | `.sourceTypesList` warmed and hidden; the store's `t1` row now has `usedBy` 1 (was 2); `apply(effects)` with `deleted: [CatalogWriteEffectsDeleted(entity: .source, ids: ["s1"])]` | After `settleWrites()`, the list's `t1` row has `usedBy` 1 (the default `.revalidate` policy reloads it) |
 | AC-2.5 | The same list; `apply(effects)` with only `sourceScopes: ["s1"]`, revision 7 | The list's `t1` row keeps `usedBy` 2 |
-| AC-2.6 | Hidden `.sourceWorkspace` keys for `s1` and `s2`; `apply(effects)` with `deleted: [.source: ["s1"]]` | `queryHandle(.sourceWorkspace(s1))` is nil; `s2`'s handle is kept and not stale |
-| AC-2.7 | `.sourceTypesList` holds `t-book`, `t-census`; `apply(effects)` with `deleted: [.sourceType: ["t-book"]]`, twice | The list holds `t-census` after each; not stale; not fetching |
+| AC-2.6 | Hidden `.sourceWorkspace` keys for `s1` and `s2`; `apply(effects)` with `deleted: [CatalogWriteEffectsDeleted(entity: .source, ids: ["s1"])]` | `queryHandle(.sourceWorkspace(s1))` is nil; `s2`'s handle is kept and not stale |
+| AC-2.7 | `.sourceTypesList` holds `t-book`, `t-census`; `apply(effects)` with `deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["t-book"])]`, twice | The list holds `t-census` after each; not stale; not fetching |
 | AC-2.8 | The Source page on screen; `confirmResourceDelete(leaving:)` with `store.nextWriteEffects` naming the Source deleted | `leave` runs once; `queryHandle(.sourceWorkspace(sourceID))` is nil; `store.getSourceWorkspaceCalls` unchanged |
 | AC-2.9 | The Source type page; `confirmDelete(leaving:)` with `store.nextWriteEffects` naming the type deleted | `leave` runs once; the session's types list holds the other type only |
-| AC-2.10 | `CatalogQueryKey.Kind.sourceWorkspace.descriptor` | `deletedWith == .source`; `isEntityPage == false`; `invalidateOn` does not hold a delete kind |
+| AC-2.10 | `CatalogQueryKey.Kind.sourceWorkspace.descriptor` | `deletedWith == .source`; `isEntityPage == false`; and `.sourcesList`'s `invalidateOn` is empty |
 
 **US-3.** As a contributor, when I look for how a delete reaches the cache, I find one way.
 
@@ -235,13 +235,13 @@ Check: `xcodebuild` builds; the Swift tests pass unchanged.
 
 **STEP-4 — The descriptors follow the effects**
 Files: `CatalogQueryRegistry.swift`, `CatalogQueryRegistryTests.swift`, `WorkspaceSessionTests.swift`.
-Do: per the Sources list, Source types list and Source page key rows, adding `deletedRows`, `followsAnyId` and `deletedWith: .source`. Every `.deletedSource` and `.deletedSourceType` entry stays until STEP-5. Write T-4 – T-6, T-8 and T-9.
+Do: per the Sources list, Source types list and Source page key rows, adding `deletedRows`, `followsAnyId` and `deletedWith: .source`. Every `.deletedSource` and `.deletedSourceType` entry stays until STEP-5, `.sourcesList`'s `invalidateOn` and `invalidation` included. Write T-4 – T-6, T-8, and T-9 without its `.sourcesList` `invalidateOn.isEmpty` line, which STEP-5 adds.
 Check: build; T-4 – T-6, T-8, T-9 and every other Swift test pass.
 Commit (STEP-3 and STEP-4): "Drop a deleted Source or Source type from the lists by the write's effects."
 
 **STEP-5 — The pages apply effects alone; the mutations go**
 Files: `SourcePageModel.swift`, `SourceTypePageModel.swift`, `CatalogMutation.swift`, `CatalogQueryPatch.swift`, `CatalogQueryRegistry.swift`, and the test files of T-7 and T-10 – T-13.
-Do: per the Page deletes row and **Deletes** (D-5 included), and rewrite T-7 and T-10 – T-13.
+Do: per the Page deletes row and **Deletes** (D-5 included), and rewrite T-7 and T-10 – T-13, and add T-9's `.sourcesList` `invalidateOn.isEmpty` line.
 Check: `rg -n "deletedSource(Type)?\b|removes:" macos/App` prints nothing; the Swift tests pass.
 Commit: "Learn a Source or Source type delete from the engine only."
 
@@ -264,21 +264,21 @@ Commits: "Document that a delete from its own page reports its ids." and "Record
 
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
-| T-1 | Go | `core/database/effects/deleted_handles_test.go` `TestResolveReportsDeletedSourcesAndTypes` *(new)*; `TestResolveReportsDeleted` moves its setup to `resolveChanges` | Table: Source delete → `[{source,[s1]}]`; Source type delete → `[{source_type,[t1]}]`; Source update and type create → none; Source then type delete → both, in change order. Changes as `lists_test.go` builds them (`rowchange.Deleted("source", id, map[string]any{"title": "a"})`) | AC-1.1, AC-1.2, AC-1.3, AC-1.4 |
+| T-1 | Go | `core/database/effects/deleted_handles_test.go` `TestResolveReportsDeletedSourcesAndTypes` *(new)*; `TestResolveReportsDeleted` moves its setup to `resolveChanges` | Table: Source delete → `[{source,[s1]}]`; Source type delete → `[{source_type,[t1]}]`; Source update and type create → none; Source then type delete → both, in change order. Changes: `rowchange.Deleted("source", s1, map[string]any{"title": "a"})`, `rowchange.Deleted("source_type", t1, map[string]any{"label": "Deed"})`, `*rowchange.Updated("source", s1, map[string]any{"title": "a"}, map[string]any{"title": "b"})` (it returns a pointer), `rowchange.Created("source_type", t1, map[string]any{"label": "Deed"})`. The other inline `database.Create` setups in the package stay | AC-1.1, AC-1.2, AC-1.3, AC-1.4 |
 | T-2 | Go | `api/ffi/handlers/source_write_effects_test.go` `TestDeleteSourceReturnsEffects` | Adds `deletedIDs(eff, "source") == []string{sourceID}` | AC-1.5 |
 | T-3 | Go | `api/ffi/handlers/source_defs_test.go` `TestDeleteSourceType` "deletes unused user type" | Its `after` unmarshals the response and checks `deletedIDs(resp.GetEffects(), "source_type") == []string{typeID}` | AC-1.6 |
 | T-4 | Swift | `CatalogQueryRegistryTests.swift` `deletedSourceDropsTheListRowWithoutReloading` *(new)* | AC-2.1, then AC-2.3; then AC-2.2 on a fresh session | AC-2.1, AC-2.2, AC-2.3, D-2, D-3 |
 | T-5 | Swift | same, `sourceDeleteRestatesTheTypesListsUsedBy` *(new)* | AC-2.4, AC-2.5 | AC-2.4, AC-2.5, D-4 |
 | T-6 | Swift | `WorkspaceSessionTests.swift` `sourceDeleteEvictsItsHiddenPage` *(new)* | AC-2.6 | AC-2.6 |
-| T-7 | Swift | `CatalogQueryRegistryTests.swift` `updatedAndDeletedSourceTypePatchTheTypesList` | Its delete half applies `CatalogWriteEffects(deleted: [.init(entity: .sourceType, ids: ["t-book"])])` twice; the last `invalidations(by: .deletedSourceType …)` line goes | AC-2.7 |
+| T-7 | Swift | `CatalogQueryRegistryTests.swift` `updatedAndDeletedSourceTypePatchTheTypesList` | Its delete half applies `CatalogWriteEffects(deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["t-book"])])` twice; the last `invalidations(by: .deletedSourceType …)` line goes | AC-2.7 |
 | T-8 | Swift | `WorkspaceSessionTests.swift` `lastUpdatedMovesNothingWithoutActivity` *(new)* | A cached Sources list; `apply(CatalogWriteEffects(sourceScopes: ["s1"]))` with revision 0 → the row's `updated` unchanged, key not stale | D-3 |
 | T-9 | Swift | `CatalogQueryRegistryTests.swift` `ownIdNamesTheKeysOneRow` | Last line expects `deletedWith == .source` and `isEntityPage == false`; adds `.sourcesList` `invalidateOn.isEmpty`, and `CatalogQueryFollows.deleted(.source)`: `isCatalogWide == false`, `ids(in:)` reads only its entity | AC-2.10, D-1, D-5 |
-| T-10 | Swift | `SourcePageModelTests.swift` `resourceDeleteDoesNotReloadTheDeletedSource` | Scripts `store.nextWriteEffects` with `deleted: [.source: [sourceID]]`; adds `queryHandle(.sourceWorkspace(sourceID)) == nil` | AC-2.8 |
-| T-11 | Swift | `SourceTypePageModelTests.swift` `deletingLeavesAndDropsTheRow`, `goneTypeNamesItselfInTheNotice` | The first scripts `nextWriteEffects` with `deleted: [.sourceType: ["t2"]]`; the second applies those effects for `t1` instead of the mutation | AC-2.9 |
+| T-10 | Swift | `SourcePageModelTests.swift` `resourceDeleteDoesNotReloadTheDeletedSource` | Scripts `store.nextWriteEffects` with `deleted: [CatalogWriteEffectsDeleted(entity: .source, ids: [sourceID])]`; adds `queryHandle(.sourceWorkspace(sourceID)) == nil` | AC-2.8 |
+| T-11 | Swift | `SourceTypePageModelTests.swift` `deletingLeavesAndDropsTheRow`, `goneTypeNamesItselfInTheNotice` | The first scripts `nextWriteEffects` with `deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["t2"])]`; the second applies those effects for `t1` instead of the mutation | AC-2.9 |
 | T-12 | Swift | `WorkspaceSessionTests.swift` `staleKeyIsNotSettled`, `setQueryValueClearsStaleAndPatchKeepsIt` | `session.invalidate(key)` in place of `apply(.deletedSource(id: "gone"))` | D-7 |
-| T-13 | Swift | `WorkspaceSessionTests.swift` `staleKeyQueriedDuringLoadReloads`, `deletedSourceDropsItsGraphs`; `CatalogQueryRegistryTests.swift` `evidenceGraphEffectsReloadOnlyThatGraph`, `invalidationsComeFromRegistrySpecs`, `noMutationReachesAConclusionKey` | The first two apply their effects with no mutation (`deletedSourceDropsItsGraphs` adds `deleted: [.source: ["S"]]`); the other three drop their `.deletedSource` lines and entries, and `invalidationsComeFromRegistrySpecs`'s `.deletedSource` expectation goes | AC-3.1 |
+| T-13 | Swift | `WorkspaceSessionTests.swift` `staleKeyQueriedDuringLoadReloads`, `deletedSourceDropsItsGraphs`; `CatalogQueryRegistryTests.swift` `evidenceGraphEffectsReloadOnlyThatGraph`, `invalidationsComeFromRegistrySpecs`, `noMutationReachesAConclusionKey` | The first two apply their effects with no mutation (`staleKeyQueriedDuringLoadReloads` stays stale through its `reads(.evidenceGraphs)` refresh: the key's first load is in flight, so `apply` adds it to `fallbacks` and marks it stale; if it does not, stop and report; `deletedSourceDropsItsGraphs` adds `deleted: [CatalogWriteEffectsDeleted(entity: .source, ids: ["S"])]`); the other three drop their `.deletedSource` lines and entries, and `invalidationsComeFromRegistrySpecs`'s `.deletedSource` expectation goes | AC-3.1 |
 | T-14 | Go | `api/ffi/swift_vocabulary_test.go` "deleted entities" (unchanged) | `CatalogDeletedEntity`'s raw values → `effects.DeletedEntities()` | AC-1.7, D-6 |
-| T-15 | Shell | AC-3.1 and AC-3.2 commands | the tree after STEP-7 → no output | AC-3.1, AC-3.2 |
+| T-15 | Shell | AC-3.1 and AC-3.2 commands, and `rg -n "\.deletedSource(Type)?\b" macos/ProvenenciaTests` | the tree after STEP-7 → no output | AC-3.1, AC-3.2 |
 
 Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `api/ffi/swift_vocabulary_test.go` (Go and Swift enum out of step) and the Sources list tests in `WorkspaceSessionTests.swift` that assume `.sourcesList` reloads on a delete.
 
