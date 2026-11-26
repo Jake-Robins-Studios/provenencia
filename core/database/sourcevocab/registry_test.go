@@ -1,7 +1,6 @@
 package sourcevocab
 
 import (
-	"maps"
 	"slices"
 	"testing"
 
@@ -31,42 +30,7 @@ func mustParseForm(t *testing.T, typeKey, text string, form citationformat.Form)
 // list.
 func derivedSuggestions(t *testing.T, st seedType) []string {
 	t.Helper()
-	var order []string
-	read := map[string]bool{}
-	// The full format's fields, then the ones the list and the short format
-	// need outside any group that the full format does not use.
-	full := true
-	var fullKeys map[string]bool
-	for _, form := range []citationformat.Form{citationformat.FormFull, citationformat.FormList, citationformat.FormShort} {
-		tpl := mustParseForm(t, st.Key, st.Formats.Text(form), form)
-		for _, req := range citationformat.Requirements(tpl) {
-			if !full && req.Need != citationformat.NeedNeeded {
-				continue
-			}
-			// A chain is met when one option is suggested, so a later form's
-			// chain adds nothing when the full format already uses an option.
-			met := false
-			for _, target := range req.Targets {
-				met = met || (!full && fullKeys[target.Field.Key])
-			}
-			if met {
-				continue
-			}
-			for _, target := range req.Targets {
-				key := target.Field.Key
-				if key == "" || read[key] {
-					continue
-				}
-				read[key] = true
-				order = append(order, key)
-			}
-		}
-		if full {
-			full = false
-			fullKeys = maps.Clone(read)
-		}
-	}
-	return order
+	return suggestedKeys(st.Formats)
 }
 
 func TestSeedSuggestionsFollowFormats(t *testing.T) {

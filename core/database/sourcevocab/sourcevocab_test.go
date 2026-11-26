@@ -212,15 +212,16 @@ func TestInstall(t *testing.T) {
 			},
 		},
 		{
-			name: "a seed entry naming an unknown type is rejected even with no fields",
+			name: "a seed format reading an unseeded field is rejected",
 			run: func(t *testing.T, c *database.Catalog) {
-				saved := seedSuggestions
-				t.Cleanup(func() { seedSuggestions = saved })
-				seedSuggestions = []seedSuggestion{{TypeKey: "no_such_type"}}
+				saved := seedTypes
+				t.Cleanup(func() { seedTypes = saved })
+				seedTypes = []seedType{{Key: "bad_type", Label: "Bad", Description: "Bad.", IconKey: "type_document",
+					Formats: sourcetypes.Formats{Full: "{meta.no_such_field}", Short: "{source.title}", List: "{source.title}"}}}
 				if err := install(c); !errors.Is(err, ErrInvalid) {
 					t.Fatalf("Install = %v, want ErrInvalid", err)
 				}
-				// The valid fields and type ahead of the bad suggestion are rolled back.
+				// The valid fields and type ahead of the bad type are rolled back.
 				fields, err := metadatafields.List(c)
 				if err != nil || len(fields) != 0 {
 					t.Fatalf("fields after a failed install: %v %v", fields, err)
