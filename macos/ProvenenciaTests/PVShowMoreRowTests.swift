@@ -64,7 +64,11 @@ struct PVShowMoreRowHostedTests {
     @Test func revealScrollsAfterTheCallerLeaves() async throws {
         let trigger = Trigger()
         let (_, host) = hostInBorderlessWindow(Harness(trigger: trigger), windowSize: CGSize(width: 300, height: 200))
-        host.layoutSubtreeIfNeeded()
+        // The list is laid out before the caller asks, so the scroll has rows to find.
+        let laidOut = await eventually(host) {
+            descendant(NSScrollView.self, in: host).map { ($0.documentView?.frame.height ?? 0) >= 720 } ?? false
+        }
+        #expect(laidOut)
         let scrollView = try #require(descendant(NSScrollView.self, in: host))
         trigger.fired += 1
         let visible = await eventually(host) {
