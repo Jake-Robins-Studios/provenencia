@@ -6,7 +6,7 @@
 **Implements later as:** PR **S16-82** (Family shows a couple's marriage)
 **Board:** — (not drawn yet). Draw on [Claude Design — Person Detail](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ), page *Person Detail - Family*, as a new turn "S16-D19 · Marriages", after the agreed "S16-D18 · Parents once"
 **Depends on:** S16-D18 agreed (its frames are this board's starting point); S13-D3 Family (shipped in S13-12, [#676](https://github.com/Jake-Robins-Studios/provenencia/pull/676))
-**Related:** working rule "(Batch 6) Family shows a couple's marriage from its events" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); scope entry [S16-82](../deployment-plan.md#s16-82--family-shows-a-couples-marriage); S16-D4's shared event date line ([archive](archive/S16-D4-event-date-line.md)); [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide)
+**Related:** S16-D18 ([brief](S16-D18-family-parents-once.md)); working rule "(Batch 6) Family shows a couple's marriage from its events" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); scope entry [S16-82](../deployment-plan.md#s16-82--family-shows-a-couples-marriage); [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
 **Skill:** [`add-design-brief`](../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md)
 
@@ -72,7 +72,7 @@ Draw the **Regular** and **Wide** frame of each view side by side, using the sam
 
 ### This brief is an enhancement
 
-Draw on the Person Detail board as a new turn "S16-D19 · Marriages", starting from the agreed S16-D18 frames (Regular and Wide), with the missing-parent mark, captions and spoken text S16-D18 chose. Add a marriage line between couples. Do not redraw the tiles, the parent blocks' order, the siblings, the missing-parent marks, the children's lines, the captions or the Show more rows; move lines and tiles only as far as the marriage line needs room.
+This brief is pasted **after S16-D18 is agreed**. Draw on the Person Detail board as a new turn "S16-D19 · Marriages", starting from the agreed S16-D18 frames (Regular and Wide), with the line style, missing-parent mark, captions and spoken text S16-D18 chose. Add a marriage line for each married couple. Do not redraw the parent blocks' order, the siblings, the missing-parent marks, the children's lines, the captions or the Show more rows; move tiles and lines only as far as the marriage line needs room, and say under each frame what moved.
 
 **Some calls are the user's to make on this board.** Where a requirement says **Draw options**, draw each option as its own frame, side by side and labelled, on the same family, so the user can compare them and pick. Say which one you recommend and why, in one line under the frames. Do not pick silently.
 
@@ -80,9 +80,9 @@ Draw on the Person Detail board as a new turn "S16-D19 · Marriages", starting f
 
 ## 1. Objective
 
-Family shows who is married to whom, but not when or where. The researcher wants a couple's marriage date and place on the page, between the two people, whenever the project records a marriage. It shows for two couples: **the person's parents** (two parents paired in a set, stacked in the left column) and **the person and each partner** (the person's tile in the left column, each partner in the right column, joined by the bus).
+Family shows who is married to whom, but not when or where. The researcher wants a couple's marriage date and place on the page whenever the project records a marriage. It shows for two couples: **the person's parents** (two parents paired in a set, stacked in the left column) and **the person and each partner** (the person's tile in the left column, each partner in the right column, joined by the bus).
 
-What stays: everything S16-D18 agreed. The marriage line adds information; it does not change who is joined to whom.
+The marriage line is **information, not a control**: it opens nothing and takes no Tab stop. The marriage is already reachable from the person's Timeline, which opens it. What stays: everything S16-D18 agreed. The marriage line does not change who is joined to whom.
 
 ---
 
@@ -90,22 +90,20 @@ What stays: everything S16-D18 agreed. The marriage line adds information; it do
 
 | Fact | What it means on this board |
 | --- | --- |
-| A marriage | A marriage event in the project with both people as its subjects. It has a date (maybe none, maybe a range or "about"), a place (maybe none), and its own Event page. |
-| Spouses without a marriage | Two people can be linked as spouses or partners with no marriage event (a relationship recorded directly, or a couple known only through a child). They show **no** marriage line: being partners is not being married, and no date is invented. The bus and the pairing are unchanged. |
-| More than one marriage | A couple can have two marriage events: a remarriage, or two records the app has not merged. Each is a marriage of its own. Earliest first. |
-| The date line | Every event date on the app is worded one way (S16-D4): "12 Jun 1841", "abt 1841", "bet 1840 and 1842", "as of 1845". This board draws those words; it does not word dates. |
-| The date · place line | The kit's Date Place Line draws "date · place" after a leading abbreviation, as a tile's "b." and "d." lines do. A missing half is left out with its dot on a tile. |
-| A parent set | Two parents stacked one above the other in a block (S16-D18). Only a set of two can carry a marriage; a one-parent set has no couple. A block with overlapping sets (Heinrich with Anna, Heinrich with Katharina) has two couples, each with its own marriage. |
+| A marriage | A marriage event in the project with both people as its subjects. It has a date (maybe none, maybe "abt 1841" or "bet 1840 and 1842"), a place (maybe none, maybe several), and its own Event page. |
+| Spouses without a marriage | Two people can be linked as spouses or partners with no marriage event (a relationship recorded directly, or a couple known only through a child). They show **no** marriage line: being partners is not being married, and no date is invented. |
+| More than one marriage | A couple can have two marriage events: a remarriage, or two records the app has not merged. Each is a line of its own, earliest first, undated last. |
+| Life lines | A person tile already shows its life as lines: "b. 3 Jul 1817 · Bremen", "d. 1851". A marriage line is the same kind of line with the event type's abbreviation, "m.": the same date and place words, the same muted place, cut at the tail, a "+N" when the event has more places. A line with no date shows the place alone, with no dot; one with no place shows the date alone. |
+| A parent set | Two parents stacked one above the other in a block (S16-D18). Only a set of two can carry a marriage; a one-parent set has no couple. A block of overlapping sets (Heinrich with Anna, Heinrich with Katharina) has two couples, each with its own marriage, and Heinrich and Katharina are not next to each other (Anna is between them). |
 | Partners | Each partner tile in the right column, with their children under them; the bus joins the person's tile to every partner. A person can have several partners, each with their own marriages. |
-| Opening | An event line elsewhere opens its Event page. |
+| Room | The left column's lines sit in a 20 pt margin; the gutter between the columns is 48 pt at Regular and 96 pt at Wide. Neither holds text. A tile has a fixed height for two life lines today. |
 
 ### 2.1 What this board is not
 
-- Divorce, separation, banns, licences or any event other than a marriage. (A later union pattern would show the same way, with no new design.)
+- Divorce, separation, banns, licences or any event other than a marriage. (A later union pattern would show the same way, worded by its own type.)
+- Opening the marriage from Family; Family's marriage line is not a link (the Timeline opens it).
 - Marriages of siblings or children: only the person's own partners and the parents' couple.
-- A marriage's Sources, or a provenance sheet for it: the Event page has those.
-- Adding a marriage from Family.
-- Ages at marriage.
+- A marriage's Sources, a provenance sheet, ages at marriage, or adding a marriage from Family.
 
 ---
 
@@ -113,7 +111,7 @@ What stays: everything S16-D18 agreed. The marriage line adds information; it do
 
 | S16-82 ships | Not S16-82 |
 | --- | --- |
-| FM-1 – FM-7, FM-W1 | Any event but a marriage; siblings' or children's marriages; editing from Family |
+| FM-1 – FM-7, FM-W1 | Any event but a marriage; opening the marriage from Family; siblings' or children's marriages; editing from Family |
 
 ---
 
@@ -121,20 +119,20 @@ What stays: everything S16-D18 agreed. The marriage line adds information; it do
 
 | ID | Requirement |
 | --- | --- |
-| FM-1 | A couple with a marriage shows a **marriage line** between the two people: the marriage's date and place, worded as every event date and place is. A couple with no marriage shows nothing new. |
-| FM-2 | **Parents.** The marriage line sits between the two parents of a set, tied to that pair. **Draw options** on frame 1: **(A)** in the gap between the two stacked tiles, which widens to hold it; **(B)** on the pair's own line in the left margin, beside the join between them; **(C)** as a line inside the second parent's tile, under their life lines. With overlapping sets (frame 4), each couple's line is tied to its own pair: draw how that reads when the pairs share a parent. |
-| FM-3 | **The person and a partner.** The marriage line sits between the person and that partner. **Draw options** on frame 1: **(A)** on the bus, beside the horizontal that reaches the partner's tile; **(B)** as a line at the top of the partner's group, above the partner's tile; **(C)** as a line inside the partner's tile, under their life lines. With several partners, each line belongs visibly to its partner. Whichever option FM-2 and FM-3 pick, use one look for both couples where the geometry allows. |
-| FM-4 | **Wording. Draw options** on frame 1: **(A)** the abbreviation "m." leading the date · place line, as "b." and "d." do: "m. 12 Jun 1841 · Hamburg"; **(B)** the word "Married": "Married 12 Jun 1841 · Hamburg". An undated marriage shows its place alone, an unplaced one its date alone; a marriage with neither shows "m." or "Married" alone (frame 2). |
-| FM-5 | **Two marriages of one couple** (frame 3): **Draw options:** **(A)** both lines, earliest first; **(B)** the earliest, with a "+1" count after it, as the date · place line counts extra places. |
-| FM-6 | The marriage line opens the marriage's Event page, by pointer and keyboard. It is one Tab stop, after the second person of its couple (the second parent; the partner's tile). Opening it and pressing Back returns to it, as Family's tiles do. |
-| FM-7 | Spoken: the line is read as "Married, ⟨date⟩, ⟨place⟩" and its container names the couple ("Heinrich Weber and Anna Weber"; "Johann Weber and Maria Schulz"). A missing half is left out. |
-| FM-W1 | At Wide the marriage lines sit where they sit at Regular; the wider columns give the place more room before it truncates. Nothing moves between widths. |
+| FM-1 | A couple with a marriage shows one **marriage line** per marriage: the event type's abbreviation, then the marriage's date and place, worded as a tile's life lines are ("m. 12 Jun 1841 · Hamburg"). A couple with no marriage shows nothing new. |
+| FM-2 | **Parents.** **Draw options** on frame 1: **(A) between the tiles:** the gap between the two parents of a pair widens to hold the line, centered on the gap, so it reads as belonging to both; **(C) inside a tile:** the line is a third life line inside the lower parent's tile, which grows to hold it. Frame 4 shows each option with a couple that is not adjacent (Heinrich and Katharina, Anna between them): in A, say how the line names or reaches its couple; in C, the line sits in the lower parent of the couple (Katharina's tile) and says whom it is with only if the frame needs it. |
+| FM-3 | **The person and a partner.** **Draw options** on frame 1: **(B) over the partner's group:** a line at the top of the partner's group, above the partner's tile, in the right column; **(C) inside the partner's tile:** a third life line, the tile growing to hold it. With several partners, each line belongs to its own partner. Not on the bus or in the gutter: there is no room for text there. Where FM-2 and FM-3 can share one look, prefer it. |
+| FM-4 | **Wording.** The leading word comes from the marriage's event type, not from Family. **Draw options** on frame 1: **(A)** the type's abbreviation, as "b." and "d." do: "m. 12 Jun 1841 · Hamburg"; **(B)** the type's word: "Married 12 Jun 1841 · Hamburg". A marriage with neither a date nor a place shows the word alone ("m."), since the marriage itself is recorded (frame 2). |
+| FM-5 | **Two marriages of one couple** (frame 3): both lines, earliest first, each its own line; an undated one last. |
+| FM-6 | **Spoken.** The line is not a Tab stop. Inside a tile (option C) it is read with the tile, as its life lines are: "Partner, Maria Schulz, born 1819, married 12 Jun 1841, Hamburg". Standing alone (options A, B) it is one VoiceOver element that names its couple: "Johann Weber and Maria Schulz, married 12 Jun 1841, Hamburg", read in the column's order just after the couple's second person. A missing half is left out as in life lines ("married in Altona"). |
+| FM-7 | A line goes with its tiles: when a fold hides one person of a couple, the couple's marriage line is hidden too, and Show more reveals it with the tile. |
+| FM-W1 | At Wide the marriage lines sit where they sit at Regular; the wider columns give the place more room before it is cut. Nothing moves between widths. |
 
 ### 4.1 Wide layout
 
 | View | Regular (pane below 1600 pt) | Wide (pane 1600 pt and up) | What moves where |
 | --- | --- | --- | --- |
-| Person page, Family section | S16-D18's two columns, 48 pt gutter, with a marriage line between each couple | The same two columns with a 96 pt gutter; marriage lines in the same places | Nothing; the place truncates later (FM-W1) |
+| Person page, Family section | S16-D18's two columns, 48 pt gutter, with marriage lines between or inside the couples | The same two columns with a 96 pt gutter; marriage lines in the same places | Nothing; the place is cut later (FM-W1) |
 
 ---
 
@@ -144,12 +142,14 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 | Frame | Requirement | Draw |
 | --- | --- | --- |
-| 1-A, 1-B, 1-C | FM-1 – FM-4 | One frame per FM-2 / FM-3 option (A with A, B with B, C with C), each in FM-4 A's wording, and one more of your recommended option in FM-4 B's wording. Heinrich and Anna married 3 May 1812 in Altona; Johann and Maria Schulz married 12 Jun 1841 in Hamburg; Johann and Sophie Brandt have **no** marriage (partners through Otto only) |
-| 1a / 1b | FM-1 – FM-4, FM-7, FM-W1 | The recommended option at Regular and Wide, with FM-7's spoken text noted beside each marriage line |
-| 2 | FM-4 | Partial marriages, in the recommended option: Heinrich and Anna's marriage has a place and no date ("m. Altona"); Johann and Maria's has a date and no place ("m. 12 Jun 1841"); Johann and Sophie's has neither ("m.") |
-| 3-A, 3-B | FM-5 | Johann and Maria with two marriages: 12 Jun 1841 in Hamburg and abt 1845 in Lübeck, one frame per FM-5 option |
-| 4 | FM-2 | S16-D18's overlapping sets (Heinrich with Anna, Heinrich with Katharina): Heinrich and Anna married 3 May 1812 in Altona, Heinrich and Katharina married 1822 in Kiel; each line tied to its own pair |
-| 5 | FM-6 | Frame 1a with the Tab order numbered, the marriage lines among the tiles, and one marriage line with its focus ring |
+| 1-A/B | FM-1 – FM-3 | Parents option A with partners option B, in FM-4 A's wording. Heinrich and Anna married 3 May 1812 in Altona; Johann and Maria Schulz married 12 Jun 1841 in Hamburg; Johann and Sophie Brandt have **no** marriage (partners through Otto only) |
+| 1-C | FM-1 – FM-3 | The same family with option C in both columns |
+| 1-W | FM-4 | Your recommended frame 1 in FM-4 B's wording ("Married …"), beside it |
+| 1a / 1b | FM-1 – FM-4, FM-6, FM-W1 | The recommended options at Regular and Wide, with FM-6's spoken text noted beside each marriage line |
+| 2 | FM-4 | Partial marriages, in the recommended options: Heinrich and Anna's has a place and no date ("m. Altona"); Johann and Maria's has a date and no place ("m. 12 Jun 1841"); Johann and Sophie are given a marriage with neither ("m.") |
+| 3 | FM-5 | Johann and Maria with two marriages: 12 Jun 1841 in Hamburg, and an undated one in Lübeck, drawn second |
+| 4-A, 4-C | FM-2 | S16-D18's overlapping sets (Heinrich with Anna, Heinrich with Katharina): Heinrich and Anna married 3 May 1812 in Altona, Heinrich and Katharina married abt 1816 in Kiel; one frame per FM-2 option |
+| 5 | FM-7 | Frame 1a with the partners folded behind Show more: the hidden partners' marriage lines hidden with them |
 
 ---
 
@@ -157,17 +157,17 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
-| Date · place line | Component | Ship | `macos/App/DesignSystem/Components/DatePlaceLine/PVDatePlaceLine.swift` | The marriage line's text: `leading` "m." (FM-4 A), the date and place already worded, `missing: .omitted`, `extraCount` for FM-5 B. No new text component |
-| Link | Component | Ship | `macos/App/DesignSystem/Components/InkLink/` | Makes the marriage line open its Event (FM-6) with the kit's focus ring and hover, if the line stands on its own (FM-2 / FM-3 A, B). Not a Button, not a tile |
-| Person tile | Recipe | Extend only for option C | `macos/App/DesignSystem/Recipes/PersonCard/PVPersonCard.swift` | Option C puts the marriage line inside the tile, which then gains an event line that opens something other than the tile: a tile with two targets. If C is chosen, the plan says how |
-| Family diagram, layout and content | Snowflake | Extend | `macos/App/Features/Conclusions/PersonFamilySection.swift`, `PersonFamilyLayout.swift`, `PersonFamilyContent.swift` | The layout places the marriage lines and makes room for them; the content builds each couple's lines from what the engine sends. The engine finds the marriages; Swift does not look for events |
-| Event date wording | — | Ship | `macos/App/Platform/DateRowDisplay.swift` and the shared event date line S16-42 shipped | The date words, as every event line has them |
-| Copy | — | Extend | `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings` | "m." or "Married", the spoken "Married, …" and the couple's container label |
+| Life line | Platform type | Extend | `macos/App/Platform/PersonLifeDisplay.swift` `PersonLifeDisplay.LifeLine` | The marriage line **is** a life line: abbreviation, date, place, extra places and spoken label. Its builder takes an event's worded date and places, so b., d. and m. lines are built and spoken one way (the `L10n.Conclusions.a11yLifeLine*` formats). No new line type |
+| Event date and place wording | Feature helper | Ship | `macos/App/Features/Conclusions/EventsListView.swift` `EventSecondaryDisplay.content` | Words the marriage's date and places as the Events list and Timeline do |
+| Date · place line | Component | Ship | `macos/App/DesignSystem/Components/DatePlaceLine/PVDatePlaceLine.swift` | Draws the line, `leading` the abbreviation, `missing: .omitted`, `extraCount` for the marriage's own extra places only |
+| Event type words | — | Extend | `macos/App/Platform/L10n.swift` beside the seeded event type terms (`eventTypeMarriage`) | One abbreviation and one inline word per event type that can lead a line; marriage is the first. Family reads the word from the marriage's type; it has no marriage string of its own |
+| Person tile | Recipe | Extend only for option C | `macos/App/DesignSystem/Recipes/PersonCard/PVPersonCard.swift` | Option C passes one more life line; the tile grows to hold a third line. The line is text, not a button, so the tile keeps one target |
+| Family layout and content | Snowflake | Extend | `macos/App/Features/Conclusions/PersonFamilyLayout.swift`, `PersonFamilyContent.swift`, `PersonFamilySection.swift` | For options A and B, the line is a placed entry in the group that holds its couple, beside the tiles and Show more rows, in reading order; for C it is part of the tile. The engine finds the marriages; Swift does not look for events |
 
-**Non-goals.** No new kit primitive, no new tile, no new color or stroke token. No event chip, Badge or Callout for a marriage. No marriage for a couple without a marriage event.
+**Non-goals.** No new kit primitive, no new tile, no link, no new color or stroke token. No event chip, Badge or Callout for a marriage. No marriage for a couple without a marriage event.
 
 ---
 
 ## 7. Handoff
 
-When the board is agreed: record the frames and the chosen FM-2, FM-3, FM-4 and FM-5 options on the **Board** line here, in [`README.md`](README.md) and on S16-82's map row; strike the options not chosen. The S16-82 plan (`prs/S16-82-family-marriages.md`, [`plan-pr`](../../../../.agents/skills/plan-pr/SKILL.md)) copies FM-1 – FM-7 and FM-W1 into its Scope and the inventory into its design. When S16-82 lands, the brief moves to the spike's design archive.
+When the board is agreed: record the frames and the chosen FM-2, FM-3 and FM-4 options on the **Board** line here, in [`README.md`](README.md) and on S16-82's map row; strike the options not chosen. The S16-82 plan (`prs/S16-82-family-marriages.md`, [`plan-pr`](../../../../.agents/skills/plan-pr/SKILL.md)) copies FM-1 – FM-7 and FM-W1 into its Scope and the inventory into its design. When S16-82 lands, the brief moves to the spike's design archive.
