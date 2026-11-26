@@ -1,7 +1,7 @@
 # Review — S15-56 The composer edits a Citation's metadata
 
 **Verdict:** Fits with changes — Ready with changes. No blocker open; every To user item answered. The plan stays `Blocked — on board S15-D29` until the board is agreed (D-10)
-**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet). The plan and its brief S15-D29 were reviewed together
+**Rounds:** 2, then a check of the rework for the agreed board (2026-11-26). **Reviewers:** maintainability (opus), executability (sonnet). The plan and its brief S15-D29 were reviewed together
 
 ## To user
 
@@ -135,6 +135,37 @@ Logged; Current state lines corrected.
 ### M-7 follow-up · "one snapshot"
 **Answer:** Fixed — D-6 now says the page and the board come from the same rows.
 
+## Rework for the agreed board (2026-11-26)
+
+The board moved the metadata from the form into a 600pt sheet that saves on its own; a new Citation has no sheet until its first save. The plan was reworked (US-1, D-7 – D-12, Steps 5, 8, 9, T-7, T-8, T-12) and checked by one fresh reviewer (both lenses, opus).
+
+### X-22 · blocker · `fields.baseline` is not the stored Citation; the sheet save would rewrite the locator
+**Answer:** Fixed — D-9 sends the cached `CatalogListedCitation.citation` columns verbatim; T-12 pins that the update writes nothing for the Citation.
+
+### X-23 · blocker · The reload comes from `citation_boards`, not `citations`
+**Answer:** Fixed — Current state, Precedent and STEP-8 (`applyWrite`'s comment) name `citation_boards`; T-7 checks it.
+
+### X-24 · major · STEP-5 cannot build
+**Answer:** Fixed — `CitationFieldsDraft.swift` moves to STEP-5.
+
+### X-25 · major · The sheet's values are outside the leave guard
+**Answer:** Fixed — with M-15: the sheet is a `ComposerPresented` case and `hasUnsavedDocumentWork` counts it; AC-1.5, T-7.
+
+### X-26 · major · The failure line flashes after a first save
+**Answer:** Fixed — D-12 waits while `isCreatingCitation`; T-8.
+
+### X-27 · minor · FakeStore's seeded boards unnamed
+**Answer:** Fixed — D-7 names `metadataByOwner`, `listedPageLabels`, `metadataWriteResults`.
+
+### X-28 · nit · T-8 asserts the view's parameter
+**Answer:** Fixed — `host.isChanged`.
+
+### M-15 · major · A second presentation state beside `ComposerPresented`
+**Answer:** Fixed — D-9 adds `ComposerPresented.metadata`.
+
+### M-16 · minor · D-9's write path is right
+**Answer:** Logged — no metadata-only RPC exists; `UpdateCitation` stays.
+
 ## Cost
 
 Plan: 4,849 words at round 1, 5,727 at the verdict (check-plan-docs info line).
@@ -145,3 +176,4 @@ Plan: 4,849 words at round 1, 5,727 at the verdict (check-plan-docs info line).
 | 1 | executability | sonnet | 159k |
 | 2 | maintainability | opus | 149k |
 | 2 | executability | sonnet | 103k |
+| rework | both lenses | opus | 138k |
