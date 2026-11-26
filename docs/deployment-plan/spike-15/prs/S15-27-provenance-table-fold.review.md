@@ -58,3 +58,21 @@ Fresh maintainability and executability reviewers each read the plan and the bri
 
 ### X-8 · minor · Small unstated choices
 **Answer:** Fixed. D-5: no horizontal padding. D-6: the modifier goes after the trailing padding. Codebase fit: `fold` and `folded` are `nonisolated static`, as `followsLine` is. Edges: a revealed run's heading may sit just above the visible area, accepted as the Person page sections behave.
+
+## Refresh (2026-11-26)
+
+Round 0 of ship-pr stopped on §11 "The Release test build fails": the test target cannot compile in Release, because `FakeStore` is `#if DEBUG` by design. The user chose to make the figures Debug-only. Meanwhile #1003 fixed the Release app build, and #1005 deleted `PVShowMoreRowHostedTests` and `pvScrollsShowMoreReveals(animated:)`. Refreshed against `main` @ `c1035450b`: D-9, STEP-1, STEP-5, T-7, the DoD figures line and §11 are now Debug-only; the Kit fold and Tests rows and the layout test's model row are retargeted; the version goes to 0.48.2; the round-0 deviations are settled (`summary: String?`, `CatalogListMergeTests` keeps its own best-of loop). One executability dry run of the refreshed parts (opus): **Ready with changes**, no blocker.
+
+| ID | Severity | Finding | Answer |
+| --- | --- | --- | --- |
+| X-1 | major | STEP-1 stated `content(groups:summary:)` already took `String?` | Fixed. STEP-1 says to change it; the Previews row records the non-optional parameter |
+| X-2 | minor | Equal heights could pass at 0; which host is read was unstated | Fixed. D-9, STEP-5 and T-7 add height > 0; STEP-1 reads the last run's host and prints the heights |
+| X-3 | minor | D-9 called the preview fixtures `#if DEBUG` | Fixed. D-9 names `FakeStore` only |
+| X-4 | minor | §10 step 4 named a "Release scheme" that does not exist | Fixed. Run, Debug |
+| X-5 | nit | `Self.milliseconds` call site | Fixed. Named in STEP-1 |
+| X-6 | nit | The Cap rewrite should name the build | Fixed. "the Debug before and after figures" |
+| X-7 | nit | Draft history on the Planned line | Fixed. Removed |
+
+| Round | Reviewer | Model | Tokens |
+| --- | --- | --- | --- |
+| Refresh | executability | opus | 121k |

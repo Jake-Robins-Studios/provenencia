@@ -8,12 +8,12 @@
 **Depends on:** S15-30 (landed [#996](https://github.com/Jake-Robins-Studios/provenencia/pull/996)), S15-21 (landed [#930](https://github.com/Jake-Robins-Studios/provenencia/pull/930)), S15-D17
 **Blocks:** —
 **Branch:** `s15-27-provenance-table-fold`
-**Version bump:** patch, 0.47.0 (today's `VERSION`) → **0.47.1** (or the next patch after `main`'s `VERSION` when you rebase): a long provenance table no longer freezes the sheet, a fix to an existing view ([`docs/versioning.md`](../../../versioning.md)); `VERSION`, `core/version.go`, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj`
+**Version bump:** patch, 0.48.1 (today's `VERSION`) → **0.48.2** (or the next patch after `main`'s `VERSION` when you rebase): a long provenance table no longer freezes the sheet, a fix to an existing view ([`docs/versioning.md`](../../../versioning.md)); `VERSION`, `core/version.go`, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj`
 **Skills to load:** [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md)
 **Rules that bind:** `.cursor/rules/design-system-layers.mdc` (a recipe names no `Features/` type)
 **Context:** map scope entry S15-27 ([`../deployment-plan.md`](../deployment-plan.md)); working rule "The provenance table folds a page at a time"; [`../provenance-loading.md`](../provenance-loading.md) "Cap the records a provenance table draws"; [`docs/design-system-layers.md`](../../../design-system-layers.md); [`docs/macos-client-patterns.md`](../../../macos-client-patterns.md) "One sectioned detail page" (the paged fold) and "Detail pages share their rows"
 **Host:** macOS with Xcode. Tests: `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS'`, narrowed with `-only-testing:ProvenenciaTests/<Suite>` where a Step says so. The implementer runs the manual check in §10.
-**Planned:** 2026-11-26 against `main` @ `d96d26c`
+**Planned:** 2026-11-26 against `main` @ `c1035450b`
 **Review:** [`S15-27-provenance-table-fold.review.md`](S15-27-provenance-table-fold.review.md) — Fits with changes / Ready with changes, one round; every finding Fixed or Declined
 
 ### Implementer — read this first
@@ -96,10 +96,10 @@ A value with hundreds or thousands of records opens its provenance sheet quickly
 | Row | `…/ProvenanceSheet/PVProvenanceRecordRow.swift` `PVProvenanceRecordRow.citation` | The citation `PVInkLink` takes no `.focused`; nothing can claim it |
 | Content | `…/ProvenanceSheet/PVProvenanceSheetContent.swift` `Group`, `Group.ValueGroup`, `Group.ValueGroup.CitationRun`, `grouped(by:)` | Runs are built per value run; nothing counts runs across the table |
 | Host | `macos/App/Features/Conclusions/ProvenanceSheetHost.swift` `ProvenanceSheetHost` | Passes the grouped content; the table only draws at `.ready`, so a key change (loading) drops the table and its state |
-| Kit fold | `macos/App/Platform/PagedFold.swift` `PagedFold`, `PagedFoldState`; `macos/App/DesignSystem/Components/ShowMoreRow/PVShowMoreRow.swift` `PVShowMoreRow`, `pvScrollsShowMoreReveals(animated:)` | Landed in S15-30; used by the Person page's sections |
+| Kit fold | `macos/App/Platform/PagedFold.swift` `PagedFold`, `PagedFoldState`; `macos/App/DesignSystem/Components/ShowMoreRow/PVShowMoreRow.swift` `PVShowMoreRow`, `pvScrollsShowMoreReveals()` | Landed in S15-30; used by the Person page's sections |
 | Focus claim | `macos/App/Platform/FocusClaim.swift` `FocusClaim.claim` | Used by `PVShowMoreRow.press` |
-| Previews | `PVProvenanceRecordTable.swift` `PVProvenancePreviewData`; `PVProvenanceSheet.swift` `#Preview("Thirty records")` | No preview past 50 runs |
-| Tests | `macos/ProvenenciaTests/ProvenanceSheetTests.swift` (`groupedGathersByEngineKeyWithinARun`, `ruleFallsBeforeEachRunButTheFirstAfterALine`); `macos/ProvenenciaTests/PVShowMoreRowTests.swift` (`PVShowMoreRowHostedTests`); `macos/ProvenenciaTests/PagedFoldTests.swift`; `macos/ProvenenciaTests/HostedWindow.swift` `hostInBorderlessWindow`, `descendant`, `eventually` | No fold test for the table; no layout timing |
+| Previews | `PVProvenanceRecordTable.swift` `PVProvenancePreviewData`; `PVProvenanceSheet.swift` `#Preview("Thirty records")` | No preview past 50 runs; `content(groups:summary:)` takes `summary: String`, so a caller cannot leave the summary out, though `PVProvenanceSheetContent.summary` is `String?` |
+| Tests | `macos/ProvenenciaTests/ProvenanceSheetTests.swift` (`groupedGathersByEngineKeyWithinARun`, `ruleFallsBeforeEachRunButTheFirstAfterALine`); `macos/ProvenenciaTests/PVShowMoreRowTests.swift` (pure tests only: `pressMovesOnlyFromTheRow`, `labelWordsThePage`); `macos/ProvenenciaTests/PVScrollMemoryHostedTests.swift` (a `.serialized, .hostedWindows` suite that reads a hosted scroll view's `documentView`); `macos/ProvenenciaTests/PagedFoldTests.swift`; `macos/ProvenenciaTests/HostedWindow.swift` `hostInBorderlessWindow`, `descendant`, `eventually` | No fold test for the table; no layout timing |
 
 **Precedent.** S16-07 ([#761](https://github.com/Jake-Robins-Studios/provenencia/pull/761)) and S15-30 ([#996](https://github.com/Jake-Robins-Studios/provenencia/pull/996)) fold the Person page's Sources rows (`PersonSourcesContent`, `PersonSourcesSection`): copy the `PVShowMoreRow` call and the reveal provider; do not copy `PersonSourcesContent`'s per-fold dictionaries, since this table has one fold. `CircularLinkDiagram` (`macos/App/Features/Conclusions/CircularLinkDiagram/CircularLinkDiagram.swift`) applies an optional `PVFieldFocus` to a button per item: copy that for the citation link.
 
@@ -115,7 +115,7 @@ A value with hundreds or thousands of records opens its provenance sheet quickly
 | D-6 | `PVProvenanceSheet` applies `.pvScrollsShowMoreReveals()` to the table inside its `ScrollView`, after its `.padding(.trailing, PVProvenanceColumns.scrollBarInset)` | S15-30's Next adds; the provider outlives the row on the last page | The table applying it — the scroll view is the sheet's |
 | D-7 | `PVProvenanceRecordRow` gains `var citationFocus: PVFieldFocus? = nil`; when set, the citation link is drawn through `citationFocus.apply(AnyView(link))`, as `CircularLinkDiagram` applies its node handles; when nil the row is as today, so the likeness viewer is unchanged | `PVFieldFocus` is the kit's one host-focus handle; the row names no table type | A row-specific focus struct — a second handle; `.focused` on the row from the table — the row is not focusable, the link is |
 | D-8 | No new string: the row reads `L10n.DesignSystem.showMoreRowLabel` (user, 2026-11-26) | RF-4, RF-7 | "Show N more citations" — a kit parameter for one caller |
-| D-9 | The layout timing is a hosted test that prints, not a budget. Each of 3 runs per count builds a fresh `hostInBorderlessWindow(_, windowSize: CGSize(width: 880, height: 900))` of `PVProvenanceSheet` at `.ready` (`content: PVProvenancePreviewData.content(groups: [Group(owner: nil, records: records)], summary: nil)`, `idPrefix: "timing"`, `open: { _, _ in }`), where each record has `rendered` set to a `CatalogRenderedCitation` with one italic run and its own `groupKey`, all rows alike; it times the host's creation plus one `layoutSubtreeIfNeeded()` and keeps the best, through the shared timing helper (Codebase fit). After the fold it reads the scroll view's `documentView` height right after that layout (`add-swift-test`: lay out once, assert at once) and asserts it is the same at both counts. Release: `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' -configuration Release ENABLE_TESTABILITY=YES -only-testing:ProvenenciaTests/PVProvenanceSheetLayoutTests` | The Check asks for figures, and a wall-clock budget fails on CI runners; equal heights prove the fold bounds the drawing; `CatalogListMergeTests` prints its timings the same way | A `#expect` on milliseconds — flaky; a manual Instruments run — not repeatable |
+| D-9 | The layout timing is a hosted test that prints, not a budget. Each of 3 runs per count builds a fresh `hostInBorderlessWindow(_, windowSize: CGSize(width: 880, height: 900))` of `PVProvenanceSheet` at `.ready` (`content: PVProvenancePreviewData.content(groups: [Group(owner: nil, records: records)], summary: nil)`, `idPrefix: "timing"`, `open: { _, _ in }`), where each record has `rendered` set to a `CatalogRenderedCitation` with one italic run and its own `groupKey`, all rows alike; it times the host's creation plus one `layoutSubtreeIfNeeded()` and keeps the best, through the shared timing helper (Codebase fit). After the fold it reads the scroll view's `documentView` height right after that layout (`add-swift-test`: lay out once, assert at once) and asserts it is greater than 0 and the same at both counts. The figures are Debug only: the test target builds only in Debug, because `FakeStore`, which test files across the target use, is `#if DEBUG` by design | The Check asks for figures, and a wall-clock budget fails on CI runners; equal heights prove the fold bounds the drawing; `CatalogListMergeTests` prints its timings the same way | A `#expect` on milliseconds — flaky; a manual Instruments run — not repeatable; a Release test run — the test target does not compile in Release (`FakeStore` is Debug-only) |
 
 **Rules this plan bends.** None.
 
@@ -131,8 +131,8 @@ A value with hundreds or thousands of records opens its provenance sheet quickly
 | `PVProvenanceSheetContent.folded(_ groups: [Group], by fold: PagedFold, pages: Int) -> Folded` *(new, `nonisolated static`, pure)* | func | `PagedFold.shown(_:pages:)`, `PagedFold.firstRevealed(_:pages:)` | Flat lists only; this walks groups → values → runs and calls `fold.shownCount(count:pages:)` once |
 | `PVProvenanceFocus` *(new)*: `enum PVProvenanceFocus: Hashable { case citation(PVProvenanceSheetContent.RunPosition); case showMore }`, in `PVProvenanceRecordTable.swift` | type | `PersonSourcesFocus` | A `Features/` type; a recipe cannot name it |
 | `PVProvenanceRecordRow.citationFocus` *(new)*: `var citationFocus: PVFieldFocus? = nil` | property | `PVFieldFocus`, `CircularLinkDiagram.focus` | Reused: the kit's host-focus handle (D-7) |
-| `macos/ProvenenciaTests/Timing.swift` *(new)*: `func milliseconds(_ duration: Duration) -> Double` and `func bestOfMilliseconds(runs: Int, _ run: () -> Void) -> Double` | test helper | `CatalogListMergeTests.milliseconds(_:)`, `bestOfMilliseconds(_:runs:expected:_:)` (private) | Moved, not copied: `CatalogListMergeTests` calls the shared `milliseconds(_:)` and keeps its own copy-per-run wrapper over `bestOfMilliseconds` |
-| `macos/ProvenenciaTests/PVProvenanceSheetLayoutTests.swift` *(new)*: `PVProvenanceSheetLayoutTests` | test file | `PVShowMoreRowHostedTests` in `PVShowMoreRowTests.swift` | A sheet-sized fixture and a timing; the Show more tests are about the row |
+| `macos/ProvenenciaTests/Timing.swift` *(new)*: `func milliseconds(_ duration: Duration) -> Double` and `func bestOfMilliseconds(runs: Int, _ run: () -> Void) -> Double` | test helper | `CatalogListMergeTests.milliseconds(_:)`, `bestOfMilliseconds(_:runs:expected:_:)` (private) | Moved, not copied: `CatalogListMergeTests` calls the shared `milliseconds(_:)` and keeps its own private best-of loop, which copies its input before each run outside the timed span; the shared `bestOfMilliseconds` would time that copy |
+| `macos/ProvenenciaTests/PVProvenanceSheetLayoutTests.swift` *(new)*: `PVProvenanceSheetLayoutTests` | test file | `PVScrollMemoryHostedTests` (hosting and the `documentView` read) | A sheet-sized fixture and a timing; that suite is about scroll memory |
 | `#Preview("Folded, 120 runs")` *(new)* in `PVProvenanceSheet.swift` | preview | `#Preview("Thirty records")` | Thirty records never fold |
 
 **Builds on.** `PagedFold` and `PVShowMoreRow` (S15-30), `FocusClaim` (through the row), `pvScrollsShowMoreReveals`, the run model of S15-21's `grouped(by:)`.
@@ -193,9 +193,9 @@ None — no new or changed copy (D-8).
 ## 7. Steps
 
 **STEP-1 — Measure today's first layout**
-Files: `macos/ProvenenciaTests/Timing.swift` *(new)*, `macos/ProvenenciaTests/CatalogListMergeTests.swift`, `macos/ProvenenciaTests/PVProvenanceSheetLayoutTests.swift` *(new)*. Skill: `add-swift-test`.
-Do: move `milliseconds(_:)` into `Timing.swift` beside a generic `bestOfMilliseconds(runs:_:)` (Codebase fit), and point `CatalogListMergeTests` at it. Add `@Suite(.serialized, .hostedWindows) @MainActor struct PVProvenanceSheetLayoutTests` with `firstLayoutAt300And1200Records` per D-9 (records built with `PVProvenancePreviewData.record`). It prints `provenance sheet first layout at <n> records: <ms> ms` for each count. Run it in Debug and with D-9's Release command.
-Check: `-only-testing:ProvenenciaTests/PVProvenanceSheetLayoutTests` and `-only-testing:ProvenenciaTests/CatalogListMergeTests` pass in Debug; the layout test passes with D-9's Release command; the four "before" figures are noted for the PR description.
+Files: `macos/ProvenenciaTests/Timing.swift` *(new)*, `macos/ProvenenciaTests/CatalogListMergeTests.swift`, `macos/ProvenenciaTests/PVProvenanceSheetLayoutTests.swift` *(new)*, `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceRecordTable.swift` (`PVProvenancePreviewData.content`). Skill: `add-swift-test`.
+Do: move `milliseconds(_:)` into `Timing.swift` beside a generic `bestOfMilliseconds(runs:_:)` (Codebase fit), and point `CatalogListMergeTests` at it. Add `@Suite(.serialized, .hostedWindows) @MainActor struct PVProvenanceSheetLayoutTests` with `firstLayoutAt300And1200Records` per D-9 (records built with `PVProvenancePreviewData.record`). It prints `provenance sheet first layout at <n> records: <ms> ms` for each count. Change `PVProvenancePreviewData.content(groups:summary:)` in `PVProvenanceRecordTable.swift` from `summary: String` to `summary: String?`, so D-9's `summary: nil` compiles; the sheet's previews still pass strings. In `CatalogListMergeTests`, `Self.milliseconds(…)` becomes `milliseconds(…)`. Keep the last timed run's host in a `var` outside the timed closure and read the document height from it. Print `provenance sheet document height at <n> records: <pt> pt` beside each time; before the fold the two heights differ, which shows the read sees the rows. Run it in Debug.
+Check: `-only-testing:ProvenenciaTests/PVProvenanceSheetLayoutTests` and `-only-testing:ProvenenciaTests/CatalogListMergeTests` pass in Debug; the two "before" figures are noted for the PR description.
 
 **STEP-2 — The fold rule**
 Files: `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceSheetContent.swift`, `macos/ProvenenciaTests/ProvenanceSheetTests.swift`. Skill: `add-swift-test`.
@@ -214,8 +214,8 @@ Check: the preview shows 50 runs and "Show 50 more"; pressing it in the preview'
 
 **STEP-5 — Measure after the fold**
 Files: `macos/ProvenenciaTests/PVProvenanceSheetLayoutTests.swift` *(new)* (written in STEP-1).
-Do: add the equal-height `#expect` (D-9); rerun in Debug and Release.
-Check: the test passes in both; the four "after" figures are noted.
+Do: add the `#expect`s of D-9 (height greater than 0, equal at both counts); rerun in Debug.
+Check: the test passes in Debug; the two "after" figures are noted.
 
 **STEP-6 — Version**
 Files: `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj` (`MARKETING_VERSION`).
@@ -224,7 +224,7 @@ Check: the three agree.
 
 **STEP-7 — Docs**
 Files: `docs/deployment-plan/spike-15/completed.md`, `docs/deployment-plan/spike-15/deployment-plan.md` (map row), this plan (status), `docs/deployment-plan/spike-15/design/S15-D17-provenance-table-fold.md` → `design/archive/`, `docs/deployment-plan/spike-15/design/README.md`, `macos/App/DesignSystem/README.md` (the ProvenanceSheet row: the table folds 50 citation runs at a time with `PagedFold` and `PVShowMoreRow`), `docs/macos-client-patterns.md` ("Detail pages share their rows": the sheet's table folds), `docs/deployment-plan/spike-15/provenance-loading.md`.
-Do: per the Definition of done. The archive move rewrites the brief's links: this plan's **Brief** line, the map's S15-27 row and design-track row, and the brief's own relative links (one level deeper). In `provenance-loading.md`, replace the body of "Cap the records a provenance table draws" with three lines: shipped in S15-27 as a fold of 50 citation groups with the kit's Show more row, the before and after figures, and the accepted single-group case; drop its "Show all", `LazyVStack` and "the Why needs the same cap" text, and in the status line name S15-D17 for the cap. The working rule's wording ("citation groups") stays.
+Do: per the Definition of done. The archive move rewrites the brief's links: this plan's **Brief** line, the map's S15-27 row and design-track row, and the brief's own relative links (one level deeper). In `provenance-loading.md`, replace the body of "Cap the records a provenance table draws" with three lines: shipped in S15-27 as a fold of 50 citation groups with the kit's Show more row, the Debug before and after figures, and the accepted single-group case; drop its "Show all", `LazyVStack` and "the Why needs the same cap" text, and in the status line name S15-D17 for the cap. The working rule's wording ("citation groups") stays.
 Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-27-provenance-table-fold.md` reports no errors; links resolve.
 
 Commits: one per behavior. The subject is one full imperative sentence that says what changed for the researcher, ending in a period, like the rest of `git log` ("Fold the provenance table fifty citations at a time."). No WIP commits.
@@ -241,7 +241,7 @@ Records in T-1 – T-6 are built with `PVProvenancePreviewData.record`; a run of
 | T-4 | Swift | `foldLeavesASmallTableWhole` *(new)* | 50 runs → `groups` equals the input, hidden 0, nil; no groups → empty, hidden 0; an owner group with no values before a group of 60 runs → kept at pages 0; one after the cut → dropped until the last page | AC-1.2, AC-2.3 |
 | T-5 | Swift | `foldKeepsEveryShownPosition` *(new)* | Three owners with mixed value runs, 130 runs: for pages 0 – 3, every run in the folded groups has the same (group, value, run) and records as in the input, and `firstRevealed` names the first input run not shown | D-2, D-3 |
 | T-6 | Swift | `foldClampsPastTheEnd` *(new)* | 60 runs, pages 9 → 60 runs, hidden 0, nil | D-4 |
-| T-7 | Swift (hosted) | `PVProvenanceSheetLayoutTests.swift` `firstLayoutAt300And1200Records` *(new)* | 300 and 1,200 one-record runs at `.ready`: prints first-layout ms (best of 3); the scroll view's document height is equal at both | AC-1.5, D-9 |
+| T-7 | Swift (hosted) | `PVProvenanceSheetLayoutTests.swift` `firstLayoutAt300And1200Records` *(new)* | 300 and 1,200 one-record runs at `.ready`: prints first-layout ms (best of 3); the scroll view's document height is greater than 0 and equal at both | AC-1.5, D-9 |
 
 Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `ProvenanceSheetTests` (the table's rule tests), `PVShowMoreRowTests`, `CatalogListMergeTests` (the moved helper), `ConclusionPictureViewer` previews (the row's new parameter).
 
@@ -261,7 +261,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `P
 - [ ] deployment-plan.md: map row status; completed.md: one short paragraph of what shipped
 - [ ] Brief moved to design/archive/ and design/README.md updated (if gated)
 - [ ] Domain doc updated if a rule in docs/*.md changed: docs/macos-client-patterns.md ("Detail pages share their rows"), macos/App/DesignSystem/README.md (ProvenanceSheet row), provenance-loading.md ("Cap")
-- [ ] PR description: what shipped, AC evidence, the before and after first-layout figures (Debug and Release, 300 and 1,200), deviations, manual check
+- [ ] PR description: what shipped, AC evidence, the before and after first-layout figures (Debug, 300 and 1,200), deviations, manual check
 ```
 
 ## 10. Manual check
@@ -271,7 +271,7 @@ No fixture holds a value of more than 50 records, so the press, focus and Tab ch
 1. Open `#Preview("Folded, 120 runs")` live. See 50 runs and "Show 50 more" at the table's foot (AC-1.1).
 2. Tab through the last rows: focus reaches "Show 50 more", then Done (AC-3.1). Press Return: the next page draws, focus is on the first revealed citation link and it is in view (AC-3.2).
 3. Click Show more with the pointer: the page draws, focus and scroll stay (AC-3.3). Press until the row goes: "Show 20 more", then none (AC-1.4).
-4. In the app (Release scheme), open any value's provenance sheet: a value of 50 records or fewer draws as before (AC-1.2). If the project has a value of more than 50 records, open it: 50 runs, the row, the summary counting every record (AC-1.6); close and open it again: 50 runs (AC-3.4).
+4. In the app (Run, Debug), open any value's provenance sheet: a value of 50 records or fewer draws as before (AC-1.2). If the project has a value of more than 50 records, open it: 50 runs, the row, the summary counting every record (AC-1.6); close and open it again: 50 runs (AC-3.4).
 5. Repeat step 4 at Wide (window over 1600pt): the same, at 1280pt (RF-W1).
 
 ## 11. Risks and stop conditions
@@ -279,14 +279,12 @@ No fixture holds a value of more than 50 records, so the press, focus and Tab ch
 | Risk | Mitigation |
 | --- | --- |
 | One citation run holds most of the records (crafted catalog, or many Citations rendering one full citation), so the first page still draws them all | Accepted (user, 2026-11-26): a run is never split. The sheet opens on a click, never on page load |
-| `-configuration Release ENABLE_TESTABILITY=YES` does not build the test target | Stop condition below |
 | A table that loads again (Read again, a key change) forgets the pages revealed | Accepted by D-4: a reload is a new read |
 
 **Stop and report if:**
 
 - `PVProvenanceRecordTable` no longer draws `Group.ValueGroup.citations` runs, or `followsLine` / `drawsRule` changed shape.
 - A row inside a run needs focus or scroll by record (a test or the board asks to land on a record other than the run's first).
-- The Release test build fails; report the error and the Debug figures, and do not change build settings in the project.
 - The board places the Show more row anywhere but the table's foot, or asks for a new string or a fold inside a run.
 - T-7's document heights differ after the fold.
 
