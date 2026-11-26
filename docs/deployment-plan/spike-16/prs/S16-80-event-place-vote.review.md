@@ -1,17 +1,22 @@
 # Review — S16-80 An event's places reconcile by their records
 
-**Verdict:** Fits with changes — Ready with changes (round 1)
-**Rounds:** 1. **Reviewers:** maintainability (opus), executability (sonnet)
+**Verdict:** Fits with changes — Ready with changes (round 2; To user open)
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
 
 - **M-1, where "an event has one place" is declared.** The user chose the matching registry (`segment.go` `One`). The writer then found two consequences and asked again. `One` keys hold from both ends (a place would have one event). Matching knows no containment, so Promote would score Canada vs Swift Current as a −3 conflict. The user asked which shape fits best. **Writer's recommendation, applied in D-1 pending the user's confirmation:** no declaration yet. The vote passes single with a decided comment, and the one declaration both layers read is parked in [`ideas/one-bridge-cardinality.md`](../../../ideas/one-bridge-cardinality.md), to be built once matching can tell containment from conflict.
+
+- **M-12, the reconciler's grouping policy.** Values group on `Same` and fold on `Contains` (S11-06, § 7; the `moduleFor` comment; `add-match-rule`), and a subject folds by nothing. S16-80 lets subjects fold by a rule the caller passes, because value compare is pure and cannot read the place graph. **Writer's recommendation: accept.** The plan lists it under Rules this plan bends; STEP-4 and STEP-10 rewrite the comment, § 7 and the skill line. The product behaviour it serves (containment folds, AC-2.2) is the user's call of 2026-11-26.
 
 ## Writer's own calls
 
 - D-3: denied, provisional and negative rows do not vote again across links. The link's own reconcile already weighed them, and this keeps the fast path exact.
 - D-8: the last tiebreak between equally supported places is the earlier record, not the ref (the pipeline's own order).
 - D-9: an event reads at most 64 location links (`maxLifeOwners`), in `eventLocations`, for every reader.
+- D-15: a composition loads every conflicting event's association nodes in one `Graph.Nodes` call, so a sheet's graph queries do not grow with conflicts.
+- S15-28 (Spike 15) reads a derived row's records by Person and row kind and calls `placeVerdict`; both maps say so.
+- The Person's sheet now lists a folded parent place's records (`TestPersonRowOwners` "a parent Place is not an owner" becomes a folded owner), as AC-3.2 asks.
 - D-13: search is re-projected (`ProjectionVersion` 13), so an outvoted place stops matching.
 - Version: patch (0.46.1).
 
@@ -82,11 +87,58 @@
 ### X-11 · minor · T-2 uses a registered test bridge
 **Answer:** Fixed by M-1. The draft's T-2 is gone.
 
+## Round 2
+
+### M-11 · blocker · `placeVerdict` gives S15-28 no slot it can reach
+The verdicts exist only on the Person row's owners; a read keyed by (association, Property) cannot get them.
+**Answer:** Fixed. D-12 says S15-28's records read for a derived row takes the Person and the row kind, as `PersonDerivedRows` does. The Spike 16 cross-spike row says the same, and S15-28's row in the Spike 15 map now names it and depends on S16-80. Rejected: an exported verdict read by association, which would re-run the vote at a date the Person row did not use.
+
+### M-12 · blocker · The caller-supplied fold rule bends the reconciler's fold policy
+**Answer:** To user (above). The plan lists it under Rules this plan bends, STEP-4 rewrites the `moduleFor` comment, STEP-10 rewrites § 7's policy, the subject row and the `add-match-rule` line, and the sweep covers "Contains folds, and no other relation does".
+
+### M-2 follow-up · The sheet's grade label stays on the Source record
+**Answer:** Fixed. D-5 no longer claims one home: the vote and the sheet weigh a record from the node, and the sheet's `CredibilityKey` label stays the Source record's.
+
+### X-1 · blocker · `TestPersonRowOwners` "a parent Place is not an owner" fails under D-11
+**Answer:** Fixed. STEP-5 changes that case to "a parent Place is a folded owner", and T-7 and the Stop list name it.
+
+### X-2 · blocker · The vote breaks `TestPersonDerivedRows` "graph queries do not grow with events and Places"
+**Answer:** Fixed. D-15 loads every conflicting event's association nodes in one `Graph.Nodes` call per composition (`conflictLinks`). T-7 gives the small Person a conflict too, so both Persons take the vote path and `smallN == bigN` holds.
+
+### X-3 · major · `Canon.NewSource` needs the credibility grades installed
+**Answer:** Fixed. STEP-3: `OpenCatalog` calls `sourcecredibilitygradestest.Install`, and the assessment row's columns are named.
+
+### X-4 · major · "England minted first" does not make its ref sort first
+**Answer:** Fixed. `Canon.SetRef` is added (Codebase fit), and T-4 sets `PLC-A` / `PLC-B` and must fail on the old code.
+
+### X-5 · major · `MARKETING_VERSION` appears on four lines
+**Answer:** Fixed. § 4 and STEP-10 say all four.
+
+### X-6 · major · Who builds `Parents` for the displayed places
+**Answer:** Fixed. D-8: the displayed places are `FoldLocations`' own survivors, reused with their `Parents`.
+
+### X-7 · major · D-3 and D-10 edge cases
+**Answer:** Fixed. D-3: a row with no `SubjectID` or member is skipped, and rank 1 is the link's place (`linkLoadSQL`). D-11: a link with no verdict has no owner, and an event with no shell has no place owner.
+
+### X-8 · minor · `placedBirth` and promote's bridge filing
+**Answer:** Fixed. T-6 says the three Swift Current bridges file into one association, so the sheet has two owners.
+
+### X-9 · minor · Credibility read through the member's Source rather than the Citation's Artifact
+**Answer:** Fixed. An Edges line states the equality (`observations` ties a Citation to its Subject's graph, and the maintainability reviewer checked `requireSameGraph`).
+
+### X-10 · minor · D-1 awaits the user
+**Answer:** Agreed. The plan stays Draft until To user is answered.
+
+### X-11 · minor · STEP-5 hides about five changes
+**Answer:** Fixed. STEP-5 (the predicate, the link cap, the fast path, owners) and STEP-6 (the vote) are now separate.
+
 ## Cost
 
-Plan: 5,880 words at round 1, 5,640 at this revision (check-plan-docs info line).
+Plan: 5,880 words at round 1, 5,640 after round 1, 6,298 after round 2 (check-plan-docs info line).
 
 | Round | Reviewer | Model | Tokens |
 | --- | --- | --- | --- |
 | 1 | maintainability | opus | 177k |
 | 1 | executability | sonnet | 131k |
+| 2 | maintainability | opus | 189k |
+| 2 | executability | sonnet | 210k |

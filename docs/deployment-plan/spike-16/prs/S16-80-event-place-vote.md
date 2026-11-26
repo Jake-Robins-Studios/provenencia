@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc`
 **Context:** [`docs/conclusion-reconciliation.md`](../../../conclusion-reconciliation.md) §5 (the pipeline), §8 (cardinality), §9 (values reached through other entities), §11.1 (places: "Several Locations on one Event … fold into chains"; places that do not connect "reconcile like any other multi-valued or mixed field"); [`docs/catalog-caches.md`](../../../catalog-caches.md) (the `nodes` row); [`docs/ideas/one-bridge-cardinality.md`](../../../ideas/one-bridge-cardinality.md); working rules "(Batch 2) Every cache names the signal that updates it, and updates exactly", "(Batch 2) Memory is budgeted", Spike 16 rule "Crafted fan-out is capped, not engineered"; the user's calls of 2026-11-26 recorded in § 5
 **Planned:** 2026-11-26 against `origin/main` @ `7a1d15c`
-**Review:** [`S16-80-event-place-vote.review.md`](S16-80-event-place-vote.review.md) — Fits with changes · Ready with changes, round 1; To user open
+**Review:** [`S16-80-event-place-vote.review.md`](S16-80-event-place-vote.review.md) — Fits with changes · Ready with changes, 2 rounds; To user open (M-1, M-12)
 
 ### Implementer — read this first
 
@@ -72,11 +72,11 @@ When an event's records place it in different Places, the Place the event shows 
 | A node's members carry their Source's credibility; its outcome rows carry their Citation's transcription certainty | STEP-3, T-3 |
 | A simple module can take a caller's fold rule; `autoreconcile.ReconcileHandles` runs the subject module with one | STEP-4, T-1 |
 | An event reads at most 64 location links, everywhere its places are read | STEP-5, T-5 |
-| An event's places, everywhere they are composed (Event rows, Person life rows, search rows), are its location links' records reconciled with containment folding at the event's date | STEP-5, T-4, AC-1.1 – AC-2.4 |
+| An event's places, everywhere they are composed (Event rows, Person life rows, search rows), are its location links' records reconciled with containment folding at the event's date | STEP-6, T-4, AC-1.1 – AC-2.4 |
 | A Person's place owners list every location link of the event, each with what the vote did to it | STEP-5, T-4 |
-| The Birth and Death place sheets show each record's outcome from the vote, and every sheet reads a record's provenance off the node | STEP-6, T-6, AC-3.1, AC-3.2, AC-3.3 |
-| Search documents are re-projected on open | STEP-7 |
-| Version 0.46.1; docs: reconciliation § 9 and § 11.1, catalog caches, add-match-rule | STEP-9 |
+| The Birth and Death place sheets show each record's outcome from the vote, and every sheet reads a record's provenance off the node | STEP-7, T-6, AC-3.1, AC-3.2, AC-3.3 |
+| Search documents are re-projected on open | STEP-8 |
+| Version 0.46.1; docs: reconciliation § 9 and § 11.1, catalog caches, add-match-rule | STEP-10 |
 
 | Out | Home |
 | --- | --- |
@@ -106,7 +106,7 @@ When an event's records place it in different Places, the Place the event shows 
 | Swift | `macos/App/Features/Conclusions/PersonDetailContent.swift` `rows`; `EventDetailContent.swift` `placeRow`; `macos/App/Platform/DerivedPlace.swift`; `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceSheetContent.swift` `derived`; `macos/App/Platform/ReconciledValueDisplay.swift` `outcomePhrase` | Lead and mixed come from `places`; the sheet groups owners by place, shown place first; "folded" (with `valueRank` 0), "outvoted (N of M Sources)" and "weak · …" render. No Swift change |
 | Tests | `core/database/conclusionsummaries/placechains_test.go` `TestBirthLocationsFoldWhenPartOf`, `TestSiblingBirthPlacesStayCompetingUnderASharedParent`, `TestPersonRowOwners`; `eventplaces_cap_test.go` `TestCraftedEventPlaces`, `TestEventPlacesCapInputs`, `TestCraftedLifeOwners`; `core/database/conclusiondetails/placerecords_test.go` | All use one Source, so no vote reaches a majority |
 | Test builders | `core/database/graphcache/graphcachetest/graphcachetest.go` `Canon`; `placerecords_test.go` `birthAt` | `Canon` has one Source, Artifact, graph and Citation; `birthAt` promotes a fresh person, birth and place each call |
-| Version | `VERSION`, `core/version.go` `Version`, `macos/Provenencia.xcodeproj/project.pbxproj` `MARKETING_VERSION` (two lines) | 0.46.0; `core/version_test.go` `TestVersion` holds `VERSION` and `core.Version` equal |
+| Version | `VERSION`, `core/version.go` `Version`, `macos/Provenencia.xcodeproj/project.pbxproj` `MARKETING_VERSION` (four lines: app and tests, Debug and Release) | 0.46.0; `core/version_test.go` `TestVersion` holds `VERSION` and `core.Version` equal |
 
 **Precedent.** `dateModule` in `core/autoreconcile/dates.go` is a module with a fold rule. `core/database/scalarcols` is the leaf SQL package `graphcache` already imports. S16-42 is the precedent for bumping `ProjectionVersion` when what a summary row carries changes.
 
@@ -116,20 +116,21 @@ When an event's records place it in different Places, the Place the event shows 
 | --- | --- | --- | --- |
 | D-1 | `voteLocations` reconciles with `propertymeta.CardinalitySingle`, written as a constant with `// decided: user, 2026-11-26: an event has one place; one declaration with matching waits on docs/ideas/one-bridge-cardinality.md` | Matching's `One` is the one cardinality declaration, and location cannot join it until matching knows containment | A `connectrules` cardinality field (a second declaration with one reader); location in `One` now (Promote would score Canada vs Swift Current as a conflict) |
 | D-2 | The vote runs in the summary composer, in memory, from each association node's outcome rows: `voteLocations` replaces `eventPlaces` for both callers | Event rows, life rows, search rows and the sheet then read one answer | The auto-reconciler: it cannot fold, because containment needs the place graph at the event's date |
-| D-3 | A link's candidates are its association's outcome rows on the `place` Property with `ValueRank` 1 and reason `kept` or `folded`, one per row: `ObservationID` the row's, `Value{SubjectID: link.Neighbor, EntityID: link.Neighbor}`, `SourceID` the member's (by the row's `SubjectID`), `Provenance{Credibility: member's, Uncertain: row's}`. Denied, provisional and negative rows do not vote again | They are the records that made the link's place; the link's own reconcile already decided the rest | Counting a whole association as one vote: two Sources behind one link are two Sources |
+| D-3 | A link's candidates are its association's outcome rows on the `place` Property with `ValueRank` 1 and reason `kept` or `folded`, one per row: `ObservationID` the row's, `Value{SubjectID: link.Neighbor, EntityID: link.Neighbor}`, `SourceID` the member's (by the row's `SubjectID`), `Provenance{Credibility: member's, Uncertain: row's}`. Denied, provisional and negative rows do not vote again. A row with no `SubjectID` or no matching member is skipped. Rank 1 is the link's place: a link is read from its association's rank-1 kept value (`graphcache` `linkLoadSQL`) | They are the records that made the link's place; the link's own reconcile already decided the rest | Counting a whole association as one vote: two Sources behind one link are two Sources |
 | D-4 | Strength counts: weak drop and stronger-first ranking apply across links as in any field (user, 2026-11-26) | Same rules as fields | Sources only |
-| D-5 | A Source's credibility lives on `graphcache.Member` (one join in `loadMembers`); a Citation's transcription certainty on `graphcache.Outcome` (one join in `loadOutcomes`). The vote and the sheet both read provenance there | One home per fact; the node reloads on every credibility and certainty write (`effects` Handles), so neither needs a new signal | `sources.RecordsOf` in the composer: a whole read fails inside a write (`database.ErrWholeOnWrite`), where search re-projects summaries |
+| D-5 | A Source's credibility lives on `graphcache.Member` (one join in `loadMembers`); a Citation's transcription certainty on `graphcache.Outcome` (one join in `loadOutcomes`). The vote and the sheet both read provenance there | The vote and the sheet weigh a record from the same node fields; the node reloads on every credibility and certainty write (`effects` Handles), so neither needs a new signal. The sheet's grade label (`CredibilityKey`) stays the Source record's | `sources.RecordsOf` in the composer: a whole read fails inside a write (`database.ErrWholeOnWrite`), where search re-projects summaries |
 | D-6 | Containment is one predicate, `(*placeGraph).folds(from, into, at)` = `isAncestor(from, into, at) && !isAncestor(into, from, at)`. `FoldLocations` and the vote's fold rule both call it. The date is the one `FoldLocations` gets today (an event row's dating low end, else high; a life row's pick date; nil folds by undated links only, as today). A place that could fold into several folds into the one with the most Sources, then the best ranked (user, 2026-11-26) | One containment rule for the fold and the vote | Folding "into each" (a shared parent that breaks no tie): a pipeline change for one module |
 | D-7 | Fast path: when `FoldLocations` leaves at most one place, no association node is read; a link's verdict is `folded` when `folds(its place, the survivor)`, else `kept`. With one survivor this is the vote's result, since every other place folds into it and D-3 gives the vote no negative | It keeps list reads node-free for every event whose places agree | Always voting: it would load every association of every event on the list paths |
-| D-8 | The places an event shows are the vote's displayed values in result order (support, then the best-ranked record: stronger provenance, then the earlier Observation). Outvoted and weak places leave `Places`, so the lead, the +N and the mixed badge follow with no Swift change. `FoldLocations` loses its ref sort; survivors keep link order | The order is the pipeline's; ref is never a reason | Ordering ties by ref |
+| D-8 | The places an event shows are the vote's displayed values in result order (support, then the best-ranked record: stronger provenance, then the earlier Observation). The displayed places are `FoldLocations`' own survivors, reused with their `Parents` (a vote root is never a place the fold covered). Outvoted and weak places leave `Places`, so the lead, the +N and the mixed badge follow with no Swift change. `FoldLocations` loses its ref sort; survivors keep link order | The order is the pipeline's; ref is never a reason | Ordering ties by ref |
 | D-9 | `eventLocations` keeps at most `maxLifeOwners` links in link order, before its distinct-place cap. Every reader of an event's places (the place graph seeds, the fold, the vote, the owners) then reads the same links | It stays "the one read of an event's places"; Spike 16 rule "Crafted fan-out is capped, not engineered" | A separate cap inside the vote: a place could be in the graph but in neither the vote nor `Places` |
 | D-10 | `placeVote.links` maps an association id to its verdict as `FieldOwner` carries it (`Reason`, `Vote`): `kept`, `folded`, `outvoted` or `weak`. A link's verdict is the outcome of its best-ranked candidate | Every record behind one link holds one place, so the vote treats them alike | A reason per record |
-| D-11 | Life owners list every location link of each picked event, up to `maxLifeOwners` with the date owners: the links to the shown places first (place order, then link order), then every other link in link order. Each owner's `Place` is its own neighbour's shell | The sheet lists every record (US-3); `PVProvenanceSheetContent.derived` puts the shown group first | Only the shown places' links: the outvoted record would vanish |
-| D-12 | `conclusiondetails.placeVerdict(owner conclusionsummaries.FieldOwner, f *Field)` *(new)* lays an owner's verdict over its field: every outcome whose reason is `kept` or `folded` takes the owner's `Reason` and `Vote`; `folded` also sets `ValueRank` 0, so the phrase is the plain "folded". `PersonDerivedRows` calls it for place owners | One function the S15-28 records read calls too (cross-spike table) | Inlining it in `PersonDerivedRows`' loop |
+| D-11 | Life owners list every location link of each picked event, up to `maxLifeOwners` with the date owners: the links to the shown places first (place order, then link order), then every other link in link order. Each owner's `Place` is its own neighbour's shell. A link with no verdict (its association node missing, or no shell) has no owner; an event with no shell has no place and no place owner | The sheet lists every record (US-3); `PVProvenanceSheetContent.derived` puts the shown group first | Only the shown places' links: the outvoted record would vanish |
+| D-12 | `conclusiondetails.placeVerdict(owner conclusionsummaries.FieldOwner, f *Field)` *(new)* lays an owner's verdict over its field: every outcome whose reason is `kept` or `folded` takes the owner's `Reason` and `Vote`; `folded` also sets `ValueRank` 0, so the phrase is the plain "folded". `PersonDerivedRows` calls it for place owners | One function. The verdicts exist only on the Person row's owners, so S15-28's records read for a derived row takes the Person and the row kind, as `PersonDerivedRows` does, and calls it (both maps) | Inlining it in `PersonDerivedRows`' loop; an exported verdict read by association, which would re-run the vote at a date the Person row did not use |
 | D-13 | `ProjectionVersion` becomes 13, so Open re-projects every search document; an outvoted place no longer matches its event or person in search | A summary row's places changed meaning; S16-42 precedent | Old documents healing on the next write to each handle |
+| D-15 | `composePersons` and `composeEvents` load every conflicting event's association nodes in one `Graph.Nodes` call per composition, before composing rows: `conflictLinks(pg, at, locations) [][]byte` *(new)* returns the association ids of an event whose `FoldLocations` leaves two or more places. `voteLocations` then reads them through `InputScope.Node`, which records the inputs | A Person's sheet issues the same graph queries however many events and places conflict | A `Nodes` call per event |
 | D-14 | No `CacheVersion` bump | The auto-reconciler's own rows do not change | — |
 
-**Rules this plan bends.** None.
+**Rules this plan bends.** The reconciler's grouping policy (`docs/conclusion-reconciliation.md` § 7, decided 2026-10-17 in S11-06; the `moduleFor` comment; `add-match-rule`: "values group on `Key` at `Same` and fold on `Contains`"; the § 7 subject row's Fold "none"). Subjects now fold by a rule the caller passes, because value compare is pure and cannot read the place graph. User's answer: pending (review log, To user). On acceptance, STEP-4 rewrites the `moduleFor` comment and STEP-10 rewrites § 7's policy and subject row ("fold: by a caller's rule; an event's place vote folds by containment at the event's date") and the `add-match-rule` line.
 
 ## 6. Design
 
@@ -142,6 +143,8 @@ When an event's records place it in different Places, the Place the event shows 
 | `graphcachetest.(*Canon).NewSource(grade string, uncertain bool)` *(new)* | helper | `evidencelayertest.(*Records).NewSource` | `Canon` writes rows directly and needs its current Source, Artifact, graph and Citation switched, with a grade assessment |
 | `keyModule.folds func(from, into unit) bool` *(new)* | field | `keyModule` | Nil folds nothing, as today; one simple-module type keeps every simple value type |
 | `autoreconcile.ReconcileHandles(candidates []Candidate, folds func(from, into []byte) bool, cardinality string) (Result, error)` *(new)*, `validate` *(new)* | funcs | `Reconcile` | `Reconcile` takes no fold rule; both call `validate` (cardinality and `Carries`) |
+| `conflictLinks` *(new)* | func | `placesOfEvents` | D-15; reads `FoldLocations` with no node load |
+| `graphcachetest.(*Canon).SetRef(id []byte, ref string)` *(new)* | helper | `Canon.Entity`'s `TST-n` refs | Refs compare as strings (`TST-12` < `TST-6`); a test that pins the old ref order sets them |
 | `(*placeGraph).folds` *(new)* | method | the predicate inside `FoldLocations` | Extracted, then called by both |
 | `voteLocations(in *graphcache.InputScope, v vocab, pg *placeGraph, at *datevalue.Value, locations []graphcache.Link) (placeVote, error)` *(new)*, `placeVote{places []ChainedPlace; links map[string]FieldOwner}` *(new)* — file `core/database/conclusionsummaries/placevote.go` *(new)* | func, type | `eventPlaces` | Replaces it; `links` holds only `Reason` and `Vote` of each `FieldOwner` |
 | `FieldOwner.Reason autoreconcile.Reason`, `FieldOwner.Vote autoreconcile.Vote` *(new)* | fields | `conclusiondetails.Outcome.Reason`, `.Vote` | Same types; carry the link's verdict to the sheet |
@@ -164,7 +167,7 @@ When an event's records place it in different Places, the Place the event shows 
 At the map's Scale (one to three places per event; the S11-21 large fixture at 4,000 and 16,000 persons):
 
 - **Lists and search.** The vote reads association nodes only for an event with two or more places after folding (D-7). The large fixture's events have one place each, so lists and `RowsForSearch` read no new node.
-- **Conflict path.** At most 64 association nodes per event (D-9), loaded in one `InputScope.Nodes` call. `TestCraftedEventPlaces` (20 unrelated places from one Source) takes this path within its one-second budget.
+- **Conflict path.** At most 64 association nodes per event (D-9), loaded with every other conflicting event's in one `Graph.Nodes` call per composition (D-15). `TestCraftedEventPlaces` (20 unrelated places from one Source) takes this path within its one-second budget.
 - **Memory and load.** `Member` gains an int, `Outcome` a bool. `BenchmarkCacheSizes` `nodes-B` at 16,000 persons grows by less than 2 MB and `nodes-ms` by less than 15 %.
 - **Fold.** The pipeline's fold is quadratic in distinct values; distinct places per event are at most 20.
 
@@ -173,8 +176,9 @@ At the map's Scale (one to three places per event; the S11-21 large fixture at 4
 - **Assumptions.** `foldValues` follows folds through chains and picks one sink; `isAncestor` is bounded by `summaryChainDepth` and guards cycles, and `folds` adds the reverse check, so a cycle at the date keeps both places (T-4 "cycle"). `Reconcile`'s result does not depend on input order, so link order cannot move the lead.
 - **Neighbors.** One place: unchanged. Places that all fold into one: unchanged `Places`, new owners for the folded links (AC-3.2). Two unrelated places from one Source: both shown, as today, led by the earlier record instead of the lower ref (T-4 "one Source"). Two links to one place from one Source count as one Source. Siblings under a named parent from one Source: unchanged (`TestSiblingBirthPlacesStayCompetingUnderASharedParent`); from three Sources the parent tips the tie (AC-2.2).
 - **Removed inputs.** A regraded Source, a Citation marked uncertain or a removed record reloads the association node (effects Handles), dropping the summary rows that read it through `NodeKey` (T-8). A deleted place leaves the link with no shell: no candidate, no owner, as today.
+- **Source of a record.** The member's Source (`subjects.source_id`) equals the reconciler's (`artifacts.source_id` of the record's Citation): `observations` requires a Citation on its Subject's graph, and a Source move (S15-24) moves both together.
 - **Real data.** No table or seed drives the rule.
-- **Untrusted size.** Links per event: 64, then distinct places: 20 (`eventLocations`, before any read). Records per link: the association's outcome rows, already on the node; linear in the vote.
+- **Untrusted size.** Links per event: 64, then distinct places: 20 (`eventLocations`, before any read). A containment chain deeper than `summaryChainDepth` (8) does not fold, as today (crafted only). Records per link: the association's outcome rows, already on the node; linear in the vote.
 
 ### Schema
 
@@ -216,36 +220,41 @@ Do: move per Codebase fit; no behaviour change.
 Check: `go list -deps ./core/database/sourcecredibilitygrades/gradeorder | grep provenencia` lists only `core/vocabkey` and itself; the `rg` finds nothing; `CGO_ENABLED=1 go test -tags fts5 ./core/database/...` passes.
 
 **STEP-3 — The node carries provenance.**
-Files: `core/database/graphcache/graph.go`, `load.go`, `verify.go`, `graph_test.go`, `core/database/graphcache/graphcachetest/graphcachetest.go`.
-Do: D-5. `Canon.NewSource` inserts a Source, Artifact, Evidence graph and Citation (`transcription_uncertain` from the argument), an assessment of the grade with that key when `grade` is not empty, and makes them the ones later Observations and members use. T-3.
+Files: `core/database/graphcache/graph.go`, `load.go`, `verify.go`, `graph_test.go`, `core/database/graphcache/graphcachetest/graphcachetest.go` (`NewSource`, `SetRef`, the grade install).
+Do: D-5. `OpenCatalog` also calls `sourcecredibilitygradestest.Install(c)`, so every grade exists. `Canon.NewSource` inserts a Source, Artifact, Evidence graph and Citation (`transcription_uncertain` from the argument), a `source_credibility_assessments` row (`id`, `source_id`, `credibility_grade_id` of the grade with that key, origin `provenencia`) when `grade` is not empty, and makes them the ones later Observations and members use. T-3.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/graphcache/...` passes, also with `PROVENENCIA_GRAPH_VERIFY=1`.
 
 **STEP-4 — A module folds by the caller's rule.**
 Files: `core/autoreconcile/modules.go`, `autoreconcile.go`, `modules_test.go`.
-Do: Codebase fit rows for `keyModule.folds`, `validate`, `ReconcileHandles`. T-1.
+Do: Codebase fit rows for `keyModule.folds`, `validate`, `ReconcileHandles`; the `moduleFor` comment says subjects fold by the caller's rule (Rules this plan bends). T-1.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/autoreconcile/ ./core/database/autoreconciler/` passes.
 
-**STEP-5 — Events vote their places.**
-Files: `core/database/conclusionsummaries/placevote.go` *(new)*, `compose.go`, `placechains.go`, `conclusionsummaries.go`, `eventplacevote_test.go` *(new)*.
-Do: D-1 – D-3, D-6 – D-11. T-4, T-5, T-8.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/conclusionsummaries/` passes, T-7's tests unchanged.
+**STEP-5 — One containment predicate, one link read, every link an owner.**
+Files: `core/database/conclusionsummaries/compose.go`, `placechains.go`, `conclusionsummaries.go`, `placechains_test.go`.
+Do: D-6 (`folds`, used by `FoldLocations`), D-9, and the fast path of D-7 inside a first `voteLocations` *(new)* in `core/database/conclusionsummaries/placevote.go` that both callers use; `FieldOwner` gains `Reason` and `Vote`; owners per D-11. `TestPersonRowOwners` case "a parent Place is not an owner" becomes "a parent Place is a folded owner": Yorkshire's link is a second owner after York's, `Reason` folded.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/conclusionsummaries/` passes, T-7's tests green with that one case changed.
 
-**STEP-6 — The sheet shows the vote.**
+**STEP-6 — Events vote their places.**
+Files: `placevote.go`, `compose.go`, `eventplacevote_test.go` *(new)*.
+Do: the vote path of D-1 – D-3, D-7, D-8, D-10, and D-15. T-4, T-5, T-8.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/conclusionsummaries/ ./core/database/conclusiondetails/` passes.
+
+**STEP-7 — The sheet shows the vote.**
 Files: `core/database/conclusiondetails/conclusiondetails.go`, `placerecords_test.go`.
 Do: D-5's sheet half, D-12. T-6.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/conclusiondetails/` passes.
 
-**STEP-7 — Re-project search.**
+**STEP-8 — Re-project search.**
 Files: `core/database/searchindex/searchindex.go`, `searchindex_test.go` (line 246), `core/search/handles_test.go` (line 385).
 Do: D-13; both tests expect 13.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/searchindex/ ./core/search/...` passes.
 
-**STEP-8 — Measure.**
+**STEP-9 — Measure.**
 Do: rerun STEP-1's benchmark, and `CGO_ENABLED=1 go test -tags fts5 ./core/database/promotealign/ -run TestLargeSourceBudgets -v` (`perf_test.go`).
 Check: within § 6 Scale; the budgets pass; both figures in the PR description.
 
-**STEP-9 — Version and docs.**
-Files: `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj` (both `MARKETING_VERSION` lines) → 0.46.1; `docs/conclusion-reconciliation.md` (§ 9: a derived place reconciles across the event's location links; § 11.1: the vote, the containment fold at the event's date, the shared-parent rule of AC-2.2, and that "one place per event" is decided in the vote until [`docs/ideas/one-bridge-cardinality.md`](../../../ideas/one-bridge-cardinality.md)); `docs/catalog-caches.md` (`nodes` row: members carry credibility, outcome rows certainty; the new `nodes-B`); `.agents/skills/add-match-rule/SKILL.md` (beside "The reconciler composes value compare under its own policy": a simple module may take a caller's fold rule, as the place vote's subject module does); `docs/deployment-plan/spike-16/completed.md`; `docs/deployment-plan/spike-16/deployment-plan.md` (update the S16-80 row's status); this plan (status). The version bump rides in this step's commit.
+**STEP-10 — Version and docs.**
+Files: `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj` (all four `MARKETING_VERSION` lines) → 0.46.1; `docs/conclusion-reconciliation.md` (§ 7: the grouping policy and the subject row per Rules this plan bends; § 9: a derived place reconciles across the event's location links; § 11.1: the vote, the containment fold at the event's date, the shared-parent rule of AC-2.2, and that "one place per event" is decided in the vote until [`docs/ideas/one-bridge-cardinality.md`](../../../ideas/one-bridge-cardinality.md)); `docs/catalog-caches.md` (`nodes` row: members carry credibility, outcome rows certainty; the new `nodes-B`); `.agents/skills/add-match-rule/SKILL.md` (beside "The reconciler composes value compare under its own policy": a simple module may take a caller's fold rule, as the place vote's subject module does); `docs/deployment-plan/spike-16/completed.md`; `docs/deployment-plan/spike-16/deployment-plan.md` (update the S16-80 row's status); this plan (status). The version bump rides in this step's commit.
 Do: per the Definition of done.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/ -run TestVersion` passes; `python3 scripts/check-plan-docs.py --links docs/conclusion-reconciliation.md docs/catalog-caches.md` reports no broken link.
 
@@ -258,13 +267,13 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | T-1 | Go | `core/autoreconcile/modules_test.go` `TestReconcileHandles` *(new)* | Ids A, B, C; `folds(C, A)` and `folds(C, B)` true. A from S1–S3, B from S4 → A kept, support 3, merged; B outvoted `Vote{3, 4}` · A ×3 + C ×1 → one value A, support 4; C `folded` · A, B from S1, S2 → both kept, mixed, A first (earlier Observation id) · A credibility −1, B standard → A weak · C, A, B one Source each, A recorded first → C folds into A; B outvoted `Vote{2, 3}` · nil `folds`, A and C → two values, mixed · bad cardinality, a candidate with no `SubjectID` → the errors `Reconcile` returns | D-3, D-4, D-6, D-8 |
 | T-2 | Go | `core/autoreconcile` existing tests | Every simple type with a nil `folds` reconciles as before | D-1 |
 | T-3 | Go | `core/database/graphcache/graph_test.go` `TestNodeProvenance` *(new)* | `Canon` with `NewSource("low_trust", true)`, then a Location: the association's member has `Credibility` −1 and its `place` outcome row `Uncertain` true; a member under the first Source has 0 and false; `Verify` passes | D-5 |
-| T-4 | Go | `core/database/conclusionsummaries/eventplacevote_test.go` `TestEventPlaceVote` *(new)* | Table on `Canon` with `NewSource`, each case checking `EventsByIDs` `Places`, `PersonsByIDs` `Birth.Places` and `Birth.Owners.Places` (order, `Reason`, `Vote`): AC-1.1 (England minted first so its ref sorts first) → [Swift Current], England owner last, `outvoted {3, 4}` · AC-1.2 → [Swift Current, England] when Swift Current's Location is written first, reversed when England's is · AC-1.3 → [England], Swift Current `weak` · AC-1.4 "one Source" → both · AC-2.1 → [Swift Current], parents Saskatchewan, Canada; Canada owner `folded` · AC-2.2 → [Swift Current], Toronto `outvoted {2, 3}`, Canada `folded` · AC-2.3 (`part_of` with `end_date` 1922 through `Canon.Date`, birth `date` 1950) → [Dublin], United Kingdom `outvoted {2, 3}` · AC-2.4 (birth 1900) → [Dublin], United Kingdom `folded` · "cycle": A `part_of` B and B `part_of` A, one Source each → both | AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-2.1, AC-2.2, AC-2.3, AC-2.4, D-6, D-7, D-8, D-11 |
+| T-4 | Go | `core/database/conclusionsummaries/eventplacevote_test.go` `TestEventPlaceVote` *(new)* | Table on `Canon` with `NewSource`, each case checking `EventsByIDs` `Places`, `PersonsByIDs` `Birth.Places` and `Birth.Owners.Places` (order, `Reason`, `Vote`): AC-1.1 (`SetRef` gives England `PLC-A` and Swift Current `PLC-B`; the case fails on the old code) → [Swift Current], England owner last, `outvoted {3, 4}` · AC-1.2 → [Swift Current, England] when Swift Current's Location is written first, reversed when England's is · AC-1.3 → [England], Swift Current `weak` · AC-1.4 "one Source" → both · AC-2.1 → [Swift Current], parents Saskatchewan, Canada; Canada owner `folded` · AC-2.2 → [Swift Current], Toronto `outvoted {2, 3}`, Canada `folded` · AC-2.3 (`part_of` with `end_date` 1922 through `Canon.Date`, birth `date` 1950) → [Dublin], United Kingdom `outvoted {2, 3}` · AC-2.4 (birth 1900) → [Dublin], United Kingdom `folded` · "cycle": A `part_of` B and B `part_of` A, one Source each → both | AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-2.1, AC-2.2, AC-2.3, AC-2.4, D-6, D-7, D-8, D-11 |
 | T-5 | Go | `eventplacevote_test.go` `TestEventPlaceVoteCap` *(new)* | 66 Locations to Swift Current and 5 to England, one Source each → the event reads the first 64 links in `Follow(event, hops.PlacesOfEvent)` order; the birth keeps 63 place owners and its date owner, each among those 64; a place with no link among them is not in `Places`; `PersonsByIDs` cold within `databasetest.WithinBudget` of one second | D-9 |
-| T-6 | Go | `core/database/conclusiondetails/placerecords_test.go` `TestPlaceOwnersCarryTheVote` *(new)* | A helper `placedBirth(src sources.Source, toponym string, person, birth, place []byte) (personH, birthH, placeH []byte)` *(new)* files a person, a birth and a place with that toponym on `src`, links them, and promotes each onto the handle given (nil promotes a new one). Three Sources at Swift Current onto shared handles, a fourth at England (new place handle) → `placeRows`: England's outcome `outvoted`, `Vote{3, 4}`; the others `kept`. Canada variant → Canada's outcome `folded`, `ValueRank` 0. Low-trust variant → `weak`, `Provenance.Credibility` −1 | AC-3.1, AC-3.2, AC-3.3, D-5, D-12 |
-| T-7 | Go | `placechains_test.go` `TestBirthLocationsFoldWhenPartOf`, `TestSiblingBirthPlacesStayCompetingUnderASharedParent`, `TestPersonRowOwners`; `eventplaces_cap_test.go` `TestCraftedEventPlaces`, `TestEventPlacesCapInputs`, `TestCraftedLifeOwners` | Unchanged, green | D-7, D-9, D-11 |
+| T-6 | Go | `core/database/conclusiondetails/placerecords_test.go` `TestPlaceOwnersCarryTheVote` *(new)* | A helper `placedBirth(src sources.Source, toponym string, person, birth, place []byte) (personH, birthH, placeH []byte)` *(new)* files a person, a birth and a place with that toponym on `src`, links them, and promotes each onto the handle given (nil promotes a new one). Three Sources at Swift Current onto shared handles, a fourth at England (new place handle); the three Swift Current bridges file into one association (a bridge is filed by its ends), so the sheet has two owners → `placeRows`: England's outcome `outvoted`, `Vote{3, 4}`; the others `kept`. Canada variant → Canada's outcome `folded`, `ValueRank` 0. Low-trust variant → `weak`, `Provenance.Credibility` −1 | AC-3.1, AC-3.2, AC-3.3, D-5, D-12 |
+| T-7 | Go | `placechains_test.go` `TestBirthLocationsFoldWhenPartOf`, `TestSiblingBirthPlacesStayCompetingUnderASharedParent`, `TestPersonRowOwners`; `eventplaces_cap_test.go` `TestCraftedEventPlaces`, `TestEventPlacesCapInputs`, `TestCraftedLifeOwners`; `TestPersonDerivedRows` | Green. Two changes: `TestPersonRowOwners` "a parent Place is not an owner" becomes "a parent Place is a folded owner" (STEP-5); `TestPersonDerivedRows` "graph queries do not grow with events and Places" gives the small Person a second place from the same Source (York and Town 0), so both Persons take the vote path and `smallN == bigN` still holds (D-15) | D-7, D-9, D-11, D-15 |
 | T-8 | Go | `eventplacevote_test.go` `TestEventPlaceVoteFollowsEvidence` *(new)* | AC-1.2's world with England's Location first, read once ([England, Swift Current]); then England's Source assessed `low_trust` by SQL and `k.Commit` of England's association → `EventsByIDs` reads [Swift Current] | D-5 |
 
-Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `core/database/conclusionsummaries` (`TestPersonRowOwners` owner order), `core/database/promotealign` `TestLargeSourceBudgets`.
+Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `core/database/conclusionsummaries` (`TestPersonRowOwners` owner order), `TestPersonDerivedRows` query counts, `core/database/promotealign` `TestLargeSourceBudgets`.
 
 ## 9. Definition of done
 
@@ -285,7 +294,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `c
 - [ ] PR description: what shipped, AC evidence, deviations, manual check
 ```
 
-The sweep covers `RelativeOrderColumn`, `RelativeOrderJoins`, `sourcecredibilitygrades.DefaultKey` and `eventPlaces`. The brief and copy lines do not apply.
+The sweep covers "Contains folds, and no other relation does", `RelativeOrderColumn`, `RelativeOrderJoins`, `sourcecredibilitygrades.DefaultKey` and `eventPlaces`. The brief and copy lines do not apply.
 
 ## 10. Manual check
 
@@ -299,7 +308,7 @@ The sweep covers `RelativeOrderColumn`, `RelativeOrderJoins`, `sourcecredibility
 | Risk | Mitigation |
 | --- | --- |
 | The vote moves a lead a test elsewhere pins by ref | T-7's tests use one Source, where only the tiebreak changes |
-| Reading association nodes on a list path slows lists | D-7; STEP-8 at Scale |
+| Reading association nodes on a list path slows lists | D-7; STEP-9 at Scale |
 | A summary row cached before a credibility change keeps the old lead | T-8 |
 
 **Stop and report if:**
@@ -308,7 +317,7 @@ The sweep covers `RelativeOrderColumn`, `RelativeOrderJoins`, `sourcecredibility
 - `graphcache` cannot import `gradeorder` without a cycle (STEP-2 check).
 - A credibility or certainty write does not reload the association node, so T-8 fails without a new invalidation signal.
 - `TestLargeSourceBudgets` fails, or `nodes-B` / `nodes-ms` exceed § 6 Scale.
-- A T-7 test needs a changed expectation other than an order between places from one Source.
+- A T-7 test needs a changed expectation other than the two T-7 names or an order between places from one Source.
 - The manual check's sheet does not list the England record, or lists it "kept".
 
 ## 12. Open questions

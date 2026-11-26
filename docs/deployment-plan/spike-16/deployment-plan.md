@@ -30,7 +30,7 @@ Spike 16 is an odds-and-ends spike ([odd and even spikes](../README.md#odd-and-e
 | S16-61 | S15-39, S15-41, S15-25 | `MetadataBoardModel.swift` (the Add row's taken notice is reworded), which S15-39 and S15-41 change on every board; `SourceArtifactsSection.workspaceChanged` goes, so S15-25's move, if started from an open Artifact sheet, closes the sheet itself |
 | S16-68, S16-69, S16-70 | S15-54 | `effects/registry.go` and `path.go` (S15-54 adds the Citation level). Order, not a dependency: whichever lands second rebases. (S15-68 and S15-70 were descoped with Spike 15's slice 12, 2026-11-26.) |
 | S16-58, S16-59 | S15-56, S15-63 | `CitationComposerModel.swift` (S16-58 moves its toast; S15-56 adds the Citation's metadata board) and the Source type page model (S16-59 moves its toast; S15-63's one suggestion list; S15-54 no longer touches it, 2026-11-22); whichever lands second rebases |
-| S16-80 | S15-28 | `conclusiondetails/conclusiondetails.go`: a derived place row's records carry the event vote's verdict through `placeVerdict`, which S15-28's (owner, Property) records read calls too |
+| S16-80 | S15-28 | `conclusiondetails/conclusiondetails.go`: a derived place row's records carry the event vote's verdict through `placeVerdict`. The verdicts live only on the Person row's owners, so S15-28's records read for a derived row takes the Person and the row kind, as `PersonDerivedRows` does, and calls `placeVerdict` |
 | S16-73 – S16-77 | S15-39, S15-41, S15-42, S15-73 | The Add and Copy Source sheets, `MetadataDraftHost` and `CopySourceRequest`. S15-41 and S15-42 depend on S16-76: Swift carries the marks from it, so the control only edits a field Swift holds, on every board and date field, the Copy sheet's board and both sheets' date fields included. S15-39's needed flags reach the Copy sheet's board through the draft board's requirements (S16-77), and S15-42's empty-date flag reaches both sheets' date fields. |
 
 
@@ -1244,7 +1244,7 @@ Design: [`catalog-query-layer.md`](catalog-query-layer.md).
 **Today.** Each event–place link reconciles only its own records; `FoldLocations` orders the places left after folding by ref, so a Person born in Swift Current by three Sources and in England by one showed England, mixed (dogfood, 2026-11-26).
 **Ships.** Go. The shared reconciler gains a subject module that folds by a caller's rule; the summary composer votes an event's location links with it; node members carry their Source's credibility and outcome rows their certainty; the Person's place owners list every link with what the vote did; search re-projects. No Swift change.
 **Check.** Bar 49.
-**Context.** [`docs/conclusion-reconciliation.md`](../../conclusion-reconciliation.md) § 9 and § 11.1; `core/autoreconcile`, `core/database/conclusionsummaries`, `core/database/graphcache`, `core/connectrules`, `core/hops`.
+**Context.** [`docs/conclusion-reconciliation.md`](../../conclusion-reconciliation.md) § 7, § 9 and § 11.1; `core/autoreconcile`, `core/database/conclusionsummaries`, `core/database/conclusiondetails`, `core/database/graphcache`; [`ideas/one-bridge-cardinality.md`](../../ideas/one-bridge-cardinality.md).
 
 ### Batch 8 — Add and Copy Source sheets
 
