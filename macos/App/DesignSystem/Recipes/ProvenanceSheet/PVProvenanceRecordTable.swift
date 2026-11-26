@@ -128,7 +128,7 @@ enum PVProvenancePreviewData {
     ]
 
     /// A sheet's content for the previews.
-    static func content(groups: [PVProvenanceSheetContent.Group], summary: String) -> PVProvenanceSheetContent {
+    static func content(groups: [PVProvenanceSheetContent.Group], summary: String?) -> PVProvenanceSheetContent {
         PVProvenanceSheetContent(
             title: "Birth date",
             shown: .init(face: .date, lead: "14 May 1817", emptyText: "No date recorded", badge: .merged),

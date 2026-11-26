@@ -267,7 +267,7 @@ struct CatalogListMergeTests {
             value.merge(fresh, replacing: dropped) // two removed, one inserted: capacity holds
             return true
         }
-        print("session patch at 20115 rows: \(Self.milliseconds(ContinuousClock.now - started)) ms")
+        print("session patch at 20115 rows: \(milliseconds(ContinuousClock.now - started)) ms")
         #expect(result == .applied)
         #expect(handle?.value?.count == count - 1)
         // decided: S16-26 F-8 (a copy of the cached value would move the buffer)
@@ -344,10 +344,6 @@ struct CatalogListMergeTests {
             #expect(copy.count == expected)
         }
         return best
-    }
-
-    private static func milliseconds(_ duration: Duration) -> Double {
-        Double(duration.components.attoseconds) / 1e15 + Double(duration.components.seconds) * 1e3
     }
 
     /// A fixed-seed generator, so the random cases repeat.
