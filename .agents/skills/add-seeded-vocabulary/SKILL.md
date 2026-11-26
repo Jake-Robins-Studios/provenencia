@@ -23,7 +23,7 @@ new Install into **`onboarding.createCatalog` only**.
 
 | Package | Registry | What it seeds |
 | --- | --- | --- |
-| `core/database/sourcevocab/` | `registry.go` (`seedTypes` / `seedFields` / `seedSuggestions`) | Source types, metadata fields, type→field suggestions (uses `sourcetypes` / `metadatafields`). Also holds `CopyType` (`copy.go`): a copy of a type with its suggested fields, run inside the caller's `writes.Run`, never calling it |
+| `core/database/sourcevocab/` | `registry.go` (`seedTypes` / `seedFields`; suggestions derived from the formats) | Source types, metadata fields, type→field suggestions (uses `sourcetypes` / `metadatafields`). Also holds `CopyType` (`copy.go`): a copy of a type with its suggested fields, run inside the caller's `writes.Run`, never calling it |
 | `core/database/sourcecredibilitygrades/` | `registry.go` (`seedGrades`) | Credibility grades (`low_trust` / `standard` / `high_trust`) |
 | `core/connectrules/` | `productBridges` / `productRefusals` (`Bridge.Endpoints` + `Disambiguation` + `Pairs` + `AcyclicTerms`); `All()` / `Register` | Product connect matrix: which Properties on which bridge types are endpoints or disambiguation. Impact, edge-lock, Connect, and Install bridge bindings loop `All()` / `BridgeBindings()`. Future plugins append via `Register`. |
 | `core/database/subjectvocab/` | `registry.go` (`seedTypes` / `seedProperties` / `seedBindings` / `seedTerms`) | Interpretation Subject types, Properties, non-bridge `subject_type_properties`, **`property_terms`** (S7-01b), plus compiled presentation. Bridge bindings are derived from `connectrules.BridgeBindings()` (product origin only at create). |
@@ -35,7 +35,7 @@ new Install into **`onboarding.createCatalog` only**.
 1. Edit the registry in **`core/database/sourcevocab/`** — declarative lists:
    - `registry.go` `seedTypes` — `key`, `label`, `description`, `IconKey`, `Formats` (the three citation formats, fields written by key; `Install` stores them by id through `sourcetypes.ToStored` with `preferOrigin` `provenencia`, so a researcher's field with the same key never captures one). The three certificates share `certificateFormats`, the journal article and the broadcast `journalArticleFormats`.
    - `registry_fields.go` `seedFields` — `key`, `label`, `data_type` (`text`|`url`), `Description`, `UnknownText` (what a value marked unknown prints, "" for none; no date key is seeded)
-   - `registry_suggestions.go` `seedSuggestions` — one entry per `type_key` with its `FieldKeys` in order; a field's position is its sort order. The lists follow each type's full format; `TestSeedSuggestionsFollowFormats` derives them and fails on a difference.
+   - `registry_suggestions.go` `suggestedKeys` — derives each type's suggested fields from its formats (§ 2.3); a type needs no list of its own
    After a format edit, `go test -tags fts5 -run TestSeedCitations ./core/database/sourcevocab -update` rewrites `testdata/seed-citations.txt` (every seeded format rendered against an invented Source); read the diff.
 2. The Source seed is the citation vocabulary of the Spike 15 map § 6.8, the one
    exception to a small starter: the Spike 15 rule "The seed is the product
@@ -49,7 +49,7 @@ new Install into **`onboarding.createCatalog` only**.
 4. **No seed `INSERT`s** in `migrations/*.sql`. DDL-only migrations for new tables.
 5. Adding rows to the registry is enough for normal growth of the create-time
    starter. Do not reintroduce open-time heal.
-6. Tests: `TestInstall` in `sourcevocab_test.go` (empty catalog gets the registry row for row and the stored formats; a second install changes nothing; a user field with a seeded key does not capture a format; user twin left alone; deleted rows stay deleted without re-Install) and the registry tests in `registry_test.go` (`TestSeedSuggestionsFollowFormats`, `TestSeedFieldsAreRead`, `TestSeedTypes`). Onboarding: open does not heal.
+6. Tests: `TestInstall` in `sourcevocab_test.go` (empty catalog gets the registry row for row and the stored formats; a second install changes nothing; a user field with a seeded key does not capture a format; user twin left alone; deleted rows stay deleted without re-Install) and the registry tests in `registry_test.go` (`TestSuggestedKeys`, `TestSeedFieldsAreRead`, `TestSeedTypes`). Onboarding: open does not heal.
 7. Run `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/... ./core/onboarding/...`.
 
 ### Subject vocabulary / credibility grades
