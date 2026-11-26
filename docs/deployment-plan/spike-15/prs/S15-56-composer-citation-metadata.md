@@ -1,9 +1,9 @@
 # S15-56 — The composer edits a Citation's metadata
 
-**Status:** Planned
+**Status:** Landed in [#982](https://github.com/Jake-Robins-Studios/provenencia/pull/982) (2026-11-26)
 **Spike / slice:** Spike 15 · Slice 11 — Metadata at any level
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D29](../design/S15-D29-citation-composer-metadata.md), board agreed 2026-11-26
+**Brief:** [S15-D29](../design/archive/S15-D29-citation-composer-metadata.md), board agreed 2026-11-26
 **Board:** [Claude Design — Citation Composer](https://claude.ai/artifact/3GSFQZjqdQjL8v2rpgMiDc), page *Citation Composer*, section "S15-D29 · The Citation's metadata", frames 1a – 10 (drawn by the *Citation Header* component's `metaFieldNode` and `sheetNode`). The implementer can open the link; the brief's CB rows and § 6 macOS say what it draws
 **Depends on:** S15-55 (landed [#970](https://github.com/Jake-Robins-Studios/provenencia/pull/970)), S15-60 (landed [#975](https://github.com/Jake-Robins-Studios/provenencia/pull/975)), S15-64 (landed [#959](https://github.com/Jake-Robins-Studios/provenencia/pull/959)), S15-D29
 **Blocks:** S15-58, S15-39, S15-41
@@ -341,6 +341,10 @@ Bar 13, on a new project (the seed has `page`):
 ## 12. Open questions
 
 None.
+
+## Landed
+
+Differences from the plan: `citationFixture` does not install the seed (the onboarded project is seeded); existing registry and place tests now expect `.allCached(.citationsByArtifact)` and the composer's `.metadataFieldsList` key; `pageLabelLoadsSavesAndResets` is removed with the input it tested; T-3 empties the seeded formats by SQL before deleting the `page` field, since the engine refuses to delete a field a format reads; the leave summary reads "the citation" when only the sheet changed. The composer's place is the `.sourceCitationComposer` spec.
 
 ## 13. PR
 
