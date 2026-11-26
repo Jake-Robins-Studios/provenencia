@@ -80,7 +80,7 @@ edge-lock. Catalog row Install for types/properties/terms stays in
 
 ### Implementation (Source seed today)
 
-Product-seeded Source types and fields live in a **code registry** (`core/database/sourcevocab/registry.go`, `registry_fields.go`), and `Install` derives each type's suggestions from its formats (`registry_suggestions.go` `suggestedKeys`, § 2.3); they are installed once by `sourcevocab.Install` at catalog **create** via `onboarding.createCatalog` (see `core/onboarding/ready.go`). Opens (`OpenCatalog`) do **not** re-install or heal deleted seed rows, and existing projects are not updated. Do not put seed rows in SQL migrations. The create-time Source seed is the citation vocabulary of [`evidence-explained-citation-map.md`](deployment-plan/spike-15/evidence-explained-citation-map.md) § 6.8, plus a Map type, `map` (user, 2026-11-26): 27 types, each with its three citation formats, 69 fields and each type's suggested fields, one list per type. The 69 are the map's 64, plus `subdistrict` for a census sub-district (Canada), printed after the enumeration district when set (user, 2026-11-24), plus four place fields (user, 2026-11-21): `jurisdiction` is kept for the government records (census, the three certificates, record book, case file, statute), where it names the county, province, state or country whose office keeps the record. A newspaper item names its place with `publication_place`, a church register with `church_location`, a grave marker with `cemetery_location`, an interview and oral testimony with `interview_place`, and correspondence with `written_from`, where the map used `jurisdiction` for each. It is the exception to "implement small" in §1: the Spike 15 rule "The seed is the product default" decided it.
+Product-seeded Source types and fields live in a **code registry** (`core/database/sourcevocab/registry.go`, `registry_fields.go`), and `Install` derives each type's suggestions from its formats (`registry_suggestions.go` `suggestedKeys`, § 2.3); they are installed once by `sourcevocab.Install` at catalog **create** via `onboarding.createCatalog` (see `core/onboarding/ready.go`). Opens (`OpenCatalog`) do **not** re-install or heal deleted seed rows, and existing projects are not updated. Do not put seed rows in SQL migrations. The create-time Source seed began as the citation vocabulary of [`evidence-explained-citation-map.md`](deployment-plan/spike-15/evidence-explained-citation-map.md) § 6.8, plus a Map type, `map` (user, 2026-11-26), and is now what `registry.go` holds: 28 types, each with its three citation formats, 72 fields and each type's suggested fields, one list per type. The 72 are the map's 64, plus `subdistrict` for a census sub-district (Canada), printed after the enumeration district when set (user, 2026-11-24), plus `election`, `electoral_district` and `polling_division` for the voters list, whose values carry the list's own words (user, 2026-11-26), plus four place fields (user, 2026-11-21): `jurisdiction` is kept for the government records (census, the three certificates, record book, voters list, case file, statute), where it names the county, province, state or country whose office keeps the record. A newspaper item names its place with `publication_place`, a church register with `church_location`, a grave marker with `cemetery_location`, an interview and oral testimony with `interview_place`, and correspondence with `written_from`, where the map used `jurisdiction` for each. It is the exception to "implement small" in §1: the Spike 15 rule "The seed is the product default" decided it.
 
 When extending or adding another vocabulary domain’s seed, follow the project skill [`.agents/skills/add-seeded-vocabulary/SKILL.md`](../.agents/skills/add-seeded-vocabulary/SKILL.md).
 
@@ -88,7 +88,7 @@ When extending or adding another vocabulary domain’s seed, follow the project 
 
 # 2. Source layer
 
-Schema: [`source-layer-data-model.md`](source-layer-data-model.md). The formats of each type are in the map's § 6.8.
+Schema: [`source-layer-data-model.md`](source-layer-data-model.md). The formats of each type are in `core/database/sourcevocab/registry.go` `seedTypes`; the map's § 6.8 is Spike 15's record of what it planned.
 
 ## 2.1 `source_types`
 
@@ -100,6 +100,7 @@ death_certificate
 church_register
 record_book
 passenger_list
+voters_list
 case_file
 manuscript
 government_file
@@ -139,16 +140,16 @@ source    creator author author_sort editor compiler translator photographer stu
           published_in publisher publication_place edition series volume issue
           page_range site_name short_title coverage repository collection
           record_group call_number box folder document_number book case_number
-          enumeration_district subdistrict schedule piece chapter section lot kit_number
+          enumeration_district subdistrict election electoral_district schedule piece chapter section lot kit_number
           match_identifier holder medium
 artifact  format provider database_title url accessed_date citing film_publication
           roll film_number item_number
-graph     item entry_number line_number dwelling_number family_number
+graph     item entry_number line_number polling_division dwelling_number family_number
           schedule_number folio column record_id
 citation  page
 ```
 
-`record_date` and `issue_date` are not seeded (the Source has its own date); a project made before they were dropped keeps its rows. `url` and `accessed_date` describe the copy a researcher used; the bytes of a capture still live on an Artifact/File.
+`record_date` and `issue_date` are not seeded (the Source has its own date); a project made before they were dropped keeps its rows. `url` and `accessed_date` describe the copy a researcher used; the bytes of a capture still live on an Artifact/File. Every full format that prints the online copy prints it through one shared clause, `copyLayer` in `registry.go`: `"database title," format, *provider* (url : accessed date)`, each part when set (user, 2026-11-26).
 
 ## 2.3 `source_type_metadata_fields`
 
