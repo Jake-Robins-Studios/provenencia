@@ -1,11 +1,11 @@
 # Review — S16-D19 Family: when and where a couple married
 
-**Verdict:** round 1: Fits with changes — Not ready. Round 2: pending.
+**Verdict:** Fits with changes — Ready with changes (round 2's findings fixed by the writer; no round 3, per the two-round cap). The remaining calls are the board's options, To user.
 **Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
-- The marriage line is text, not a link: opening the marriage from Family is out of S16-82 (the Timeline opens it). This cut three findings (X-4, X-9, M-3, M-5) and a nested button (X-6, M-7). Say if you want it to open the Event; that is a later PR with its own look.
-- FM-2 (parents): A between the tiles, or C inside the lower parent's tile. FM-3 (partners): B over the partner's group, or C inside the partner's tile. FM-4: "m." or "Married". Writer's recommendation: C in both columns with "m.", since it is a life line like "b." and "d." and needs no new room.
+- The marriage line is text, not a link: opening the marriage from Family is out of S16-82 (the Timeline opens it). This answered four findings (X-4, X-9, M-3, M-5) and a nested button (X-6, M-7). Say if you want it to open the Event; that is a later PR with its own look.
+- FM-2 (parents): A between the tiles, or C inside the lower parent's tile. FM-3 (partners): B over the partner's group, or C inside the partner's tile. FM-4: "m." or "Married". Writer's recommendation: C in both columns with "m.", since it is a life line like "b." and "d.". C is not free: tiles grow with their lines, a change to the kit tile every tile uses (X-13). A/B leave tiles alone but add room between them.
 
 ## Writer's own calls
 - No line for a spouse link without a marriage event (working rule).
@@ -72,9 +72,27 @@
 ### M-7 · minor · Option C nests buttons
 **Answer:** Fixed: text, not a button.
 
+## Round 2
+
+### M-8 · major · Life-line words in two homes (M-1 only partly fixed)
+**Answer:** Fixed. One life-line words table by event type (abbreviation, display word, inline word); birth and death move into it; a parity test ties it to the spouse-implying patterns.
+
+### X-13 · major · Option C needs room and touches the kit tile
+**Answer:** Fixed. To user corrected; inventory rows for `PVTileCardSize` and per-tile heights; lines keyed by position; no "+N" on tile lines.
+
+### X-14 · major · A bare "m." has no builder path or spoken text
+**Answer:** Fixed. FM-4 and the Life line row: a line from an event that exists is kept with both halves missing; FM-6 gives its spoken text.
+
+### X-15 · major · Whom a marriage is with in a block of several couples
+**Answer:** Fixed. FM-2: in a block with more than one couple a marriage line names the other spouse, in either option; FM-6 speaks it; `LifeLine` gains the optional spouse part.
+
+### X-16 · minor · The couple format for A and B
+**Answer:** Fixed. Copy row names it.
+
 ## Cost
 
 | Round | Reviewer | Model | Tokens |
 | --- | --- | --- | --- |
 | 1 | maintainability | opus | 149k |
 | 1 | executability | sonnet | 145k |
+| 2 | both lenses | opus | — |
