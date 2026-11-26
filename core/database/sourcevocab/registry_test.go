@@ -256,3 +256,17 @@ func TestSeedPlaceFields(t *testing.T) {
 		}
 	}
 }
+
+// vocabkey names the seeded metadata fields code reads by key; the seed stays
+// the source of truth for what exists.
+func TestFieldKeysMatchSeed(t *testing.T) {
+	seeded := map[string]bool{}
+	for _, f := range seedFields {
+		seeded[f.Key] = true
+	}
+	for _, key := range []string{vocabkey.FieldPage} {
+		if !seeded[key] {
+			t.Errorf("vocabkey field %q is not a seeded metadata field", key)
+		}
+	}
+}

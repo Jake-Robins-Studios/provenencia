@@ -15,13 +15,17 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencelayer/evidencelayertest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/graphfill"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/observations"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/promote"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/promote/promotetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcevocab/sourcevocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/locator"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue/namevaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 )
 
@@ -42,6 +46,17 @@ func newFamily(t *testing.T) family {
 	f.bob = r.Labelled(r.Source, "person", "Bob Lee")
 	f.rel = r.Relationship(r.Source, r.Artifact, f.ann, f.bob, "parent")
 	f.entity = promotetest.Save(t, r.C, evidencelayertest.UserID, promote.Input{SubjectID: f.ann.ID}).Entity.ID
+	return f
+}
+
+// newSeededFamily is newFamily on a catalog with the Source seed, which holds
+// the page field a Citation's own Page is a value of.
+func newSeededFamily(t *testing.T) family {
+	t.Helper()
+	f := newFamily(t)
+	if err := sourcevocabtest.Install(f.r.C); err != nil {
+		t.Fatal(err)
+	}
 	return f
 }
 
@@ -236,7 +251,9 @@ func TestGraphRecordsOutliveLoadedGraph(t *testing.T) {
 // its Citation's Artifact, label, page and uncertainty, from the loaded graph
 // and from the rows alike.
 func TestGraphRecordsCarryCitationWords(t *testing.T) {
-	cite := func(t *testing.T, f family, in citations.CreateInput) []byte {
+	// cite makes a Citation with one Observation; page, when not empty, is the
+	// Citation's own Page value, on the seeded page field.
+	cite := func(t *testing.T, f family, in citations.CreateInput, page string) (obsID []byte) {
 		t.Helper()
 		in.GraphID, in.ArtifactID = f.graph, f.r.Artifact.ID
 		name := f.r.Prop("name").ID
@@ -251,6 +268,9 @@ func TestGraphRecordsCarryCitationWords(t *testing.T) {
 		})
 		if len(res.Observations) != 1 {
 			t.Fatalf("created %d Observations", len(res.Observations))
+		}
+		if page != "" {
+			setPage(t, f.r.C, res.Citation.ID, page)
 		}
 		return res.Observations[0].ID
 	}
@@ -273,28 +293,28 @@ func TestGraphRecordsCarryCitationWords(t *testing.T) {
 	}
 
 	t.Run("a labelled, paged, uncertain Citation", func(t *testing.T) {
-		f := newFamily(t)
+		f := newSeededFamily(t)
 		id := cite(t, f, citations.CreateInput{
 			Label: "Baptism of Ada", TranscriptionUncertain: true,
-			LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":37}]}`,
-		})
+			LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_label":"9"}]}`,
+		}, "14")
 		loaded, cold := fills(t, f)
 		for _, rec := range []*graphfill.GraphRecords{loaded, cold} {
 			_, o, ok := rec.Observation(id)
 			if !ok {
 				t.Fatal("the Observation is not in the records")
 			}
-			if !bytes.Equal(o.ArtifactID, f.r.Artifact.ID) || o.CitationLabel != "Baptism of Ada" || o.ArtifactPage != 37 || o.PageLabel != "" || !o.TranscriptionUncertain {
+			if !bytes.Equal(o.ArtifactID, f.r.Artifact.ID) || o.CitationLabel != "Baptism of Ada" || o.ArtifactPage != 37 || o.PageLabel != "14" || !o.TranscriptionUncertain {
 				t.Fatalf("citation words %+v", o)
 			}
 		}
 	})
 
 	t.Run("a Citation with a printed page and no file page", func(t *testing.T) {
-		f := newFamily(t)
+		f := newSeededFamily(t)
 		id := cite(t, f, citations.CreateInput{
-			LocatorJSON: `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","page_label":"14"}]}`,
-		})
+			LocatorJSON: `{"version":1,"selectors":[{"type":"artifact"}]}`,
+		}, "14")
 		loaded, cold := fills(t, f)
 		for _, rec := range []*graphfill.GraphRecords{loaded, cold} {
 			_, o, ok := rec.Observation(id)
@@ -308,8 +328,8 @@ func TestGraphRecordsCarryCitationWords(t *testing.T) {
 	})
 
 	t.Run("a Citation with no label and no page", func(t *testing.T) {
-		f := newFamily(t)
-		id := cite(t, f, citations.CreateInput{LocatorJSON: `{"version":1,"selectors":[{"type":"note"}]}`})
+		f := newSeededFamily(t)
+		id := cite(t, f, citations.CreateInput{LocatorJSON: `{"version":1,"selectors":[{"type":"note"}]}`}, "")
 		_, cold := fills(t, f)
 		_, o, ok := cold.Observation(id)
 		if !ok {
@@ -338,7 +358,7 @@ func TestLoadParsesEachCitationOnce(t *testing.T) {
 		var err error
 		res, ch, err = citations.CreateWithObservations(tx, evidencelayertest.UserID, citations.CreateInput{
 			GraphID: f.graph, ArtifactID: f.r.Artifact.ID, Label: "Baptism of Ada",
-			LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_label":"xxxvii"},{"type":"text_quote","exact":"` + filler + `"}]}`,
+			LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":37},{"type":"text_quote","exact":"` + filler + `"}]}`,
 		}, inputs)
 		return ch, err
 	})
@@ -358,12 +378,11 @@ func TestLoadParsesEachCitationOnce(t *testing.T) {
 		t.Fatalf("%d Observations cite the Citation, want %d", len(cited), len(inputs))
 	}
 	first := cited[0]
-	if first.ArtifactPage != 37 || first.PageLabel != "xxxvii" || first.CitationLabel != "Baptism of Ada" {
+	if first.ArtifactPage != 37 || first.CitationLabel != "Baptism of Ada" {
 		t.Fatalf("citation words %+v", first)
 	}
 	for _, o := range cited[1:] {
-		if unsafe.StringData(o.PageLabel) != unsafe.StringData(first.PageLabel) ||
-			unsafe.StringData(o.CitationLabel) != unsafe.StringData(first.CitationLabel) ||
+		if unsafe.StringData(o.CitationLabel) != unsafe.StringData(first.CitationLabel) ||
 			&o.ArtifactID[0] != &first.ArtifactID[0] {
 			t.Fatalf("an Observation holds its own copy of the Citation's words: %+v", o)
 		}
@@ -418,5 +437,22 @@ func TestRecordsOfRecordsGraphs(t *testing.T) {
 	}
 	if _, graphs, _ := none.Lists(); len(graphs) != 0 {
 		t.Fatalf("a NoPageInputs recorder holds %x", graphs)
+	}
+}
+
+// setPage gives a Citation its own Page value, on the seeded page field.
+func setPage(t *testing.T, c *database.Catalog, citationID []byte, text string) {
+	t.Helper()
+	page, err := metadatafields.Lookup(c, vocabkey.FieldPage, vocabkey.OriginProvenencia)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = writes.Run(c, writes.Op{Action: "update_metadata", UserID: evidencelayertest.UserID},
+		func(tx *database.Tx) (sourcemetadata.Row, []rowchange.Change, error) {
+			return sourcemetadata.Set(tx, evidencelayertest.UserID,
+				sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: citationID}, sourcemetadata.Input{FieldID: page.ID, ValueText: text})
+		})
+	if err != nil {
+		t.Fatal(err)
 	}
 }

@@ -82,6 +82,11 @@ const (
 	Place  = "place"
 )
 
+// FieldPage is the seeded metadata field that holds a Citation's printed page.
+// Its own value on the Citation is the page a citation prints (the rule "The
+// printed page is a metadata field"); no level above it is read.
+const FieldPage = "page"
+
 // Seeded Property keys that matching and search read by name.
 const (
 	PropertyName         = "name"

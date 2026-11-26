@@ -16,6 +16,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/namevalues"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/scalarcols"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
 	"github.com/Jake-Robins-Studios/provenencia/core/hops"
 	"github.com/Jake-Robins-Studios/provenencia/core/locator"
 	"github.com/Jake-Robins-Studios/provenencia/core/valuecodec"
@@ -160,10 +161,10 @@ func loadGraphSubjects(q database.Querier, graphID []byte) ([]graphcache.Evidenc
 
 // citationWords are the words every Observation of one Citation shares.
 type citationWords struct {
-	artifactID       []byte
-	label, pageLabel string
-	page             int
-	uncertain        bool
+	artifactID []byte
+	label      string
+	page       int
+	uncertain  bool
 }
 
 func loadGraphObservations(q database.Querier, graphID []byte) ([]graphcache.EvidenceObservation, error) {
@@ -216,12 +217,12 @@ func loadGraphObservations(q database.Querier, graphID []byte) ([]graphcache.Evi
 			w = citationWords{artifactID: append([]byte(nil), o.ArtifactID...), label: o.CitationLabel, uncertain: o.TranscriptionUncertain}
 			if citationLocator.Valid {
 				ref := locator.Page(citationLocator.String)
-				w.page, w.pageLabel = ref.ArtifactPage, ref.Label
+				w.page = ref.ArtifactPage
 			}
 			words[string(o.CitationID)] = w
 		}
 		o.ArtifactID, o.CitationLabel, o.TranscriptionUncertain = w.artifactID, w.label, w.uncertain
-		o.ArtifactPage, o.PageLabel = w.page, w.pageLabel
+		o.ArtifactPage = w.page
 		if dv := depictionvalues.FromJoin(o.DepictionID, depictionRegion, depictionImage, citationLocator, imageMediaType); dv != nil {
 			o.DepictionRegion, o.DepictionImageFileID = dv.RegionJSON, dv.ImageFileID
 		}
@@ -238,6 +239,16 @@ func loadGraphObservations(q database.Querier, graphID []byte) ([]graphcache.Evi
 	if err != nil {
 		return nil, err
 	}
+	// The printed page is the Citation's own Page value, read once for every
+	// Citation of the graph (the locator keeps only the file page).
+	citationIDs := make([][]byte, 0, len(words))
+	for id := range words {
+		citationIDs = append(citationIDs, []byte(id))
+	}
+	pages, err := sourcemetadata.CitationPages(q, citationIDs)
+	if err != nil {
+		return nil, err
+	}
 	dates, err := datevalues.LookupManyTx(q, dateIDs)
 	if err != nil {
 		return nil, err
@@ -247,6 +258,7 @@ func loadGraphObservations(q database.Querier, graphID []byte) ([]graphcache.Evi
 		return nil, err
 	}
 	for i := range out {
+		out[i].PageLabel = pages[string(out[i].CitationID)]
 		if d, ok := dates[string(out[i].DateID)]; ok {
 			b, err := valuecodec.MarshalDate(d)
 			if err != nil {
