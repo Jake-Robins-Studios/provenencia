@@ -6,14 +6,14 @@
 **Brief:** — (no chrome change: no view's layout or components change; the format editor's completion list is engine data and loses the `citation.page` row, as a deleted field would lose its row)
 **Board:** —
 **Depends on:** S15-56 (landed [#982](https://github.com/Jake-Robins-Studios/provenencia/pull/982))
-**Blocks:** S15-59
+**Blocks:** S15-59; S16-79's seed formats (D-8)
 **Branch:** `s15-58-page-builtin-goes`
 **Version bump:** minor, 0.44.0 (today's `VERSION`) → **0.45.0** (or the next minor after `main`'s `VERSION` when you rebase): the format language loses a placeholder and the wire reserves a field ([`docs/versioning.md`](../../../versioning.md)); `VERSION`, `core/version.go`, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj`
 **Skills to load:** [`add-seeded-vocabulary`](../../../../.agents/skills/add-seeded-vocabulary/SKILL.md), [`add-ffi-handler`](../../../../.agents/skills/add-ffi-handler/SKILL.md), [`add-localized-string`](../../../../.agents/skills/add-localized-string/SKILL.md)
 **Rules that bind:** `.cursor/rules/go-tests.mdc` (table tests)
 **Context:** map scope entry S15-58 ([`../deployment-plan.md`](../deployment-plan.md)); working rules "The printed page is a metadata field", "A format reads a field from the nearest level that holds it", "Citation formats are data on the Source type", "Boards flag needed fields; the engine decides the rows", "The seed is the product default"; [`../evidence-explained-citation-map.md`](../evidence-explained-citation-map.md) §§ 1, 6.3, 6.8, 6.9, 6.10; [`docs/citation-formats.md`](../../../citation-formats.md); [`docs/source-layer-data-model.md`](../../../source-layer-data-model.md) § 5.2
 **Planned:** 2026-11-26 against `main` @ `674de5a`
-**Review:** — (not reviewed yet)
+**Review:** [`S15-58-page-builtin-goes.review.md`](S15-58-page-builtin-goes.review.md) — Fits with changes / Not ready at round 1; round 2 pending
 
 ### Implementer — read this first
 
@@ -34,7 +34,7 @@ A citation's printed page comes from one place: the seeded `page` field, read ne
 
 **Why now.** S15-56 made the printed page a Citation board row and stopped the composer writing `page_label`, so the built-in reads a key nothing writes any more. S15-59 then removes `page_label` from the locator; it needs no reader of it left.
 
-**What stays.** The locator and its `page_label`, `page_unknown`, `page_supplied` keys and their validation (S15-59). `{citation.image}` and `{citation.label}`. The Source date's requirement and `Board.Date`. `sourcemetadata.CitationPages` and every reader of the Citation's own Page value (S15-56). No view changes.
+**What stays.** The locator (S15-59), the other built-ins, the Source date's requirement, and every reader of the Citation's own Page value (S15-56). No view changes.
 
 ## 2. User stories
 
@@ -112,13 +112,13 @@ A citation's printed page comes from one place: the seeded `page` field, read ne
 | --- | --- | --- | --- |
 | D-1 | Remove the `page` row from `builtins` and the `CitationPage` target; the parser's existing `unknown_builtin` reports it | One table declares the built-ins; parse, completion and Swift parity derive from it | A dedicated "retired placeholder" diagnostic: a new code for one name the app has no users of |
 | D-2 | In `registry.go`, every `{meta.page\|citation.page}` becomes `{meta.page}`, and court report's `{meta.page\|citation.page\|meta.page_range}` becomes `{meta.page\|meta.page_range}`. No other text changes | Map scope entry; the field answers first already, so renders with a `page` value are unchanged | — |
-| D-3 | Tests that printed a page from a locator `page_label` set the Citation's own `page` value with the same text and mark instead; their locator JSON stays as written | The locator keys are S15-59's; a test's printed text stays the same, so its expectation does not change | Removing the labels from the test locators here (S15-59's scope) |
-| D-4 | `levelNeeds.builtinHeads` stays a map keyed by `citationformat.Target`; only the `CitationPage` comparison in `needsAt` goes, and the comments name the Source date alone | `annotate` takes any built-in head generically; the map has one key now, and the change stays one condition | A `dateHeads []Requirement` field: rewrites `annotate`, `fieldIDs` and their tests for no reader's gain |
+| D-3 | Tests that printed a page from a locator `page_label` set the Citation's own `page` value with the same text and mark instead; their locator JSON stays as written, and `pageLocator` (`core/database/citationrender/render_test.go`) and `pageLocatorJSON` (`api/ffi/handlers/citation_render_test.go`) each get a comment: the label no longer prints, S15-59 removes it | The locator keys are S15-59's; a test's printed text stays the same, so its expectation does not change | Removing the labels from the test locators here (S15-59's scope) |
+| D-4 | `levelNeeds.builtinHeads` stays a map keyed by `citationformat.Target`; only the `CitationPage` comparison in `needsAt` goes, and its comment says its one key is `SourceDate`, the one built-in a board annotates | `annotate` takes any built-in head generically; the map has one key now, and the change stays one condition | A `dateHeads []Requirement` field: rewrites `annotate`, `fieldIDs` and their tests for no reader's gain |
 | D-5 | No migration and no install-on-open rewrite of stored formats. A stored form that still names `{citation.page}` does not parse: it renders nothing and asks nothing of the boards until the researcher fixes it, and the editor shows it with `unknown_builtin` (AC-2.3). The PR description gives the product owner the two `replace` statements of §10 step 3 for the dogfood project; they rewrite the seeded forms, where `citation.page` is never a chain's head, and a researcher-written `{citation.page}` at a head or alone is fixed in the editor | Precedent S15-62 (user, 2026-11-22: one dogfood project, fixed by hand); `add-catalog-migration` forbids Go and seed backfills in migrations | A format step rewriting `source_types.citation_*`: S15-62 dropped the same one |
 | D-6 | `GetSourceWorkspaceResponse` field 12 becomes `reserved 12; reserved "page_requirement";`, and its comment names the Source date alone | Proto practice in `engine.proto` (fields 6–8); no client reads it | Leaving it unset: a dead field the next reader would trust |
 | D-7 | `TestSourceBoardBuiltins`' built-in-head case moves to the Source date: the `newLedger` type's full format is `{source.date\|meta.page_range}.` and it asserts `Board.Date` (AC-3.2) | Keeps the only built-in-head path tested once the page head is gone | Dropping the case: `annotate`'s built-in branch would lose its only chain test |
 
-| D-8 | S16-79's planned voters-list formats read `{meta.page}` | That plan is Blocked and unbuilt; a seed text with `citation.page` would no longer parse | Leaving it to S16-79's refresh: the plan would carry a format the parser refuses |
+| D-8 | S16-79's planned voters-list formats read `{meta.page}`, edited in planning with both maps' notes; this PR changes nothing there | That plan is Blocked and unbuilt; a seed text with `citation.page` would no longer parse | Leaving it to S16-79's refresh: the plan would carry a format the parser refuses |
 
 **Rules this plan bends.** None.
 
@@ -129,8 +129,8 @@ A citation's printed page comes from one place: the seeded `page` field, read ne
 None — the PR adds no file, type, function, key or helper; it only removes.
 
 **Builds on.** The built-ins table (`core/citationformat/builtins.go`) and the Swift parity test (`TestSwiftVocabularyMatchesGo`); S15-62's retirement of a placeholder form.
-**Deletes.** `citationformat.CitationPage` and its `builtins` row; the `CitationPage` comparison in `sourcemetadata.needsAt`; `sourcemetadata.Board.Page` and its assignment in `buildBoards`; the `CitationPage` line in `citationrender.fillValues`; `GetSourceWorkspaceResponse.page_requirement` and its assignment in `handlers.GetSourceWorkspace`; `CitationBuiltin.citationPage`, `L10n.CitationFormats.nameCitationPage`, its `builtinName` arm and the `citationFormats.builtin.citationPage` catalog entry; `TestRenderMarks`' "unknown page" row and its then-unused `cit` variable. `locator.PageRef.Label` and `.Mark` lose their last reader outside `core/locator`; S15-59 deletes them.
-**Next adds.** S15-59 deletes the locator's printed-page keys with no format or board left reading them.
+**Deletes.** `citationformat.CitationPage` and its `builtins` row; the `CitationPage` comparison in `sourcemetadata.needsAt`; `sourcemetadata.Board.Page` and its assignment in `buildBoards`; the `CitationPage` line in `citationrender.fillValues`; `GetSourceWorkspaceResponse.page_requirement` and its assignment in `handlers.GetSourceWorkspace`; `CitationBuiltin.citationPage`, `L10n.CitationFormats.nameCitationPage`, its `builtinName` arm and the `citationFormats.builtin.citationPage` catalog entry; `TestRenderMarks`' "unknown page" row, and the then-unused `cit` in `TestRenderMarks` and `censusValues`. `locator.PageRef.Label` and `.Mark` lose their last reader outside `core/locator`; S15-59 deletes them.
+**Next adds.** S15-59 deletes the locator's printed-page keys with no format or board left reading them, starting from the two test helpers D-3 marks. S16-79 seeds `{meta.page}` (D-8).
 
 ### Reach
 
@@ -215,7 +215,7 @@ Check: on the Mac, `CGO_ENABLED=1 go test -tags fts5 -run TestSwiftVocabularyMat
 
 **STEP-7 — Docs**
 Files: `docs/citation-formats.md`, `docs/source-layer-data-model.md`, `docs/deployment-plan/spike-15/evidence-explained-citation-map.md`, `deployment-plan.md`, `completed.md`, this plan.
-Do: `citation-formats.md`: the `citation.page` row of the built-ins table goes; "The Citation level's built-ins are `citation.image` and `citation.label`"; "What each built-in reads" loses its `citation.page` clause. `source-layer-data-model.md` § 5.2: "A Source's board also carries what the formats ask of the Source date." Citation map: § 1's Citation row reads "the printed page (the `page` field)"; § 6.3's built-ins table loses the `{citation.page}` row; each `{meta.page|citation.page}` in §§ 6.8's format listings becomes `{meta.page}` and court report's becomes `{meta.page|meta.page_range}`; § 6.9 loses the sentence "Until S15-58 the seed reads `{meta.page|citation.page}`, so a locator's printed page answers when no level holds a value."; § 6.10's "Built-ins" paragraph reads "`{source.date}` is flagged in the Source page header where the date sits. Labels and titles always have a value." `deployment-plan.md`: rule "Citation formats are data on the Source type" loses "; `{citation.page}` until S15-58". `docs/deployment-plan/spike-16/prs/S16-79-voters-list-type.md` lines 181–182: `{meta.page|citation.page}` becomes `{meta.page}` (D-8).
+Do: `citation-formats.md`: the `citation.page` row of the built-ins table goes; "The Citation level's built-ins are `citation.image` and `citation.label`"; "What each built-in reads" loses its `citation.page` clause. `source-layer-data-model.md` § 5.2: "A Source's board also carries what the formats ask of the Source date." `docs/interpretation-layer-data-model.md` § 3.2: "A citation prints an unknown page as \"unpaginated\" and a supplied one in square brackets." becomes "No citation reads these marks; a citation prints the Page field's marks." Citation map: § 1's Citation row reads "the printed page (the `page` field)"; § 6.3's built-ins table loses the `{citation.page}` row; each `{meta.page|citation.page}` in §§ 6.8's format listings becomes `{meta.page}` and court report's becomes `{meta.page|meta.page_range}`; § 6.9 loses the sentence "Until S15-58 the seed reads `{meta.page|citation.page}`, so a locator's printed page answers when no level holds a value."; § 6.10's "Built-ins" paragraph reads "`{source.date}` is flagged in the Source page header where the date sits. Labels and titles always have a value." `deployment-plan.md`: rule "Citation formats are data on the Source type" loses "; `{citation.page}` until S15-58".
 Check: `rg -n 'citation\.page' docs --glob '!docs/deployment-plan/spike-15/prs/**' --glob '!docs/deployment-plan/spike-15/design/archive/**' --glob '!*.review.md'` hits only history that stays: `completed.md` (the S15-60 paragraph) and in `deployment-plan.md` the rule "The printed page is a metadata field", the S15-58 and S15-60 rows, and the S15-60, S15-56 and S15-58 scope entries; `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-58-page-builtin-goes.md` passes.
 
 **STEP-8 — Version and status**
@@ -256,7 +256,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 - [ ] This plan: Status → Landed in #N (date); a Landed note lists every difference from the plan
 - [ ] deployment-plan.md: map row status; completed.md: one short paragraph of what shipped
 - [ ] Brief moved to design/archive/ and design/README.md updated (if gated) — none: no brief
-- [ ] Domain doc updated if a rule in docs/*.md changed: docs/citation-formats.md, docs/source-layer-data-model.md § 5.2, the citation map §§ 1, 6.3, 6.8, 6.9, 6.10 (STEP-7)
+- [ ] Domain doc updated if a rule in docs/*.md changed: docs/citation-formats.md, docs/source-layer-data-model.md § 5.2, docs/interpretation-layer-data-model.md § 3.2, the citation map §§ 1, 6.3, 6.8, 6.9, 6.10 (STEP-7)
 - [ ] PR description: what shipped, AC evidence, deviations, manual check, and §10 step 3's statements for the product owner
 ```
 
@@ -275,7 +275,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 
 **Stop and report if:**
 
-- A seeded format text holds `citation.page` anywhere other than the 17 placeholders D-2 names.
+- A seeded format text holds `citation.page` anywhere other than the 17 placeholders D-2 names, counted on `main` at rebase.
 - `seed-citations.txt` changes after STEP-2.
 - `TestRenderScale`'s SELECT counts change.
 - A Swift file outside `Platform/Generated/` reads `pageRequirement` or `CitationBuiltin.citationPage` beyond the three §6 macOS rows.

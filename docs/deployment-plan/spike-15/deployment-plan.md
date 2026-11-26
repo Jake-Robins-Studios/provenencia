@@ -381,6 +381,7 @@ S16-09 ──▶ S15-29
 S16-61 ──▶ S15-25, S15-39, S15-41
 S16-76 ──▶ S15-41, S15-42
 S16-58, S16-59 — S15-56, S15-63 (same files; whichever lands second rebases)
+S15-58 — S16-79 (S15-58 retires `{citation.page}`; S16-79's seed formats read `{meta.page}`)
 S16-68, S16-69, S16-70 — S15-54 (same files; whichever lands second rebases)
 
 Briefs:
