@@ -25,16 +25,19 @@ struct EvidenceGraphIndex {
     }
 
     /// The index after each given Source's graphs were replaced by the listed
-    /// ones (in that order); no other Source is touched.
+    /// ones (in that order); no other Source is touched. A graph that moved
+    /// Sources keeps its `byID` entry whichever Source is replaced first: an
+    /// old row is dropped only while `byID` still holds it under this Source,
+    /// and a re-read row always replaces the held one.
     func replacing(sources: [String: [CatalogEvidenceGraph]]) -> EvidenceGraphIndex {
         var byID = byID
         var bySource = bySource
         var linked = linkedArtifactIDsBySource
         for (sourceID, graphs) in sources {
-            for old in bySource[sourceID] ?? [] {
+            for old in bySource[sourceID] ?? [] where byID[old.id]?.sourceID == sourceID {
                 byID[old.id] = nil
             }
-            for graph in graphs where byID[graph.id] == nil {
+            for graph in graphs {
                 byID[graph.id] = graph
             }
             bySource[sourceID] = graphs.isEmpty ? nil : graphs
