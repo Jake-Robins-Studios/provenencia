@@ -1,12 +1,12 @@
 # Review — S16-D18 Family: each parent drawn once
 
-**Verdict:** round 1: Fits with changes — Not ready. Round 2: pending.
+**Verdict:** Fits with changes — Ready with changes (round 2's findings fixed by the writer; no round 3, per the two-round cap). The remaining calls are the board's options, To user.
 **Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
 - FP-3: how the missing parent shows (A dashed stub, B join dots, C per-parent lines, D a tile note). Writer's recommendation: A, the page's existing "not recorded" mark, with FP-6 A spoken. Choosing C changes the working rule "(Batch 6) The Family section draws each parent once" (one line per set).
 - FP-5: a block of overlapping sets: A caption only, or C a rule inside the block. Writer's recommendation: A.
-- FP-6: a marked sibling's spoken phrase: A names the parents they are recorded with, B says the other parent is not recorded. Writer's recommendation: A, unless FP-3 D is chosen.
+- FP-6: a marked sibling's spoken phrase: A "child of ⟨parents⟩" only, or B that plus "other parent not recorded". Writer's recommendation: B, so the missing link is heard as it is seen.
 - The siblings' order is the engine's: a sibling recorded with only the mother is drawn before the full siblings. If it reads wrong once parents are drawn once, it is a Go change and a new decision.
 
 ## Writer's own calls
@@ -77,9 +77,24 @@
 ### M-8 · minor · Where the distinct-parents step lives
 **Answer:** Fixed. A line in `docs/ideas/kinship-view.md`.
 
+## Round 2
+
+### X-13 · blocker · FP-6 was narrower than bar 50 ("VoiceOver says which parents each sibling is recorded with")
+**Answer:** Fixed. FP-6: every sibling not in all of their block's sets is spoken "child of ⟨parents⟩"; the marked case chooses only whether to add "other parent not recorded". Frame 2 annotated.
+
+### M-9 · blocker · The dash token answer would change the Timeline's look and overload the outline token
+**Answer:** Fixed. A new `PVStroke.notRecordedDash` ([3, 3]); the Timeline's three literals move onto it with no visual change; `dashPattern` stays for outlines.
+
+### X-14 · major · A set inside several sets
+**Answer:** Fixed. FP-3: the mark is against every parent those sets add.
+
+### Noted · The right column's description contradicted 11a
+**Answer:** Fixed: the right column is 11a's, named as the preview has it.
+
 ## Cost
 
 | Round | Reviewer | Model | Tokens |
 | --- | --- | --- | --- |
 | 1 | maintainability | opus | 137k |
 | 1 | executability | sonnet | 113k |
+| 2 | both lenses | opus | 112k |
