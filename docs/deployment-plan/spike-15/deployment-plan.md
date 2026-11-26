@@ -164,7 +164,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-55 | Boards read every level above | 11 | Go, and Swift's draft-board store call: each level's ancestors from S15-61's list; board and draft reads load every ancestor's values in one batched read; a requirement is met at the owner or above; the draft read names its would-be parents; requirements at the Citation level | — | S15-54 | [plan](prs/S15-55-boards-read-every-level-above.md) | Landed #970 |
 | S15-56 | The composer edits a Citation's metadata | 11 | Go and Swift: the Citation's board in the composer (draft or saved, with inherited values), saved with the Citation; the Printed page input goes; `graphfill` and `conclusiondetails` show the Citation's own page | S15-D29 | S15-55, S15-60, S15-64, S15-D29 | [plan](prs/S15-56-composer-citation-metadata.md) | Landed #982 |
 | S15-57 | Source types suggest fields for Citations | 11 | Merged into S15-54: the level registry draws the fourth list as soon as the Citation holds metadata | — | — | — | Descoped (2026-11-22) → S15-54 |
-| S15-58 | The page built-in goes | 11 | Go and Swift: `{citation.page}`, `Board.Page` and `page_requirement` go; the seed's page chains lose their last option. No visible change | — | S15-56 | — | Scoped |
+| S15-58 | The page built-in goes | 11 | Go and Swift: `{citation.page}`, `Board.Page` and `page_requirement` go; the seed's page chains lose their last option. No visible change | — | S15-56 | [plan](prs/S15-58-page-builtin-goes.md) | Planned |
 | S15-59 | The locator only finds things in its Artifact | 11 | Go and Swift: the page selector holds the file page alone; S15-44's locator marks and `page_label` go; stored labels ignored on read; the composer's locator draft stops writing them. No visible change | — | S15-58 | — | Scoped |
 | S15-60 | The seed has a page field | 11 | Go: the seed adds `page` (unknown text "unpaginated"), suggested by each type whose format prints a page; its formats read `{meta.page\|citation.page}` until S15-58; map § 6.9 and `seeded-vocabulary.md` rewritten. **Re-scoped (2026-11-22, later):** nearest-wins replaces the chain helper | — | S15-54, S15-62 | [plan](prs/S15-60-seed-page-field.md) | Landed #975 |
 | S15-61 | Metadata levels are one declared list | 11 | Preparatory, Go: one list of levels in `catalogmodel` builds `sourcemetadata.stores`, each level's four `deleteimpact` rows and its two effects entries; the three levels move onto it. No visible change | — | — | [plan](prs/S15-61-metadata-levels-list.md) | Landed #943 |
@@ -381,6 +381,7 @@ S16-09 ──▶ S15-29
 S16-61 ──▶ S15-25, S15-39, S15-41
 S16-76 ──▶ S15-41, S15-42
 S16-58, S16-59 — S15-56, S15-63 (same files; whichever lands second rebases)
+S15-58 — S16-79 (S15-58 retires `{citation.page}`; S16-79's seed formats read `{meta.page}`)
 S16-68, S16-69, S16-70 — S15-54 (same files; whichever lands second rebases)
 
 Briefs:
@@ -770,7 +771,7 @@ Runs after slice 7, before slice 8 (user, 2026-11-22). Re-cut later the same day
 
 **Ships.** Go and Swift. The `{citation.page}` built-in and its separate requirement go: the seed's `{meta.page|citation.page}` becomes `{meta.page}`, `sourcemetadata.Board.Page` and the `CitationPage` arm of `needsAt`'s `builtinHeads` go, and `GetSourceWorkspaceResponse.page_requirement` is reserved. No visible change: the page is a Citation field since S15-56.
 **Deletes.** `citationformat.CitationPage` and its built-ins row; `CitationBuiltin.citationPage` (`Platform/CitationFormatVocabulary.swift`); `GetSourceWorkspaceResponse.page_requirement` (`engine.proto` field 12, reserved; set in `api/ffi/handlers/sources.go`).
-**Check.** Go tests: a researcher's format with `{citation.page}` gets the unknown-placeholder diagnostic; the seeded citations render unchanged.
+**Check.** Go tests: a researcher's format with `{citation.page}` gets the `unknown_builtin` diagnostic; the seeded citations render unchanged.
 **Context.** Rule "The printed page is a metadata field"; `core/citationformat/builtins.go`, `core/database/sourcemetadata/annotation.go`. Updates [`citation-formats.md`](../../citation-formats.md) (the `citation.page` row) and [`source-layer-data-model.md`](../../source-layer-data-model.md) § 5.2 ("A Source's board also carries … the printed page").
 
 #### S15-59 — The locator only finds things in its Artifact
