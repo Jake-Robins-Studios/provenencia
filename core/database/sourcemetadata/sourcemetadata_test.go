@@ -35,6 +35,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
+	"github.com/Jake-Robins-Studios/provenencia/core/slug"
 	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
@@ -2925,6 +2926,20 @@ func testType(t testing.TB, c *database.Catalog, userID []byte, label string, f 
 // and URL used, all four suggested.
 var tallyFormats = sourcetypes.Formats{Full: "{meta.jurisdiction}[, {meta.creator}][, {meta.item}][; {meta.url}]."}
 
+// wideFormats reads every key the way a census does: the first needed, the
+// rest optional, the short form half of them and the list form two. The scale
+// tests use it so each board does a census's annotation work.
+func wideFormats(keys []string) sourcetypes.Formats {
+	chain := func(keys []string) string {
+		out := "{meta." + keys[0] + "}"
+		for _, k := range keys[1:] {
+			out += "[, {meta." + k + "}]"
+		}
+		return out + "."
+	}
+	return sourcetypes.Formats{Full: chain(keys), Short: chain(keys[:(len(keys)+1)/2]), List: chain(keys[:min(2, len(keys))])}
+}
+
 func newTally(t testing.TB, c *database.Catalog, userID []byte, label string) sourcetypes.Type {
 	t.Helper()
 	return testType(t, c, userID, label, tallyFormats, "jurisdiction", "creator", "item", "url")
@@ -3425,7 +3440,7 @@ func BenchmarkListWorkspacesScale(b *testing.B) {
 		}
 		keys = append(keys, f.Key)
 	}
-	ty := testType(b, c, userID, "Wide", sourcetypes.Formats{}, keys...)
+	ty := testType(b, c, userID, "Wide", wideFormats(keys), keys...)
 	src := newSource(b, c, userID, ty.ID, "1900 tally")
 	suggested, err := sourcevocab.ListSuggestions(c, ty.ID)
 	if err != nil {
@@ -3770,7 +3785,11 @@ func TestListWorkspacesAncestors(t *testing.T) {
 // and graph cost the SELECTs of one, and read inside the budget.
 func TestListWorkspacesCitationsScale(t *testing.T) {
 	c, userID := vocabWorld(t)
-	src := newSource(t, c, userID, testType(t, c, userID, "Tally", tallyFormats, "provider", "url", "item").ID, "1900 tally")
+	var keys []string
+	for _, label := range vocabLabels {
+		keys = append(keys, slug.Kebab(label))
+	}
+	src := newSource(t, c, userID, testType(t, c, userID, "Wide", wideFormats(keys), keys...).ID, "1900 tally")
 	a, g, first := newCitationOwners(t, c, userID, src)
 	set := func(o Owner, key, text string) {
 		t.Helper()
