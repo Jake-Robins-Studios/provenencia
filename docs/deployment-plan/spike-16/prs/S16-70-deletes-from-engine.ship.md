@@ -44,9 +44,6 @@ Check: the tests pass; scripts/check-pr.sh PASS.
 ## Round 1 — fix
 Head `bd74479cf`. Gate PASS (orchestrator run; `origin/main` unmoved at `8d95af5e2`). F-1 to F-4 done; F-1 and F-4 share a commit. Read by the orchestrator: F-1 Resolved (`completed.md:7` and the Landed note name the `source_vocabulary` reload; both type-delete tests script `lists: [.sourceVocabulary]`, assert the row drops before and after the reload). F-2 Resolved (`macos-client-patterns.md:92` parses). F-3 Resolved (`deletedIDs(of:)`; `rg 'deleted\.first' macos/App` prints only its body). F-4 Resolved (types-list test asserts no patch follows `.handle`/`.source`; the stray `.changedSourceType` assertion and comment are gone).
 
-## Round 2 — review
-Not run: round 1 had no Fix-now blocker or major.
-
 ## User decision (2026-11-26)
 MNT-2's follow-up is not parked: slice 6g exists to finish the catalog-query-layer idea, so the user asked for the fix on this PR ("don't add new tasks to it. Just do it."). Supersedes MNT-2's Follow-up decision and the Scale line's "as `.deletedSourceType` does today" reading.
 
@@ -72,7 +69,35 @@ Do:
 Stop if: some other follower of `source_vocabulary` (Swift or Go) needs a type delete and is not covered above. Report it; do not widen the change.
 Check: the tests above pass, `rg -n 'sourceVocabulary' macos/App` shows the three followers unchanged, and scripts/check-pr.sh PASS.
 
-Gate PASS · CI green (test ×2, localizable) · open: none · follow-ups: none (MNT-2 fixed on this PR, user) · to user: —
+## Round 1b — fix
+Head `23f5165e5`. Gate PASS (orchestrator run). F-5 done, with the new tests run red first. Deviation: `vocabulary_write_effects_test.go` `TestVocabularyWritesReturnEffects` expected `source_vocabulary` on a type delete and was updated to match.
+
+## Round 2 — review
+Scope `362e82f91...23f5165e5`. Reviewers: CON, MNT. These two because F-5 is new design added after round 1 on the user's direction. Skipped: UX (no visible change, no strings), SEC+PRF (the change only removes a reload and adds no input or loop). CON: clean.
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| MNT-8 | MNT | blocker | The field list's `usedBy` follows a Swift "any deleted type id" refresh, where it should follow an engine usage list | Fix now → F-6 | verified: `S16-70…review.md:48-50` M-1 rejected `followsAnyId` for `usedBy`. `CatalogQueryRefresh.swift:146-151` `applyHiddenPolicyOnAnyID` has the same body as the removed shape. `registry.go:129-132` `ListMetadataFieldUsage` exists so that "the field list's usedBy counts changed". This is an orchestrator error in Fix plan 1b, which offered "add one beside `applyHiddenPolicyOnAny`" |
+
+Nits (logged): `CON-4 · registry.go:121 · ListSourceVocabulary doc: a type delete reports Deleted instead` · `CON-5 · add-workspace-place SKILL.md:181, macos-client-patterns.md:89 · say a key counting types learns a type delete another way` · `CON-6 · registry.go:330 · rewrap movesLists comment` · `MNT-9 · registry.go:200-214 · three Effect fields for "which changes move Lists"; README "one choice per entry"` · `MNT-10 · moot once F-6 deletes applyHiddenPolicyOnAnyID`. F-6 rewrites the lines CON-4, CON-5 and MNT-9 name, so it covers them.
+
+### Fix plan 2
+**F-6 — A Source type delete reports `metadata_field_usage`, not a client "any id" refresh** (from MNT-8; covers CON-4, CON-5, CON-6, MNT-9, MNT-10)
+Files: `core/database/effects/registry.go`, `core/database/effects/lists_test.go`, `core/database/effects/README.md`, `api/ffi/handlers/source_defs_test.go`, `api/ffi/handlers/vocabulary_write_effects_test.go`, `macos/App/Features/Workspace/Session/CatalogQueryRefresh.swift`, `macos/App/Features/Workspace/Session/CatalogQueryRegistry.swift`, `macos/ProvenenciaTests/CatalogQueryRegistryTests.swift`, `.agents/skills/add-workspace-place/SKILL.md`, `docs/macos-client-patterns.md`, the plan's Landed note.
+Failing tests first:
+- `TestResolveLists` "source type delete" expects `[metadata_field_usage]`.
+- `TestDeleteSourceType` "deletes unused user type" and `TestVocabularyWritesReturnEffects` (type delete) expect lists `[metadata_field_usage]` and `deleted` naming the type.
+- Swift `sourceTypeDeleteMarksTheFieldsListStale` scripts `CatalogWriteEffects(lists: [.metadataFieldUsage], deleted: [.sourceType ["t-book"]])` and expects the field list stale.
+- `updatedAndDeletedSourceTypePatchTheTypesList` applies those same effects and still asserts `!isStale` and `!isFetching`, since the types list does not follow `metadata_field_usage`.
+Do:
+- Go: replace `ListsNotOnDelete bool` with `ListsOnDelete []List`, documented as "when set, a delete moves these lists in place of `Lists`". `movesLists` and the effect assembly use it for `ActionDelete`. Validate it as before: it needs `Lists` and `Deleted`, and `metadataEffects` refuses it. On `source_types` set `ListsOnDelete: []List{ListMetadataFieldUsage}`.
+- Extend the `ListMetadataFieldUsage` doc: "or a Source type whose citation formats can name fields was deleted". Extend the `ListSourceVocabulary` doc: a type delete reports `Deleted` and `metadata_field_usage` instead (CON-4). Rewrap the `movesLists` comment (CON-6).
+- Swift: delete `applyHiddenPolicyOnAnyID` and the `.deleted(.sourceType)` refresh on `.metadataFieldsList`. The existing `.applyHiddenPolicyOnAny(follows: .list(.metadataFieldUsage))` covers the delete. Update the key's comment.
+- Docs: README "which changes move Lists" wording names the three knobs (MNT-9). Add the sentence CON-5 asks for to the `add-workspace-place` Vocabulary CRUD line and `macos-client-patterns.md:89`: a type delete reports `Deleted` and `metadata_field_usage`, not `source_vocabulary`. Update the Landed note: F-6 replaces F-5's Swift refresh.
+Check: the tests above pass. `rg -n 'applyHiddenPolicyOnAnyID|ListsNotOnDelete' core api macos .agents docs` prints only the ship log's history. scripts/check-pr.sh PASS.
+
+## Result
+Pending Fix plan 2.
 
 ## Cost
 Plan: 6,300 words (check-plan-docs info line).
