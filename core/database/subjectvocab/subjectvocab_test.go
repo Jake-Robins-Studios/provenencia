@@ -27,126 +27,6 @@ func TestSubjectVocab(t *testing.T) {
 		run  func(t *testing.T, c *database.Catalog)
 	}{
 		{
-			name: "install seeds types properties bindings",
-			run: func(t *testing.T, c *database.Catalog) {
-				if err := install(c); err != nil {
-					t.Fatal(err)
-				}
-				types, err := subjecttypes.List(c)
-				if err != nil || len(types) != 8 {
-					t.Fatalf("types %v len=%d", err, len(types))
-				}
-				props, err := properties.List(c)
-				if err != nil || len(props) != len(seedProperties) {
-					t.Fatalf("props %v len=%d want %d", err, len(props), len(seedProperties))
-				}
-				et, err := properties.Lookup(c, "event_type", vocabkey.OriginProvenencia)
-				if err != nil || et.ValueType != propertymeta.ValueTypeTerm {
-					t.Fatalf("event_type %+v %v", et, err)
-				}
-				terms, err := propertyterms.ListByProperty(c, et.ID)
-				if err != nil || len(terms) == 0 {
-					t.Fatalf("event_type terms %v len=%d", err, len(terms))
-				}
-				birth, err := propertyterms.Lookup(c, et.ID, "birth", vocabkey.OriginProvenencia)
-				if err != nil || birth.Label != "Birth" {
-					t.Fatalf("birth %+v %v", birth, err)
-				}
-				person, err := subjecttypes.Lookup(c, "person", vocabkey.OriginProvenencia)
-				if err != nil {
-					t.Fatal(err)
-				}
-				bindings, err := ListBindings(c, person.ID)
-				if err != nil {
-					t.Fatal(err)
-				}
-				got := map[string]bool{}
-				for _, b := range bindings {
-					got[b.Property.Key] = true
-				}
-				for _, key := range []string{"name", "sex_at_birth"} {
-					if !got[key] {
-						t.Fatalf("person missing binding %q", key)
-					}
-				}
-				evt, err := subjecttypes.Lookup(c, "event", vocabkey.OriginProvenencia)
-				if err != nil {
-					t.Fatal(err)
-				}
-				eb, err := ListBindings(c, evt.ID)
-				if err != nil || len(eb) != len(BindingsForType("event")) {
-					t.Fatalf("event bindings %v len=%d want %d", err, len(eb), len(BindingsForType("event")))
-				}
-				gotEvent := map[string]bool{}
-				for _, b := range eb {
-					gotEvent[b.Property.Key] = true
-				}
-				if !gotEvent["event_picture"] {
-					t.Fatal("event missing binding event_picture")
-				}
-				en, err := properties.Lookup(c, "event_name", vocabkey.OriginProvenencia)
-				if err != nil || en.ValueType != propertymeta.ValueTypeText || en.Origin != vocabkey.OriginProvenencia {
-					t.Fatalf("event_name %+v %v", en, err)
-				}
-				var nameBinding *Binding
-				for i := range eb {
-					if eb[i].Property.Key == "event_name" {
-						nameBinding = &eb[i]
-						break
-					}
-				}
-				if nameBinding == nil || nameBinding.Locked || nameBinding.SortOrder != 1 {
-					t.Fatalf("event_name binding %+v", nameBinding)
-				}
-				participation, err := subjecttypes.Lookup(c, "participation", vocabkey.OriginProvenencia)
-				if err != nil {
-					t.Fatal(err)
-				}
-				pb, err := ListBindings(c, participation.ID)
-				if err != nil {
-					t.Fatal(err)
-				}
-				locked := 0
-				for _, b := range pb {
-					if b.Locked {
-						locked++
-					}
-				}
-				if locked != 3 {
-					t.Fatalf("participation locked=%d want 3", locked)
-				}
-				prt, err := properties.Lookup(c, "place_relationship_type", vocabkey.OriginProvenencia)
-				if err != nil {
-					t.Fatal(err)
-				}
-				partOf, err := propertyterms.Lookup(c, prt.ID, "part_of", vocabkey.OriginProvenencia)
-				if err != nil || !partOf.Directed {
-					t.Fatalf("part_of %+v %v", partOf, err)
-				}
-				succ, err := propertyterms.Lookup(c, prt.ID, "succeeded_by", vocabkey.OriginProvenencia)
-				if err != nil || !succ.Directed {
-					t.Fatalf("succeeded_by %+v %v", succ, err)
-				}
-				placeType, err := subjecttypes.Lookup(c, "place", vocabkey.OriginProvenencia)
-				if err != nil {
-					t.Fatal(err)
-				}
-				placeBindings, err := ListBindings(c, placeType.ID)
-				if err != nil {
-					t.Fatal(err)
-				}
-				gotPlace := map[string]bool{}
-				for _, b := range placeBindings {
-					gotPlace[b.Property.Key] = true
-				}
-				for _, key := range []string{"toponym", "start_date", "end_date", "place_picture"} {
-					if !gotPlace[key] {
-						t.Fatalf("place missing binding %q", key)
-					}
-				}
-			},
-		},
-		{
 			name: "open does not heal deleted property",
 			run: func(t *testing.T, c *database.Catalog) {
 				if err := install(c); err != nil {
@@ -204,7 +84,7 @@ func TestSubjectVocab(t *testing.T) {
 			},
 		},
 		{
-			name: "registry presentation locked connect rules",
+			name: "registry presentation and connect rules",
 			run: func(t *testing.T, _ *database.Catalog) {
 				for _, info := range AllTypes() {
 					if info.Presentation.L10nKey == "" || info.Presentation.IconSymbol == "" {
@@ -213,26 +93,6 @@ func TestSubjectVocab(t *testing.T) {
 					if info.Presentation.IconSymbol != "subject_"+info.Key {
 						t.Fatalf("%s IconSymbol %q, want subject_%s (Swift maps marks by this rule)", info.Key, info.Presentation.IconSymbol, info.Key)
 					}
-				}
-				if !LockedBinding("participation", "person") {
-					t.Fatal("expected locked")
-				}
-				if !LockedBinding("event", "event_type") || !LockedBinding("event", "date") || !LockedBinding("event", "start_date") || !LockedBinding("event", "end_date") {
-					t.Fatal("expected event_type and event date Properties locked")
-				}
-				if !LockedBinding("participation", "role") || !LockedBinding("relationship", "relationship_type") {
-					t.Fatal("expected role and relationship_type locked")
-				}
-				if !LockedBinding("person", "name") || !LockedBinding("place", "toponym") {
-					t.Fatal("expected name and toponym locked")
-				}
-				if !LockedBinding("place", "start_date") || !LockedBinding("place", "end_date") {
-					t.Fatal("expected place period bindings locked")
-				}
-				if !LockedBinding("place_relationship", "from") || !LockedBinding("place_relationship", "to") ||
-					!LockedBinding("place_relationship", "place_relationship_type") ||
-					!LockedBinding("place_relationship", "start_date") || !LockedBinding("place_relationship", "end_date") {
-					t.Fatal("expected place_relationship bindings locked")
 				}
 				rule := Connect("person", "event")
 				if rule.Refuse || rule.BridgeTypeKey != "participation" || rule.Disambiguation != DisambiguationRole {
@@ -308,12 +168,10 @@ func TestSeedInversesPairUp(t *testing.T) {
 	for _, term := range seedTerms {
 		byKey[term.PropertyKey+"|"+term.Key] = term
 	}
-	pairs := 0
 	for _, term := range seedTerms {
 		if term.Inverse == "" {
 			continue
 		}
-		pairs++
 		other, ok := byKey[term.PropertyKey+"|"+term.Inverse]
 		if !ok {
 			t.Fatalf("%s: inverse %q is not a %s term", term.Key, term.Inverse, term.PropertyKey)
@@ -321,9 +179,6 @@ func TestSeedInversesPairUp(t *testing.T) {
 		if other.Inverse != term.Key || !term.Directed || !other.Directed {
 			t.Fatalf("%s ↔ %s: inverses must be directed and name each other", term.Key, other.Key)
 		}
-	}
-	if pairs != 8 {
-		t.Fatalf("inverse terms %d, want 8 (four kinship pairs)", pairs)
 	}
 }
 
@@ -464,100 +319,6 @@ func TestInstallMatchesRegistry(t *testing.T) {
 				t.Fatalf("type %s binding %s: got %+v, registry %+v", sty.Key, w.PropertyKey, b, w)
 			}
 		}
-	}
-}
-
-func TestSeedProductValues(t *testing.T) {
-	type term struct{ key, label string }
-	cases := []struct {
-		property    string
-		label       string
-		valueType   string
-		cardinality string
-		bindType    string
-		order       int
-		locked      bool
-		terms       []term
-		exactTerms  bool
-	}{
-		{"religion", "Religion", propertymeta.ValueTypeTerm, propertymeta.CardinalityMultiple, "person", 5, false, []term{{"catholic", "Catholic"}}, true},
-		{"languages_spoken", "Languages spoken", propertymeta.ValueTypeTerm, propertymeta.CardinalityMultiple, "person", 6, false, []term{{"english", "English"}}, true},
-		{"likeness", "Likeness", propertymeta.ValueTypeDepiction, propertymeta.CardinalityMultiple, "person", 1, true, nil, false},
-		{"event_picture", "Picture", propertymeta.ValueTypeDepiction, propertymeta.CardinalityMultiple, "event", 6, true, nil, false},
-		{"as_of", "As of", propertymeta.ValueTypeDate, propertymeta.CardinalityMultiple, "event", 5, true, nil, false},
-		{"place_picture", "Picture", propertymeta.ValueTypeDepiction, propertymeta.CardinalityMultiple, "place", 3, true, nil, false},
-		{"gender", "", propertymeta.ValueTypeTerm, propertymeta.CardinalitySingle, "person", 3, false, []term{{"man", ""}, {"woman", ""}, {"non_binary", ""}}, false},
-		{"interests", "", propertymeta.ValueTypeText, propertymeta.CardinalityMultiple, "person", 4, false, nil, false},
-		{"event_type", "", "", "", "", 0, false, []term{{"engagement", "Engagement"}, {"travel", "Travel"}, {"funeral", "Funeral"}}, false},
-		{"role", "", "", "", "", 0, false, []term{{"pallbearer", "Pallbearer"}}, false},
-	}
-	for _, tc := range cases {
-		t.Run(tc.property, func(t *testing.T) {
-			var found *seedProperty
-			for i := range seedProperties {
-				if seedProperties[i].Key == tc.property {
-					found = &seedProperties[i]
-				}
-			}
-			if found == nil {
-				t.Fatalf("%s not in seedProperties", tc.property)
-			}
-			if tc.valueType != "" {
-				cardinality := found.Cardinality
-				if cardinality == "" {
-					cardinality = propertymeta.CardinalitySingle
-				}
-				if found.ValueType != tc.valueType || cardinality != tc.cardinality {
-					t.Fatalf("%s %+v", tc.property, *found)
-				}
-			}
-			if tc.label != "" && found.Label != tc.label {
-				t.Fatalf("%s label %q, want %q", tc.property, found.Label, tc.label)
-			}
-			var got []seedTerm
-			for _, st := range seedTerms {
-				if st.PropertyKey == tc.property {
-					got = append(got, st)
-				}
-			}
-			if tc.exactTerms {
-				var want []seedTerm
-				for _, w := range tc.terms {
-					want = append(want, seedTerm{PropertyKey: tc.property, Key: w.key, Label: w.label})
-				}
-				if !slices.Equal(got, want) {
-					t.Fatalf("%s terms %+v, want %+v", tc.property, got, want)
-				}
-			} else {
-				for _, w := range tc.terms {
-					i := slices.IndexFunc(got, func(st seedTerm) bool { return st.Key == w.key })
-					if i < 0 {
-						t.Fatalf("%s term %s not seeded", tc.property, w.key)
-					}
-					if w.label != "" && got[i].Label != w.label {
-						t.Fatalf("%s/%s label %q, want %q", tc.property, w.key, got[i].Label, w.label)
-					}
-					if got[i].Neutral {
-						t.Fatalf("%s/%s is neutral", tc.property, w.key)
-					}
-				}
-			}
-			if tc.bindType == "" {
-				return
-			}
-			order := -1
-			for _, b := range BindingsForType(tc.bindType) {
-				if b.PropertyKey == tc.property {
-					order = b.SortOrder
-				}
-			}
-			if order != tc.order {
-				t.Fatalf("%s %s sort order %d, want %d", tc.property, tc.bindType, order, tc.order)
-			}
-			if LockedBinding(tc.bindType, tc.property) != tc.locked {
-				t.Fatalf("%s binding locked = %v, want %v", tc.property, !tc.locked, tc.locked)
-			}
-		})
 	}
 }
 

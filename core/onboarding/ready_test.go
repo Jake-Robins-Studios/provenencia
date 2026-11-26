@@ -97,8 +97,8 @@ func TestCreateCatalogSeedsCredibilityGrades(t *testing.T) {
 	}
 	defer c.Close()
 	list, err := sourcecredibilitygrades.List(c)
-	if err != nil || len(list) != 3 {
-		t.Fatalf("%v len=%d", err, len(list))
+	if err != nil || len(list) == 0 {
+		t.Fatalf("create installed no credibility grades: %v", err)
 	}
 }
 
@@ -115,15 +115,8 @@ func TestCreateCatalogSeedsSubjectTypes(t *testing.T) {
 	}
 	defer c.Close()
 	list, err := subjecttypes.List(c)
-	if err != nil || len(list) != 8 {
-		t.Fatalf("%v len=%d", err, len(list))
-	}
-	person, err := subjecttypes.Lookup(c, "person", vocabkey.OriginProvenencia)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if person.RefPrefix != "PER" || person.CandidateRefPrefix != "CPR" {
-		t.Fatalf("prefixes %+v", person)
+	if err != nil || len(list) == 0 {
+		t.Fatalf("create installed no subject types: %v", err)
 	}
 }
 

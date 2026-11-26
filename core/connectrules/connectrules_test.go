@@ -135,6 +135,46 @@ func TestRegisterPluginBridge(t *testing.T) {
 	}
 }
 
+// A bridge's endpoints are always locked; its qualifier is locked only on a
+// product-origin bridge, so a plugin's qualifier stays editable.
+func TestBridgeBindingsLockQualifierByOrigin(t *testing.T) {
+	for _, tc := range []struct {
+		origin        string
+		qualifierLock bool
+	}{
+		{vocabkey.OriginProvenencia, true},
+		{"plugin:test", false},
+	} {
+		t.Run(tc.origin, func(t *testing.T) {
+			t.Cleanup(ResetForTest)
+			Register(Bridge{
+				Origin: tc.origin, BridgeTypeKey: "test_bond",
+				Endpoints: []Endpoint{
+					{PropertyKey: "first", TypeKey: "person"},
+					{PropertyKey: "second", TypeKey: "person"},
+				},
+				Disambiguation: "bond_kind",
+				Pairs:          [][2]string{{"person", "person"}},
+			})
+			got := map[string]bool{}
+			for _, b := range BridgeBindings() {
+				if b.TypeKey == "test_bond" {
+					got[b.PropertyKey] = b.Locked
+				}
+			}
+			want := map[string]bool{"first": true, "second": true, "bond_kind": tc.qualifierLock}
+			if len(got) != len(want) {
+				t.Fatalf("bindings %v, want %v", got, want)
+			}
+			for key, locked := range want {
+				if got[key] != locked {
+					t.Errorf("%s locked = %v, want %v", key, got[key], locked)
+				}
+			}
+		})
+	}
+}
+
 func TestBridgeAuthoredOnce(t *testing.T) {
 	t.Cleanup(ResetForTest)
 

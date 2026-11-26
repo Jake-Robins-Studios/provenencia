@@ -385,7 +385,7 @@ func TestCitationPages(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		src := newSource(t, c, userID, seededType(t, c, "newspaper_item").ID, "Gazette")
+		src := sourcetypesLedger(t, c, userID)
 		cit = newLevelOwner(t, c, userID, src, vocabkey.LevelCitation)
 		graph = newLevelOwner(t, c, userID, src, vocabkey.LevelGraph)
 		return c, userID, page, cit, graph
@@ -413,8 +413,11 @@ func TestCitationPages(t *testing.T) {
 		}, "14"},
 		{"unknown prints the field's unknown text", func(t *testing.T, c *database.Catalog, u []byte, page metadatafields.Field, cit, _ Owner) string {
 			setPage(t, c, u, cit, Input{FieldID: page.ID, Mark: valuemark.Mark{Unknown: true}})
-			return pages(t, c, cit.ID)[string(cit.ID)]
-		}, "unpaginated"},
+			if got := pages(t, c, cit.ID)[string(cit.ID)]; got != page.UnknownText || got == "" {
+				return got
+			}
+			return "the field's unknown text"
+		}, "the field's unknown text"},
 		{"supplied prints in brackets", func(t *testing.T, c *database.Catalog, u []byte, page metadatafields.Field, cit, _ Owner) string {
 			setPage(t, c, u, cit, Input{FieldID: page.ID, ValueText: "14", Mark: valuemark.Mark{Supplied: true}})
 			return pages(t, c, cit.ID)[string(cit.ID)]
