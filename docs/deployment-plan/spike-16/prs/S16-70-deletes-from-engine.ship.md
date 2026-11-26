@@ -48,7 +48,7 @@ Head `bd74479cf`. Gate PASS (orchestrator run; `origin/main` unmoved at `8d95af5
 Not run: round 1 had no Fix-now blocker or major.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: MNT-2 (idea-file line: the types list reloads on its own row's delete through `source_vocabulary`) · to user: —
+Gate PASS · CI green (test ×2, localizable) · open: none · follow-ups: MNT-2 (idea-file line: the types list reloads on its own row's delete through `source_vocabulary`) · to user: —
 
 ## Cost
 Plan: 6,300 words (check-plan-docs info line).
