@@ -37,6 +37,7 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 - [`international-names.md`](international-names.md) — other name patterns, transliteration, calendars, impossible dates, Daitch–Mokotoff
 - [`kinship-view.md`](kinship-view.md) — family trees reading every kinship shape as one fact, and patterns beyond spouse, parent and grandparent
 - [`organizations.md`](organizations.md) — Organization as a Subject type; descoped from S11-48
+- [`one-bridge-cardinality.md`](one-bridge-cardinality.md) — one declaration of "one per bridge" that matching and reconciliation both read, once matching knows place containment (from S16-80)
 - [`place-gazetteer-service.md`](place-gazetteer-service.md)
 
 ### Conclusion pages and provenance

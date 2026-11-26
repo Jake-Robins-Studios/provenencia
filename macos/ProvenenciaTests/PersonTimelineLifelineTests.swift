@@ -8,7 +8,7 @@ struct PersonTimelineLifelineTests {
     private let en = Locale(identifier: "en_US")
 
     private func content(_ timeline: CatalogPersonTimeline, unfolded: [PersonTimelineContent.Fold] = []) -> PersonTimelineContent {
-        var folds = ConclusionFoldState<PersonTimelineContent.Fold>()
+        var folds = PagedFoldState<PersonTimelineContent.Fold>()
         // A hundred pages shows any list here.
         for fold in unfolded { folds.reveal(fold, pages: 100) }
         return PersonTimelineContent(timeline: timeline, folds: folds, locale: en)

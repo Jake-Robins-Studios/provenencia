@@ -45,7 +45,7 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
     private var orders: NameFormatOrders
 
     /// How a long list of lines folds: the first 20, then 50 more a press.
-    static let listFold = ConclusionFold(limit: 20, minimumHidden: 2)
+    static let listFold = PagedFold(limit: 20, minimumHidden: 2)
 
     /// How many records sit behind the row.
     var recordCount: Int {
