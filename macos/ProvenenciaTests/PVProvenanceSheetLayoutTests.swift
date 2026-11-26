@@ -47,10 +47,15 @@ struct PVProvenanceSheetLayoutTests {
     }
 
     @Test func firstLayoutAt300And1200Records() {
+        var heights: [CGFloat] = []
         for count in [300, 1200] {
             let layout = firstLayout(records: count)
+            heights.append(layout.documentHeight)
             print("provenance sheet first layout at \(count) records: \(layout.milliseconds) ms")
             print("provenance sheet document height at \(count) records: \(layout.documentHeight) pt")
         }
+        // The fold bounds what draws: the same height at both counts.
+        #expect(heights[0] > 0)
+        #expect(heights[0] == heights[1])
     }
 }

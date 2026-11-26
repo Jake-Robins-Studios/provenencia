@@ -194,6 +194,55 @@ struct PVProvenanceSheetContent: Equatable {
     /// Every record, in order.
     var records: [Record] { groups.flatMap(\.records) }
 
+    /// A citation run's place in the whole table: its owner group, value run and run indices.
+    struct RunPosition: Hashable {
+        var group: Int
+        var value: Int
+        var run: Int
+    }
+
+    /// The groups a fold keeps, how many runs it hides, and the first hidden run.
+    struct Folded: Equatable {
+        var groups: [Group]
+        var hidden: Int
+        /// The first run the next page adds; nil when nothing is hidden.
+        var firstRevealed: RunPosition?
+    }
+
+    /// The first citation runs of `groups` in table order (groups, then value runs, then runs),
+    /// as many as `fold` shows after `pages` pages, never splitting a run. A group or value run is
+    /// kept when it holds a kept run, or holds no runs and no run before it is hidden; a kept value
+    /// run keeps its heading and a kept group its owner line. Positions are those of the whole
+    /// table, so a kept run has the same indices as in `groups`.
+    nonisolated static func folded(_ groups: [Group], by fold: PagedFold, pages: Int) -> Folded {
+        let total = groups.reduce(0) { $0 + $1.values.reduce(0) { $0 + $1.citations.count } }
+        let shown = fold.shownCount(count: total, pages: pages)
+        var seen = 0
+        var firstRevealed: RunPosition?
+        var kept: [Group] = []
+        for (groupIndex, group) in groups.enumerated() {
+            var values: [Group.ValueGroup] = []
+            for (valueIndex, value) in group.values.enumerated() {
+                let before = seen
+                if firstRevealed == nil, shown < before + value.citations.count {
+                    firstRevealed = RunPosition(group: groupIndex, value: valueIndex, run: max(shown - before, 0))
+                }
+                seen += value.citations.count
+                if value.citations.isEmpty ? before <= shown : before < shown {
+                    var keptValue = value
+                    keptValue.citations = Array(value.citations.prefix(max(shown - before, 0)))
+                    values.append(keptValue)
+                }
+            }
+            if group.values.isEmpty ? seen <= shown : !values.isEmpty {
+                var keptGroup = group
+                keptGroup.values = values
+                kept.append(keptGroup)
+            }
+        }
+        return Folded(groups: kept, hidden: total - shown, firstRevealed: firstRevealed)
+    }
+
     /// The content with each record's render set and, inside each value run, the records whose
     /// Citations share the engine's group key gathered together in first-appearance order. A
     /// run never crosses a value heading or owner group. A record with no render is its own run.

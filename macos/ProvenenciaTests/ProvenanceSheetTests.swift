@@ -389,4 +389,136 @@ struct ProvenanceSheetTests {
         #expect(one.provenanceContent().summary == "2 records")
         #expect(ReconciledValueRowModel.empty(id: "x", label: "X", face: .text, emptyText: "").provenanceContent().summary == nil)
     }
+
+    // MARK: The fold (S15-27)
+
+    private typealias Content = PVProvenanceSheetContent
+    private typealias Position = PVProvenanceSheetContent.RunPosition
+
+    private static let fold = PVProvenanceRecordTable.fold
+
+    /// A run of `size` records.
+    private func run(_ id: String, size: Int = 1) -> Content.Group.ValueGroup.CitationRun {
+        .init(key: "full:\(id)", records: (0..<size).map {
+            PVProvenancePreviewData.record("\(id)-\($0)", readAs: "1817", title: "T", detail: "d")
+        })
+    }
+
+    private func runs(_ count: Int, prefix: String = "r", sizes: [Int: Int] = [:]) -> [Content.Group.ValueGroup.CitationRun] {
+        (0..<count).map { run("\(prefix)\($0)", size: sizes[$0] ?? 1) }
+    }
+
+    private func heading(_ rank: Int) -> Content.Group.ValueGroup.Heading {
+        .value(.init(rank: rank, text: "v\(rank)", support: ""))
+    }
+
+    private func owner(_ id: String) -> Content.Group.OwnerLine {
+        .init(id: id, title: id, ref: nil, spoken: id)
+    }
+
+    private func single(_ citations: [Content.Group.ValueGroup.CitationRun]) -> [Content.Group] {
+        [Content.Group(owner: nil, values: [.init(heading: nil, citations: citations)])]
+    }
+
+    private func runCount(_ groups: [Content.Group]) -> Int {
+        groups.reduce(0) { $0 + $1.values.reduce(0) { $0 + $1.citations.count } }
+    }
+
+    /// T-1 (AC-1.1, AC-1.4, D-1, D-2).
+    @Test func foldShowsFiftyRunsThenAPageAtATime() {
+        let groups = single(runs(120))
+        let first = Content.folded(groups, by: Self.fold, pages: 0)
+        #expect(runCount(first.groups) == 50 && first.hidden == 70 && first.firstRevealed == Position(group: 0, value: 0, run: 50))
+        let second = Content.folded(groups, by: Self.fold, pages: 1)
+        #expect(runCount(second.groups) == 100 && second.hidden == 20 && second.firstRevealed == Position(group: 0, value: 0, run: 100))
+        let third = Content.folded(groups, by: Self.fold, pages: 2)
+        #expect(runCount(third.groups) == 120 && third.hidden == 0 && third.firstRevealed == nil)
+        let edge = Content.folded(single(runs(51)), by: Self.fold, pages: 0)
+        #expect(runCount(edge.groups) == 50 && edge.hidden == 1)
+    }
+
+    /// T-2 (AC-1.3).
+    @Test func foldNeverSplitsARun() {
+        let folded = Content.folded(single(runs(60, sizes: [49: 6])), by: Self.fold, pages: 0)
+        #expect(runCount(folded.groups) == 50 && folded.groups[0].records.count == 55)
+        #expect(folded.hidden == 10 && folded.firstRevealed == Position(group: 0, value: 0, run: 50))
+    }
+
+    /// T-3 (AC-2.1, AC-2.2).
+    @Test func foldKeepsLinesOverShownRunsOnly() {
+        let owners = [
+            Content.Group(owner: owner("a"), values: [.init(heading: nil, citations: runs(50, prefix: "a"))]),
+            Content.Group(owner: owner("b"), values: [.init(heading: nil, citations: runs(3, prefix: "b"))]),
+        ]
+        let cut = Content.folded(owners, by: Self.fold, pages: 0)
+        #expect(cut.groups.map(\.id) == ["a"] && cut.hidden == 3 && cut.firstRevealed == Position(group: 1, value: 0, run: 0))
+        #expect(Content.folded(owners, by: Self.fold, pages: 1).groups == owners)
+
+        let values = [Content.Group(owner: nil, values: [
+            .init(heading: heading(1), citations: runs(60, prefix: "p")),
+            .init(heading: heading(2), citations: runs(5, prefix: "q")),
+        ])]
+        let first = Content.folded(values, by: Self.fold, pages: 0)
+        #expect(first.groups[0].values.count == 1 && first.groups[0].values[0].heading == heading(1))
+        #expect(first.groups[0].values[0].citations.count == 50)
+        let second = Content.folded(values, by: Self.fold, pages: 1)
+        #expect(second.groups == values)
+    }
+
+    /// T-4 (AC-1.2, AC-2.3).
+    @Test func foldLeavesASmallTableWhole() {
+        let small = single(runs(50))
+        let whole = Content.folded(small, by: Self.fold, pages: 0)
+        #expect(whole.groups == small && whole.hidden == 0 && whole.firstRevealed == nil)
+        let none = Content.folded([], by: Self.fold, pages: 0)
+        #expect(none.groups.isEmpty && none.hidden == 0 && none.firstRevealed == nil)
+
+        let empty = Content.Group(owner: owner("empty"), values: [])
+        let big = Content.Group(owner: owner("big"), values: [.init(heading: nil, citations: runs(60))])
+        #expect(Content.folded([empty, big], by: Self.fold, pages: 0).groups.map(\.id) == ["empty", "big"])
+        #expect(Content.folded([big, empty], by: Self.fold, pages: 0).groups.map(\.id) == ["big"])
+        #expect(Content.folded([big, empty], by: Self.fold, pages: 1).groups.map(\.id) == ["big", "empty"])
+    }
+
+    /// T-5 (D-2, D-3).
+    @Test func foldKeepsEveryShownPosition() {
+        let groups = [
+            Content.Group(owner: owner("a"), values: [
+                .init(heading: heading(1), citations: runs(40, prefix: "a")),
+                .init(heading: heading(2), citations: runs(30, prefix: "b")),
+            ]),
+            Content.Group(owner: owner("b"), values: [.init(heading: nil, citations: runs(35, prefix: "c"))]),
+            Content.Group(owner: owner("c"), values: [
+                .init(heading: heading(1), citations: runs(10, prefix: "d")),
+                .init(heading: heading(3), citations: runs(15, prefix: "e")),
+            ]),
+        ]
+        var order: [(Position, Content.Group.ValueGroup.CitationRun)] = []
+        for (g, group) in groups.enumerated() {
+            for (v, value) in group.values.enumerated() {
+                for (r, run) in value.citations.enumerated() { order.append((Position(group: g, value: v, run: r), run)) }
+            }
+        }
+        #expect(order.count == 130)
+        for pages in 0...3 {
+            let folded = Content.folded(groups, by: Self.fold, pages: pages)
+            let shown = Self.fold.shownCount(count: 130, pages: pages)
+            for (g, group) in folded.groups.enumerated() {
+                for (v, value) in group.values.enumerated() {
+                    #expect(value.heading == groups[g].values[v].heading)
+                    for (r, run) in value.citations.enumerated() {
+                        #expect(run == groups[g].values[v].citations[r])
+                    }
+                }
+            }
+            #expect(runCount(folded.groups) == shown)
+            #expect(folded.firstRevealed == (shown < 130 ? order[shown].0 : nil))
+        }
+    }
+
+    /// T-6 (D-4).
+    @Test func foldClampsPastTheEnd() {
+        let folded = Content.folded(single(runs(60)), by: Self.fold, pages: 9)
+        #expect(runCount(folded.groups) == 60 && folded.hidden == 0 && folded.firstRevealed == nil)
+    }
 }

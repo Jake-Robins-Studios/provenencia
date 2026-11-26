@@ -53,6 +53,7 @@ struct PVProvenanceSheet: View {
                                 idPrefix: idPrefix, open: close
                             )
                             .padding(.trailing, PVProvenanceColumns.scrollBarInset)
+                            .pvScrollsShowMoreReveals()
                         }
                         .frame(maxHeight: Self.recordsMaxHeight)
                     }
@@ -128,6 +129,21 @@ struct PVProvenanceSheet: View {
     PVProvenanceSheet(
         content: PVProvenancePreviewData.content(
             groups: [PVProvenanceSheetContent.Group(owner: nil, records: records)], summary: "30 records"
+        ),
+        idPrefix: "preview",
+        open: { _, _ in }
+    )
+}
+
+#Preview("Folded, 120 runs") {
+    let records = (1...120).map {
+        PVProvenancePreviewData.record(
+            "r\($0)", readAs: "14 May 1817", title: "Parish register \($0)", detail: "p. \($0)", counted: $0 % 5 != 0
+        )
+    }
+    PVProvenanceSheet(
+        content: PVProvenancePreviewData.content(
+            groups: [PVProvenanceSheetContent.Group(owner: nil, records: records)], summary: "120 records"
         ),
         idPrefix: "preview",
         open: { _, _ in }

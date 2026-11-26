@@ -26,9 +26,19 @@ struct PVProvenanceRecordTable: View {
         runIndex > 0 || !followsLine
     }
 
+    /// The fold of the table: the first 50 citation runs, then a page of `PagedFold.pageSize` at a time (S15-27 D-1).
+    nonisolated static let fold = PagedFold(limit: 50, minimumHidden: 1)
+
+    /// The table's one fold, the key of its `PagedFoldState`.
+    enum Fold: Hashable { case runs }
+
+    @State private var folds = PagedFoldState<Fold>()
+    @FocusState private var focus: PVProvenanceFocus?
+
     var body: some View {
+        let folded = PVProvenanceSheetContent.folded(groups, by: Self.fold, pages: folds.pages(.runs))
         VStack(alignment: .leading, spacing: 0) {
-            ForEach(groups) { group in
+            ForEach(Array(folded.groups.enumerated()), id: \.offset) { groupIndex, group in
                 if let owner = group.owner {
                     PVDivider(color: PVColor.borderStrong)
                     PVProvenanceOwnerLine(owner)
@@ -41,19 +51,44 @@ struct PVProvenanceRecordTable: View {
                     let followsLine = Self.followsLine(
                         hasHeading: run.heading != nil, valueIndex: valueIndex, hasOwner: group.owner != nil)
                     ForEach(Array(run.citations.enumerated()), id: \.element.key) { runIndex, citation in
+                        let position = PVProvenanceSheetContent.RunPosition(group: groupIndex, value: valueIndex, run: runIndex)
                         if Self.drawsRule(runIndex: runIndex, followsLine: followsLine) {
                             PVDivider()
                         }
-                        ForEach(citation.records, id: \.id) { record in
-                            PVProvenanceRecordRow(
-                                record: record, face: face, columns: columns, idPrefix: idPrefix, open: open
-                            )
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(Array(citation.records.enumerated()), id: \.element.id) { recordIndex, record in
+                                PVProvenanceRecordRow(
+                                    record: record, face: face, columns: columns, idPrefix: idPrefix, open: open,
+                                    citationFocus: recordIndex == 0 ? PVFieldFocus($focus, equals: .citation(position)) : nil
+                                )
+                            }
                         }
+                        .id(position)
                     }
                 }
             }
+            if folded.hidden > 0 {
+                PVDivider()
+                PVShowMoreRow(
+                    hidden: folded.hidden,
+                    fold: Self.fold,
+                    focus: $focus,
+                    stop: .showMore,
+                    revealed: folded.firstRevealed.map(PVProvenanceFocus.citation),
+                    revealedRow: folded.firstRevealed.map(AnyHashable.init),
+                    expand: { folds.revealPage(.runs) }
+                )
+                .padding(.vertical, PVSpacing.space3)
+            }
         }
     }
+}
+
+/// What the provenance table's keyboard focus rests on: a run's first citation link, by the run's
+/// place in the whole table, or the Show more row.
+enum PVProvenanceFocus: Hashable {
+    case citation(PVProvenanceSheetContent.RunPosition)
+    case showMore
 }
 
 // MARK: - Previews
