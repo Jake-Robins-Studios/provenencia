@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"slices"
-	"strings"
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
@@ -12,15 +11,25 @@ import (
 	"github.com/google/uuid"
 )
 
+// The render tests use a researcher's own type, fields and formats, so they
+// test the engine and not the product seed: a seed edit changes no test here.
 const (
-	renderCensusFull  = "1880 Westmark census, Calder County, Westmark, population schedule, ED 236, piece 1047, fol. 22, p. 14, schedule 9, dwelling 112, family 118, line 14, Ada Robins; digital image, Westmark Heritage (https://example.org/calder/1880 : accessed 12 March 2025); citing county film 7, item 3."
-	renderCensusShort = "1880 Westmark census, Calder County, Westmark, ED 236, fol. 22, p. 14, dwell. 112, fam. 118, Ada Robins."
-	renderCensusList  = "Calder County, Westmark. 1880 Westmark census, population schedule."
+	renderFormatFull  = `{meta.ledger}[, {meta.entrant}][, leaf {meta.leaf}]; *{meta.keeper}*, {source.date:year}.`
+	renderFormatShort = `{meta.ledger}[, leaf {meta.leaf}].`
+	renderFormatList  = `{meta.ledger}, {source.date:year}.`
+
+	renderFull  = "Calder ledger, Ada Robins, leaf 14; Westmark Archive, 1880."
+	renderShort = "Calder ledger, leaf 14."
+	renderList  = "Calder ledger, 1880."
 )
 
-// renderWorld is AC-1.1's catalog built by RPC.
+// renderWorld is a project with one researcher type ("Register") and a Source
+// of it: the ledger and keeper on the Source, the entrant on the graph, the
+// leaf on the Citation.
 type renderWorld struct {
 	dir, userID string
+	typeID      string
+	fields      map[string]string // every field's id by key
 	source      string
 	artifact    string
 	graph       string
@@ -35,6 +44,23 @@ func setValues(t *testing.T, dir, userID string, ids map[string]string, level, i
 			FieldId: ids[key], ValueText: text,
 		}, &engine.SetMetadataResponse{})
 	}
+}
+
+func setMark(t *testing.T, dir, userID, fieldID, level, id, text string, mark *engine.ValueMark) {
+	t.Helper()
+	mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
+		ProjectDir: dir, UserId: userID, Owner: &engine.MetadataOwner{Level: level, Id: id},
+		FieldId: fieldID, ValueText: text, Mark: mark,
+	}, &engine.SetMetadataResponse{})
+}
+
+// setUnknownText sets what a value of a researcher text field prints when
+// it is marked unknown.
+func setUnknownText(t *testing.T, dir, userID, fieldID, label, unknown string) {
+	t.Helper()
+	mustRPC(t, UpdateMetadataField, &engine.UpdateMetadataFieldRequest{
+		ProjectDir: dir, UserId: userID, FieldId: fieldID, Label: label, DataType: "text", UnknownText: &unknown,
+	}, &engine.UpdateMetadataFieldResponse{})
 }
 
 func newArtifact(t *testing.T, dir, userID, sourceID, label string) (artifactID, graphID string) {
@@ -54,28 +80,50 @@ func newCitation(t *testing.T, dir, userID, artifactID, graphID, locatorJSON str
 	return cit.GetCitation().GetId()
 }
 
+// newSource creates a Source of the world's type, dated 1880 unless date is nil.
+func (w renderWorld) newSource(t *testing.T, title string, date *engine.DateValueInput) string {
+	t.Helper()
+	var src engine.CreateSourceResponse
+	mustRPC(t, CreateSource, &engine.CreateSourceRequest{
+		ProjectDir: w.dir, UserId: w.userID, SourceTypeId: w.typeID, Title: title,
+	}, &src)
+	id := src.GetSource().GetId()
+	if date != nil {
+		mustRPC(t, SetSourceDate, &engine.SetSourceDateRequest{
+			ProjectDir: w.dir, UserId: w.userID, SourceId: id, Date: date,
+		}, &engine.SetSourceDateResponse{})
+	}
+	return id
+}
+
 func newRenderWorld(t *testing.T) renderWorld {
 	t.Helper()
 	dir, userID, _ := sourceFixture(t)
-	ids := fieldIDsByKey(t, dir)
-	w := renderWorld{dir: dir, userID: userID, source: seededSourceOfType(t, dir, userID, "census")}
-	mustRPC(t, SetSourceDate, &engine.SetSourceDateRequest{
-		ProjectDir: dir, UserId: userID, SourceId: w.source, Date: pointDate(1880, 0, 0),
-	}, &engine.SetSourceDateResponse{})
-	setValues(t, dir, userID, ids, "source", w.source, map[string]string{
-		"creator": "Westmark", "jurisdiction": "Calder County, Westmark", "schedule": "population schedule",
-		"enumeration_district": "236", "piece": "1047", "folio": "22",
+	w := renderWorld{dir: dir, userID: userID}
+	for _, f := range []struct{ label, unknown string }{
+		{"Ledger", ""}, {"Keeper", ""}, {"Entrant", ""}, {"Leaf", "unfoliated"}, {"Press", "n.p."},
+	} {
+		id := newUserField(t, dir, userID, f.label)
+		if f.unknown != "" {
+			setUnknownText(t, dir, userID, id, f.label, f.unknown)
+		}
+	}
+	w.fields = fieldIDsByKey(t, dir)
+	var ty engine.CreateSourceTypeResponse
+	mustRPC(t, CreateSourceType, &engine.CreateSourceTypeRequest{ProjectDir: dir, UserId: userID, Label: "Register"}, &ty)
+	w.typeID = ty.GetType().GetId()
+	formats := setFormats(t, dir, userID, w.typeID, &engine.CitationFormats{
+		Full: renderFormatFull, Short: renderFormatShort, List: renderFormatList,
 	})
-	w.artifact, w.graph = newArtifact(t, dir, userID, w.source, "County film")
-	setValues(t, dir, userID, ids, "graph", w.graph, map[string]string{
-		"schedule_number": "9", "dwelling_number": "112", "family_number": "118", "line_number": "14", "item": "Ada Robins",
-	})
-	setValues(t, dir, userID, ids, "artifact", w.artifact, map[string]string{
-		"format": "digital image", "provider": "Westmark Heritage", "url": "https://example.org/calder/1880",
-		"accessed_date": "12 March 2025", "citing": "county film 7, item 3",
-	})
+	if len(formats.GetDiagnostics()) != 0 {
+		t.Fatalf("diagnostics %v", formats.GetDiagnostics())
+	}
+	w.source = w.newSource(t, "Calder register", pointDate(1880, 0, 0))
+	setValues(t, dir, userID, w.fields, "source", w.source, map[string]string{"ledger": "Calder ledger", "keeper": "Westmark Archive"})
+	w.artifact, w.graph = newArtifact(t, dir, userID, w.source, "Ledger scan")
+	setValues(t, dir, userID, w.fields, "graph", w.graph, map[string]string{"entrant": "Ada Robins"})
 	w.citation = newCitation(t, dir, userID, w.artifact, w.graph, depictionvaluetest.Locator)
-	setValues(t, dir, userID, ids, "citation", w.citation, map[string]string{"page": "14"})
+	setValues(t, dir, userID, w.fields, "citation", w.citation, map[string]string{"leaf": "14"})
 	return w
 }
 
@@ -88,8 +136,16 @@ func renderCitations(t *testing.T, dir string, ids ...string) (*engine.RenderCit
 
 func TestRenderCitations(t *testing.T) {
 	w := newRenderWorld(t)
+	render := func(t *testing.T, ids ...string) []*engine.RenderedCitation {
+		t.Helper()
+		out, err := renderCitations(t, w.dir, ids...)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return out.GetCitations()
+	}
 
-	t.Run("AC-1.1 the census citation", func(t *testing.T) {
+	t.Run("AC-1.1 the full and short forms, the runs and the inputs", func(t *testing.T) {
 		out, err := renderCitations(t, w.dir, w.citation)
 		if err != nil {
 			t.Fatal(err)
@@ -98,13 +154,12 @@ func TestRenderCitations(t *testing.T) {
 			t.Fatalf("got %d citations", len(out.GetCitations()))
 		}
 		got := out.GetCitations()[0]
-		t.Logf("full: %s", got.GetFull().GetPlain())
-		if got.GetCitationId() != w.citation || got.GetFull().GetPlain() != renderCensusFull || got.GetShort().GetPlain() != renderCensusShort {
+		if got.GetCitationId() != w.citation || got.GetFull().GetPlain() != renderFull || got.GetShort().GetPlain() != renderShort {
 			t.Errorf("citation = %v", got)
 		}
 		runs := got.GetFull().GetRuns()
-		if len(runs) != 3 || runs[0].GetItalic() || !runs[1].GetItalic() || runs[1].GetText() != "Westmark Heritage" || runs[2].GetItalic() ||
-			runs[0].GetText()+runs[1].GetText()+runs[2].GetText() != renderCensusFull {
+		if len(runs) != 3 || runs[0].GetItalic() || !runs[1].GetItalic() || runs[1].GetText() != "Westmark Archive" || runs[2].GetItalic() ||
+			runs[0].GetText()+runs[1].GetText()+runs[2].GetText() != renderFull {
 			t.Errorf("runs = %v", runs)
 		}
 		if !slices.Equal(out.GetInputs().GetEvidenceGraphs(), []string{w.graph}) || !slices.Equal(out.GetInputs().GetSources(), []string{w.source}) {
@@ -112,19 +167,36 @@ func TestRenderCitations(t *testing.T) {
 		}
 	})
 
-	t.Run("AC-1.2 equal pages group", func(t *testing.T) {
+	t.Run("AC-1.2 equal renders group", func(t *testing.T) {
 		same := newCitation(t, w.dir, w.userID, w.artifact, w.graph, depictionvaluetest.Locator)
 		other := newCitation(t, w.dir, w.userID, w.artifact, w.graph, depictionvaluetest.Locator)
-		pageIDs := fieldIDsByKey(t, w.dir)
-		setValues(t, w.dir, w.userID, pageIDs, "citation", same, map[string]string{"page": "14"})
-		setValues(t, w.dir, w.userID, pageIDs, "citation", other, map[string]string{"page": "15"})
-		out, err := renderCitations(t, w.dir, w.citation, same, other)
-		if err != nil {
-			t.Fatal(err)
-		}
-		c := out.GetCitations()
+		setValues(t, w.dir, w.userID, w.fields, "citation", same, map[string]string{"leaf": "14"})
+		setValues(t, w.dir, w.userID, w.fields, "citation", other, map[string]string{"leaf": "15"})
+		c := render(t, w.citation, same, other)
 		if len(c) != 3 || c[0].GetGroupKey() != c[1].GetGroupKey() || c[0].GetGroupKey() == c[2].GetGroupKey() {
 			t.Errorf("group keys %q %q %q", c[0].GetGroupKey(), c[1].GetGroupKey(), c[2].GetGroupKey())
+		}
+	})
+
+	t.Run("AC-1.3 a value answers at the nearest level that holds it", func(t *testing.T) {
+		src := w.newSource(t, "Loose leaves", pointDate(1880, 0, 0))
+		setValues(t, w.dir, w.userID, w.fields, "source", src, map[string]string{"ledger": "Calder ledger", "keeper": "Westmark Archive"})
+		art, graph := newArtifact(t, w.dir, w.userID, src, "Loose leaf")
+		setValues(t, w.dir, w.userID, w.fields, "graph", graph, map[string]string{"entrant": "Ben Robins", "leaf": "3"})
+		shared1 := newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator)
+		shared2 := newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator)
+		own := newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator)
+		setValues(t, w.dir, w.userID, w.fields, "citation", own, map[string]string{"leaf": "4"})
+		c := render(t, shared1, shared2, own)
+		const graphLeaf = "Calder ledger, Ben Robins, leaf 3; Westmark Archive, 1880."
+		if c[0].GetFull().GetPlain() != graphLeaf || c[1].GetFull().GetPlain() != graphLeaf || c[0].GetGroupKey() != c[1].GetGroupKey() {
+			t.Errorf("graph's leaf: %q %q, keys %q %q", c[0].GetFull().GetPlain(), c[1].GetFull().GetPlain(), c[0].GetGroupKey(), c[1].GetGroupKey())
+		}
+		if got := c[2].GetFull().GetPlain(); got != "Calder ledger, Ben Robins, leaf 4; Westmark Archive, 1880." || c[2].GetGroupKey() == c[0].GetGroupKey() {
+			t.Errorf("own leaf = %q", got)
+		}
+		if got := render(t, w.citation)[0].GetFull().GetPlain(); got != renderFull {
+			t.Errorf("w.citation = %q", got)
 		}
 	})
 
@@ -145,50 +217,37 @@ func TestRenderCitations(t *testing.T) {
 		var ty engine.CreateSourceTypeResponse
 		mustRPC(t, CreateSourceType, &engine.CreateSourceTypeRequest{ProjectDir: w.dir, UserId: w.userID, Label: "Pamphlet"}, &ty)
 		formats := setFormats(t, w.dir, w.userID, ty.GetType().GetId(), &engine.CitationFormats{
-			Full: "{meta.publisher}; {source.date}; p. {meta.page}.",
+			Full: "{meta.press}; {source.date}; leaf {meta.leaf}.",
 		})
 		if len(formats.GetDiagnostics()) != 0 {
 			t.Fatalf("diagnostics %v", formats.GetDiagnostics())
 		}
-		publisher := fieldIDsByKey(t, w.dir)["publisher"]
-		made := func(title string, publisherText string, publisherMark *engine.ValueMark, date *engine.DateValueInput, dateMark *engine.ValueMark, locatorJSON string) string {
+		made := func(title, press string, pressMark *engine.ValueMark, date *engine.DateValueInput, dateMark *engine.ValueMark, leaf string, leafMark *engine.ValueMark) string {
 			var src engine.CreateSourceResponse
 			mustRPC(t, CreateSource, &engine.CreateSourceRequest{
 				ProjectDir: w.dir, UserId: w.userID, SourceTypeId: ty.GetType().GetId(), Title: title,
 			}, &src)
 			id := src.GetSource().GetId()
-			mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
-				ProjectDir: w.dir, UserId: w.userID, Owner: &engine.MetadataOwner{Level: "source", Id: id},
-				FieldId: publisher, ValueText: publisherText, Mark: publisherMark,
-			}, &engine.SetMetadataResponse{})
+			setMark(t, w.dir, w.userID, w.fields["press"], "source", id, press, pressMark)
 			mustRPC(t, SetSourceDate, &engine.SetSourceDateRequest{
 				ProjectDir: w.dir, UserId: w.userID, SourceId: id, Date: date, Mark: dateMark,
 			}, &engine.SetSourceDateResponse{})
 			art, graph := newArtifact(t, w.dir, w.userID, id, "Scan")
-			return newCitation(t, w.dir, w.userID, art, graph, locatorJSON)
+			cit := newCitation(t, w.dir, w.userID, art, graph, `{"version":1,"selectors":[{"type":"artifact"}]}`)
+			setMark(t, w.dir, w.userID, w.fields["leaf"], "citation", cit, leaf, leafMark)
+			return cit
 		}
-		a := made("A", "", &engine.ValueMark{Unknown: true}, nil, &engine.ValueMark{Unknown: true},
-			`{"version":1,"selectors":[{"type":"artifact"}]}`)
-		b := made("B", "Ashby Press", &engine.ValueMark{Supplied: true}, qualifiedDate("ABT", 1880, 0, 0), &engine.ValueMark{Supplied: true},
-			`{"version":1,"selectors":[{"type":"artifact"}]}`)
-		page := fieldIDsByKey(t, w.dir)["page"]
-		for _, set := range []struct {
-			id, text string
-			mark     *engine.ValueMark
-		}{{a, "", &engine.ValueMark{Unknown: true}}, {b, "23", &engine.ValueMark{Supplied: true}}} {
-			mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
-				ProjectDir: w.dir, UserId: w.userID, Owner: &engine.MetadataOwner{Level: "citation", Id: set.id},
-				FieldId: page, ValueText: set.text, Mark: set.mark,
-			}, &engine.SetMetadataResponse{})
+		unknown, supplied := &engine.ValueMark{Unknown: true}, &engine.ValueMark{Supplied: true}
+		a := made("A", "", unknown, nil, unknown, "", unknown)
+		b := made("B", "Ashby Press", supplied, qualifiedDate("ABT", 1880, 0, 0), supplied, "23", supplied)
+		c := render(t, a, b)
+		if len(c) != 2 {
+			t.Fatalf("got %d citations", len(c))
 		}
-		out, err := renderCitations(t, w.dir, a, b)
-		if err != nil || len(out.GetCitations()) != 2 {
-			t.Fatalf("got %v, %v", out, err)
-		}
-		if got := out.GetCitations()[0].GetFull().GetPlain(); got != "n.p.; n.d.; p. unpaginated." {
+		if got := c[0].GetFull().GetPlain(); got != "n.p.; n.d.; leaf unfoliated." {
 			t.Errorf("A = %q", got)
 		}
-		if got := out.GetCitations()[1].GetFull().GetPlain(); got != "[Ashby Press]; [ca. 1880]; p. [23]." {
+		if got := c[1].GetFull().GetPlain(); got != "[Ashby Press]; [ca. 1880]; leaf [23]." {
 			t.Errorf("B = %q", got)
 		}
 	})
@@ -204,19 +263,22 @@ func TestRenderCitationPreview(t *testing.T) {
 		return &out, err
 	}
 	strp := func(s string) *string { return &s }
+	source := func(id string) *engine.RenderCitationPreviewRequest_SourceId {
+		return &engine.RenderCitationPreviewRequest_SourceId{SourceId: id}
+	}
 
 	t.Run("AC-2.1 the list form of a Source", func(t *testing.T) {
-		out, err := preview(&engine.RenderCitationPreviewRequest{Form: "list", Target: &engine.RenderCitationPreviewRequest_SourceId{SourceId: w.source}})
+		out, err := preview(&engine.RenderCitationPreviewRequest{Form: "list", Target: source(w.source)})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if out.GetRender().GetPlain() != renderCensusList || len(out.GetMissing()) != 0 || len(out.GetDiagnostics()) != 0 {
+		if out.GetRender().GetPlain() != renderList || len(out.GetMissing()) != 0 || len(out.GetDiagnostics()) != 0 {
 			t.Errorf("got %v", out)
 		}
 	})
 	t.Run("a stored full form of a Citation", func(t *testing.T) {
 		out, err := preview(&engine.RenderCitationPreviewRequest{Form: "full", Target: &engine.RenderCitationPreviewRequest_CitationId{CitationId: w.citation}})
-		if err != nil || out.GetRender().GetPlain() != renderCensusFull {
+		if err != nil || out.GetRender().GetPlain() != renderFull {
 			t.Fatalf("got %v, %v", out, err)
 		}
 	})
@@ -234,27 +296,21 @@ func TestRenderCitationPreview(t *testing.T) {
 		}
 	})
 	t.Run("a needed field read nearest-first has no level in a missing option", func(t *testing.T) {
-		bare := seededSourceOfType(t, w.dir, w.userID, "census")
-		out, err := preview(&engine.RenderCitationPreviewRequest{
-			Form: "full", Format: strp(`{meta.jurisdiction}.`),
-			Target: &engine.RenderCitationPreviewRequest_SourceId{SourceId: bare},
-		})
+		bare := w.newSource(t, "Bare", nil)
+		out, err := preview(&engine.RenderCitationPreviewRequest{Form: "full", Format: strp(`{meta.ledger}.`), Target: source(bare)})
 		if err != nil {
 			t.Fatal(err)
 		}
 		if len(out.GetMissing()) != 1 || len(out.GetMissing()[0].GetOptions()) != 1 {
 			t.Fatalf("missing = %v", out.GetMissing())
 		}
-		if o := out.GetMissing()[0].GetOptions()[0]; o.GetLevel() != "" || o.GetField().GetKey() != "jurisdiction" {
-			t.Errorf("option = %v, want jurisdiction with no level", o)
+		if o := out.GetMissing()[0].GetOptions()[0]; o.GetLevel() != "" || o.GetField().GetKey() != "ledger" {
+			t.Errorf("option = %v, want ledger with no level", o)
 		}
 	})
 	t.Run("AC-2.4 a needed field with no value", func(t *testing.T) {
-		bare := seededSourceOfType(t, w.dir, w.userID, "census")
-		mustRPC(t, SetSourceDate, &engine.SetSourceDateRequest{
-			ProjectDir: w.dir, UserId: w.userID, SourceId: bare, Date: pointDate(1880, 0, 0),
-		}, &engine.SetSourceDateResponse{})
-		out, err := preview(&engine.RenderCitationPreviewRequest{Form: "list", Target: &engine.RenderCitationPreviewRequest_SourceId{SourceId: bare}})
+		bare := w.newSource(t, "Bare", pointDate(1880, 0, 0))
+		out, err := preview(&engine.RenderCitationPreviewRequest{Form: "list", Target: source(bare)})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -262,27 +318,23 @@ func TestRenderCitationPreview(t *testing.T) {
 			t.Fatalf("missing = %v", out.GetMissing())
 		}
 		o := out.GetMissing()[0].GetOptions()[0]
-		if o.GetLevel() != "source" || o.GetField().GetKey() != "jurisdiction" || o.GetField().GetLabel() == "" || o.GetBuiltin() != "" {
+		if o.GetLevel() != "source" || o.GetField().GetKey() != "ledger" || o.GetField().GetLabel() != "Ledger" || o.GetBuiltin() != "" {
 			t.Errorf("option = %v", o)
 		}
 	})
 	t.Run("AC-2.7 a blank format renders nothing, an absent one the stored form", func(t *testing.T) {
-		blank, err := preview(&engine.RenderCitationPreviewRequest{
-			Form: "list", Format: strp("   "), Target: &engine.RenderCitationPreviewRequest_SourceId{SourceId: w.source},
-		})
+		blank, err := preview(&engine.RenderCitationPreviewRequest{Form: "list", Format: strp("   "), Target: source(w.source)})
 		if err != nil || blank.GetRender().GetPlain() != "" || len(blank.GetMissing()) != 0 || len(blank.GetDiagnostics()) != 0 {
 			t.Fatalf("blank = %v, %v", blank, err)
 		}
-		stored, err := preview(&engine.RenderCitationPreviewRequest{
-			Form: "list", Target: &engine.RenderCitationPreviewRequest_SourceId{SourceId: w.source},
-		})
-		if err != nil || stored.GetRender().GetPlain() != renderCensusList {
+		stored, err := preview(&engine.RenderCitationPreviewRequest{Form: "list", Target: source(w.source)})
+		if err != nil || stored.GetRender().GetPlain() != renderList {
 			t.Fatalf("stored = %v, %v", stored, err)
 		}
 	})
 	t.Run("AC-7.1 a Source target with the full form reads its Citation", func(t *testing.T) {
-		out, err := preview(&engine.RenderCitationPreviewRequest{Form: "full", Target: &engine.RenderCitationPreviewRequest_SourceId{SourceId: w.source}})
-		if err != nil || out.GetRender().GetPlain() != renderCensusFull {
+		out, err := preview(&engine.RenderCitationPreviewRequest{Form: "full", Target: source(w.source)})
+		if err != nil || out.GetRender().GetPlain() != renderFull {
 			t.Fatalf("got %v, %v", out, err)
 		}
 	})
@@ -310,15 +362,15 @@ func TestRenderCitationPreview(t *testing.T) {
 		},
 		{
 			name: "a target id that is not a UUID",
-			req: &engine.RenderCitationPreviewRequest{
-				ProjectDir: w.dir, Form: "list", Target: &engine.RenderCitationPreviewRequest_SourceId{SourceId: "nope"},
-			}, wantErr: true, wantErrIs: errInvalidID,
+			req:  &engine.RenderCitationPreviewRequest{ProjectDir: w.dir, Form: "list", Target: source("nope")}, wantErr: true, wantErrIs: errInvalidID,
 		},
 	})
 }
 
 func TestListCitationPlaceholders(t *testing.T) {
-	dir, _, _ := sourceFixture(t)
+	dir, userID, _ := sourceFixture(t)
+	newUserField(t, dir, userID, "Leaf")
+	const leafKey = "leaf"
 	list := func(form string) *engine.ListCitationPlaceholdersResponse {
 		t.Helper()
 		var out engine.ListCitationPlaceholdersResponse
@@ -347,21 +399,21 @@ func TestListCitationPlaceholders(t *testing.T) {
 	})
 
 	t.Run("the full form lists the four levels, then each field once", func(t *testing.T) {
-		var line *engine.CitationPlaceholder
+		var leaf *engine.CitationPlaceholder
 		var levels []string
 		for _, p := range list("full").GetPlaceholders() {
 			if len(levels) == 0 || levels[len(levels)-1] != p.GetLevel() {
 				levels = append(levels, p.GetLevel())
 			}
-			if p.GetText() == "{meta.line_number}" {
-				line = p
+			if p.GetText() == "{meta."+leafKey+"}" {
+				leaf = p
 			}
 		}
 		if !slices.Equal(levels, []string{"source", "artifact", "graph", "citation", ""}) {
 			t.Errorf("levels = %v", levels)
 		}
-		if line == nil || line.GetRef() != "meta.line_number" || line.GetLevel() != "" || line.GetField().GetKey() != "line_number" || line.GetBuiltin() != "" {
-			t.Errorf("line = %v", line)
+		if leaf == nil || leaf.GetRef() != "meta."+leafKey || leaf.GetLevel() != "" || leaf.GetField().GetKey() != leafKey || leaf.GetBuiltin() != "" {
+			t.Errorf("leaf = %v", leaf)
 		}
 	})
 
@@ -369,84 +421,4 @@ func TestListCitationPlaceholders(t *testing.T) {
 		name: "an unknown form",
 		req:  &engine.ListCitationPlaceholdersRequest{ProjectDir: dir, Form: "fourth"}, wantErr: true, wantErrIs: citations.ErrInvalid,
 	}})
-}
-
-// TestRenderSeededPage is bar 13: on a new project the seeded page field
-// answers nearest-first at the Citation and the graph, a locator's printed
-// page answers when no level holds a value, and an unknown mark prints the
-// field's unknown text.
-func TestRenderSeededPage(t *testing.T) {
-	w := newRenderWorld(t)
-	ids := fieldIDsByKey(t, w.dir)
-	newspaper := func() string {
-		src := seededSourceOfType(t, w.dir, w.userID, "newspaper_item")
-		mustRPC(t, SetSourceDate, &engine.SetSourceDateRequest{
-			ProjectDir: w.dir, UserId: w.userID, SourceId: src, Date: pointDate(1880, 6, 14),
-		}, &engine.SetSourceDateResponse{})
-		setValues(t, w.dir, w.userID, ids, "source", src, map[string]string{"published_in": "Calder Valley Gazette"})
-		return src
-	}
-	plain := func(t *testing.T, id string) (string, string) {
-		t.Helper()
-		out, err := renderCitations(t, w.dir, id)
-		if err != nil {
-			t.Fatal(err)
-		}
-		c := out.GetCitations()[0]
-		return c.GetFull().GetPlain(), c.GetGroupKey()
-	}
-	const gazette = `"newspaper_item," Calder Valley Gazette, 14 June 1880, `
-
-	t.Run("AC-1.1 and AC-1.5 each Citation holds its own page", func(t *testing.T) {
-		src := newspaper()
-		art, graph := newArtifact(t, w.dir, w.userID, src, "Issue PDF")
-		first := newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator)
-		second := newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator)
-		setValues(t, w.dir, w.userID, ids, "citation", first, map[string]string{"page": "2", "column": "4"})
-		setValues(t, w.dir, w.userID, ids, "citation", second, map[string]string{"page": "7", "column": "1"})
-		p1, k1 := plain(t, first)
-		p2, k2 := plain(t, second)
-		if p1 != gazette+"p. 2, col. 4." || p2 != gazette+"p. 7, col. 1." || k1 == k2 {
-			t.Errorf("plains %q %q, group keys %q %q", p1, p2, k1, k2)
-		}
-		third := newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator)
-		mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
-			ProjectDir: w.dir, UserId: w.userID, Owner: &engine.MetadataOwner{Level: "citation", Id: third},
-			FieldId: ids["page"], Mark: &engine.ValueMark{Unknown: true},
-		}, &engine.SetMetadataResponse{})
-		if p3, _ := plain(t, third); p3 != gazette+"p. unpaginated." {
-			t.Errorf("unknown page = %q", p3)
-		}
-	})
-
-	t.Run("AC-1.2 a clipping's page is typed once on its graph", func(t *testing.T) {
-		src := newspaper()
-		art, graph := newArtifact(t, w.dir, w.userID, src, "Clipping")
-		setValues(t, w.dir, w.userID, ids, "graph", graph, map[string]string{"page": "3", "column": "2"})
-		var keys []string
-		for range 5 {
-			p, k := plain(t, newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator))
-			if p != gazette+"p. 3, col. 2." {
-				t.Errorf("plain = %q", p)
-			}
-			keys = append(keys, k)
-		}
-		for _, k := range keys[1:] {
-			if k != keys[0] {
-				t.Errorf("group keys %q differ", keys)
-			}
-		}
-	})
-
-	t.Run("AC-1.3 a Citation's own page answers", func(t *testing.T) {
-		cit := newCitation(t, w.dir, w.userID, w.artifact, w.graph, depictionvaluetest.Locator)
-		setValues(t, w.dir, w.userID, ids, "citation", cit, map[string]string{"line_number": "21", "page": "15"})
-		want := strings.NewReplacer("p. 14,", "p. 15,", "line 14,", "line 21,").Replace(renderCensusFull)
-		if got, _ := plain(t, cit); got != want {
-			t.Errorf("citation = %q, want %q", got, want)
-		}
-		if got, _ := plain(t, w.citation); got != renderCensusFull {
-			t.Errorf("w.citation = %q", got)
-		}
-	})
 }
