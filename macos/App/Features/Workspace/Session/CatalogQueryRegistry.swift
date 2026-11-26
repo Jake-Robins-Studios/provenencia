@@ -227,12 +227,7 @@ extension CatalogQueryKey.Kind {
             // cached Artifact and graph boards below it inherit the new value the same way.
             return .make(
                 kind: self,
-                invalidateOn: [
-                    .mutatedSourceWorkspace, .changedSourceType,
-                    .updatedMetadataField, .deletedMetadataField,
-                    .wroteTypeSuggestions, .changedCitationFormats,
-                    .deletedSource,
-                ],
+                invalidateOn: CatalogMutationKind.boardVocabulary.union([.mutatedSourceWorkspace, .deletedSource]),
                 whenHidden: .markStale,
                 invalidation: { project, mutation in
                     switch mutation {
@@ -365,11 +360,20 @@ extension CatalogQueryKey.Kind {
                 }
             )
         case .citationsByArtifact:
-            // Reloads follow the write's `citations` read for this key's graph.
+            // Reloads follow the write's `citations` read for this key's graph, and
+            // its `citation_boards` read: a value moved at any level of the graph.
+            // Each Citation's row holds its board, so the edits that change a
+            // board's labels, suggestions or annotations mark every cached list
+            // stale (`CatalogMutationKind.boardVocabulary`).
             return .make(
                 kind: self,
+                invalidateOn: CatalogMutationKind.boardVocabulary,
                 whenHidden: .markStale,
-                refreshes: [.applyHiddenPolicy(follows: .reads(.citations)) { _, key in [key.citationGraphId] }],
+                invalidation: { _, _ in .allCached(.citationsByArtifact) },
+                refreshes: [
+                    .applyHiddenPolicy(follows: .reads(.citations)) { _, key in [key.citationGraphId] },
+                    .applyHiddenPolicy(follows: .reads(.citationBoards)) { _, key in [key.citationGraphId] },
+                ],
                 load: { key, store in
                     return try await store.listCitationsByArtifact(
                         projectDir: key.project.projectDir,

@@ -229,13 +229,26 @@ func ListCitationsByArtifact(in []byte) ([]byte, error) {
 		if err != nil {
 			return err
 		}
+		// One read for every listed Citation: the opened Citation's board and
+		// its printed page come from the same rows.
+		ids := make([][]byte, len(list))
+		for i, row := range list {
+			ids[i] = row.Citation.ID
+		}
+		boards, pages, err := sourcemetadata.ListCitationWorkspaces(c, ids)
+		if err != nil {
+			return err
+		}
 		out = &engine.ListCitationsByArtifactResponse{}
-		for _, row := range list {
-			out.Citations = append(out.Citations, &engine.ListedCitation{
+		for i, row := range list {
+			listed := &engine.ListedCitation{
 				Citation:         citationProto(row.Citation),
 				ObservationCount: row.ObservationCount,
 				SubjectNames:     row.SubjectNames,
-			})
+				Metadata:         metadataEntriesProto(boards[i].Entries),
+				PageLabel:        pages[i],
+			}
+			out.Citations = append(out.Citations, listed)
 		}
 		return nil
 	})

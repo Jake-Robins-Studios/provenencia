@@ -427,6 +427,10 @@ struct CatalogListedCitation: Sendable, Equatable, Identifiable {
     var observationCount: Int
     /// Person labels this citation names, earliest observation first.
     var subjectNames: [String] = []
+    /// The Citation's metadata board: its own values and what it inherits.
+    var metadata: [CatalogMetadataEntry] = []
+    /// The Citation's own Page value as a citation prints it; "" when it has none.
+    var pageLabel: String = ""
     var id: String { citation.id }
 }
 
@@ -2154,8 +2158,9 @@ protocol GenealogyStore: Sendable {
         transcription: String,
         description: String,
         transcriptionUncertain: Bool,
-        transcriptionNote: String
-    ) async throws -> (CatalogCitation, CatalogWriteEffects)
+        transcriptionNote: String,
+        metadata: CatalogMetadataDraft?
+    ) async throws -> (CatalogCitation, [CatalogMetadataEntry], CatalogWriteEffects)
 
     /// `depictionInput` is a new region and crop for a depiction Observation;
     /// nil keeps the value named by `observation.valueDepictionID`.

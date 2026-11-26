@@ -1,9 +1,11 @@
 package sourcemetadata
 
 import (
+	"bytes"
 	"database/sql"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
@@ -48,6 +50,121 @@ type Board struct {
 // the renderer's both build a field's value from it.
 func CitationValue(r Row, f metadatafields.Field) citationformat.Value {
 	return citationformat.Value{Text: r.ValueText, Mark: r.Mark, UnknownText: f.UnknownText}
+}
+
+// PageFieldID is the id of the metadata field vocabkey.FieldPage names, or nil
+// when the project has none or its key is ambiguous (a researcher's own field
+// of the key never outranks the seed's: ResolveKeysTx prefers the Provenencia
+// origin). It is the first step of reading a Citation's printed page; PageText
+// is the second.
+func PageFieldID(q database.Querier) ([]byte, error) {
+	res, err := metadatafields.ResolveKeysTx(q, []string{vocabkey.FieldPage}, vocabkey.OriginProvenencia)
+	if err != nil {
+		return nil, err
+	}
+	return res.IDs[vocabkey.FieldPage], nil
+}
+
+// PageText is the printed page a Citation's own Page row gives a citation, the
+// text and mark as the long form prints them ("14", "[14]", "unpaginated"), and
+// "" when the row has no text to print. The graph's, the Artifact's and the
+// Source's Page are never read.
+func PageText(row Row, f metadatafields.Field) string {
+	return citationformat.Display(CitationValue(row, f))
+}
+
+// CitationPages reads each Citation's own printed page in one batch: the text
+// PageText gives for the Citation's own Page row, keyed by string(id). A
+// Citation with no own Page row, or whose page prints nothing, is absent; a
+// project with no page field has an empty map. No Citations return an empty map
+// without a query.
+func CitationPages(q database.Querier, citationIDs [][]byte) (map[string]string, error) {
+	out := map[string]string{}
+	if len(citationIDs) == 0 {
+		return out, nil
+	}
+	fieldID, err := PageFieldID(q)
+	if err != nil || fieldID == nil {
+		return out, err
+	}
+	fields, err := metadatafields.MapByIDsTx(q, [][]byte{fieldID})
+	if err != nil {
+		return nil, err
+	}
+	field, ok := fields[string(fieldID)]
+	if !ok {
+		return out, nil
+	}
+	owners := make([]Owner, 0, len(citationIDs))
+	for _, id := range citationIDs {
+		owners = append(owners, Owner{Level: vocabkey.LevelCitation, ID: id})
+	}
+	rows, err := readByOwners(q, owners)
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
+		if text := ownPage(fieldID, r, field); text != "" {
+			out[string(r.Owner.ID)] = text
+		}
+	}
+	return out, nil
+}
+
+// ownPage is the printed page a Citation's own row gives: PageText when the
+// row is of the page field pageID, "" for any other row or a row that prints
+// nothing. It is the one selector CitationPages and ListCitationWorkspaces
+// share.
+func ownPage(pageID []byte, r Row, f metadatafields.Field) string {
+	if pageID == nil || !bytes.Equal(r.FieldID, pageID) {
+		return ""
+	}
+	return PageText(r, f)
+}
+
+// ListCitationWorkspaces is ListWorkspaces over Citations, with each one's own
+// printed page: the text ownPage gives for the Citation's own Page row on its
+// board, "" when it has none. The boards and the page field id are read in one
+// transaction, so a page is always of the board it came with. No Citations
+// return nil without opening a transaction.
+func ListCitationWorkspaces(c *database.Catalog, citationIDs [][]byte) ([]Board, []string, error) {
+	if len(citationIDs) == 0 {
+		return nil, nil, nil
+	}
+	owners := make([]Owner, len(citationIDs))
+	for i, id := range citationIDs {
+		owners[i] = Owner{Level: vocabkey.LevelCitation, ID: id}
+	}
+	db, err := c.DB()
+	if err != nil {
+		return nil, nil, err
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	byOwner, err := listWorkspaces(tx, owners)
+	if err != nil {
+		return nil, nil, err
+	}
+	pageID, err := PageFieldID(tx)
+	if err != nil {
+		return nil, nil, err
+	}
+	boards := make([]Board, len(owners))
+	pages := make([]string, len(owners))
+	for i, o := range owners {
+		boards[i] = byOwner[o.key()]
+		for _, e := range boards[i].Entries {
+			if e.Value != nil {
+				if text := ownPage(pageID, *e.Value, e.Field); text != "" {
+					pages[i] = text
+				}
+			}
+		}
+	}
+	return boards, pages, nil
 }
 
 // CitationValues answers a format's targets from what one render or board

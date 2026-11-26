@@ -12,22 +12,17 @@ enum CitationComposerColumnLayout {
     }
 }
 
-/// The Citation form's fields that Tab moves between.
+/// The Citation form's text fields that Tab moves between. The metadata button
+/// takes the focus as a button does, and is not in the list.
 enum CitationFormFocus: Hashable {
-    case label, printedPage, transcription
+    case label, transcription
 
-    /// Tab order of the form in `layout`: the printed page follows Label, and
-    /// is left out when the Artifact does not offer it.
-    static func order(
-        _ layout: CitationComposerColumnLayout,
-        printedPageOffered: Bool
-    ) -> [CitationFormFocus] {
-        let order: [CitationFormFocus]
+    /// Tab order of the form in `layout`.
+    static func order(_ layout: CitationComposerColumnLayout) -> [CitationFormFocus] {
         switch layout {
-        case .side: order = [.label, .printedPage, .transcription]
-        case .panel: order = [.transcription, .label, .printedPage]
+        case .side: [.label, .transcription]
+        case .panel: [.transcription, .label]
         }
-        return printedPageOffered ? order : order.filter { $0 != .printedPage }
     }
 }
 
@@ -84,10 +79,7 @@ struct CitationComposerEvidenceColumn: View {
                 citationLoadErrorLine
             }
             PVDivider(axis: .horizontal, color: PVColor.borderSubtle)
-            labelAndPrintedPage(
-                label: PVFieldFocus(formFocus, equals: .label, in: order),
-                printedPage: PVFieldFocus(formFocus, equals: .printedPage, in: order)
-            )
+            labelAndMetadata(label: PVFieldFocus(formFocus, equals: .label, in: order))
             transcriptionColumn(
                 rows: 8...40,
                 focus: PVFieldFocus(formFocus, equals: .transcription, in: order)
@@ -114,10 +106,7 @@ struct CitationComposerEvidenceColumn: View {
                     )
                     footer
                 }
-                labelAndPrintedPage(
-                    label: PVFieldFocus(formFocus, equals: .label, in: order),
-                    printedPage: PVFieldFocus(formFocus, equals: .printedPage, in: order)
-                )
+                labelAndMetadata(label: PVFieldFocus(formFocus, equals: .label, in: order))
             }
         }
     }
@@ -270,40 +259,65 @@ struct CitationComposerEvidenceColumn: View {
         return PVThumbnail(content, size: 48)
     }
 
-    /// Label with Printed page: one row when the form's column fits both, else
-    /// Printed page directly under Label. An Artifact with no printed page shows Label alone.
-    @ViewBuilder
-    private func labelAndPrintedPage(label: PVFieldFocus?, printedPage: PVFieldFocus?) -> some View {
-        if order.contains(.printedPage) {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: PVSpacing.space5) {
-                    labelField(focus: label)
-                        .frame(minWidth: 180)
-                    printedPageField(focus: printedPage)
-                        .frame(width: 140)
-                }
-                VStack(alignment: .leading, spacing: PVSpacing.space5) {
-                    labelField(focus: label)
-                    printedPageField(focus: printedPage)
-                }
-            }
-        } else {
+    /// Label, then the Metadata line under it.
+    private func labelAndMetadata(label: PVFieldFocus?) -> some View {
+        VStack(alignment: .leading, spacing: PVSpacing.space5) {
             labelField(focus: label)
+            metadataLine
         }
     }
 
-    private func printedPageField(focus: PVFieldFocus?) -> some View {
-        let help = L10n.string(L10n.CitationComposer.printedPageHelp)
-        return PVField(label: L10n.CitationComposer.printedPageLabel) {
-            PVInput(
-                text: $model.pageLabel,
-                size: .sm,
-                prompt: L10n.CitationComposer.printedPagePrompt,
-                focus: focus
-            )
-            .help(help)
-            .accessibilityHint(Text(verbatim: help))
-            .accessibilityIdentifier("citationComposer.printedPage")
+    /// The Metadata line: Edit metadata… and a count of the Citation's values, so the form keeps its
+    /// height whatever the board holds. A new Citation's button is off until its first save and the
+    /// count says what it inherits. A board that cannot be read is one error and no button.
+    @ViewBuilder
+    private var metadataLine: some View {
+        PVField(label: L10n.CitationComposer.metadataLabel) {
+            if let error = model.metadataLineError {
+                PVErrorText(error, announces: true)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("citationComposer.metadataError")
+            } else {
+                let count = model.metadataCount
+                let isNew = model.activeCitationID == nil
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: PVSpacing.space4) {
+                        metadataButton(isNew: isNew, count: count)
+                        metadataCountText(count, isNew: isNew)
+                    }
+                    VStack(alignment: .leading, spacing: PVSpacing.space3) {
+                        metadataButton(isNew: isNew, count: count)
+                        metadataCountText(count, isNew: isNew)
+                    }
+                }
+            }
+        }
+    }
+
+    private func metadataButton(isNew: Bool, count: String?) -> some View {
+        PVButton(
+            isNew ? L10n.CitationComposer.metadataNew : L10n.CitationComposer.editMetadata,
+            variant: .secondary,
+            size: .sm,
+            icon: .list
+        ) {
+            model.requestEditMetadata()
+        }
+        .disabled(isNew || !model.canEditMetadata)
+        .accessibilityHint(Text(verbatim: count ?? String()))
+        .accessibilityIdentifier("citationComposer.editMetadata")
+    }
+
+    @ViewBuilder
+    private func metadataCountText(_ count: String?, isNew: Bool) -> some View {
+        if let count {
+            Text(verbatim: count)
+                .font(PVFont.body(size: PVTypeScale.caption, italic: isNew))
+                .foregroundStyle(PVColor.textMuted)
+                .fixedSize(horizontal: false, vertical: true)
+                // The button speaks the count as its hint.
+                .accessibilityHidden(true)
+                .accessibilityIdentifier("citationComposer.metadataCount")
         }
     }
 
@@ -499,12 +513,13 @@ struct CitationStepMenu: View {
 struct CitationStepMenuRow: View {
     let listed: CatalogListedCitation
 
-    /// The row's locator words: the printed page, the file page and the region,
-    /// each when present, as "p. 23 · image 37 · region".
-    static func locatorText(_ locator: CitationLocatorDraft) -> String {
+    /// The row's locator words: the Citation's own printed page, the file page and
+    /// the region, each when present, as "p. 23 · image 37 · region". `pageLabel` is
+    /// the listed Citation's own Page value; empty when it has none.
+    static func locatorText(pageLabel: String, locator: CitationLocatorDraft) -> String {
         var parts: [String] = []
-        if !locator.pageLabel.isEmpty {
-            parts.append(CitationLineDisplay.printedPage(locator.pageLabel))
+        if !pageLabel.isEmpty {
+            parts.append(CitationLineDisplay.printedPage(pageLabel))
         }
         if let page = locator.page {
             parts.append(CitationLineDisplay.filePage(page))
@@ -517,7 +532,10 @@ struct CitationStepMenuRow: View {
 
     var body: some View {
         let citation = listed.citation
-        let locator = Self.locatorText(CitationLocatorDraft.decode(citation.locatorJSON))
+        let locator = Self.locatorText(
+            pageLabel: listed.pageLabel,
+            locator: CitationLocatorDraft.decode(citation.locatorJSON)
+        )
         let label = citation.description.trimmingCharacters(in: .whitespacesAndNewlines)
         let transcription = citation.transcription
             .components(separatedBy: .newlines)

@@ -2224,8 +2224,9 @@ struct GoStore: GenealogyStore {
         transcription: String,
         description: String,
         transcriptionUncertain: Bool,
-        transcriptionNote: String
-    ) async throws -> (CatalogCitation, CatalogWriteEffects) {
+        transcriptionNote: String,
+        metadata: CatalogMetadataDraft?
+    ) async throws -> (CatalogCitation, [CatalogMetadataEntry], CatalogWriteEffects) {
         var req = Provenencia_Engine_V1_UpdateCitationRequest()
         req.projectDir = projectDir
         req.userID = userID
@@ -2235,12 +2236,14 @@ struct GoStore: GenealogyStore {
         req.label = description
         req.transcriptionUncertain = transcriptionUncertain
         req.transcriptionNote = transcriptionNote
+        if let metadata { req.metadata = Self.mapMetadataDraft(metadata) }
         let resp: Provenencia_Engine_V1_UpdateCitationResponse = try await provenenciaCall(
             method: CoreMethod.updateCitation,
             request: req
         )
         return (
             Self.mapCitation(resp.citation),
+            resp.metadata.map(Self.mapMetadataEntry),
             Self.mapWriteEffects(resp.effects)
         )
     }
@@ -2359,7 +2362,9 @@ struct GoStore: GenealogyStore {
             CatalogListedCitation(
                 citation: Self.mapCitation(row.citation),
                 observationCount: Int(row.observationCount),
-                subjectNames: row.subjectNames
+                subjectNames: row.subjectNames,
+                metadata: row.metadata.map(Self.mapMetadataEntry),
+                pageLabel: row.pageLabel
             )
         }
     }

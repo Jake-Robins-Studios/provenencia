@@ -5,11 +5,16 @@ import (
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 	"github.com/google/uuid"
 )
 
@@ -359,4 +364,102 @@ func TestAppendOptions(t *testing.T) {
 	if again := AppendOptions(nil, seen, targets, fields); len(again) != 0 {
 		t.Errorf("second call = %+v, want none: every target was seen", again)
 	}
+}
+
+// TestCitationPages reads a Citation's own Page and nothing above it: the text
+// and mark as a citation prints them, never the graph's Page, and a researcher's
+// own field of the key never outranks the seed's.
+func TestCitationPages(t *testing.T) {
+	setPage := func(t *testing.T, c *database.Catalog, userID []byte, o Owner, in Input) {
+		t.Helper()
+		if _, _, err := runSetOwner(c, userID, o, in); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// world is a seeded catalog with one Source, a graph and a Citation.
+	world := func(t *testing.T) (c *database.Catalog, userID []byte, page metadatafields.Field, cit, graph Owner) {
+		t.Helper()
+		c, userID = seededWorld(t)
+		var err error
+		page, err = metadatafields.Lookup(c, vocabkey.FieldPage, vocabkey.OriginProvenencia)
+		if err != nil {
+			t.Fatal(err)
+		}
+		src := newSource(t, c, userID, seededType(t, c, "newspaper_item").ID, "Gazette")
+		cit = newLevelOwner(t, c, userID, src, vocabkey.LevelCitation)
+		graph = newLevelOwner(t, c, userID, src, vocabkey.LevelGraph)
+		return c, userID, page, cit, graph
+	}
+	pages := func(t *testing.T, c *database.Catalog, ids ...[]byte) map[string]string {
+		t.Helper()
+		db, err := c.DB()
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := CitationPages(db, ids)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return got
+	}
+	tests := []struct {
+		name string
+		run  func(t *testing.T, c *database.Catalog, userID []byte, page metadatafields.Field, cit, graph Owner) string
+		want string
+	}{
+		{"own value", func(t *testing.T, c *database.Catalog, u []byte, page metadatafields.Field, cit, _ Owner) string {
+			setPage(t, c, u, cit, Input{FieldID: page.ID, ValueText: "14"})
+			return pages(t, c, cit.ID)[string(cit.ID)]
+		}, "14"},
+		{"unknown prints the field's unknown text", func(t *testing.T, c *database.Catalog, u []byte, page metadatafields.Field, cit, _ Owner) string {
+			setPage(t, c, u, cit, Input{FieldID: page.ID, Mark: valuemark.Mark{Unknown: true}})
+			return pages(t, c, cit.ID)[string(cit.ID)]
+		}, "unpaginated"},
+		{"supplied prints in brackets", func(t *testing.T, c *database.Catalog, u []byte, page metadatafields.Field, cit, _ Owner) string {
+			setPage(t, c, u, cit, Input{FieldID: page.ID, ValueText: "14", Mark: valuemark.Mark{Supplied: true}})
+			return pages(t, c, cit.ID)[string(cit.ID)]
+		}, "[14]"},
+		{"the graph's Page is not read", func(t *testing.T, c *database.Catalog, u []byte, page metadatafields.Field, cit, graph Owner) string {
+			setPage(t, c, u, graph, Input{FieldID: page.ID, ValueText: "2"})
+			return pages(t, c, cit.ID)[string(cit.ID)]
+		}, ""},
+		{"a researcher's field of the key never outranks the seed's", func(t *testing.T, c *database.Catalog, u []byte, page metadatafields.Field, cit, _ Owner) string {
+			var mine metadatafields.Field
+			_, err := writes.RunChanges(c, writes.Op{Action: "create_metadata_field", UserID: u},
+				func(tx *database.Tx) ([]rowchange.Change, error) {
+					var ch []rowchange.Change
+					var err error
+					mine, ch, err = metadatafields.Create(tx, "Page", metadatafields.DataTypeText, "")
+					return ch, err
+				})
+			if err != nil {
+				t.Fatal(err)
+			}
+			setPage(t, c, u, cit, Input{FieldID: mine.ID, ValueText: "99"})
+			setPage(t, c, u, cit, Input{FieldID: page.ID, ValueText: "14"})
+			return pages(t, c, cit.ID)[string(cit.ID)]
+		}, "14"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, userID, page, cit, graph := world(t)
+			if got := tt.run(t, c, userID, page, cit, graph); got != tt.want {
+				t.Errorf("page = %q, want %q", got, tt.want)
+			}
+		})
+	}
+	t.Run("no page field", func(t *testing.T) {
+		c, userID := emptyWorld(t)
+		typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
+			Key: "gazette", Origin: vocabkey.OriginProvenencia, Label: "Gazette", IconKey: "type_certificate",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		src := newSource(t, c, userID, typeID, "Gazette")
+		cit := newLevelOwner(t, c, userID, src, vocabkey.LevelCitation)
+		if got := pages(t, c, cit.ID); len(got) != 0 {
+			t.Errorf("pages = %v, want none", got)
+		}
+	})
 }

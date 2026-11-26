@@ -21,7 +21,6 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | S15-D23 | Source date dialog and header: No date, Supplied, the empty-date flag | — | S15-42 |
 | S15-D24 | Citation composer: Unknown, Supplied and the needed flag on the printed page | Descoped 2026-11-22 with S15-45: the page is a Citation board row (S15-D20, S15-D22) | — |
 | S15-D25 | Metadata page: a field's unknown text | — | S15-46 |
-| [S15-D29](S15-D29-citation-composer-metadata.md) | Citation composer: a Metadata line under Label (Edit metadata…, a count) in place of the Printed page input, opening a 600pt Citation metadata sheet that saves on its own; the Citation menu row reads the own Page; written 2026-11-25 | [agreed 2026-11-26](https://claude.ai/artifact/3GSFQZjqdQjL8v2rpgMiDc): section "S15-D29 · The Citation's metadata", frames 1a – 10; the metadata moved from the form to a sheet | S15-56 |
 | S15-D30 | Source type page: a fourth suggestion list (Citation), Copy type's fourth tick, the format editor's completion with the Citation's fields | Descoped 2026-11-22: suggestions lose their level (S15-63) | — |
 | S15-D34 | Artifact sheet, graph form, composer: the citation preview | Descoped 2026-11-22 with S15-65 | — |
 | S15-D35 | Metadata board row: the list-below hint and Move to Source | — | S15-66 |
@@ -35,6 +34,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 
 | Brief | View | Board | Built by |
 | --- | --- | --- | --- |
+| [S15-D29](archive/S15-D29-citation-composer-metadata.md) | Citation composer: a Metadata line under Label (Edit metadata…, a count) in place of the Printed page input, opening a 600pt Citation metadata sheet that saves on its own; the Citation menu row reads the own Page; written 2026-11-25 | [agreed 2026-11-26](https://claude.ai/artifact/3GSFQZjqdQjL8v2rpgMiDc): section "S15-D29 · The Citation's metadata", frames 1a – 10; the metadata moved from the form to a sheet | S15-56 (#982) |
 | [S15-D33](archive/S15-D33-inherited-values.md) | Metadata board row: an inherited value, where it comes from, override and fall back (Artifact sheet, graph form); written 2026-11-23 | [drawn 2026-11-23](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK): pages *Artifacts* (`d33-*` in Artifact sheet) and *Evidence graphs* (`d33-gf`) | S15-64 (#959) |
 | [S15-D32](archive/S15-D32-one-suggestion-list.md) | Source type page and Copy type sheet: one Suggested fields list in place of three; one suggestions tick | [agreed 2026-11-23](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG): the Suggested fields and Copy type frames; count on the section header, no list header | S15-63 (#955) |
 | [S15-D10](archive/S15-D10-move-confirm.md) | Move to another Source: a Move button on Artifact rows and graph cards (the row's right-click menu goes), the confirm (the bundle, the target, the credibility and left-behind notes), landing on the target page | [agreed 2026-11-22](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK): page *Move*; no right-click menus, Move is a folder-input IconButton; the why line only when more than one Artifact moves | S15-25 (#940) |

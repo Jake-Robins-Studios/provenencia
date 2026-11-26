@@ -3932,22 +3932,93 @@ enum L10n {
             comment: "Short name for this citation"
         )
 
-        static let printedPageLabel = LocalizedStringResource(
-            "citationComposer.printedPageLabel",
-            defaultValue: "Printed page",
-            comment: "Label of the citation's printed-page field"
+        static let metadataLabel = LocalizedStringResource(
+            "citationComposer.metadataLabel",
+            defaultValue: "Metadata",
+            comment: "Label of the citation form's metadata line, under Label"
         )
 
-        static let printedPagePrompt = LocalizedStringResource(
-            "citationComposer.printedPagePrompt",
-            defaultValue: "14 or iv",
-            comment: "Placeholder in the printed-page field"
+        static let editMetadata = LocalizedStringResource(
+            "citationComposer.editMetadata",
+            defaultValue: "Edit metadata…",
+            comment: "Button on the citation form's metadata line that opens the Citation's metadata sheet"
         )
 
-        static let printedPageHelp = LocalizedStringResource(
-            "citationComposer.printedPageHelp",
-            defaultValue: "Used in the reference citation",
-            comment: "Help for the printed-page field"
+        static let metadataNew = LocalizedStringResource(
+            "citationComposer.metadataNew",
+            defaultValue: "Metadata",
+            comment: "Off button on the metadata line of a Citation not yet saved"
+        )
+
+        /// The count of a Citation's own and inherited values, both not zero.
+        static func metadataCount(own: Int, inherited: Int) -> String {
+            L10n.format(LocalizedStringResource(
+                "citationComposer.metadataCount",
+                defaultValue: "%1$lld own · %2$lld inherited",
+                comment: "Count beside the metadata button when a Citation holds own and inherited values; arguments are the own count and the inherited count"
+            ), own, inherited)
+        }
+
+        static func metadataCountOwn(_ own: Int) -> String {
+            L10n.format(LocalizedStringResource(
+                "citationComposer.metadataCountOwn",
+                defaultValue: "%lld own",
+                comment: "Count beside the metadata button when a Citation holds own values and inherits none; argument is the own count"
+            ), own)
+        }
+
+        static func metadataCountInherited(_ inherited: Int) -> String {
+            L10n.format(LocalizedStringResource(
+                "citationComposer.metadataCountInherited",
+                defaultValue: "%lld inherited",
+                comment: "Count beside the metadata button when a Citation holds no own values and inherits some; argument is the inherited count"
+            ), inherited)
+        }
+
+        static let metadataNone = LocalizedStringResource(
+            "citationComposer.metadataNone",
+            defaultValue: "None yet",
+            comment: "Count beside the metadata button when a Citation holds no own values and inherits none"
+        )
+
+        static func metadataInheritsNew(count: Int) -> String {
+            L10n.format(LocalizedStringResource(
+                "citationComposer.metadataInheritsNew",
+                defaultValue: "Inherits %lld values. Add its own after the first save",
+                comment: "Caption on the metadata line of a Citation not yet saved; argument is how many values it would inherit"
+            ), count)
+        }
+
+        static let metadataSheetTitle = LocalizedStringResource(
+            "citationComposer.metadataSheetTitle",
+            defaultValue: "Citation metadata",
+            comment: "Title of the sheet that edits a Citation's metadata"
+        )
+
+        static func metadataSheetSubtitle(ref: String, label: String) -> String {
+            L10n.format(LocalizedStringResource(
+                "citationComposer.metadataSheetSubtitle",
+                defaultValue: "%1$@ · %2$@. Saves on its own; the rest of the citation is not resaved",
+                comment: "Subtitle of the Citation metadata sheet; arguments are the Citation's ref and its label (or the no-label word)"
+            ), ref, label)
+        }
+
+        static let metadataNoLabel = LocalizedStringResource(
+            "citationComposer.metadataNoLabel",
+            defaultValue: "no label",
+            comment: "Stands for the label of a Citation that has none, in the Citation metadata sheet's subtitle"
+        )
+
+        static let saveMetadata = LocalizedStringResource(
+            "citationComposer.saveMetadata",
+            defaultValue: "Save metadata",
+            comment: "Confirm button of the Citation metadata sheet"
+        )
+
+        static let metadataBoardUnavailable = LocalizedStringResource(
+            "citationComposer.metadataBoardUnavailable",
+            defaultValue: "The Citation's metadata can't be shown. Close the composer and open it again from the Source.",
+            comment: "Error shown in place of the citation form's metadata line when the Citation's board cannot be read"
         )
 
         static let observationsSection = LocalizedStringResource(
@@ -5828,7 +5899,7 @@ enum L10n {
             L10n.format(LocalizedStringResource(
                 "sources.page.metadataInheritedFrom",
                 defaultValue: "From %@",
-                comment: "Caption under a metadata value the owner inherits; argument is the level that holds it (Source)"
+                comment: "Caption under a metadata value the owner inherits; argument is the level that holds it (Source, Artifact or Evidence graph)"
             ), level)
         }
 
@@ -5837,7 +5908,7 @@ enum L10n {
             L10n.format(LocalizedStringResource(
                 "sources.page.metadataInheritedAccessibility",
                 defaultValue: "%1$@, Inherited from %2$@: %3$@",
-                comment: "VoiceOver label of a metadata row's value that its owner inherits; arguments are the field label, the level that holds the value and the value"
+                comment: "VoiceOver label of a metadata row's value that its owner inherits; arguments are the field label, the level that holds the value (Source, Artifact or Evidence graph) and the value"
             ), field, level, value)
         }
 
@@ -5852,7 +5923,7 @@ enum L10n {
             L10n.format(LocalizedStringResource(
                 "sources.page.metadataOverrides",
                 defaultValue: "Overrides %1$@: %2$@",
-                comment: "Caption under a metadata value, saved or being typed, that overrides one its owner inherits; arguments are the level that holds the inherited value and the value"
+                comment: "Caption under a metadata value, saved or being typed, that overrides one its owner inherits; arguments are the level that holds the inherited value (Source, Artifact or Evidence graph) and the value"
             ), level, value)
         }
 
@@ -8665,7 +8736,7 @@ enum L10n {
 
         static let suggestedMeaning = LocalizedStringResource(
             "sourceTypes.suggested.meaning",
-            defaultValue: "Offered on every Source, Artifact and Evidence graph of this type",
+            defaultValue: "Offered on every Source, Artifact, Evidence graph and Citation of this type",
             comment: "Italic line under a Source type page's suggested fields hint: where the type's suggestions show"
         )
 

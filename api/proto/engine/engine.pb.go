@@ -7839,7 +7839,7 @@ type WriteEffects struct {
 	// Evidence graphs whose loaded rows this write changed (graphcache drops each).
 	EvidenceGraphs []string `protobuf:"bytes,14,rep,name=evidence_graphs,json=evidenceGraphs,proto3" json:"evidence_graphs,omitempty"`
 	// Keyed partial reads this write moved, each with the ids of the read's key
-	// table (Evidence graphs for "citations" and "evidence_graph_progress",
+	// table (Evidence graphs for "citations", "citation_boards" and "evidence_graph_progress",
 	// Sources for "evidence_graphs", Properties for "property_terms"): effects.Read values. Swift refreshes only
 	// those keys' reads.
 	Reads []*WriteEffectsRead `protobuf:"bytes,15,rep,name=reads,proto3" json:"reads,omitempty"`
@@ -20387,7 +20387,13 @@ type ListedCitation struct {
 	Citation         *Citation              `protobuf:"bytes,1,opt,name=citation,proto3" json:"citation,omitempty"`
 	ObservationCount int32                  `protobuf:"varint,2,opt,name=observation_count,json=observationCount,proto3" json:"observation_count,omitempty"`
 	// Person labels this Citation names, earliest Observation first, capped.
-	SubjectNames  []string `protobuf:"bytes,3,rep,name=subject_names,json=subjectNames,proto3" json:"subject_names,omitempty"`
+	SubjectNames []string `protobuf:"bytes,3,rep,name=subject_names,json=subjectNames,proto3" json:"subject_names,omitempty"`
+	// The Citation's metadata board: its own values and what it inherits.
+	Metadata []*MetadataWorkspaceEntry `protobuf:"bytes,4,rep,name=metadata,proto3" json:"metadata,omitempty"`
+	// The Citation's own Page value as a citation prints it ("14", "[14]",
+	// "unpaginated"); empty when it has none. Named as
+	// ReconcilerOutcomeDetail.page_label.
+	PageLabel     string `protobuf:"bytes,5,opt,name=page_label,json=pageLabel,proto3" json:"page_label,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -20441,6 +20447,20 @@ func (x *ListedCitation) GetSubjectNames() []string {
 		return x.SubjectNames
 	}
 	return nil
+}
+
+func (x *ListedCitation) GetMetadata() []*MetadataWorkspaceEntry {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+func (x *ListedCitation) GetPageLabel() string {
+	if x != nil {
+		return x.PageLabel
+	}
+	return ""
 }
 
 type ListCitationsByArtifactRequest struct {
@@ -24584,11 +24604,14 @@ const file_engine_proto_rawDesc = "" +
 	"artifactId\x12\x14\n" +
 	"\x05count\x18\x02 \x01(\x05R\x05count\"m\n" +
 	"%CitationCountsByEvidenceGraphResponse\x12D\n" +
-	"\x06counts\x18\x01 \x03(\v2,.provenencia.engine.v1.ArtifactCitationCountR\x06counts\"\x9f\x01\n" +
+	"\x06counts\x18\x01 \x03(\v2,.provenencia.engine.v1.ArtifactCitationCountR\x06counts\"\x89\x02\n" +
 	"\x0eListedCitation\x12;\n" +
 	"\bcitation\x18\x01 \x01(\v2\x1f.provenencia.engine.v1.CitationR\bcitation\x12+\n" +
 	"\x11observation_count\x18\x02 \x01(\x05R\x10observationCount\x12#\n" +
-	"\rsubject_names\x18\x03 \x03(\tR\fsubjectNames\"}\n" +
+	"\rsubject_names\x18\x03 \x03(\tR\fsubjectNames\x12I\n" +
+	"\bmetadata\x18\x04 \x03(\v2-.provenencia.engine.v1.MetadataWorkspaceEntryR\bmetadata\x12\x1d\n" +
+	"\n" +
+	"page_label\x18\x05 \x01(\tR\tpageLabel\"}\n" +
 	"\x1eListCitationsByArtifactRequest\x12\x1f\n" +
 	"\vproject_dir\x18\x01 \x01(\tR\n" +
 	"projectDir\x12\x1f\n" +
@@ -25609,56 +25632,57 @@ var file_engine_proto_depIdxs = []int32{
 	285, // 290: provenencia.engine.v1.ListObservationsByEvidenceGraphResponse.observations:type_name -> provenencia.engine.v1.Observation
 	294, // 291: provenencia.engine.v1.CitationCountsByEvidenceGraphResponse.counts:type_name -> provenencia.engine.v1.ArtifactCitationCount
 	284, // 292: provenencia.engine.v1.ListedCitation.citation:type_name -> provenencia.engine.v1.Citation
-	296, // 293: provenencia.engine.v1.ListCitationsByArtifactResponse.citations:type_name -> provenencia.engine.v1.ListedCitation
-	284, // 294: provenencia.engine.v1.GetCitationResponse.citation:type_name -> provenencia.engine.v1.Citation
-	285, // 295: provenencia.engine.v1.GetCitationResponse.observations:type_name -> provenencia.engine.v1.Observation
-	286, // 296: provenencia.engine.v1.CreateCitedBridgeRequest.observations:type_name -> provenencia.engine.v1.ObservationDraft
-	163, // 297: provenencia.engine.v1.CreateCitedBridgeResponse.subject:type_name -> provenencia.engine.v1.Subject
-	284, // 298: provenencia.engine.v1.CreateCitedBridgeResponse.citation:type_name -> provenencia.engine.v1.Citation
-	285, // 299: provenencia.engine.v1.CreateCitedBridgeResponse.observations:type_name -> provenencia.engine.v1.Observation
-	115, // 300: provenencia.engine.v1.CreateCitedBridgeResponse.effects:type_name -> provenencia.engine.v1.WriteEffects
-	98,  // 301: provenencia.engine.v1.UpdateCitationRequest.metadata:type_name -> provenencia.engine.v1.MetadataDraft
-	284, // 302: provenencia.engine.v1.UpdateCitationResponse.citation:type_name -> provenencia.engine.v1.Citation
-	115, // 303: provenencia.engine.v1.UpdateCitationResponse.effects:type_name -> provenencia.engine.v1.WriteEffects
-	42,  // 304: provenencia.engine.v1.UpdateCitationResponse.metadata:type_name -> provenencia.engine.v1.MetadataWorkspaceEntry
-	285, // 305: provenencia.engine.v1.UpdateObservationRequest.observation:type_name -> provenencia.engine.v1.Observation
-	282, // 306: provenencia.engine.v1.UpdateObservationRequest.depiction_input:type_name -> provenencia.engine.v1.DepictionValueInput
-	285, // 307: provenencia.engine.v1.UpdateObservationResponse.observation:type_name -> provenencia.engine.v1.Observation
-	115, // 308: provenencia.engine.v1.UpdateObservationResponse.effects:type_name -> provenencia.engine.v1.WriteEffects
-	115, // 309: provenencia.engine.v1.DeleteObservationResponse.effects:type_name -> provenencia.engine.v1.WriteEffects
-	254, // 310: provenencia.engine.v1.SubjectTypePropertiesGroup.properties:type_name -> provenencia.engine.v1.SubjectTypeProperty
-	255, // 311: provenencia.engine.v1.SubjectTypePropertiesGroup.presentation:type_name -> provenencia.engine.v1.SubjectTypePresentation
-	252, // 312: provenencia.engine.v1.GetPropertiesWorkspaceResponse.properties:type_name -> provenencia.engine.v1.Property
-	162, // 313: provenencia.engine.v1.GetPropertiesWorkspaceResponse.types:type_name -> provenencia.engine.v1.SubjectType
-	310, // 314: provenencia.engine.v1.GetPropertiesWorkspaceResponse.groups:type_name -> provenencia.engine.v1.SubjectTypePropertiesGroup
-	311, // 315: provenencia.engine.v1.GetPropertiesWorkspaceResponse.value_types:type_name -> provenencia.engine.v1.PropertyValueTypeRule
-	313, // 316: provenencia.engine.v1.ListEvidenceGraphProgressResponse.rows:type_name -> provenencia.engine.v1.EvidenceGraphProgress
-	313, // 317: provenencia.engine.v1.GetEvidenceGraphProgressResponse.progress:type_name -> provenencia.engine.v1.EvidenceGraphProgress
-	9,   // 318: provenencia.engine.v1.GetDeleteImpactResponse.gate:type_name -> provenencia.engine.v1.DeleteImpactGate
-	320, // 319: provenencia.engine.v1.GetDeleteImpactResponse.groups:type_name -> provenencia.engine.v1.DeleteImpactGroup
-	320, // 320: provenencia.engine.v1.GetDeleteImpactResponse.cascades:type_name -> provenencia.engine.v1.DeleteImpactGroup
-	321, // 321: provenencia.engine.v1.DeleteImpactGroup.listed:type_name -> provenencia.engine.v1.DeleteImpactListed
-	158, // 322: provenencia.engine.v1.DeleteImpactListed.location:type_name -> provenencia.engine.v1.WorkspaceLocation
-	322, // 323: provenencia.engine.v1.CitationRender.runs:type_name -> provenencia.engine.v1.CitationRun
-	323, // 324: provenencia.engine.v1.RenderedCitation.full:type_name -> provenencia.engine.v1.CitationRender
-	323, // 325: provenencia.engine.v1.RenderedCitation.short:type_name -> provenencia.engine.v1.CitationRender
-	325, // 326: provenencia.engine.v1.RenderCitationsResponse.citations:type_name -> provenencia.engine.v1.RenderedCitation
-	116, // 327: provenencia.engine.v1.RenderCitationsResponse.inputs:type_name -> provenencia.engine.v1.PageInputs
-	140, // 328: provenencia.engine.v1.RenderCitationPreviewRequest.field_choices:type_name -> provenencia.engine.v1.CitationFieldChoice
-	45,  // 329: provenencia.engine.v1.CitationMissing.options:type_name -> provenencia.engine.v1.CitationRequirementOption
-	323, // 330: provenencia.engine.v1.RenderCitationPreviewResponse.render:type_name -> provenencia.engine.v1.CitationRender
-	328, // 331: provenencia.engine.v1.RenderCitationPreviewResponse.missing:type_name -> provenencia.engine.v1.CitationMissing
-	141, // 332: provenencia.engine.v1.RenderCitationPreviewResponse.diagnostics:type_name -> provenencia.engine.v1.CitationFormatDiagnostic
-	41,  // 333: provenencia.engine.v1.CitationPlaceholder.field:type_name -> provenencia.engine.v1.MetadataField
-	331, // 334: provenencia.engine.v1.ListCitationPlaceholdersResponse.placeholders:type_name -> provenencia.engine.v1.CitationPlaceholder
-	334, // 335: provenencia.engine.v1.GetNameFormatResponse.natural:type_name -> provenencia.engine.v1.NameFormatPart
-	334, // 336: provenencia.engine.v1.GetNameFormatResponse.sorted:type_name -> provenencia.engine.v1.NameFormatPart
-	10,  // 337: provenencia.engine.v1.Error.kind:type_name -> provenencia.engine.v1.ErrorKind
-	338, // [338:338] is the sub-list for method output_type
-	338, // [338:338] is the sub-list for method input_type
-	338, // [338:338] is the sub-list for extension type_name
-	338, // [338:338] is the sub-list for extension extendee
-	0,   // [0:338] is the sub-list for field type_name
+	42,  // 293: provenencia.engine.v1.ListedCitation.metadata:type_name -> provenencia.engine.v1.MetadataWorkspaceEntry
+	296, // 294: provenencia.engine.v1.ListCitationsByArtifactResponse.citations:type_name -> provenencia.engine.v1.ListedCitation
+	284, // 295: provenencia.engine.v1.GetCitationResponse.citation:type_name -> provenencia.engine.v1.Citation
+	285, // 296: provenencia.engine.v1.GetCitationResponse.observations:type_name -> provenencia.engine.v1.Observation
+	286, // 297: provenencia.engine.v1.CreateCitedBridgeRequest.observations:type_name -> provenencia.engine.v1.ObservationDraft
+	163, // 298: provenencia.engine.v1.CreateCitedBridgeResponse.subject:type_name -> provenencia.engine.v1.Subject
+	284, // 299: provenencia.engine.v1.CreateCitedBridgeResponse.citation:type_name -> provenencia.engine.v1.Citation
+	285, // 300: provenencia.engine.v1.CreateCitedBridgeResponse.observations:type_name -> provenencia.engine.v1.Observation
+	115, // 301: provenencia.engine.v1.CreateCitedBridgeResponse.effects:type_name -> provenencia.engine.v1.WriteEffects
+	98,  // 302: provenencia.engine.v1.UpdateCitationRequest.metadata:type_name -> provenencia.engine.v1.MetadataDraft
+	284, // 303: provenencia.engine.v1.UpdateCitationResponse.citation:type_name -> provenencia.engine.v1.Citation
+	115, // 304: provenencia.engine.v1.UpdateCitationResponse.effects:type_name -> provenencia.engine.v1.WriteEffects
+	42,  // 305: provenencia.engine.v1.UpdateCitationResponse.metadata:type_name -> provenencia.engine.v1.MetadataWorkspaceEntry
+	285, // 306: provenencia.engine.v1.UpdateObservationRequest.observation:type_name -> provenencia.engine.v1.Observation
+	282, // 307: provenencia.engine.v1.UpdateObservationRequest.depiction_input:type_name -> provenencia.engine.v1.DepictionValueInput
+	285, // 308: provenencia.engine.v1.UpdateObservationResponse.observation:type_name -> provenencia.engine.v1.Observation
+	115, // 309: provenencia.engine.v1.UpdateObservationResponse.effects:type_name -> provenencia.engine.v1.WriteEffects
+	115, // 310: provenencia.engine.v1.DeleteObservationResponse.effects:type_name -> provenencia.engine.v1.WriteEffects
+	254, // 311: provenencia.engine.v1.SubjectTypePropertiesGroup.properties:type_name -> provenencia.engine.v1.SubjectTypeProperty
+	255, // 312: provenencia.engine.v1.SubjectTypePropertiesGroup.presentation:type_name -> provenencia.engine.v1.SubjectTypePresentation
+	252, // 313: provenencia.engine.v1.GetPropertiesWorkspaceResponse.properties:type_name -> provenencia.engine.v1.Property
+	162, // 314: provenencia.engine.v1.GetPropertiesWorkspaceResponse.types:type_name -> provenencia.engine.v1.SubjectType
+	310, // 315: provenencia.engine.v1.GetPropertiesWorkspaceResponse.groups:type_name -> provenencia.engine.v1.SubjectTypePropertiesGroup
+	311, // 316: provenencia.engine.v1.GetPropertiesWorkspaceResponse.value_types:type_name -> provenencia.engine.v1.PropertyValueTypeRule
+	313, // 317: provenencia.engine.v1.ListEvidenceGraphProgressResponse.rows:type_name -> provenencia.engine.v1.EvidenceGraphProgress
+	313, // 318: provenencia.engine.v1.GetEvidenceGraphProgressResponse.progress:type_name -> provenencia.engine.v1.EvidenceGraphProgress
+	9,   // 319: provenencia.engine.v1.GetDeleteImpactResponse.gate:type_name -> provenencia.engine.v1.DeleteImpactGate
+	320, // 320: provenencia.engine.v1.GetDeleteImpactResponse.groups:type_name -> provenencia.engine.v1.DeleteImpactGroup
+	320, // 321: provenencia.engine.v1.GetDeleteImpactResponse.cascades:type_name -> provenencia.engine.v1.DeleteImpactGroup
+	321, // 322: provenencia.engine.v1.DeleteImpactGroup.listed:type_name -> provenencia.engine.v1.DeleteImpactListed
+	158, // 323: provenencia.engine.v1.DeleteImpactListed.location:type_name -> provenencia.engine.v1.WorkspaceLocation
+	322, // 324: provenencia.engine.v1.CitationRender.runs:type_name -> provenencia.engine.v1.CitationRun
+	323, // 325: provenencia.engine.v1.RenderedCitation.full:type_name -> provenencia.engine.v1.CitationRender
+	323, // 326: provenencia.engine.v1.RenderedCitation.short:type_name -> provenencia.engine.v1.CitationRender
+	325, // 327: provenencia.engine.v1.RenderCitationsResponse.citations:type_name -> provenencia.engine.v1.RenderedCitation
+	116, // 328: provenencia.engine.v1.RenderCitationsResponse.inputs:type_name -> provenencia.engine.v1.PageInputs
+	140, // 329: provenencia.engine.v1.RenderCitationPreviewRequest.field_choices:type_name -> provenencia.engine.v1.CitationFieldChoice
+	45,  // 330: provenencia.engine.v1.CitationMissing.options:type_name -> provenencia.engine.v1.CitationRequirementOption
+	323, // 331: provenencia.engine.v1.RenderCitationPreviewResponse.render:type_name -> provenencia.engine.v1.CitationRender
+	328, // 332: provenencia.engine.v1.RenderCitationPreviewResponse.missing:type_name -> provenencia.engine.v1.CitationMissing
+	141, // 333: provenencia.engine.v1.RenderCitationPreviewResponse.diagnostics:type_name -> provenencia.engine.v1.CitationFormatDiagnostic
+	41,  // 334: provenencia.engine.v1.CitationPlaceholder.field:type_name -> provenencia.engine.v1.MetadataField
+	331, // 335: provenencia.engine.v1.ListCitationPlaceholdersResponse.placeholders:type_name -> provenencia.engine.v1.CitationPlaceholder
+	334, // 336: provenencia.engine.v1.GetNameFormatResponse.natural:type_name -> provenencia.engine.v1.NameFormatPart
+	334, // 337: provenencia.engine.v1.GetNameFormatResponse.sorted:type_name -> provenencia.engine.v1.NameFormatPart
+	10,  // 338: provenencia.engine.v1.Error.kind:type_name -> provenencia.engine.v1.ErrorKind
+	339, // [339:339] is the sub-list for method output_type
+	339, // [339:339] is the sub-list for method input_type
+	339, // [339:339] is the sub-list for extension type_name
+	339, // [339:339] is the sub-list for extension extendee
+	0,   // [0:339] is the sub-list for field type_name
 }
 
 func init() { file_engine_proto_init() }

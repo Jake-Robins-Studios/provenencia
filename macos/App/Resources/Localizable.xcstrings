@@ -8795,7 +8795,7 @@
       }
     },
     "sources.page.metadataInheritedFrom": {
-      "comment": "Caption under a metadata value the owner inherits; argument is the level that holds it (Source)",
+      "comment": "Caption under a metadata value the owner inherits; argument is the level that holds it (Source, Artifact or Evidence graph)",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -8807,7 +8807,7 @@
       }
     },
     "sources.page.metadataInheritedAccessibility": {
-      "comment": "VoiceOver label of a metadata row's value that its owner inherits; arguments are the field label, the level that holds the value and the value",
+      "comment": "VoiceOver label of a metadata row's value that its owner inherits; arguments are the field label, the level that holds the value (Source, Artifact or Evidence graph) and the value",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -8831,7 +8831,7 @@
       }
     },
     "sources.page.metadataOverrides": {
-      "comment": "Caption under a metadata value, saved or being typed, that overrides one its owner inherits; arguments are the level that holds the inherited value and the value",
+      "comment": "Caption under a metadata value, saved or being typed, that overrides one its owner inherits; arguments are the level that holds the inherited value (Source, Artifact or Evidence graph) and the value",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -22241,38 +22241,236 @@
         }
       }
     },
-    "citationComposer.printedPageHelp": {
-      "comment": "Help for the printed-page field",
+    "citationComposer.metadataLabel": {
+      "comment": "Label of the citation form's metadata line, under Label",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Used in the reference citation"
+            "value": "Metadata"
           }
         }
       }
     },
-    "citationComposer.printedPageLabel": {
-      "comment": "Label of the citation's printed-page field",
+    "citationComposer.editMetadata": {
+      "comment": "Button on the citation form's metadata line that opens the Citation's metadata sheet",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Printed page"
+            "value": "Edit metadata…"
           }
         }
       }
     },
-    "citationComposer.printedPagePrompt": {
-      "comment": "Placeholder in the printed-page field",
+    "citationComposer.metadataNew": {
+      "comment": "Off button on the metadata line of a Citation not yet saved",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "14 or iv"
+            "value": "Metadata"
+          }
+        }
+      }
+    },
+    "citationComposer.metadataCount": {
+      "comment": "Count beside the metadata button when a Citation holds own and inherited values; arguments are the own count and the inherited count",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%#@own@ · %#@inherited@"
+          },
+          "substitutions": {
+            "own": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg own"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg own"
+                    }
+                  }
+                }
+              }
+            },
+            "inherited": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg inherited"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg inherited"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "citationComposer.metadataCountOwn": {
+      "comment": "Count beside the metadata button when a Citation holds own values and inherits none; argument is the own count",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld own"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld own"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "citationComposer.metadataCountInherited": {
+      "comment": "Count beside the metadata button when a Citation holds no own values and inherits some; argument is the inherited count",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld inherited"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld inherited"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "citationComposer.metadataNone": {
+      "comment": "Count beside the metadata button when a Citation holds no own values and inherits none",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "None yet"
+          }
+        }
+      }
+    },
+    "citationComposer.metadataInheritsNew": {
+      "comment": "Caption on the metadata line of a Citation not yet saved; argument is how many values it would inherit",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Inherits %lld value. Add its own after the first save"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Inherits %lld values. Add its own after the first save"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "citationComposer.metadataSheetTitle": {
+      "comment": "Title of the sheet that edits a Citation's metadata",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Citation metadata"
+          }
+        }
+      }
+    },
+    "citationComposer.metadataSheetSubtitle": {
+      "comment": "Subtitle of the Citation metadata sheet; arguments are the Citation's ref and its label (or the no-label word)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@. Saves on its own; the rest of the citation is not resaved"
+          }
+        }
+      }
+    },
+    "citationComposer.metadataNoLabel": {
+      "comment": "Stands for the label of a Citation that has none, in the Citation metadata sheet's subtitle",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no label"
+          }
+        }
+      }
+    },
+    "citationComposer.saveMetadata": {
+      "comment": "Confirm button of the Citation metadata sheet",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save metadata"
+          }
+        }
+      }
+    },
+    "citationComposer.metadataBoardUnavailable": {
+      "comment": "Error shown in place of the citation form's metadata line when the Citation's board cannot be read",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Citation's metadata can't be shown. Close the composer and open it again from the Source."
           }
         }
       }
@@ -25506,7 +25704,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Offered on every Source, Artifact and Evidence graph of this type"
+            "value": "Offered on every Source, Artifact, Evidence graph and Citation of this type"
           }
         }
       }

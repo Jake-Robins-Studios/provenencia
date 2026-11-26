@@ -74,13 +74,15 @@ enum CatalogList: String, Sendable, CaseIterable {
 }
 
 /// A keyed partial read a write moved, per id of the read's key table
-/// (Evidence graphs for `citations` and `evidence_graph_progress`, Sources for
+/// (Evidence graphs for `citations`, `citation_boards` and `evidence_graph_progress`, Sources for
 /// `evidence_graphs`, `inherited_values`, `source_holdings` and `source_records`). The raw values are
 /// Go's `effects.Read` wire keys (`WriteEffects.reads`); a key this build does
 /// not know is dropped when the effects are decoded.
 enum CatalogRead: String, Sendable, CaseIterable {
     /// The citation counts and the citations by Artifact of a graph.
     case citations = "citations"
+    /// The Citation boards of a graph's Citations: their own and inherited metadata values.
+    case citationBoards = "citation_boards"
     /// The Subject, filed and Observation counts of a graph.
     case evidenceGraphProgress = "evidence_graph_progress"
     /// The graphs of a Source with their linked Artifacts (the graph list).
@@ -210,6 +212,14 @@ enum CatalogMutationKind: Hashable, Sendable {
     case wroteTypeSuggestions
     case changedCitationFormats
     case mutatedSourceWorkspace
+
+    /// The edits that change what a board shows beside its values: a type's
+    /// suggestions, a field's label, a format's annotations. Every cache that
+    /// holds a board follows this one set.
+    static let boardVocabulary: Set<CatalogMutationKind> = [
+        .changedSourceType, .updatedMetadataField, .deletedMetadataField,
+        .wroteTypeSuggestions, .changedCitationFormats,
+    ]
 }
 
 extension CatalogMutation {

@@ -22,6 +22,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs/evidencegraphstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencelayer/evidencelayertest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/observations"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/observations/observationstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/promote"
@@ -32,7 +33,9 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibility"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/sourcecredibilitygradestest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcevocab/sourcevocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
@@ -214,9 +217,10 @@ func TestForEntity(t *testing.T) {
 }
 
 // The citation line's parts come with each outcome: the Artifact and Citation
-// labels and the Citation locator's page.
+// labels, the Citation locator's file page and the Citation's own Page value.
 func TestForEntityCitationParts(t *testing.T) {
 	f := newFixture(t)
+	must(t, sourcevocabtest.Install(f.C))
 	src := f.source("Register of Baptisms")
 	art, err := artifactstest.Create(f.C, userID, artifacts.CreateInput{SourceID: src.ID, Label: "Vol. 3"})
 	must(t, err)
@@ -224,7 +228,7 @@ func TestForEntityCitationParts(t *testing.T) {
 	res, err := writes.Call(f.C, writes.Op{Action: "create_citation_with_observations", UserID: userID}, func(tx *database.Tx) (citations.CreateResult, []rowchange.Change, error) {
 		return citations.CreateWithObservations(tx, userID, citations.CreateInput{
 			GraphID: a.GraphID, ArtifactID: art.ID, Label: "Baptism of Ada",
-			LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":37}]}`,
+			LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_label":"9"}]}`,
 		}, []observations.Input{f.nameIn(a, "given=Ada|surname=Lovelace")})
 	})
 	must(t, err)
@@ -232,6 +236,36 @@ func TestForEntityCitationParts(t *testing.T) {
 	o := outcomeOf(field(f.detail(h), "name"), res.Observations[0].ID)
 	if o.ArtifactLabel != "Vol. 3" || o.CitationLabel != "Baptism of Ada" || o.ArtifactPage != 37 || o.PageLabel != "" {
 		t.Fatalf("citation parts %+v", o)
+	}
+
+	page, err := metadatafields.Lookup(f.C, vocabkey.FieldPage, vocabkey.OriginProvenencia)
+	must(t, err)
+	owner := sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: res.Citation.ID}
+	f.Run("update_metadata", func(tx *database.Tx) ([]rowchange.Change, error) {
+		_, ch, err := sourcemetadata.Set(tx, userID, owner, sourcemetadata.Input{FieldID: page.ID, ValueText: "23"})
+		return ch, err
+	})
+	o = outcomeOf(field(f.detail(h), "name"), res.Observations[0].ID)
+	if o.PageLabel != "23" {
+		t.Fatalf("own Page: page label %q, want 23", o.PageLabel)
+	}
+
+	// With the page field gone no page is read. The seeded formats read the
+	// field, so they are emptied first; the field's value is released with it.
+	f.Run("delete_metadata_field", func(tx *database.Tx) ([]rowchange.Change, error) {
+		if _, err := tx.Exec(`UPDATE source_types SET citation_full = NULL, citation_short = NULL, citation_list = NULL`); err != nil {
+			return nil, err
+		}
+		cleared, err := sourcemetadata.Clear(tx, userID, owner, page.ID)
+		if err != nil {
+			return nil, err
+		}
+		deleted, err := metadatafields.Delete(tx, userID, page.ID)
+		return append(cleared, deleted...), err
+	})
+	o = outcomeOf(field(f.detail(h), "name"), res.Observations[0].ID)
+	if o.PageLabel != "" {
+		t.Fatalf("after the page field is deleted: page label %q, want none", o.PageLabel)
 	}
 }
 

@@ -180,6 +180,7 @@ struct PlaceRegistryTests {
                     .sourceTypesList(project: project),
                     .citationCounts(project: project, graphId: "g-1"),
                     .evidenceGraphsList(project: project),
+                    .metadataFieldsList(project: project),
                 ]
             ),
             (

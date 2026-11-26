@@ -244,16 +244,17 @@ func GetByID(c *database.Catalog, id []byte) (Field, error) {
 	return getByID(db, id)
 }
 
-// ListByIDsTx returns the fields with the given ids on an open transaction, in
+// ListByIDsTx returns the fields with the given ids on an open transaction or
+// the database (any database.Querier), in
 // no set order. A repeated id counts once and an id with no field is left out;
 // no ids returns nil.
-func ListByIDsTx(tx *sql.Tx, ids [][]byte) ([]Field, error) {
+func ListByIDsTx(q database.Querier, ids [][]byte) ([]Field, error) {
 	ids = database.UniqueBlobIDs(ids)
 	if len(ids) == 0 {
 		return nil, nil
 	}
 	var out []Field
-	err := sqlbatch.Query(tx, sqlGetByIDsIn, ")", nil, ids, func(rows *sql.Rows) error {
+	err := sqlbatch.Query(q, sqlGetByIDsIn, ")", nil, ids, func(rows *sql.Rows) error {
 		f, err := ScanField(rows)
 		if err != nil {
 			return err
@@ -269,8 +270,8 @@ func ListByIDsTx(tx *sql.Tx, ids [][]byte) ([]Field, error) {
 
 // MapByIDsTx is ListByIDsTx keyed by string(id); an id with no field is absent
 // and no ids returns an empty map.
-func MapByIDsTx(tx *sql.Tx, ids [][]byte) (map[string]Field, error) {
-	found, err := ListByIDsTx(tx, ids)
+func MapByIDsTx(q database.Querier, ids [][]byte) (map[string]Field, error) {
+	found, err := ListByIDsTx(q, ids)
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +295,7 @@ type KeyResolution struct {
 // preferOrigin when preferOrigin is not empty and one of them has it, and is
 // Ambiguous otherwise. A key no field holds is Unknown. Keys match exactly. A
 // repeated key counts once; no keys returns the zero value without a query.
-func ResolveKeysTx(tx *sql.Tx, keys []string, preferOrigin string) (KeyResolution, error) {
+func ResolveKeysTx(q database.Querier, keys []string, preferOrigin string) (KeyResolution, error) {
 	keys = slices.Compact(slices.Sorted(slices.Values(keys)))
 	if len(keys) == 0 {
 		return KeyResolution{}, nil
@@ -304,7 +305,7 @@ func ResolveKeysTx(tx *sql.Tx, keys []string, preferOrigin string) (KeyResolutio
 		origin string
 	}
 	held := map[string][]holder{}
-	err := sqlbatch.Query(tx, sqlKeysIn, ")", nil, keys, func(rows *sql.Rows) error {
+	err := sqlbatch.Query(q, sqlKeysIn, ")", nil, keys, func(rows *sql.Rows) error {
 		var h holder
 		var key string
 		if err := rows.Scan(&h.id, &key, &h.origin); err != nil {

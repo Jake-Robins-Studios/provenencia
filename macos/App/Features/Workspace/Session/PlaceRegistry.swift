@@ -63,6 +63,7 @@ struct PlaceRegistry: Sendable {
                     .sourceTypesList(project: project),
                     .citationCounts(project: project, graphId: graphId),
                     .evidenceGraphsList(project: project),
+                    .metadataFieldsList(project: project),
                 ]
                 if let artifactId = location.artifactId, !artifactId.isEmpty {
                     keys.append(.citationsByArtifact(project: project, graphId: graphId, artifactId: artifactId))

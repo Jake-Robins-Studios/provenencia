@@ -97,10 +97,11 @@ final class CitationFieldsDraft {
                     transcription: transcription,
                     description: description,
                     transcriptionUncertain: transcriptionUncertain,
-                    transcriptionNote: transcriptionNote
+                    transcriptionNote: transcriptionNote,
+                    metadata: nil
                 )
                 captureBaseline()
-                context.applyWrite(updated.1)
+                context.applyWrite(updated.2)
             } else {
                 let creating = context.citationID?.isEmpty != false
                 _ = try await context.ensureCitationID(values)

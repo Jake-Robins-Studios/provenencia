@@ -16,8 +16,9 @@ final class CitationComposerContext {
     var citationID: String?
     var artifactID: String?
 
+    /// True from the start of a first save until its Citation and the list reload end.
     @ObservationIgnored
-    private var isCreatingCitation = false
+    private(set) var isCreatingCitation = false
     @ObservationIgnored
     private var citationCreateWaiters: [CheckedContinuation<String, Error>] = []
 
@@ -77,9 +78,19 @@ final class CitationComposerContext {
 
     /// The one funnel for composer writes. The location names the selected
     /// Artifact, so its citations key is visible and `apply` revalidates it
-    /// from the write's `citations` read; nothing queries afterward.
+    /// from the write's `citations` read (a Citation's own edits) and its
+    /// `citation_boards` read (a metadata value at any level); nothing queries
+    /// afterward.
     func applyWrite(_ effects: CatalogWriteEffects) {
         session.apply(effects)
+    }
+
+    /// Every metadata field the researcher can add to a board.
+    var metadataFields: [CatalogMetadataField] {
+        let handle: QueryHandle<[CatalogMetadataField]>? = session.queryHandle(
+            .metadataFieldsList(project: session.projectKey)
+        )
+        return handle?.value ?? []
     }
 
     /// The Citations of one Artifact as this graph sees them.
