@@ -4,10 +4,10 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 )
 
-// Declarative provenencia seed registry (create-time starter for new catalogs):
-// began as the citation vocabulary of the Spike 15 map, section 6.8. The types
-// and their formats live here; the fields are in registry_fields.go, and Install derives
-// the suggestions from the formats (registry_suggestions.go).
+// Declarative provenencia seed registry (create-time starter for new catalogs).
+// It began as the citation vocabulary of the Spike 15 map, section 6.8. The
+// types and their formats live here; the fields are in registry_fields.go, and
+// Install derives the suggestions from the formats (registry_suggestions.go).
 
 // seedType is one Source type. Formats name fields by key; Install stores them
 // by id through sourcetypes.ToStored.
@@ -23,8 +23,9 @@ type seedField struct {
 }
 
 // copyLayer is the online copy a researcher viewed: "database title," format,
-// *provider* (url : accessed date), each part when set. Every format that prints
-// a copy uses it.
+// *provider* (url : accessed date), each part when set. Every format that
+// prints a copy of a record uses it; `website` cites the site itself and prints
+// its own URL clause.
 const copyLayer = `[; ["{meta.database_title}," ]{meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])]`
 
 // certificateFormats is the one pattern of the three civil certificates: word
