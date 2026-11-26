@@ -1,6 +1,6 @@
 # S16-78 — Install derives each seeded type's suggested fields from its formats
 
-**Status:** Planned
+**Status:** Landed in [#993](https://github.com/Jake-Robins-Studios/provenencia/pull/993) (2026-11-26)
 **Spike / slice:** Spike 16 · Slice 6j — A Voters list type
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the suggestion rows a new project gets are the same, so every view looks the same)
