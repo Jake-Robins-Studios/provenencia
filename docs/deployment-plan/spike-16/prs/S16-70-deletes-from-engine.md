@@ -1,6 +1,8 @@
 # S16-70 — A Source or Source type delete is learned from the engine
 
-**Status:** Planned
+**Status:** Landed in [#988](https://github.com/Jake-Robins-Studios/provenencia/pull/988) (2026-11-26)
+
+**Landed.** Differences from the plan: the Swift work of STEP-3 to STEP-5 is one commit; `lastUpdatedPatchesAreDeclaredOnTheFourLists`, `invalidationsComeFromRegistrySpecs` (the `.changedSourceType` expectations) and `SourceTypesModelTests.createAndDeleteCommitThroughWorkspaceNavigation` changed beyond §8's list.
 **Spike / slice:** Spike 16 · Slice 6g — Catalog query layer
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the same pages leave and the same rows drop; only the signal that drops them changes)
