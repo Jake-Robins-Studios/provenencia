@@ -59,7 +59,7 @@ Nits (logged): `CON-4 · PVShowMoreRowTests.swift:62 and plan ## Landed · the l
 `origin/main` moved (`70f8a08fa`, docs only: S16-79 plan); merged into the branch. Gate PASS against `70f8a08fa`.
 
 ## Result
-Gate PASS · CI see PR #996 · open: none · follow-ups: `CatalogListMergeTests.listRowsLargeWriteTakesTheOnePass` timing assertion failed once under load in the implementer's round-0 gate (outside this PR; home to ask the user) · to user: —
+Gate PASS · CI green · open: none · follow-ups: `CatalogListMergeTests.listRowsLargeWriteTakesTheOnePass` timing assertion failed once under load in the implementer's round-0 gate (outside this PR; home to ask the user) · to user: —
 
 ## Cost
 Plan: 4,091 words (check-plan-docs info line).
