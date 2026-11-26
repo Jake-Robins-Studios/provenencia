@@ -375,3 +375,34 @@ Minors fixed:
 - S15-69 now applies `.changedSourceType`.
 - Rule "Formats name fields by id" names the write's move to `citationformats`.
 - S15-68's Ships adds the `citation_format` omnibar kind.
+
+## S15-73 map review (2026-11-26)
+
+One fresh maintainability reviewer, scoped to the added PR S15-73 (field tooltips; Return to the next suggestion). Verdict: fits with changes. Confirmed: every board goes through `MetadataBoardView`; `field.description` is on every live and draft entry; focus survives a save on both hosts; not quick-pr-sized; no preparatory PR (S15-50's `PVFieldFocus` is reused, not paralleled).
+
+### K-1 · major · The focus handle named was the wrong kit API
+**Answer:** Fixed. The rule and Context name `PVInput`'s `focus:` with `PVFieldFocus(…, equals: .value(id))`, no `in:` order; the row's own `@FocusState` goes and `.pvSheetInnerEdit` reads the handle's `isActive()`.
+
+### K-2 · blocker · A focus key of bare field id left S15-41's control no slot
+**Answer:** Fixed. Focus is keyed by `MetadataBoardFocus` (`.value(fieldID)` in S15-73; S15-41's scope entry adds `.mark(fieldID)`).
+
+### K-3 · major · "The model answers which field is next" did not fit `save`
+**Answer:** Fixed. `saveSuggestion(fieldID:) async -> String?` notes the following ids before the write and answers the next one still suggested and not inherited, nil on refusal, failure or no-op. "One being saved" dropped.
+
+### K-4 · major · `.help` on every input collided with existing tooltips and hints
+**Answer:** Fixed. `.help` on the label for every row; `.help` and hint only on inputs that take typing; `MetadataValueText` unchanged; one hint-joining helper, which S15-39's chain hint also uses (noted in S15-39's Context).
+
+### K-5 · minor · Spike 16's Copy Source board not named
+**Answer:** Fixed. Rule and Check name S16-75's board; S15-73 added to Spike 16's shared table row S16-73 – S16-77.
+
+### K-6 · minor · Overlap line understated; Check inexact
+**Answer:** Fixed. The parallel note lists every row S15-73 edits; the Check says "the Artifact sheet in either mode".
+
+### K-7 · minor · `add-ui-component` goes stale
+**Answer:** Fixed. S15-73's Context loads it and names both updates (the inner-edit example; the Return-to-next-row pattern).
+
+### Added after the review (user, 2026-11-26)
+Rule "Return saves an inline value edit" joins S15-73: a kit `onReturn` on `PVTextArea` (default off), used by `MetadataBoardTextEditor`; ⌥Return types a line break. Not re-reviewed: the kit hook is the existing `doCommandBy`, and every other text area is unchanged. `plan-pr` should check the step count (now three behaviours on the same rows).
+
+### Re-cut (user, 2026-11-26, later)
+The tooltip becomes an ⓘ beside the field name, gated by a new brief S15-D40; the Add field picker passes its own `PVComboBox` row with the description (no kit change: the combo box already takes a caller's `row`). Rule "A field's description is its tooltip" is renamed "A field's description is behind an ⓘ"; K-4's answer still holds (inputs carry the hint only, resting values keep their tooltip). Rule "The field picker shows each field's description" is new. S15-73 now carries four behaviours; its scope names the split (Return pair / ⓘ and picker pair) if `plan-pr` finds it over about 10 steps.
