@@ -2113,7 +2113,7 @@ struct WorkspaceSessionTests {
         await waitForQuery(handle)
         #expect(handle.isSettled)
 
-        session.apply(.deletedSource(id: "gone"))
+        session.invalidate(key)
         #expect(handle.isStale)
         #expect(!handle.isSettled)
         #expect(handle.status == .ready)
@@ -2133,7 +2133,7 @@ struct WorkspaceSessionTests {
         let key = CatalogQueryKey.sourcesList(project: session.projectKey)
         let handle: QueryHandle<[CatalogSource]> = session.query(key)
         await waitForQuery(handle)
-        session.apply(.deletedSource(id: "gone"))
+        session.invalidate(key)
         #expect(handle.isStale)
 
         let result = session.patchCached(key, as: [CatalogSource].self) { rows in
@@ -2159,8 +2159,7 @@ struct WorkspaceSessionTests {
         await store.listEvidenceGraphsHold.untilSuspended(1)
 
         session.apply(
-            CatalogWriteEffects(reads: [CatalogWriteEffectsRead(read: .evidenceGraphs, ids: ["s9"])]),
-            .deletedSource(id: "s9")
+            CatalogWriteEffects(reads: [CatalogWriteEffectsRead(read: .evidenceGraphs, ids: ["s9"])])
         )
         #expect(handle.isStale)
         store.evidenceGraphsByProject[projectDir] = [evidenceGraph("g2", sourceID: "s1")]
@@ -2192,6 +2191,50 @@ struct WorkspaceSessionTests {
         await session.settleWrites()
         #expect(await waitUntil { store.listSourcesCalls == 2 })
         #expect(handle?.value?.first?.id == "s1")
+    }
+
+    /// T-8: a write with no activity moves no last-updated cell, and does not restart a first load.
+    @Test func lastUpdatedMovesNothingWithoutActivity() async {
+        let store = FakeStore()
+        seedStore(store)
+        let session = makeSession(store: store)
+        session.apply(location: .sectionRoot(.sources))
+        let handle: QueryHandle<[CatalogSource]>? = session.queryHandle(
+            CatalogQueryKey.sourcesList(project: session.projectKey)
+        )
+        #expect(handle?.value == nil)
+
+        session.apply(CatalogWriteEffects(sourceScopes: ["s1"]))
+        await session.settleWrites()
+        #expect(store.listSourcesCalls == 1)
+        #expect(handle?.value?.first?.id == "s1")
+    }
+
+    /// A Source delete evicts its hidden page, and a Source type delete its hidden suggestions.
+    @Test func sourceDeleteEvictsItsHiddenPage() async {
+        let store = FakeStore()
+        seedStore(store)
+        let session = makeSession(store: store)
+        let project = session.projectKey
+        let s1 = CatalogQueryKey.sourceWorkspace(project: project, sourceId: "s1")
+        let s2 = CatalogQueryKey.sourceWorkspace(project: project, sourceId: "s2")
+        let h1: QueryHandle<CatalogSourceWorkspace> = session.query(s1)
+        let h2: QueryHandle<CatalogSourceWorkspace> = session.query(s2)
+        await waitForQuery(h1)
+        await waitForQuery(h2)
+        session.apply(CatalogWriteEffects(deleted: [CatalogWriteEffectsDeleted(entity: .source, ids: ["s1"])]))
+        let gone: QueryHandle<CatalogSourceWorkspace>? = session.queryHandle(s1)
+        let kept: QueryHandle<CatalogSourceWorkspace>? = session.queryHandle(s2)
+        #expect(gone == nil)
+        #expect(kept != nil)
+        #expect(kept?.isStale == false)
+
+        let suggestions = CatalogQueryKey.typeSuggestions(project: project, typeId: "t1")
+        let sh: QueryHandle<[CatalogTypeSuggestion]> = session.query(suggestions)
+        await waitForQuery(sh)
+        session.apply(CatalogWriteEffects(deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["t1"])]))
+        let goneSuggestions: QueryHandle<[CatalogTypeSuggestion]>? = session.queryHandle(suggestions)
+        #expect(goneSuggestions == nil)
     }
 
     /// T-8: a created Source applied while the visible list's first load is in
@@ -2541,9 +2584,9 @@ struct WorkspaceSessionTests {
             CatalogWriteEffects(
                 evidenceGraphs: ["s-default"],
                 reads: [CatalogWriteEffectsRead(read: .evidenceGraphs, ids: ["S"])],
-                lists: [.counts]
-            ),
-            .deletedSource(id: "S")
+                lists: [.counts],
+                deleted: [CatalogWriteEffectsDeleted(entity: .source, ids: ["S"])]
+            )
         )
         await session.settleWrites()
         #expect(store.listEvidenceGraphsSourceIDs == ["S"])

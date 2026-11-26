@@ -232,7 +232,7 @@ final class SourcePageModel {
                     userID: context.userID,
                     sourceID: target.id
                 )
-                context.session.apply(effects, .deletedSource(id: target.id), leavingPage: leave)
+                context.session.apply(effects, leavingPage: leave)
             case "artifact":
                 let effects = try await context.store.deleteArtifact(
                     projectDir: context.projectDir,

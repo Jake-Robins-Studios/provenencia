@@ -333,6 +333,9 @@ struct SourceTypesModelTests {
         let page = SourceTypePageModel(typeID: created.id, session: session, userID: userID, store: store)
         page.warm()
         await page.askDelete()
+        store.nextWriteEffects = CatalogWriteEffects(
+            deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: [created.id])]
+        )
         #expect(await page.confirmDelete(leaving: { navigation.fallbackToSectionRoot() }))
         #expect(navigation.currentLocation == .sectionRoot(.sourceTypes))
         #expect(navigation.currentLocation.typeId == nil)

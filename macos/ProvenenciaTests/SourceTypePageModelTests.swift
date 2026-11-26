@@ -174,7 +174,7 @@ struct SourceTypePageModelTests {
         model.noteLabel(model.type?.label)
         #expect(model.goneNotice == nil)
 
-        session.apply(.deletedSourceType(id: "t1"))
+        session.apply(CatalogWriteEffects(deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["t1"])]))
         model.noteLabel(model.type?.label)
         #expect(model.isGone)
         #expect(model.goneNotice == L10n.SourceTypes.goneNotice(label: "Book"))
@@ -587,6 +587,9 @@ struct SourceTypePageModelTests {
         for dirty in [false, true] {
             let author = catalogMetadataField("f1", label: "Author")
             let store = FakeStore()
+            store.nextWriteEffects = CatalogWriteEffects(
+                deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["t2"])]
+            )
             let (model, session) = await makePageModel(
                 typeID: "t2",
                 store: store,

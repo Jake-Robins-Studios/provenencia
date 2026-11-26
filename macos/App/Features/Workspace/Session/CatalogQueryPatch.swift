@@ -10,15 +10,35 @@ struct CatalogQueryPatch: Sendable {
     ) -> CatalogPatchResult
 
     /// Moves each row whose id is in the set and whose revision is older than
-    /// the write's. A row only moves forward; nothing is fetched.
+    /// the write's. A row only moves forward; nothing is fetched. A write with
+    /// no activity moves nothing.
     static func lastUpdated<Rows: CatalogLastUpdatedRows>(
         _: Rows.Type,
         follows: CatalogQueryFollows
     ) -> Self {
         follows.requireRowIDs()
         return Self(follows: follows) { session, key, ids, activity, _ in
-            session.patchCached(key, as: Rows.self) { rows in
+            guard activity.revision > 0 else { return .unchanged }
+            return session.patchCached(key, as: Rows.self) { rows in
                 rows.moveActivity(ids: ids, activity: activity)
+            }
+        }
+    }
+
+    /// Drops the rows of the ids a write reports deleted for one entity from a
+    /// cached list. Nothing is fetched; a row the list lacks changes nothing, and any
+    /// stale flag stays.
+    static func deletedRows<Row: Identifiable & Sendable>(
+        _: Row.Type,
+        of entity: CatalogDeletedEntity
+    ) -> Self where Row.ID == String {
+        let follows = CatalogQueryFollows.deleted(entity)
+        follows.requireRowIDs()
+        return Self(follows: follows) { session, key, ids, _, _ in
+            session.patchCached(key, as: [Row].self) { rows in
+                let before = rows.count
+                rows.removeAll { ids.contains($0.id) }
+                return rows.count != before
             }
         }
     }
@@ -37,37 +57,26 @@ struct CatalogQueryPatch: Sendable {
     }
 
     /// Writes the mutation's Source type onto the cached types list: replaces the row with the
-    /// same id (`.createdSourceType`, `.updatedSourceType`), a `.createdSourceType` appends its
-    /// row when the list lacks it (the list sorts for display), and a `.deletedSourceType` removes
-    /// its row. Leaves any stale flag.
+    /// same id (`.createdSourceType`, `.updatedSourceType`), and a `.createdSourceType` appends its
+    /// row when the list lacks it (the list sorts for display). Leaves any stale flag.
     static func sourceTypeRow() -> Self {
         row(
             CatalogSourceType.self,
             patched: { $0.patchedSourceType },
-            appendsOn: { if case .createdSourceType(_) = $0 { return true } else { return false } },
-            removes: { if case .deletedSourceType(let id) = $0 { return id } else { return nil } }
+            appendsOn: { if case .createdSourceType(_) = $0 { return true } else { return false } }
         )
     }
 
     /// The row patch of a cached list: replaces the row with the same id, and appends the
     /// mutation's row when the list lacks it only if `appendsOn` says the mutation creates it;
-    /// otherwise a row the list lacks adds nothing. A mutation `removes` names the id of a row to
-    /// drop; it carries no row, so it is checked first.
+    /// otherwise a row the list lacks adds nothing.
     static func row<Row: Identifiable & Sendable>(
         _: Row.Type,
         patched: @escaping @Sendable (CatalogMutation) -> Row?,
-        appendsOn: @escaping @Sendable (CatalogMutation) -> Bool,
-        removes: @escaping @Sendable (CatalogMutation) -> String? = { _ in nil }
+        appendsOn: @escaping @Sendable (CatalogMutation) -> Bool
     ) -> Self where Row.ID == String {
         Self(follows: nil) { session, key, _, _, mutation in
             guard let mutation else { return .unchanged }
-            if let removedID = removes(mutation) {
-                return session.patchCached(key, as: [Row].self) { rows in
-                    let before = rows.count
-                    rows.removeAll { $0.id == removedID }
-                    return rows.count != before
-                }
-            }
             guard let row = patched(mutation) else { return .unchanged }
             let appends = appendsOn(mutation)
             return session.patchCached(key, as: [Row].self) { rows in
