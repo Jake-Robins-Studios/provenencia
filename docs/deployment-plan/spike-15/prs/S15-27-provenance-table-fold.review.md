@@ -1,0 +1,60 @@
+# S15-27 — review log
+
+Plan: [`S15-27-provenance-table-fold.md`](S15-27-provenance-table-fold.md). Brief: [S15-D17](../design/S15-D17-provenance-table-fold.md), reviewed with the plan.
+
+**Verdict:** Fits with changes (maintainability) · Ready with changes (executability). One round: the one blocker (M-1) was Fixed with no change to the plan's shape, so no second round ran. Nothing is open. Board S15-D17 agreed 2026-11-26 (user, turn 21); the plan is `Planned`.
+
+## Before review (user, 2026-11-26)
+
+- The Show more row keeps the kit's "Show N more"; N counts citation groups → D-8.
+- A single huge citation group is not split; accepted and recorded → Edges "Untrusted size", §11.
+- The board reaches the implementer as the Person page board link → **Board** line.
+
+## Round 1
+
+Fresh maintainability and executability reviewers each read the plan and the brief.
+
+### M-1 · blocker · `CitationFocus` is a second focus handle beside `PVFieldFocus`
+**Answer:** Fixed. D-7 uses `var citationFocus: PVFieldFocus? = nil`, applied as `CircularLinkDiagram` applies its handles; the `CitationFocus` type is gone from Codebase fit and STEP-3.
+
+### M-2 · major · A bare `Int` beside `PagedFoldState`
+**Answer:** Fixed. D-4 holds `PagedFoldState<PVProvenanceRecordTable.Fold>` with a one-case key, as `ReconciledValueRow` holds its one fold; D-5's `expand` and the macOS table read it.
+
+### M-3 · minor · `Folded` and `folded` hang off `Group`
+**Answer:** Fixed. Both sit on `PVProvenanceSheetContent`, beside `grouped(by:)` (D-2, Codebase fit, STEP-2, Scale).
+
+### M-4 · minor · The timing helper would be copied
+**Answer:** Fixed. `macos/ProvenenciaTests/Timing.swift` takes `milliseconds(_:)` from `CatalogListMergeTests` and adds `bestOfMilliseconds(runs:_:)`; STEP-1 moves it; Deletes names the removed private copy.
+
+### M-5 · minor · The row is Ship in both inventories but gains a parameter
+**Answer:** Fixed. Extend in the plan's macOS table and the brief's inventory.
+
+### M-6 · minor · §4 Precedent repeats the Decisions
+**Answer:** Fixed. The paragraph keeps the two PR links, what not to copy, and the `CircularLinkDiagram` pointer.
+
+### M-7 · nit · "Runs have no unique id"
+**Answer:** Fixed. The `RunPosition` row says a run's `key` is unique only within its value run.
+
+### X-1 · major · The hosting and timing method is open
+**Answer:** Fixed. D-9 names the window size, the content, the `idPrefix` and `open`, a fresh host per run, what is timed (host creation plus one layout), and one layout before reading the height, per `add-swift-test`.
+
+### X-2 · major · STEP-3's check cannot see the table's behavior
+**Answer:** Fixed. STEP-3 says the press, focus and Tab ACs are manual (§10): the kit's press rule is covered by `PVShowMoreRowTests`, and `add-swift-test` forbids synthesized key events. The fold's content is covered by T-1 – T-6, and the drawn bound by T-7.
+
+### X-3 · major · The run's `VStack`, the rule and the loop keys are open
+**Answer:** Fixed. D-3 gives the three `ForEach` ids (groups by offset, because group ids can repeat) and keeps the rule before the run, outside its `VStack`.
+
+### X-4 · major · The manual check needs a project the plan does not provide
+**Answer:** Fixed. §10 runs the press, focus and Tab checks in `#Preview("Folded, 120 runs")` live, and in the app only where the project has such a value; AC-2.x rest on T-3 and T-4.
+
+### X-5 · minor · The Release command is incomplete
+**Answer:** Fixed. D-9 writes the full command; STEP-1 and STEP-5 point at it.
+
+### X-6 · minor · The archive move's links
+**Answer:** Fixed. STEP-7 names the links to rewrite.
+
+### X-7 · minor · The "Cap" edit, and "groups" against "runs"
+**Answer:** Fixed. STEP-7 says what the "Cap" section becomes; §1 says a run is the working rule's citation group, and the rule's wording stays.
+
+### X-8 · minor · Small unstated choices
+**Answer:** Fixed. D-5: no horizontal padding. D-6: the modifier goes after the trailing padding. Codebase fit: `fold` and `folded` are `nonisolated static`, as `followsLine` is. Edges: a revealed run's heading may sit just above the visible area, accepted as the Person page sections behave.
