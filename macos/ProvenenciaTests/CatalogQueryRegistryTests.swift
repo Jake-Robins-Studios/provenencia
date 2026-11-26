@@ -600,7 +600,8 @@ struct CatalogQueryRegistryTests {
         #expect(sourcePatches.count == 2)
         #expect(sourcePatches[0].follows == .source)
         #expect(sourcePatches[1].follows == nil)
-        #expect(follows(.sourceTypesList(project: project)) == .deleted(.sourceType))
+        let typeFollows = CatalogQueryKey.sourceTypesList(project: project).kind.descriptor.patches.compactMap(\.follows)
+        #expect(!typeFollows.contains(.handle) && !typeFollows.contains(.source))
     }
 
     @Test func conclusionDetailOfAnUnknownHandleIsCodedNotFound() async throws {
@@ -848,7 +849,6 @@ struct CatalogQueryRegistryTests {
     /// T-14: a write's effects name the Evidence graphs to reload, one warmed key each
     /// (`revalidatedKeys`); no mutation names a graph, a Source delete included.
     @Test func evidenceGraphEffectsReloadOnlyThatGraph() {
-        let registry = CatalogQueryRegistry.standard
         let session = makeSession()
         let project = session.projectKey
         let graph1Key = CatalogQueryKey.evidenceGraph(project: project, graphId: "g-1")
@@ -856,9 +856,6 @@ struct CatalogQueryRegistryTests {
         session.setQueryValue(graph1Key, value: EvidenceGraphRows(graphId: "g-1"))
         session.setQueryValue(graph2Key, value: EvidenceGraphRows(graphId: "g-2"))
         #expect(session.revalidatedKeys(for: CatalogWriteEffects(evidenceGraphs: ["g-2"])) == [graph2Key])
-        // A Source delete names its graphs in its effects, not in a mutation.
-        #expect(!registry.invalidations(by: .changedSourceType(CatalogSource(id: "src-1", ref: "SRC-1", sourceTypeID: "t1", title: "T", description: "")), project: project)
-            .contains(.allCached(.evidenceGraph)))
         #expect(CatalogQueryKey.Kind.evidenceGraph.descriptor.invalidateOn.isEmpty)
     }
 
@@ -1439,15 +1436,22 @@ struct CatalogQueryRegistryTests {
         session.apply(.empty, .updatedSourceType(stranger))
         #expect(handle.value == [book, renamed])
 
-        let bookDeleted = CatalogWriteEffects(deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["t-book"])])
+        // The engine reports a type delete with its `source_vocabulary` list, so the list also
+        // reloads (policy `.revalidate`); the store holds what the engine would.
+        store.sourceTypesByProject[projectDir] = [renamed]
+        let bookDeleted = CatalogWriteEffects(
+            lists: [.sourceVocabulary],
+            deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["t-book"])]
+        )
+        #expect(CatalogQueryFollows.deleted(.sourceType).ids(in: bookDeleted) == ["t-book"])
         session.apply(bookDeleted)
+        #expect(handle.value == [renamed])
+        await waitForQuery(handle)
         #expect(handle.value == [renamed])
         session.apply(bookDeleted)
         #expect(handle.value == [renamed])
         session.apply(CatalogWriteEffects(deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["gone"])]))
         #expect(handle.value == [renamed])
-        #expect(!handle.isFetching)
-        #expect(!handle.isStale)
         let registry = CatalogQueryRegistry.standard
         #expect(registry.invalidations(by: .updatedSourceType(renamed), project: session.projectKey).isEmpty)
     }

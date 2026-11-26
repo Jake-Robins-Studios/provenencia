@@ -2,7 +2,7 @@
 
 **Status:** Landed in [#988](https://github.com/Jake-Robins-Studios/provenencia/pull/988) (2026-11-26)
 
-**Landed.** Differences from the plan: the Swift work of STEP-3 to STEP-5 is one commit; `lastUpdatedPatchesAreDeclaredOnTheFourLists`, `invalidationsComeFromRegistrySpecs` (the `.changedSourceType` expectations) and `SourceTypesModelTests.createAndDeleteCommitThroughWorkspaceNavigation` changed beyond §8's list.
+**Landed.** Differences from the plan: the Swift work of STEP-3 to STEP-5 is one commit; `lastUpdatedPatchesAreDeclaredOnTheFourLists`, `invalidationsComeFromRegistrySpecs` (the `.changedSourceType` expectations) and `SourceTypesModelTests.createAndDeleteCommitThroughWorkspaceNavigation` changed beyond §8's list. The Scale line's "one `removeAll`" is followed by the `source_vocabulary` reload the types list already did on a type delete. `deletedHandles` reads through a new `CatalogWriteEffects.deletedIDs(of:)`, which the `.deleted(entity)` slot also uses (a same-pass cleanup of the plan's Out line on `deletedHandles`).
 **Spike / slice:** Spike 16 · Slice 6g — Catalog query layer
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the same pages leave and the same rows drop; only the signal that drops them changes)
