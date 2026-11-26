@@ -403,3 +403,6 @@ One fresh maintainability reviewer, scoped to the added PR S15-73 (field tooltip
 
 ### Added after the review (user, 2026-11-26)
 Rule "Return saves an inline value edit" joins S15-73: a kit `onReturn` on `PVTextArea` (default off), used by `MetadataBoardTextEditor`; ⌥Return types a line break. Not re-reviewed: the kit hook is the existing `doCommandBy`, and every other text area is unchanged. `plan-pr` should check the step count (now three behaviours on the same rows).
+
+### Re-cut (user, 2026-11-26, later)
+The tooltip becomes an ⓘ beside the field name, gated by a new brief S15-D40; the Add field picker passes its own `PVComboBox` row with the description (no kit change: the combo box already takes a caller's `row`). Rule "A field's description is its tooltip" is renamed "A field's description is behind an ⓘ"; K-4's answer still holds (inputs carry the hint only, resting values keep their tooltip). Rule "The field picker shows each field's description" is new. S15-73 now carries four behaviours; its scope names the split (Return pair / ⓘ and picker pair) if `plan-pr` finds it over about 10 steps.
