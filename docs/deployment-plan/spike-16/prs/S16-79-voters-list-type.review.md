@@ -86,3 +86,45 @@ Fresh reviewers had the plan and this log: maintainability (opus) gave Fits with
 **Answer:** Logged, not fixed here. That map's formats have drifted from `registry.go` since #967. Repointing the line is a docs fix for a later pass and does not bear on this PR.
 
 **Final verdict:** Fits with changes · Ready with changes, two rounds; no blocker open; To user answered (M-2, M-5).
+
+## Refresh (2026-11-26, after S16-78 landed in #993)
+
+S16-78 landed with a user change: the seed is data, and no test validates registry entries ("all seed-data tests"). The refresh drops every planned seed test (golden, literal renders, board table, counts, `seedRenderer`, `fixture.values`) and checks the ACs with uncommitted renders (D-11) and the app check. At `4f0806f` the writer rendered AC-1.1 – AC-2.3 and AC-4.1 – AC-4.2 through `citationformat.Render` and ran `suggestedKeys` on the formats (AC-3.1): all match.
+
+**Writer's own calls (refresh).** D-11 (uncommitted overlay renders as AC evidence); deleting `TestPlaceholders`' seed subtest (M-1, read as inside the user's "all seed-data tests"); leaving the Spike 15 citation map untouched and pointing `seeded-vocabulary.md` at `registry.go` (M-3); `polling_division` on the `graph` line of § 2.2 (X-1); version 0.47.0.
+
+### Refresh round 1
+
+**Reviewers:** maintainability (opus), executability (sonnet). Verdicts: Fits with changes · Ready with changes.
+
+- **M-1 · blocker · `TestPlaceholders` keeps a seed-entry check.** Fixed — STEP-3 deletes the subtest; `Install` already refuses a seed format with a diagnostic (`sourcevocab.go` `Install`), so `TestInstall` covers loading. T-1 is now `TestInstall`.
+- **M-2 · major · Skill bullet's order contradicts ten older formats.** Fixed — the bullet names new or rewritten formats and says which older ones print the copy before the archive; Out line for reordering them.
+- **M-3 · major · Spike 15 map half-updated; still the formats' named home.** Fixed — no edit to the map (Out line); `seeded-vocabulary.md` line 91 points at `registry.go`.
+- **M-4 · minor · "record type" names two sets.** Fixed — "types that print a copy" throughout.
+- **M-5 · minor · Hand-typed film clause beside `copyLayer`.** Fixed — Out line with the reason (two exact copies; church register's differs).
+- **M-6 · minor · D-11 harness rebuilt from history.** Declined — no other seed-format PR is in the map; D-11 now carries the full recipe (X-2).
+- **X-1 · major · `polling_division` level.** Fixed — STEP-4 puts it on the `graph` line, matching § 10.
+- **X-2 · minor · No runnable D-11 recipe.** Fixed — D-11 gives the overlay JSON, command, Parse call and title match.
+- **X-3 · minor · Title with no format or provider drops.** Fixed — an Edges line accepts it, as today.
+- **X-4 · nit · Map line 870 still says 26.** Logged; the map is left whole as Spike 15's record (M-3).
+- **X-5 · nit · Doc comments.** Logged.
+
+
+### Refresh round 2
+
+**Reviewers:** maintainability (opus), executability (sonnet). Verdicts: Fits with changes · Ready with changes. Every round-1 answer holds; no new blocker.
+
+- **Maintainability, below the bar · § 6.8 still named as the seed in two lines.** Fixed — STEP-4 rewords `seeded-vocabulary.md` line 83 and the skill's step 2: the seed began as § 6.8 and `registry.go` is now its record.
+- **X-6 · minor · AC-4.3 unchecked for eleven types.** Fixed — STEP-2's check adds `git diff -U0` on `registry.go`: each changed line differs only by the clause. Their suggestions follow from `suggestedKeys`, which `TestSuggestedKeys` covers.
+- **X-7 · minor · Xcode and app boxes off macOS.** Declined — `implement-pr` and `ship-pr` say how a box that cannot run is reported; D-11 gives the evidence that runs anywhere.
+- **X-8 · minor · Commit boundaries.** Fixed — STEP-4's Commits line maps steps to commits and puts the Landed edits last.
+- **X-9 · nit · `copyLayer` comment.** Fixed — STEP-2 gives it.
+
+**Verdict (refresh):** Fits with changes · Ready with changes, two rounds; no blocker open; To user: none.
+
+| Round | Reviewer | Model | Tokens |
+| --- | --- | --- | --- |
+| R1 | maintainability | opus | 131k |
+| R1 | executability | sonnet | 105k |
+| R2 | maintainability | opus | 133k |
+| R2 | executability | sonnet | 115k |
