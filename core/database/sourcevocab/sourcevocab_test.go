@@ -177,36 +177,28 @@ func TestInstall(t *testing.T) {
 					t.Fatalf("GetFormats = %+v", view)
 				}
 
-				// Every suggestion list is written in registry order, and a
-				// type the registry does not list has no rows.
-				listed := map[string]bool{}
-				for _, want := range seedSuggestions {
-					ty, err := sourcetypes.Lookup(c, want.TypeKey, vocabkey.OriginProvenencia)
-					if err != nil {
-						t.Fatalf("type %s: %v", want.TypeKey, err)
+				// Every type's suggestion list is written in derived order.
+				for _, st := range seedTypes {
+					want := suggestedKeysOf(t, st.Key)
+					if len(want) == 0 {
+						t.Fatalf("%s has no suggestions", st.Key)
 					}
-					listed[want.TypeKey] = true
+					ty, err := sourcetypes.Lookup(c, st.Key, vocabkey.OriginProvenencia)
+					if err != nil {
+						t.Fatalf("type %s: %v", st.Key, err)
+					}
 					sugs, err := ListSuggestions(c, ty.ID)
 					if err != nil {
 						t.Fatal(err)
 					}
-					if len(sugs) != len(want.FieldKeys) {
-						t.Fatalf("%s lists %d fields, want %d", want.TypeKey, len(sugs), len(want.FieldKeys))
+					if len(sugs) != len(want) {
+						t.Fatalf("%s lists %d fields, want %d", st.Key, len(sugs), len(want))
 					}
 					for i, s := range sugs {
-						if s.Field.Key != want.FieldKeys[i] || s.Field.Origin != vocabkey.OriginProvenencia || s.SortOrder != i {
+						if s.Field.Key != want[i] || s.Field.Origin != vocabkey.OriginProvenencia || s.SortOrder != i {
 							t.Fatalf("%s[%d] = %s origin %s sort %d, want %s origin provenencia sort %d",
-								want.TypeKey, i, s.Field.Key, s.Field.Origin, s.SortOrder, want.FieldKeys[i], i)
+								st.Key, i, s.Field.Key, s.Field.Origin, s.SortOrder, want[i], i)
 						}
-					}
-				}
-				for _, ty := range types {
-					if listed[ty.Key] {
-						continue
-					}
-					sugs, err := ListSuggestions(c, ty.ID)
-					if err != nil || len(sugs) != 0 {
-						t.Fatalf("%s = %+v, %v, want no suggestions", ty.Key, sugs, err)
 					}
 				}
 			},
@@ -275,7 +267,7 @@ func TestInstall(t *testing.T) {
 					t.Fatal(err)
 				}
 				sugs, err := ListSuggestions(c, census.ID)
-				if err != nil || len(sugs) != len(seedSuggestionKeys(t, "census"))-1 {
+				if err != nil || len(sugs) != len(suggestedKeysOf(t, "census"))-1 {
 					t.Fatalf("after second install %v %d", err, len(sugs))
 				}
 			},
@@ -378,7 +370,7 @@ func TestInstall(t *testing.T) {
 					t.Fatal(err)
 				}
 				sugs, err := ListSuggestions(c, census.ID)
-				if err != nil || len(sugs) != len(seedSuggestionKeys(t, "census"))-1 {
+				if err != nil || len(sugs) != len(suggestedKeysOf(t, "census"))-1 {
 					t.Fatalf("after delete %v %d", err, len(sugs))
 				}
 			},
@@ -684,14 +676,8 @@ func runFieldCreate(c *database.Catalog, label, dataType, description string) (m
 	return got, err
 }
 
-// seedSuggestionKeys is the seed's list of one type.
-func seedSuggestionKeys(t *testing.T, typeKey string) []string {
+// suggestedKeysOf is the derived suggestion list of one seeded type.
+func suggestedKeysOf(t *testing.T, typeKey string) []string {
 	t.Helper()
-	for _, s := range seedSuggestions {
-		if s.TypeKey == typeKey {
-			return s.FieldKeys
-		}
-	}
-	t.Fatalf("no seed suggestions for %s", typeKey)
-	return nil
+	return suggestedKeys(findSeedType(t, typeKey).Formats)
 }

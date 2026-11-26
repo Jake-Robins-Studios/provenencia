@@ -23,54 +23,22 @@ func mustParseForm(t *testing.T, typeKey, text string, form citationformat.Form)
 	return tpl
 }
 
-// derivedSuggestions is the suggestion rule applied to a type's formats: the
-// type's fields as one list, each once, in the order its formats first read
-// them (the full format, then the list and short formats' needed chains the
-// full format does not already meet); nothing is appended. A format names no level, so neither does the
-// list.
-func derivedSuggestions(t *testing.T, st seedType) []string {
-	t.Helper()
-	return suggestedKeys(st.Formats)
-}
-
-func TestSeedSuggestionsFollowFormats(t *testing.T) {
-	types := map[string]seedType{}
+func TestSuggestedKeys(t *testing.T) {
 	for _, st := range seedTypes {
-		types[st.Key] = st
-	}
-	fields := map[string]bool{}
-	for _, f := range seedFields {
-		fields[f.Key] = true
-	}
-	seen := map[string]bool{}
-	got := map[string][]string{}
-	for _, s := range seedSuggestions {
-		id := s.TypeKey
-		if seen[id] {
-			t.Errorf("%s appears twice", id)
+		keys := suggestedKeys(st.Formats)
+		if len(keys) == 0 {
+			t.Errorf("%s suggests no field", st.Key)
 		}
-		seen[id] = true
-		if _, ok := types[s.TypeKey]; !ok {
-			t.Errorf("%s names an unknown type", id)
-		}
-		if len(s.FieldKeys) == 0 {
-			t.Errorf("%s has no field", id)
-		}
-		for _, key := range s.FieldKeys {
-			if !fields[key] {
-				t.Errorf("%s names unknown field %s", id, key)
+		seen := map[string]bool{}
+		for _, key := range keys {
+			if seen[key] {
+				t.Errorf("%s suggests %s twice", st.Key, key)
 			}
-		}
-		got[s.TypeKey] = s.FieldKeys
-	}
-	for _, st := range seedTypes {
-		want := derivedSuggestions(t, st)
-		if !slices.Equal(got[st.Key], want) {
-			t.Errorf("%s suggests %v, its formats give %v in order", st.Key, got[st.Key], want)
+			seen[key] = true
 		}
 	}
-	if census := got["census"]; len(census) != 18 || census[0] != "creator" || census[len(census)-1] != "citing" {
-		t.Errorf("census suggests %v, want 18 fields, creator first and citing last", census)
+	if census := suggestedKeys(findSeedType(t, "census").Formats); census[0] != "creator" || census[len(census)-1] != "citing" {
+		t.Errorf("census suggests %v, want creator first and citing last", census)
 	}
 }
 
@@ -159,9 +127,9 @@ func TestSeedTypes(t *testing.T) {
 // at its level.
 func TestSeededFormatsNeedOnlySuggestedFields(t *testing.T) {
 	suggested := map[string]bool{}
-	for _, s := range seedSuggestions {
-		for _, key := range s.FieldKeys {
-			suggested[s.TypeKey+"/"+key] = true
+	for _, st := range seedTypes {
+		for _, key := range suggestedKeysOf(t, st.Key) {
+			suggested[st.Key+"/"+key] = true
 		}
 	}
 	for _, st := range seedTypes {
@@ -210,13 +178,14 @@ func TestSeedPlaceFields(t *testing.T) {
 		"oral_testimony":       "interview_place",
 		"correspondence":       "written_from",
 	}
-	for _, s := range seedSuggestions {
-		key, ok := want[s.TypeKey]
-		if ok && !slices.Contains(s.FieldKeys, key) {
-			t.Errorf("type %s suggests %v, want %s among them", s.TypeKey, s.FieldKeys, key)
+	for _, st := range seedTypes {
+		keys := suggestedKeysOf(t, st.Key)
+		key, ok := want[st.Key]
+		if ok && !slices.Contains(keys, key) {
+			t.Errorf("type %s suggests %v, want %s among them", st.Key, keys, key)
 		}
-		if key != "jurisdiction" && slices.Contains(s.FieldKeys, "jurisdiction") {
-			t.Errorf("type %s suggests jurisdiction, which only government records use", s.TypeKey)
+		if key != "jurisdiction" && slices.Contains(keys, "jurisdiction") {
+			t.Errorf("type %s suggests jurisdiction, which only government records use", st.Key)
 		}
 	}
 }
