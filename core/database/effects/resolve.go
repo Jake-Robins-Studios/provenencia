@@ -81,7 +81,7 @@ func Resolve(q dbsql.Querier, changes []rowchange.Change) (Set, error) {
 		}
 		eff := registry[table]
 		if eff.movesLists(ch) {
-			for _, l := range eff.Lists {
+			for _, l := range eff.listsFor(ch) {
 				listed[l] = true
 			}
 		}

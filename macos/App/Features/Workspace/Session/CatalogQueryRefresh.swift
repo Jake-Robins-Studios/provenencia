@@ -143,13 +143,6 @@ struct CatalogQueryRefresh: Sendable {
         return CatalogQueryRefresh(follows: follows, action: .revalidate { _, _ in nil })
     }
 
-    /// A refresh that re-applies the hidden policy to a warmed key when the write
-    /// deleted any id of the row slot (`.deleted(_:)`), whichever the key holds.
-    static func applyHiddenPolicyOnAnyID(follows: CatalogQueryFollows) -> CatalogQueryRefresh {
-        follows.requireRowIDs()
-        return CatalogQueryRefresh(follows: follows, action: .revalidate { _, _ in nil })
-    }
-
     /// A key whose rows carry a Property, term or Subject type label.
     static let followsPropertyLabels: CatalogQueryRefresh = .applyHiddenPolicyOnAny(follows: .list(.propertyVocabulary))
 }

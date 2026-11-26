@@ -1436,10 +1436,11 @@ struct CatalogQueryRegistryTests {
         session.apply(.empty, .updatedSourceType(stranger))
         #expect(handle.value == [book, renamed])
 
-        // The engine reports a type delete as `deleted` alone, with no list, so the row drops with
-        // one patch and the list neither reloads nor goes stale.
+        // The engine reports a type delete as `deleted` and `metadata_field_usage`, so the row drops
+        // with one patch and the types list, which does not follow that list, neither reloads nor goes stale.
         store.sourceTypesByProject[projectDir] = [renamed]
         let bookDeleted = CatalogWriteEffects(
+            lists: [.metadataFieldUsage],
             deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["t-book"])]
         )
         #expect(CatalogQueryFollows.deleted(.sourceType).ids(in: bookDeleted) == ["t-book"])
@@ -1455,7 +1456,7 @@ struct CatalogQueryRegistryTests {
         #expect(registry.invalidations(by: .updatedSourceType(renamed), project: session.projectKey).isEmpty)
     }
 
-    /// A type delete reports `deleted` and no list, so a warmed field list, whose `usedBy` names the
+    /// A type delete reports `deleted` and `metadata_field_usage`, so a warmed field list, whose `usedBy` names the
     /// type in a citation format, is marked stale.
     @Test func sourceTypeDeleteMarksTheFieldsListStale() async {
         let store = FakeStore()
@@ -1465,7 +1466,10 @@ struct CatalogQueryRegistryTests {
         let handle: QueryHandle<[CatalogMetadataField]> = session.query(key)
         await waitForQuery(handle)
         #expect(!handle.isStale)
-        session.apply(CatalogWriteEffects(deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["t-book"])]))
+        session.apply(CatalogWriteEffects(
+            lists: [.metadataFieldUsage],
+            deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["t-book"])]
+        ))
         #expect(handle.isStale)
     }
 

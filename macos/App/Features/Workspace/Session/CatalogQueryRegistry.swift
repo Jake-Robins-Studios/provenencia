@@ -172,8 +172,9 @@ extension CatalogQueryKey.Kind {
             )
         case .sourceTypesList:
             // A type create or edit reports `source_vocabulary`, which this key
-            // follows. A type delete reports no list: it reaches this key only
-            // through `deletedRows`, which drops the row. `usedBy` counts sources
+            // follows. A type delete reports `deleted` and `metadata_field_usage`,
+            // not `source_vocabulary`: it reaches this key only through
+            // `deletedRows`, which drops the row. `usedBy` counts sources
             // per type: a Source create, delete or type change reports
             // `source_type_usage`, which restates the rows no type edit touched.
             return .make(
@@ -196,9 +197,8 @@ extension CatalogQueryKey.Kind {
             // `usedBy` counts Sources, Artifacts, Evidence graphs and Citations
             // holding a value for the field and Source types naming it in a
             // citation format, and it gates Delete: a value created or released
-            // on any of them reports `metadata_field_usage`; a format write
-            // reports `source_vocabulary`, which this key follows, and a Source
-            // type delete reports only `deleted`, so it follows that too. Only the
+            // on any of them reports `metadata_field_usage`, as does a Source type
+            // delete; a format write reports `source_vocabulary`. Only the
             // Metadata and Source type pages and the Source page read it, so a
             // hidden list is marked stale and reloads when next shown.
             return .make(
@@ -207,7 +207,6 @@ extension CatalogQueryKey.Kind {
                 refreshes: [
                     .applyHiddenPolicyOnAny(follows: .list(.sourceVocabulary)),
                     .applyHiddenPolicyOnAny(follows: .list(.metadataFieldUsage)),
-                    .applyHiddenPolicyOnAnyID(follows: .deleted(.sourceType)),
                 ],
                 load: { key, store in
                     return try await store.listMetadataFields(projectDir: key.project.projectDir)

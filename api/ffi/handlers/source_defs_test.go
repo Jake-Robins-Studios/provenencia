@@ -349,8 +349,8 @@ func TestDeleteSourceType(t *testing.T) {
 				if got := deletedIDs(resp.GetEffects(), "source_type"); len(got) != 1 || got[0] != dr.TypeId {
 					t.Fatalf("deleted source_type = %v, want [%s]", got, dr.TypeId)
 				}
-				if slices.Contains(resp.GetEffects().GetLists(), "source_vocabulary") {
-					t.Fatalf("a type delete reported source_vocabulary: %v", resp.GetEffects().GetLists())
+				if got := resp.GetEffects().GetLists(); !slices.Equal(got, []string{"metadata_field_usage"}) {
+					t.Fatalf("a type delete lists = %v, want [metadata_field_usage]", got)
 				}
 			},
 		},
