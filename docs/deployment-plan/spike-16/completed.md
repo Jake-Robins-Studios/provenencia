@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-69 — A commit runs each effects lookup once
+
+**Landed 2026-11-26** in [#979](https://github.com/Jake-Robins-Studios/provenencia/pull/979). Nothing a researcher sees changes. A write's effects are resolved through one memoised `walk.lookup` per changed row, so a Source date change looks up its Source once (was twice) and an Observation's value row looks up its Observation once (was five times) and its Subject's claims once (was twice); the effects reported are the same. `Resolve` takes a `dbsql.Querier`, and the test-only `Handles` and `resolve` are gone (tests read `Resolve(...).Handles`).
+
 ## S16-68 — The query-cache types have files of their own
 
 **Landed 2026-11-25** in [#976](https://github.com/Jake-Robins-Studios/provenencia/pull/976). Nothing a researcher sees changes. `CatalogPageValue`, `CatalogQueryFollows`, `CatalogQueryPatch` and `CatalogQueryRefresh` moved from `CatalogLastUpdated.swift` to files named for them, and the free `requireRowIDs(_:)` became the member `CatalogQueryFollows.requireRowIDs()` since its callers now sit in two files. `CatalogLastUpdated.swift` keeps the last-updated rows.
