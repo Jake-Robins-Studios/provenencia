@@ -1,7 +1,7 @@
 # Ship log — S16-70 A Source or Source type delete is learned from the engine
 
 **Plan:** [`S16-70-deletes-from-engine.md`](S16-70-deletes-from-engine.md) · **Branch:** `s16-70-deletes-from-engine` · **PR:** #988
-**State:** ready
+**State:** fixing 1b
 
 ## Round 0 — implement
 Head `ac8306de8`. Gate PASS (orchestrator run). Report deviations: STEP-3/4 and STEP-5 in one commit; three existing tests edited beyond §8 as direct consequences (`lastUpdatedPatchesAreDeclaredOnTheFourLists`, `invalidationsComeFromRegistrySpecs`, `SourceTypesModelTests.createAndDeleteCommitThroughWorkspaceNavigation`); `evidenceGraphEffectsReloadOnlyThatGraph` checks `.changedSourceType` in place of the removed `.deletedSource`; manual check not run.
@@ -47,8 +47,32 @@ Head `bd74479cf`. Gate PASS (orchestrator run; `origin/main` unmoved at `8d95af5
 ## Round 2 — review
 Not run: round 1 had no Fix-now blocker or major.
 
-## Result
-Gate PASS · CI green (test ×2, localizable) · open: none · follow-ups: MNT-2 (idea-file line: the types list reloads on its own row's delete through `source_vocabulary`) · to user: —
+## User decision (2026-11-26)
+MNT-2's follow-up is not parked: slice 6g exists to finish the catalog-query-layer idea, so the user asked for the fix on this PR ("don't add new tasks to it. Just do it."). Supersedes MNT-2's Follow-up decision and the Scale line's "as `.deletedSourceType` does today" reading.
+
+Traced by the orchestrator: on a type delete `source_vocabulary` has three followers. `.sourceTypesList` already drops the row through `deletedRows`. `.typeSuggestions` for that type is evicted through `deletedWith`. `.metadataFieldsList` still needs a signal, because a field's `usedBy` counts the Source types that name it in a citation format. So the delete can stop reporting the list once `.metadataFieldsList` follows `.deleted(.sourceType)` instead.
+
+### Fix plan 1b
+**F-5 — A Source type delete moves no `source_vocabulary`** (from MNT-2, CON-1; user)
+Files: `core/database/effects/registry.go`, `core/database/effects/lists_test.go` (or wherever `TestResolveLists` lives), `api/ffi/handlers/source_defs_test.go`, `macos/App/Features/Workspace/Session/CatalogQueryRegistry.swift`, `macos/App/Features/Workspace/Session/CatalogQueryRefresh.swift` (only if no constructor fits), `macos/ProvenenciaTests/CatalogQueryRegistryTests.swift`, `macos/ProvenenciaTests/SourceTypePageModelTests.swift`, `core/database/effects/README.md`, `docs/deployment-plan/spike-16/completed.md`, the plan's Landed note.
+Failing tests first:
+- `TestResolveLists`, new row "source type delete": a `rowchange.Deleted("source_type", …)` reports no `source_vocabulary`. A type create, and an update of `label`, still report it.
+- `TestDeleteSourceType` "deletes unused user type": the response's lists do not contain `source_vocabulary`, and `deleted` still names the type.
+- Swift `updatedAndDeletedSourceTypePatchTheTypesList`: apply the delete with the effects the engine now sends (`deleted` only). Assert the row is gone, `!handle.isStale` and `!handle.isFetching`, which restores the round-0 assertions.
+- New Swift test: a warmed `.metadataFieldsList` is marked stale by `CatalogWriteEffects(deleted: [.sourceType ["t-book"]])`.
+Do:
+- Go: add one opt-out knob on `Effect`, next to `ListsOnCreateDelete` and `ListsOnField`. Call it `ListsNotOnDelete bool` and document it: "a delete does not move Lists; its followers learn it from `Deleted`". Make `movesLists` honour it. Set it on `source_types` only. Keep `source_metadata_fields` as it is.
+- Swift: `.metadataFieldsList` adds a refresh on `.deleted(.sourceType)` for any id. Reuse an existing `CatalogQueryRefresh` constructor if one re-applies the hidden policy on any id of a row slot. If none does, add one beside `applyHiddenPolicyOnAny`. Update the key's comment.
+- Update the `.sourceTypesList` comment. A type delete now reaches it only through `deletedRows`.
+- Revert F-1's script in the page test `deletingLeavesAndDropsTheRow` to `deleted` only.
+- Docs:
+  - effects README: the knob, and that a `source_types` delete reports `Deleted` with no list.
+  - `completed.md`: the types list drops the row with one patch and no reload.
+  - The Landed note: F-5, superseding the F-1 wording and MNT-2's follow-up.
+Stop if: some other follower of `source_vocabulary` (Swift or Go) needs a type delete and is not covered above. Report it; do not widen the change.
+Check: the tests above pass, `rg -n 'sourceVocabulary' macos/App` shows the three followers unchanged, and scripts/check-pr.sh PASS.
+
+Gate PASS · CI green (test ×2, localizable) · open: none · follow-ups: none (MNT-2 fixed on this PR, user) · to user: —
 
 ## Cost
 Plan: 6,300 words (check-plan-docs info line).
