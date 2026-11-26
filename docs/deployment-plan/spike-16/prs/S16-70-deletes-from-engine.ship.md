@@ -102,7 +102,7 @@ Read by the orchestrator: MNT-8 **Resolved**. `ListsOnDelete: []List{ListMetadat
 Then merged `origin/main` (`d57b0d9e5`, S15-59 plan docs only): `9adca9927`. Gate PASS.
 
 ## Result
-Gate PASS · CI see below · open: none · follow-ups: none (MNT-2 fixed on this PR on the user's direction) · to user: —
+Gate PASS · CI green (test ×2, localizable) on `0a5ca6e6f` · open: none · follow-ups: none (MNT-2 fixed on this PR on the user's direction) · to user: —
 
 ## Cost
 Plan: 6,300 words (check-plan-docs info line).
