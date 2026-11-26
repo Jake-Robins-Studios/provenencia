@@ -1,14 +1,13 @@
 # Review — S16-80 An event's places reconcile by their records
 
-**Verdict:** Fits with changes — Ready with changes (round 2; To user open)
-**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
+**Verdict:** Fits with changes — Ready with changes (round 3, asked for by the user after the reshape)
+**Rounds:** 3. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
 
-- **M-1, where "an event has one place" is declared.** The user chose the matching registry (`segment.go` `One`). The writer then found two consequences and asked again. `One` keys hold from both ends (a place would have one event). Matching knows no containment, so Promote would score Canada vs Swift Current as a −3 conflict. The user asked which shape fits best. **Writer's recommendation, applied in D-1 pending the user's confirmation:** no declaration yet. The vote passes single with a decided comment, and the one declaration both layers read is parked in [`ideas/one-bridge-cardinality.md`](../../../ideas/one-bridge-cardinality.md), to be built once matching can tell containment from conflict.
-
-- **M-12, the reconciler's grouping policy.** Asked whether to bend S11-06 with a caller's fold rule, the user asked which shape is better long-term (2026-11-26). **Writer's answer, applied:** do not bend it. Containment enters as data: a subject value carries `Within` (what contains it at the date), value compare gains the subject comparer its "Add a comparer" slot always had (`noComparer` listed subject), and the subject module folds on `Contains` like `dateModule`. The policy holds, value compare stays pure, and matching can fill `Within` the same way later. `ReconcileHandles`, `keyModule.folds` and `validate` are gone; Rules this plan bends is None. Awaiting the user's veto only.
+- **"Catalog data comes in through `Rules`" (add-match-rule).** A place's `Within` (what contains it at the event's date) rides on the value, not in `Rules`, because it holds per value and per date. **Writer's recommendation: accept**, and rewrite the skill line so per-value context the caller derives at the value's date rides on the value while catalog tables come through `Rules`.
 - **M-1:** answered 2026-11-26: no declaration yet (D-1).
+- **M-12:** answered by the reshape. The user asked for the long-term shape (2026-11-26): containment is data on the value, value compare's subject comparer owns the rule, and the reconciler folds on `Contains`.
 
 ## Writer's own calls
 
@@ -133,9 +132,78 @@ The verdicts exist only on the Person row's owners; a read keyed by (association
 ### X-11 · minor · STEP-5 hides about five changes
 **Answer:** Fixed. STEP-5 (the predicate, the link cap, the fast path, owners) and STEP-6 (the vote) are now separate.
 
+## Round 3
+
+The user asked for this round after the reshape, with the objective: robust, long-term, maintainable code with clean separation of concerns and no one-off branches, so new entities and relationships slot into existing infrastructure.
+
+### M-13 · blocker · The containment rule is written in three places
+**Answer:** Fixed. D-6: `(*placeGraph).subjectValue` is the one builder and value compare the one rule. `FoldLocations` and the fast path read `valuecompare.Compare`, and `isAncestor` goes.
+
+### M-14 · blocker · The subject comparer's `Contains` similarity and cause are undecided
+**Answer:** Fixed. D-6 sets similarity `value.Subjects.Partial` (new knob, 0.7, with an inventory row) and the new cause `within`. `Same` is `exact`, `Different` is `no_match`, and no entity is `Unknown` with `empty`. The whole add-match-rule skill is loaded.
+
+### M-15 · blocker · `Within` bends "Catalog data comes in through `Rules`"
+**Answer:** To user (above). It is listed under Rules this plan bends, and STEP-10 rewrites the skill line and `matching-model.md`'s value row.
+
+### M-16 · blocker · D-15's pre-pass repeats the fold and the date
+**Answer:** Fixed. D-8 splits the vote into `prepareVote` (one fold and the trigger) and `finishVote`, with one `eventFoldDate`. D-9 batches the node reads between them.
+
+### M-17 · major · `subjectModule` repeats `keyModule` and `dateModule.fold`
+**Answer:** Fixed. D-7: `keyModule.folds` and one `foldsOnContains`, which `dateModule` also uses. `subjects.go` is gone.
+
+### M-18 · major · Two tests lose their only unsupported type
+**Answer:** Fixed. STEP-4 moves `noComparer` and AC-1.10 to `"unregistered"`, and T-7 names them.
+
+### M-19 · major · `placeVerdict` only for place owners
+**Answer:** Fixed. D-13: `ownerVerdict` runs for every owner and does nothing when no vote ran.
+
+### M-20 · minor · `subjectprofile.Value` stays without `Entity`
+**Answer:** Fixed. A doc comment there (Go core row), plus a Reach row and a Risk row.
+
+### M-21 · minor · `Within` has no stated bound
+**Answer:** Fixed. `maxWithin` is 256, in D-6 and Edges.
+
+### M-22 · minor · Written once
+**Answer:** Fixed. The spec lives in D-6, and the other rows point to it. The `foldValues` restatement is kept only where AC-2.2 cites the user's call.
+
+### X-1 · blocker · Comparer causes and similarity; AC-1.10; `noComparer`
+**Answer:** Fixed, as M-14 and M-18.
+
+### X-2 · major · STEP-5's interim `voteLocations` and the ref sort
+**Answer:** Fixed. STEP-5 keeps `FoldLocations`' survivors and its ref sort, with each link `kept`. STEP-6 removes the sort along with the vote (D-10).
+
+### X-3 · major · D-15's wiring
+**Answer:** Fixed. D-9: a Person's pick locations are read once through its scope and passed on, and `prepareVote` lists every link of the event.
+
+### X-4 · major · `TestPersonDerivedRows` edit
+**Answer:** Fixed. STEP-6 gives the exact edit.
+
+### X-5 · major · "Best-ranked candidate"
+**Answer:** Fixed. D-12: the stronger `Provenance`, then the earlier `ObservationID`.
+
+### X-6 · minor · T-5
+**Answer:** Fixed. Each Location has its own Source, and the test computes the first 64 links from `Follow` order.
+
+### X-7 · minor · Folded-owner assertion
+**Answer:** Fixed. T-7 asserts `Reason` folded.
+
+### X-8 · minor · The plan's Review header
+**Answer:** Fixed.
+
+### X-9 · minor · The map's scope line still describes the caller's rule
+**Answer:** Fixed. The S16-80 "Ships" line in `deployment-plan.md` is rewritten.
+
+### X-10 · major · § 7's "keep their catalog identity"
+**Answer:** Fixed. It is listed under Rules this plan bends with the user's 2026-11-26 call, and STEP-10 rewrites the sentence and the row.
+
+### X-11 · minor · STEP-2's check
+**Answer:** Fixed. `go build ./... && go vet ./...` is added.
+
+Smaller notes: `Within` is a set whose order is not part of the contract (D-6). A place outside the graph has an empty `Within`. Entities made before `NewSource` keep their Source (STEP-3).
+
 ## Cost
 
-Plan: 5,880 words at round 1, 5,640 after round 1, 6,298 after round 2 (check-plan-docs info line).
+Plan: 5,880 words at round 1, 5,640 after round 1, 6,298 after round 2, 6,742 after round 3 (check-plan-docs info line).
 
 | Round | Reviewer | Model | Tokens |
 | --- | --- | --- | --- |
@@ -143,3 +211,5 @@ Plan: 5,880 words at round 1, 5,640 after round 1, 6,298 after round 2 (check-pl
 | 1 | executability | sonnet | 131k |
 | 2 | maintainability | opus | 189k |
 | 2 | executability | sonnet | 210k |
+| 3 | maintainability | opus | 201k |
+| 3 | executability | sonnet | 196k |
