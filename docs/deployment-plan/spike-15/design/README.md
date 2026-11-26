@@ -25,10 +25,10 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | S15-D30 | Source type page: a fourth suggestion list (Citation), Copy type's fourth tick, the format editor's completion with the Citation's fields | Descoped 2026-11-22: suggestions lose their level (S15-63) | — |
 | S15-D34 | Artifact sheet, graph form, composer: the citation preview | Descoped 2026-11-22 with S15-65 | — |
 | S15-D35 | Metadata board row: the list-below hint and Move to Source | — | S15-66 |
-| S15-D36 | Citation formats list and format page (new sidebar place); the type page's link to its format | — | S15-68 |
-| S15-D37 | Source type page: the default-format picker and preview in place of the format link; Copy type's formats tick | — | S15-69 |
-| S15-D38 | Citation formats: Add format dialog, Copy format, Delete and its in-use refusal | — | S15-70 |
-| S15-D39 | Source page: the format picker | — | S15-71 |
+| S15-D36 | Citation formats list and format page (new sidebar place); the type page's link to its format | Descoped 2026-11-26 with slice 12 | — |
+| S15-D37 | Source type page: the default-format picker and preview in place of the format link; Copy type's formats tick | Descoped 2026-11-26 with slice 12 | — |
+| S15-D38 | Citation formats: Add format dialog, Copy format, Delete and its in-use refusal | Descoped 2026-11-26 with slice 12 | — |
+| S15-D39 | Source page: the format picker | Descoped 2026-11-26 with slice 12 | — |
 | S15-D31 | Citation composer: the Printed page input goes | Descoped 2026-11-22: merged into S15-D29 | — |
 
 ## Archived

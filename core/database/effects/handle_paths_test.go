@@ -34,8 +34,8 @@ import (
 
 const locator = `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`
 
-// TestHandlePaths resolves Handles against a catalog. No write calls Handles
-// yet; these checks are the rules the registry states.
+// TestHandlePaths resolves Effect.Handles through Resolve (Set.Handles)
+// against a catalog; these checks are the rules the registry states.
 //
 // membersOf keeps accepted and provisional claims and drops rejected. A
 // citation edit recomputes handles only when transcription_uncertain is on
@@ -360,11 +360,11 @@ func observationSubject(subjectID []byte) rowchange.Change {
 
 func mustHandles(t *testing.T, tx *sql.Tx, changes ...rowchange.Change) [][]byte {
 	t.Helper()
-	got, err := effects.Handles(tx, changes)
+	set, err := effects.Resolve(tx, changes)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return got
+	return set.Handles
 }
 
 func mustHandleScopes(t *testing.T, tx *sql.Tx, changes ...rowchange.Change) [][]byte {

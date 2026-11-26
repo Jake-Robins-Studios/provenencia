@@ -83,7 +83,7 @@ func Delete(c *database.Catalog, userID, id []byte) error {
     // DELETE parent
     // err = deleteimpact.ReleaseSnapshot(tx, snap) — it schedules the purge
     // effects.Resolve then audit.Record(Changes: append(changes, parentChange), set), searchindex.Delete / Reproject
-    // handles come from effects.Handles on changes
+    // handles come from Set.Handles of effects.Resolve on changes
 }
 ```
 

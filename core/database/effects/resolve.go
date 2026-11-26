@@ -2,9 +2,9 @@ package effects
 
 import (
 	"bytes"
-	"database/sql"
 	"fmt"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbsql"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 )
 
@@ -21,11 +21,6 @@ func (g ghostMap) id(entity string, id []byte, field string) []byte {
 
 func errf(format string, args ...any) error {
 	return fmt.Errorf(format, args...)
-}
-
-// Handles resolves handle ids.
-func Handles(tx *sql.Tx, changes []rowchange.Change) ([][]byte, error) {
-	return resolve(tx, changes, func(e Effect) Path { return e.Handles })
 }
 
 // WithoutNone drops changes whose effect is None. An unknown entity type is
@@ -67,8 +62,8 @@ func AllNone(changes []rowchange.Change) (bool, error) {
 
 // Resolve is the whole effect of a batch: evidence graphs, keyed reads, source scopes, handles, search documents,
 // the catalog-wide lists that changed, and whether structure changed.
-func Resolve(tx *sql.Tx, changes []rowchange.Change) (Set, error) {
-	if tx == nil {
+func Resolve(q dbsql.Querier, changes []rowchange.Change) (Set, error) {
+	if q == nil {
 		return Set{}, errf("effects: nil tx")
 	}
 	ghosts := ghostsFrom(changes)
@@ -90,7 +85,7 @@ func Resolve(tx *sql.Tx, changes []rowchange.Change) (Set, error) {
 				listed[l] = true
 			}
 		}
-		w := &walk{q: tx, ch: ch, ghosts: ghosts, table: table}
+		w := &walk{q: q, ch: ch, ghosts: ghosts, table: table}
 		var err error
 		set.EvidenceGraphs, err = appendPath(w, table, eff.EvidenceGraph, set.EvidenceGraphs)
 		if err != nil {
@@ -218,42 +213,6 @@ func appendIDs(out, ids [][]byte) [][]byte {
 		out = append(out, append([]byte(nil), id...))
 	}
 	return out
-}
-
-func resolve(tx *sql.Tx, changes []rowchange.Change, pick func(Effect) Path) ([][]byte, error) {
-	if tx == nil {
-		return nil, errf("effects: nil tx")
-	}
-	ghosts := ghostsFrom(changes)
-	var out [][]byte
-	seen := map[string]struct{}{}
-	for _, ch := range changes {
-		table, ok := entityTable[ch.EntityType]
-		if !ok {
-			return nil, errf("effects: no entry for %s", ch.EntityType)
-		}
-		path := pick(registry[table])
-		if path.zero() {
-			continue
-		}
-		w := &walk{q: tx, ch: ch, ghosts: ghosts, table: table}
-		ids, err := path.run(w, nil, true)
-		if err != nil {
-			return nil, err
-		}
-		for _, id := range ids {
-			if len(id) != 16 {
-				continue
-			}
-			key := string(id)
-			if _, ok := seen[key]; ok {
-				continue
-			}
-			seen[key] = struct{}{}
-			out = append(out, append([]byte(nil), id...))
-		}
-	}
-	return out, nil
 }
 
 func sameIDs(a, b [][]byte) bool {

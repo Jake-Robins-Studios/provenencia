@@ -1,6 +1,6 @@
 # S16-69 — A commit runs each effects lookup once
 
-**Status:** Planned
+**Status:** Landed in [#979](https://github.com/Jake-Robins-Studios/provenencia/pull/979) (2026-11-26)
 **Spike / slice:** Spike 16 · Slice 6g — Catalog query layer
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: engine-only, nothing a researcher sees changes)
@@ -14,6 +14,8 @@
 **Context:** [design § A commit runs the same effects lookup more than once](../catalog-query-layer.md#a-commit-runs-the-same-effects-lookup-more-than-once-s16-69); working rules "(Batch 6) The effects memo lives for one change", "(Batch 2) No new persisted projections, and no stored answer without a measurement"; map Scale line "Scale (Batch 6, slice 6g)"; the S15-05 ship log, PRF-1 ([`../../spike-15/prs/S15-05-person-sources-date.ship.md`](../../spike-15/prs/S15-05-person-sources-date.ship.md))
 **Planned:** 2026-11-26 against `main` @ `f41c43b`
 **Review:** [`S16-69-effects-lookup-once.review.md`](S16-69-effects-lookup-once.review.md) — Fits with changes · Ready with changes, 1 round; no blocker open; To user: none
+
+**Landed.** Differences from the plan: none.
 
 ### Implementer — read this first
 
