@@ -49,6 +49,7 @@ func TestResolveLists(t *testing.T) {
 	merged := map[string]rowchange.FieldDiff{"merged_into_id": {Old: nil, New: id(6)}}
 	text := map[string]rowchange.FieldDiff{"value_text": {Old: "a", New: "b"}}
 	prop := map[string]rowchange.FieldDiff{"property_id": {Old: id(5), New: id(6)}}
+	sourceTypeChange := map[string]rowchange.FieldDiff{"source_type_id": {Old: id(3), New: id(4)}}
 
 	value := map[string]rowchange.FieldDiff{"value": {Old: "a", New: "b"}}
 	held := func(entityType string, b byte, action string, fields map[string]rowchange.FieldDiff) rowchange.Change {
@@ -63,6 +64,10 @@ func TestResolveLists(t *testing.T) {
 		{"graph then source vocabulary", []rowchange.Change{graph, sourceType},
 			[]effects.List{effects.ListSourceVocabulary}},
 		{"repeated change adds one key", []rowchange.Change{sourceType, sourceType},
+			[]effects.List{effects.ListSourceVocabulary}},
+		{"source type delete", []rowchange.Change{rowchange.Deleted("source_type", id(1), map[string]any{"label": "Book"})},
+			[]effects.List{effects.ListMetadataFieldUsage}},
+		{"source type label edit", []rowchange.Change{held("source_type", 1, rowchange.ActionUpdate, map[string]rowchange.FieldDiff{"label": {Old: "a", New: "b"}})},
 			[]effects.List{effects.ListSourceVocabulary}},
 		{"metadata field", []rowchange.Change{metadataField},
 			[]effects.List{effects.ListSourceVocabulary}},
@@ -89,10 +94,12 @@ func TestResolveLists(t *testing.T) {
 		{"graph metadata value edit", []rowchange.Change{held("evidence_graph_metadata", 21, rowchange.ActionUpdate, value)}, nil},
 		{"source metadata value edit", []rowchange.Change{held("source_metadata", 22, rowchange.ActionUpdate, value)}, nil},
 		{"source create", []rowchange.Change{rowchange.Created("source", id(7), map[string]any{"title": "a"})},
-			[]effects.List{effects.ListCounts}},
+			[]effects.List{effects.ListSourceTypeUsage, effects.ListCounts}},
 		{"source title edit", []rowchange.Change{source(rowchange.ActionUpdate, title)}, nil},
 		{"source delete", []rowchange.Change{rowchange.Deleted("source", id(7), map[string]any{"title": "a"})},
-			[]effects.List{effects.ListCounts}},
+			[]effects.List{effects.ListSourceTypeUsage, effects.ListCounts}},
+		{"source type change", []rowchange.Change{source(rowchange.ActionUpdate, sourceTypeChange)},
+			[]effects.List{effects.ListSourceTypeUsage, effects.ListCounts}},
 		{"handle create", []rowchange.Change{rowchange.Created("canonical_entity", id(8), map[string]any{"ref": "PER-1"})},
 			[]effects.List{effects.ListCounts}},
 		{"handle preferred picture edit", []rowchange.Change{entity(rowchange.ActionUpdate, preferred)}, nil},
@@ -100,7 +107,7 @@ func TestResolveLists(t *testing.T) {
 			[]effects.List{effects.ListCounts}},
 		{"source type then source keeps list order",
 			[]rowchange.Change{rowchange.Created("source", id(7), map[string]any{"title": "a"}), sourceType},
-			[]effects.List{effects.ListSourceVocabulary, effects.ListCounts}},
+			[]effects.List{effects.ListSourceVocabulary, effects.ListSourceTypeUsage, effects.ListCounts}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

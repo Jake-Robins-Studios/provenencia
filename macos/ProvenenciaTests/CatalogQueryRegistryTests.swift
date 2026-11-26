@@ -538,7 +538,20 @@ struct CatalogQueryRegistryTests {
         ] {
             #expect(key.kind.descriptor.deletedWith == .handle)
         }
-        #expect(CatalogQueryKey.Kind.sourceWorkspace.descriptor.deletedWith == nil)
+        #expect(CatalogQueryKey.Kind.sourceWorkspace.descriptor.deletedWith == .source)
+        #expect(CatalogQueryKey.Kind.typeSuggestions.descriptor.deletedWith == .sourceType)
+        #expect(!CatalogQueryKey.Kind.sourceWorkspace.descriptor.isEntityPage)
+        #expect(!CatalogQueryKey.Kind.typeSuggestions.descriptor.isEntityPage)
+        #expect(CatalogQueryKey.Kind.sourcesList.descriptor.invalidateOn.isEmpty)
+        #expect(CatalogQueryKey.Kind.sourceTypesList.descriptor.invalidateOn.isEmpty)
+        let deleted = CatalogQueryFollows.deleted(.source)
+        let effects = CatalogWriteEffects(deleted: [
+            CatalogWriteEffectsDeleted(entity: .source, ids: ["s1"]),
+            CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["t1"]),
+        ])
+        #expect(!deleted.isCatalogWide)
+        #expect(deleted.ids(in: effects) == ["s1"])
+        #expect(CatalogQueryFollows.deleted(.handle).ids(in: effects).isEmpty)
     }
 
     /// T-4 (AC-3.1): a key is a value: kind, project and the factory's ids.
@@ -587,7 +600,8 @@ struct CatalogQueryRegistryTests {
         #expect(sourcePatches.count == 2)
         #expect(sourcePatches[0].follows == .source)
         #expect(sourcePatches[1].follows == nil)
-        #expect(follows(.sourceTypesList(project: project)) == nil)
+        let typeFollows = CatalogQueryKey.sourceTypesList(project: project).kind.descriptor.patches.compactMap(\.follows)
+        #expect(!typeFollows.contains(.handle) && !typeFollows.contains(.source))
     }
 
     @Test func conclusionDetailOfAnUnknownHandleIsCodedNotFound() async throws {
@@ -835,7 +849,6 @@ struct CatalogQueryRegistryTests {
     /// T-14: a write's effects name the Evidence graphs to reload, one warmed key each
     /// (`revalidatedKeys`); no mutation names a graph, a Source delete included.
     @Test func evidenceGraphEffectsReloadOnlyThatGraph() {
-        let registry = CatalogQueryRegistry.standard
         let session = makeSession()
         let project = session.projectKey
         let graph1Key = CatalogQueryKey.evidenceGraph(project: project, graphId: "g-1")
@@ -843,9 +856,6 @@ struct CatalogQueryRegistryTests {
         session.setQueryValue(graph1Key, value: EvidenceGraphRows(graphId: "g-1"))
         session.setQueryValue(graph2Key, value: EvidenceGraphRows(graphId: "g-2"))
         #expect(session.revalidatedKeys(for: CatalogWriteEffects(evidenceGraphs: ["g-2"])) == [graph2Key])
-        // A Source delete names its graphs in its effects, not in its mutation.
-        #expect(!registry.invalidations(by: .deletedSource(id: "src-1"), project: project)
-            .contains(.allCached(.evidenceGraph)))
         #expect(CatalogQueryKey.Kind.evidenceGraph.descriptor.invalidateOn.isEmpty)
     }
 
@@ -1053,14 +1063,11 @@ struct CatalogQueryRegistryTests {
 
         #expect(registry.invalidations(by: .updatedSource(source), project: project).isEmpty)
 
-        // A new source moves a type's `usedBy`.
-        #expect(registry.invalidations(by: .createdSource(source), project: project) == [
-            .key(.sourceTypesList(project: project)),
-        ])
-        #expect(registry.invalidations(by: .deletedSource(id: "s1"), project: project) == [
-            .key(.sourcesList(project: project)),
-            .key(.sourceTypesList(project: project)),
+        // A new source moves a type's `usedBy` through the engine's `source_type_usage`, not a mutation.
+        #expect(registry.invalidations(by: .createdSource(source), project: project).isEmpty)
+        #expect(registry.invalidations(by: .changedSourceType(source), project: project) == [
             .key(.sourceWorkspace(project: project, sourceId: "s1")),
+            .allCached(.citationsByArtifact),
         ])
         // A vocabulary write names its lists through its effects, not a
         // mutation. A field relabel or delete restates a *derived* row on every
@@ -1123,7 +1130,7 @@ struct CatalogQueryRegistryTests {
         #expect(registry.hiddenPolicy(.citationCounts(project: project, graphId: "g1")) == .markStale)
         // Grades are seeded vocabulary with no CRUD surface, so nothing stales them.
         let everyMutation: [CatalogMutation] = [
-            .updatedSource(source), .changedSourceType(source), .createdSource(source), .deletedSource(id: "s1"),
+            .updatedSource(source), .changedSourceType(source), .createdSource(source),
             .updatedMetadataField(id: "f1"), .deletedMetadataField(id: "f1"),
             .wroteTypeSuggestions(typeId: "t1", edit: CatalogTypeSuggestionEdit(suggestions: [], suggestedFieldCount: 0)),
             .mutatedSourceWorkspace(sourceId: "s1"),
@@ -1140,7 +1147,6 @@ struct CatalogQueryRegistryTests {
             .key(.sourceWorkspace(project: project, sourceId: "s1")),
         ])
         #expect(registry.invalidations(by: .changedSourceType(source), project: project) == [
-            .key(.sourceTypesList(project: project)),
             .key(.sourceWorkspace(project: project, sourceId: "s1")),
             .allCached(.citationsByArtifact),
         ])
@@ -1333,23 +1339,58 @@ struct CatalogQueryRegistryTests {
         #expect(!handle.isStale)
     }
 
-    /// Adding a source moves its type's `usedBy`, which gates deleting the type.
-    @Test func createdSourceInvalidatesTypesList() async {
+    /// A Source create, delete or type change reports `source_type_usage`, which restates the
+    /// types list's `usedBy`; a handle write's `counts` and a mutation do not.
+    @Test func sourceTypeUsageRestatesTheTypesList() async {
         let store = FakeStore()
-        seedStore(store)
+        store.sourceTypesByProject[projectDir] = [
+            CatalogSourceType(id: "t1", key: "book", origin: "user", label: "Book", description: "", usedBy: 2),
+            CatalogSourceType(id: "t2", key: "census", origin: "user", label: "Census", description: ""),
+        ]
         let session = makeSession(store: store)
         let key = CatalogQueryKey.sourceTypesList(project: session.projectKey)
-
         let handle: QueryHandle<[CatalogSourceType]> = session.query(key)
         await waitForQuery(handle)
-        #expect(handle.value?.first?.usedBy == 0)
+        #expect(handle.value?.first { $0.id == "t1" }?.usedBy == 2)
 
         store.sourceTypesByProject[projectDir]?[0].usedBy = 1
-        session.apply(.createdSource(CatalogSource(id: "s2", ref: "SRC-2", sourceTypeID: "", title: "New Row", description: "")))
+        session.apply(CatalogWriteEffects(lists: [.sourceTypeUsage, .counts]))
+        await session.settleWrites()
+        #expect(handle.value?.first { $0.id == "t1" }?.usedBy == 1)
 
-        let _: QueryHandle<[CatalogSourceType]> = session.query(key)
+        store.sourceTypesByProject[projectDir]?[0].usedBy = 5
+        session.apply(CatalogWriteEffects(lists: [.counts]))
+        session.apply(.createdSource(CatalogSource(id: "s2", ref: "SRC-2", sourceTypeID: "t1", title: "N", description: "")))
+        session.apply(.changedSourceType(CatalogSource(id: "s2", ref: "SRC-2", sourceTypeID: "t2", title: "N", description: "")))
+        await session.settleWrites()
+        #expect(handle.value?.first { $0.id == "t1" }?.usedBy == 1)
+    }
+
+    /// A Source delete reports `source_holdings` for the Source: the Sources list's re-read returns no
+    /// row for it and drops it, with no whole reload and no stale mark.
+    @Test func deletedSourceDropsTheListRowByItsReRead() async {
+        let store = FakeStore()
+        let s1 = CatalogSource(id: "s1", ref: "SRC-1", sourceTypeID: "t1", title: "Alpha", description: "")
+        let s2 = CatalogSource(id: "s2", ref: "SRC-2", sourceTypeID: "t1", title: "Beta", description: "")
+        store.sourcesByProject[projectDir] = [s1, s2]
+        let session = makeSession(store: store)
+        let key = CatalogQueryKey.sourcesList(project: session.projectKey)
+        let handle: QueryHandle<[CatalogSource]> = session.query(key)
         await waitForQuery(handle)
-        #expect(handle.value?.first?.usedBy == 1)
+        #expect(handle.value?.map(\.id).sorted() == ["s1", "s2"])
+        store.sourcesByProject[projectDir] = [s2]
+        let callsBefore = store.listSourcesCalls
+
+        session.apply(CatalogWriteEffects(
+            reads: [CatalogWriteEffectsRead(read: .sourceHoldings, ids: ["s1"])],
+            deleted: [CatalogWriteEffectsDeleted(entity: .source, ids: ["s1"])],
+            activity: CatalogActivity(revision: 7, at: "2026-01-01T00:00:00Z")
+        ))
+        await session.settleWrites()
+        #expect(handle.value?.map(\.id) == ["s2"])
+        #expect(!handle.isStale)
+        #expect(store.listSourcesByIDCalls == [["s1"]])
+        #expect(store.listSourcesCalls == callsBefore)
     }
 
     /// T-10: a created Source type is appended to the warmed types list at once (a declared
@@ -1395,15 +1436,41 @@ struct CatalogQueryRegistryTests {
         session.apply(.empty, .updatedSourceType(stranger))
         #expect(handle.value == [book, renamed])
 
-        session.apply(.empty, .deletedSourceType(id: "t-book"))
+        // The engine reports a type delete as `deleted` and `metadata_field_usage`, so the row drops
+        // with one patch and the types list, which does not follow that list, neither reloads nor goes stale.
+        store.sourceTypesByProject[projectDir] = [renamed]
+        let bookDeleted = CatalogWriteEffects(
+            lists: [.metadataFieldUsage],
+            deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["t-book"])]
+        )
+        #expect(CatalogQueryFollows.deleted(.sourceType).ids(in: bookDeleted) == ["t-book"])
+        session.apply(bookDeleted)
         #expect(handle.value == [renamed])
-        session.apply(.empty, .deletedSourceType(id: "t-book"))
-        #expect(handle.value == [renamed])
-        #expect(!handle.isFetching)
         #expect(!handle.isStale)
+        #expect(!handle.isFetching)
+        session.apply(bookDeleted)
+        #expect(handle.value == [renamed])
+        session.apply(CatalogWriteEffects(deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["gone"])]))
+        #expect(handle.value == [renamed])
         let registry = CatalogQueryRegistry.standard
         #expect(registry.invalidations(by: .updatedSourceType(renamed), project: session.projectKey).isEmpty)
-        #expect(registry.invalidations(by: .deletedSourceType(id: "t-book"), project: session.projectKey).isEmpty)
+    }
+
+    /// A type delete reports `deleted` and `metadata_field_usage`, so a warmed field list, whose `usedBy` names the
+    /// type in a citation format, is marked stale.
+    @Test func sourceTypeDeleteMarksTheFieldsListStale() async {
+        let store = FakeStore()
+        let session = makeSession(store: store)
+        let key = CatalogQueryKey.metadataFieldsList(project: session.projectKey)
+        store.fieldsByProject[projectDir] = [catalogMetadataField("f1", label: "Author")]
+        let handle: QueryHandle<[CatalogMetadataField]> = session.query(key)
+        await waitForQuery(handle)
+        #expect(!handle.isStale)
+        session.apply(CatalogWriteEffects(
+            lists: [.metadataFieldUsage],
+            deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["t-book"])]
+        ))
+        #expect(handle.isStale)
     }
 
     /// T-7 (D-7): a suggestion write patches the type's one key and the row's count with no load,
@@ -1732,7 +1799,7 @@ struct CatalogQueryRegistryTests {
             .personRecordLinks,
         ]
         let mutations: [CatalogMutation] = [
-            .updatedSource(source), .changedSourceType(source), .createdSource(source), .deletedSource(id: "s1"),
+            .updatedSource(source), .changedSourceType(source), .createdSource(source),
             .updatedMetadataField(id: "f1"), .deletedMetadataField(id: "f1"),
             .wroteTypeSuggestions(typeId: "t1", edit: CatalogTypeSuggestionEdit(suggestions: [], suggestedFieldCount: 0)),
             .mutatedSourceWorkspace(sourceId: "s1"),

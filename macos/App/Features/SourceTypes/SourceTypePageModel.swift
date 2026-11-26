@@ -5,7 +5,7 @@ import Observation
 /// the one list of suggested fields it assigns and removes, and Delete. The page mounts once per
 /// type (`PlaceRegistry` `viewIdentity`), so the draft belongs to one type. It reads the type from
 /// the session's types list and writes through the declared patches (`.updatedSourceType`,
-/// `.deletedSourceType`, `.wroteTypeSuggestions`); the list model never edits.
+/// `.wroteTypeSuggestions`) and the engine's `WriteEffects.deleted`; the list model never edits.
 @MainActor
 @Observable
 final class SourceTypePageModel {
@@ -416,7 +416,7 @@ final class SourceTypePageModel {
             let effects = try await store.deleteSourceType(
                 projectDir: session.projectKey.projectDir, userID: userID, typeID: target.id
             )
-            session.apply(effects, .deletedSourceType(id: target.id), leavingPage: leave)
+            session.apply(effects, leavingPage: leave)
         }
     }
 }

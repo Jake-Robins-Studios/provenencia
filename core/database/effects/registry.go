@@ -118,7 +118,8 @@ type DeletedIDs struct {
 type List string
 
 const (
-	// ListSourceVocabulary: a Source type or a metadata field changed.
+	// ListSourceVocabulary: a Source type or a metadata field changed. A Source
+	// type delete reports Deleted and metadata_field_usage instead.
 	ListSourceVocabulary List = "source_vocabulary"
 	// ListPropertyVocabulary: a subject type, Property or Property term label,
 	// or a subject type's Property binding, changed.
@@ -127,16 +128,20 @@ const (
 	// another Property, so the Properties workspace's usedBy counts changed.
 	ListPropertyUsage List = "property_usage"
 	// ListMetadataFieldUsage: a metadata value was created or deleted on a
-	// Source, Artifact, Evidence graph or Citation, so the field list's usedBy counts
+	// Source, Artifact, Evidence graph or Citation, or a Source type whose citation
+	// formats can name fields was deleted, so the field list's usedBy counts
 	// changed. An edit of a held value moves no count.
 	ListMetadataFieldUsage List = "metadata_field_usage"
+	// ListSourceTypeUsage: a Source was created, deleted or moved to another
+	// type, so a Source type's usedBy count changed.
+	ListSourceTypeUsage List = "source_type_usage"
 	// ListCounts: a Source or a handle (of any type) was created, deleted or
 	// merged, so a sidebar count may have changed.
 	ListCounts List = "counts"
 )
 
 // Lists is every catalog-wide list, in the order Set.Lists reports them.
-var Lists = []List{ListSourceVocabulary, ListPropertyVocabulary, ListPropertyUsage, ListMetadataFieldUsage, ListCounts}
+var Lists = []List{ListSourceVocabulary, ListPropertyVocabulary, ListPropertyUsage, ListMetadataFieldUsage, ListSourceTypeUsage, ListCounts}
 
 // Set is what a batch of changes touches. Empty Handles or Search means that
 // job has nothing to do. Lists and Structure are the catalog-wide fields.
@@ -197,8 +202,8 @@ type Effect struct {
 	Search  []SearchDoc
 	// Lists are the catalog-wide lists a change to the table moves. Which
 	// updates move them is one choice: all (the default), those writing
-	// ListsOnField, or none (ListsOnCreateDelete). Creates and deletes always
-	// move them.
+	// ListsOnField, or none (ListsOnCreateDelete). Creates and deletes move
+	// them; a delete moves ListsOnDelete in place of Lists when that is set.
 	Lists []List
 	// ListsOnField, when set, narrows an update: it moves Lists only if it
 	// writes this field.
@@ -206,8 +211,11 @@ type Effect struct {
 	// ListsOnCreateDelete, when set, means an update never moves Lists. It
 	// is the other choice beside ListsOnField, and needs Lists.
 	ListsOnCreateDelete bool
-	Structure           Path
-	None                bool
+	// ListsOnDelete, when set, means a delete moves these lists in place of
+	// Lists. It needs Lists and Deleted.
+	ListsOnDelete []List
+	Structure     Path
+	None          bool
 }
 
 // Has reports whether the batch changed the list.
@@ -320,9 +328,9 @@ func ownedValue(entity, col string, sourceOwners ...Path) Effect {
 	}
 }
 
-// movesLists reports whether the change moves the entry's Lists: always for
-// a create or delete, and for an update never under ListsOnCreateDelete, else
-// only when it writes ListsOnField.
+// movesLists reports whether the change moves lists: always for a create and a
+// delete, for an update never under ListsOnCreateDelete, else only when it
+// writes ListsOnField. Which lists it moves is listsFor.
 func (e Effect) movesLists(ch rowchange.Change) bool {
 	if len(e.Lists) == 0 {
 		return false
@@ -335,6 +343,15 @@ func (e Effect) movesLists(ch rowchange.Change) bool {
 	}
 	_, ok := ch.Fields[e.ListsOnField]
 	return ok
+}
+
+// listsFor is the lists a change that movesLists moves: ListsOnDelete for a
+// delete when set, else Lists.
+func (e Effect) listsFor(ch rowchange.Change) []List {
+	if ch.Action == rowchange.ActionDelete && e.ListsOnDelete != nil {
+		return e.ListsOnDelete
+	}
+	return e.Lists
 }
 
 // observers is the handles whose members point at a subject.
@@ -353,9 +370,11 @@ var registry = map[string]Effect{
 			{Kind: DocSource, Path: self()},
 			{Kind: DocEvidenceGraph, Path: onField("title", graphsOfSource(self()))},
 		},
-		// A rename or cover change moves no sidebar count.
-		Lists:               []List{ListCounts},
-		ListsOnCreateDelete: true,
+		Deleted: onDelete(self()),
+		// A create, a delete or a type change moves the sidebar count and the
+		// type's usage; a rename or cover change moves neither.
+		Lists:        []List{ListCounts, ListSourceTypeUsage},
+		ListsOnField: "source_type_id",
 	},
 	"source_notes": {
 		Entity:      "source_note",
@@ -469,8 +488,13 @@ var registry = map[string]Effect{
 	"name_values":      ownedValue("name_value", "value_name_id"),
 	"depiction_values": ownedValue("depiction_value", "value_depiction_id"),
 	"source_types": {
-		Entity: "source_type",
-		Lists:  []List{ListSourceVocabulary},
+		Entity:  "source_type",
+		Deleted: onDelete(self()),
+		Lists:   []List{ListSourceVocabulary},
+		// A type delete reports Deleted: the types list drops the row with one
+		// patch, and the field list's usedBy (a citation format names fields)
+		// follows metadata_field_usage, so source_vocabulary does not move.
+		ListsOnDelete: []List{ListMetadataFieldUsage},
 		// Each path lists the type columns its document reads, so a format-only
 		// change (citation_*) reprojects nothing. The type document is
 		// searchindex.ReprojectSourceType; the Source document, ReprojectSource.
@@ -568,7 +592,7 @@ func metadataEffects(list []catalogmodel.MetadataLevelTables, reg map[string]Eff
 		}
 		for _, table := range []string{e.Values, e.Layout} {
 			eff := reg[table]
-			if eff.Entity != "" || !eff.SourceScope.zero() || eff.Lists != nil || eff.ListsOnCreateDelete {
+			if eff.Entity != "" || !eff.SourceScope.zero() || eff.Lists != nil || eff.ListsOnCreateDelete || eff.ListsOnDelete != nil {
 				panic("effects: " + table + " sets a field metadataEffects owns")
 			}
 			eff.Entity = table
@@ -660,7 +684,7 @@ func (e Effect) validate(table string) error {
 			return errf("%s: deleted ids end at %s, want its own table", table, end)
 		}
 	}
-	for _, l := range e.Lists {
+	for _, l := range append(slices.Clone(e.Lists), e.ListsOnDelete...) {
 		if !slices.Contains(Lists, l) {
 			return errf("%s: undeclared list %q", table, l)
 		}
@@ -670,6 +694,9 @@ func (e Effect) validate(table string) error {
 	}
 	if e.ListsOnCreateDelete && len(e.Lists) == 0 {
 		return errf("%s: ListsOnCreateDelete without Lists", table)
+	}
+	if e.ListsOnDelete != nil && (len(e.Lists) == 0 || e.Deleted.zero()) {
+		return errf("%s: ListsOnDelete without Lists and Deleted", table)
 	}
 	if e.ListsOnCreateDelete && e.ListsOnField != "" {
 		return errf("%s: ListsOnCreateDelete with ListsOnField", table)

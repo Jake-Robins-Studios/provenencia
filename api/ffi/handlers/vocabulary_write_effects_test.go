@@ -34,7 +34,11 @@ func TestVocabularyWritesReturnEffects(t *testing.T) {
 		want(t, formatted.GetEffects(), source)
 		var deleted engine.DeleteSourceTypeResponse
 		mustRPC(t, DeleteSourceType, &engine.DeleteSourceTypeRequest{ProjectDir: dir, UserId: userID, TypeId: typeID}, &deleted)
-		want(t, deleted.GetEffects(), source)
+		// A type delete reports Deleted and metadata_field_usage, not source_vocabulary.
+		if !slices.Equal(deleted.GetEffects().GetLists(), []string{"metadata_field_usage"}) || deleted.GetEffects().GetRevision() <= 0 ||
+			!slices.Equal(deletedIDs(deleted.GetEffects(), "source_type"), []string{typeID}) {
+			t.Fatalf("type delete effects %v, want a revision, deleted [%s] and [metadata_field_usage]", deleted.GetEffects(), typeID)
+		}
 
 		var field engine.CreateMetadataFieldResponse
 		mustRPC(t, CreateMetadataField, &engine.CreateMetadataFieldRequest{ProjectDir: dir, UserId: userID, Label: "Volume", DataType: "text"}, &field)

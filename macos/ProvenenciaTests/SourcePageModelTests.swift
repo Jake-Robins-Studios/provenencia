@@ -1438,12 +1438,19 @@ struct SourcePageModelTests {
         session.apply(location: WorkspaceLocation.sourcePage(sourceId: sourceID))
         await model.warmFromSession()
         await model.askDeleteSource()
+        store.nextWriteEffects = CatalogWriteEffects(
+            deleted: [CatalogWriteEffectsDeleted(entity: .source, ids: [sourceID])]
+        )
         let loadsBefore = store.getSourceWorkspaceCalls
         var leaves = 0
         let left = await model.confirmResourceDelete(leaving: { leaves += 1 })
         await session.settleWrites()
         #expect(left)
         #expect(leaves == 1)
+        let page: QueryHandle<CatalogSourceWorkspace>? = session.queryHandle(
+            .sourceWorkspace(project: session.projectKey, sourceId: sourceID)
+        )
+        #expect(page == nil)
         #expect(store.getSourceWorkspaceCalls == loadsBefore)
     }
 

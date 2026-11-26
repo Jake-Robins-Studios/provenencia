@@ -442,7 +442,7 @@ final class WorkspaceSession {
     }
 
     /// Runs each warmed key's descriptor patches. A patch with `follows` gets
-    /// the ids that slot names, and only when the write reported activity.
+    /// the ids that slot names.
     /// A patch with no `follows` reads the mutation. Returns the keys a patch
     /// could not write because their first load is still in flight.
     private func applyPatches(_ effects: CatalogWriteEffects, _ mutation: CatalogMutation?) -> [CatalogQueryKey] {
@@ -451,7 +451,6 @@ final class WorkspaceSession {
             for patch in key.kind.descriptor.patches {
                 let result: CatalogPatchResult
                 if let follows = patch.follows {
-                    guard effects.activity.revision > 0 else { continue }
                     let ids = Set(follows.ids(in: effects))
                     if ids.isEmpty { continue }
                     result = patch.apply(self, key, ids, effects.activity, mutation)

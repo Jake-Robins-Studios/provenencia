@@ -196,6 +196,15 @@ func TestDeleteSourceReturnsEffects(t *testing.T) {
 	if !contains(eff.GetLists(), "counts") {
 		t.Fatalf("lists = %v, want counts", eff.GetLists())
 	}
+	if !contains(eff.GetLists(), "source_type_usage") {
+		t.Fatalf("lists = %v, want source_type_usage", eff.GetLists())
+	}
+	if got := deletedIDs(eff, "source"); len(got) != 1 || got[0] != sourceID {
+		t.Fatalf("deleted source = %v, want [%s]", got, sourceID)
+	}
+	if !readHas(eff, "source_holdings", sourceID) {
+		t.Fatalf("reads = %v, want source_holdings for %s", eff.GetReads(), sourceID)
+	}
 }
 
 // TestListSourcesByIDs: source_ids narrows the list to those Sources, with the

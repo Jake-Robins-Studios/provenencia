@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-70 — A Source or Source type delete is learned from the engine
+
+**Landed 2026-11-26** in [#988](https://github.com/Jake-Robins-Studios/provenencia/pull/988). Nothing a researcher sees changes. A Source or Source type delete reaches the Swift cache only through the write's `WriteEffects.deleted`: the Source types list drops the row with one patch (`deletedRows(_:of:)`) and no reload, because a type delete reports `deleted` and `metadata_field_usage` in place of `source_vocabulary` (the metadata field list follows `metadata_field_usage`, since a type's citation formats count toward a field's `usedBy`), the Sources list drops it by its `source_holdings` re-read, and the Source page and the type's suggestions evict through `deletedWith`. The engine reports a new `source_type_usage` list on a Source create, delete or type change, which restates a type's `usedBy`. `.deletedSource`, `.deletedSourceType` and the `removes:` closure are gone.
+
 ## S16-69 — A commit runs each effects lookup once
 
 **Landed 2026-11-26** in [#979](https://github.com/Jake-Robins-Studios/provenencia/pull/979). Nothing a researcher sees changes. A write's effects are resolved through one memoised `walk.lookup` per changed row, so a Source date change looks up its Source once (was twice) and an Observation's value row looks up its Observation once (was five times) and its Subject's claims once (was twice); the effects reported are the same. `Resolve` takes a `dbsql.Querier`, and the test-only `Handles` and `resolve` are gone (tests read `Resolve(...).Handles`).

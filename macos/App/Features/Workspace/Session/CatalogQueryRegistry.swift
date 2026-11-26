@@ -27,7 +27,7 @@ struct CatalogQueryDescriptor: Sendable {
     var whenHidden: CatalogHiddenPolicy = .revalidate
     /// The entity whose id `ownId` is. Its deletion evicts the hidden key
     /// (`apply`), and `.handle` keys are the pages the hidden-entity cap counts
-    /// (`apply(location:)`).
+    /// (`apply(location:)`). Only `.handle` keys count toward `maxHiddenEntities`.
     var deletedWith: CatalogDeletedEntity? = nil
     /// Whether this is a per-entity page key, one the hidden-entity cap counts
     /// and `shownOrder` orders: its `ownId` is a handle.
@@ -145,12 +145,12 @@ extension CatalogQueryKey.Kind {
             // or leaving a Source, or an Artifact's file changing, reports
             // `source_holdings`: the arm re-reads just that Source's row (its
             // `hasArtifact` and cover thumbnail) and merges it into the warmed
-            // list; a Source that is gone returns no row, so none is kept.
+            // list; a Source that is gone returns no row, so none is kept. A Source
+            // delete releases its graph, so it reports `source_holdings` for itself,
+            // and the re-read drops the row.
             return .make(
                 kind: self,
-                invalidateOn: [.deletedSource],
                 whenHidden: .markStale,
-                invalidation: { project, _ in .key(.sourcesList(project: project)) },
                 patches: [
                     .lastUpdated([CatalogSource].self, follows: .source),
                     .sourceRow(),
@@ -171,15 +171,23 @@ extension CatalogQueryKey.Kind {
                 }
             )
         case .sourceTypesList:
-            // A type write reports `source_vocabulary`, which this key follows.
-            // `usedBy` counts sources per type, so adding a source or moving one
-            // restates rows no type edit touched.
+            // A type create or edit reports `source_vocabulary`, which this key
+            // follows. A type delete reports `deleted` and `metadata_field_usage`,
+            // not `source_vocabulary`: it reaches this key only through
+            // `deletedRows`, which drops the row. `usedBy` counts sources
+            // per type: a Source create, delete or type change reports
+            // `source_type_usage`, which restates the rows no type edit touched.
             return .make(
                 kind: self,
-                invalidateOn: [.createdSource, .deletedSource, .changedSourceType],
-                invalidation: { project, _ in .key(.sourceTypesList(project: project)) },
-                patches: [.sourceTypeRow(), .typeSuggestionCount()],
-                refreshes: [.applyHiddenPolicyOnAny(follows: .list(.sourceVocabulary))],
+                patches: [
+                    .deletedRows(CatalogSourceType.self, of: .sourceType),
+                    .sourceTypeRow(),
+                    .typeSuggestionCount(),
+                ],
+                refreshes: [
+                    .applyHiddenPolicyOnAny(follows: .list(.sourceVocabulary)),
+                    .applyHiddenPolicyOnAny(follows: .list(.sourceTypeUsage)),
+                ],
                 load: { key, store in
                     return try await store.listSourceTypes(projectDir: key.project.projectDir)
                 }
@@ -189,8 +197,8 @@ extension CatalogQueryKey.Kind {
             // `usedBy` counts Sources, Artifacts, Evidence graphs and Citations
             // holding a value for the field and Source types naming it in a
             // citation format, and it gates Delete: a value created or released
-            // on any of them reports `metadata_field_usage`; a format write
-            // reports `source_vocabulary`, which this key follows. Only the
+            // on any of them reports `metadata_field_usage`, as does a Source type
+            // delete; a format write reports `source_vocabulary`. Only the
             // Metadata and Source type pages and the Source page read it, so a
             // hidden list is marked stale and reloads when next shown.
             return .make(
@@ -227,11 +235,12 @@ extension CatalogQueryKey.Kind {
             // cached Artifact and graph boards below it inherit the new value the same way.
             return .make(
                 kind: self,
-                invalidateOn: CatalogMutationKind.boardVocabulary.union([.mutatedSourceWorkspace, .deletedSource]),
+                invalidateOn: CatalogMutationKind.boardVocabulary.union([.mutatedSourceWorkspace]),
                 whenHidden: .markStale,
+                deletedWith: .source,
                 invalidation: { project, mutation in
                     switch mutation {
-                    case .mutatedSourceWorkspace(let sourceId), .deletedSource(let sourceId):
+                    case .mutatedSourceWorkspace(let sourceId):
                         return .key(.sourceWorkspace(project: project, sourceId: sourceId))
                     case .changedSourceType(let source):
                         return .key(.sourceWorkspace(project: project, sourceId: source.id))
@@ -312,6 +321,7 @@ extension CatalogQueryKey.Kind {
             return .make(
                 kind: self,
                 whenHidden: .markStale,
+                deletedWith: .sourceType,
                 patches: [.typeSuggestions()],
                 refreshes: [.applyHiddenPolicyOnAny(follows: .list(.sourceVocabulary))],
                 load: { key, store in

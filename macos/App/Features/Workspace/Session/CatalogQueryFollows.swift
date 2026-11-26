@@ -20,6 +20,8 @@ enum CatalogQueryFollows: Sendable, Hashable {
     case list(CatalogList)
     /// `CatalogWriteEffects.structure`. Catalog-wide, as `list(_:)`.
     case structure
+    /// `CatalogWriteEffects.deleted`: the ids of one entity a write deleted.
+    case deleted(CatalogDeletedEntity)
 
     /// Whether the slot names no row: it reports one token when the write moved
     /// it. The constructors that read a slot as row or key ids refuse one.
@@ -27,7 +29,7 @@ enum CatalogQueryFollows: Sendable, Hashable {
         switch self {
         case .list, .structure:
             return true
-        case .handle, .source, .reads, .touchedHandles, .evidenceGraphs:
+        case .handle, .source, .reads, .touchedHandles, .evidenceGraphs, .deleted:
             return false
         }
     }
@@ -49,6 +51,8 @@ enum CatalogQueryFollows: Sendable, Hashable {
             return effects.lists.contains(list) ? [list.rawValue] : []
         case .structure:
             return effects.structure ? ["structure"] : []
+        case .deleted(let entity):
+            return effects.deletedIDs(of: entity)
         }
     }
 

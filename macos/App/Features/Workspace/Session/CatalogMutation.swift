@@ -13,7 +13,6 @@ enum CatalogMutation: Sendable, Equatable {
     /// Add or Copy Source: the row the engine returned, which the Sources list
     /// takes as a new row (`CatalogQueryPatch.sourceRow()`).
     case createdSource(CatalogSource)
-    case deletedSource(id: String)
 
     /// Add type: the row the engine returned, which the Source types list takes as a new row
     /// (`CatalogQueryPatch.sourceTypeRow()`). Patch-only.
@@ -22,9 +21,6 @@ enum CatalogMutation: Sendable, Equatable {
     /// Save on a Source type's page: the row the engine returned, which the cached types list
     /// takes in place of its row (`CatalogQueryPatch.sourceTypeRow()`). Patch-only.
     case updatedSourceType(CatalogSourceType)
-
-    /// Delete on a Source type's page: the types list drops the row with this id. Patch-only.
-    case deletedSourceType(id: String)
 
     /// A field was relabelled or deleted. Each Source page restates the
     /// field's derived rows, which `source_vocabulary` cannot tell from a field
@@ -67,6 +63,9 @@ enum CatalogList: String, Sendable, CaseIterable {
     /// A metadata value was created or deleted on a Source, Artifact,
     /// Evidence graph or Citation, so the field list's `usedBy` counts changed.
     case metadataFieldUsage = "metadata_field_usage"
+    /// A Source was created, deleted or moved to another type, so a Source
+    /// type's `usedBy` count changed.
+    case sourceTypeUsage = "source_type_usage"
     /// A Source or a handle (of any type) was created, deleted or merged, so a
     /// sidebar count may have changed. It names no cache key: the session
     /// recounts (`WorkspaceSession.onNavCountsMoved`).
@@ -112,6 +111,10 @@ struct CatalogWriteEffectsRead: Sendable, Equatable {
 enum CatalogDeletedEntity: String, Sendable, CaseIterable {
     /// Person, Event, Place and bridge handles.
     case handle = "canonical_entity"
+    /// A Source.
+    case source = "source"
+    /// A Source type.
+    case sourceType = "source_type"
 }
 
 /// The ids of one entity a write deleted.
@@ -193,7 +196,12 @@ struct CatalogWriteEffects: Sendable, Equatable {
 
     /// The handles this write deleted: the `canonical_entity` entry of `deleted`.
     var deletedHandles: [String] {
-        deleted.first { $0.entity == .handle }?.ids ?? []
+        deletedIDs(of: .handle)
+    }
+
+    /// The ids this write deleted of one entity: that entity's entry of `deleted`.
+    func deletedIDs(of entity: CatalogDeletedEntity) -> [String] {
+        deleted.first { $0.entity == entity }?.ids ?? []
     }
 
     var touchedHandles: [String] {
@@ -205,8 +213,6 @@ struct CatalogWriteEffects: Sendable, Equatable {
 /// Mutation kind for registry invalidation tags (no associated payload).
 enum CatalogMutationKind: Hashable, Sendable {
     case changedSourceType
-    case createdSource
-    case deletedSource
     case updatedMetadataField
     case deletedMetadataField
     case wroteTypeSuggestions
@@ -226,14 +232,10 @@ extension CatalogMutation {
     /// Kind tag for registry `invalidateOn` lookup. Nil for patch-only mutations.
     var invalidationKind: CatalogMutationKind? {
         switch self {
-        case .updatedSource, .wroteMetadataBoard, .createdSourceType, .updatedSourceType, .deletedSourceType:
+        case .updatedSource, .wroteMetadataBoard, .createdSourceType, .updatedSourceType, .createdSource:
             return nil
         case .changedSourceType:
             return .changedSourceType
-        case .createdSource:
-            return .createdSource
-        case .deletedSource:
-            return .deletedSource
         case .updatedMetadataField:
             return .updatedMetadataField
         case .deletedMetadataField:

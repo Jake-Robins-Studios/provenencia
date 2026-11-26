@@ -339,9 +339,19 @@ func TestDeleteSourceType(t *testing.T) {
 				}
 			},
 			want: &engine.DeleteSourceTypeResponse{},
-			after: func(t *testing.T, _ []byte, req proto.Message) {
+			after: func(t *testing.T, out []byte, req proto.Message) {
 				dr := req.(*engine.DeleteSourceTypeRequest)
 				assertLatestAuditAction(t, dr.ProjectDir, "delete_source_type")
+				var resp engine.DeleteSourceTypeResponse
+				if err := proto.Unmarshal(out, &resp); err != nil {
+					t.Fatal(err)
+				}
+				if got := deletedIDs(resp.GetEffects(), "source_type"); len(got) != 1 || got[0] != dr.TypeId {
+					t.Fatalf("deleted source_type = %v, want [%s]", got, dr.TypeId)
+				}
+				if got := resp.GetEffects().GetLists(); !slices.Equal(got, []string{"metadata_field_usage"}) {
+					t.Fatalf("a type delete lists = %v, want [metadata_field_usage]", got)
+				}
 			},
 		},
 		{
