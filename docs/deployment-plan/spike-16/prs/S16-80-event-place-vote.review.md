@@ -1,0 +1,92 @@
+# Review — S16-80 An event's places reconcile by their records
+
+**Verdict:** Fits with changes — Ready with changes (round 1)
+**Rounds:** 1. **Reviewers:** maintainability (opus), executability (sonnet)
+
+## To user
+
+- **M-1, where "an event has one place" is declared.** The user chose the matching registry (`segment.go` `One`). The writer then found two consequences and asked again. `One` keys hold from both ends (a place would have one event). Matching knows no containment, so Promote would score Canada vs Swift Current as a −3 conflict. The user asked which shape fits best. **Writer's recommendation, applied in D-1 pending the user's confirmation:** no declaration yet. The vote passes single with a decided comment, and the one declaration both layers read is parked in [`ideas/one-bridge-cardinality.md`](../../../ideas/one-bridge-cardinality.md), to be built once matching can tell containment from conflict.
+
+## Writer's own calls
+
+- D-3: denied, provisional and negative rows do not vote again across links. The link's own reconcile already weighed them, and this keeps the fast path exact.
+- D-8: the last tiebreak between equally supported places is the earlier record, not the ref (the pipeline's own order).
+- D-9: an event reads at most 64 location links (`maxLifeOwners`), in `eventLocations`, for every reader.
+- D-13: search is re-projected (`ProjectionVersion` 13), so an outvoted place stops matching.
+- Version: patch (0.46.1).
+
+## Round 1
+
+### M-1 · blocker · Bridge-end cardinality gets a second declaration, and it has one caller
+`core/matchregistry/segment.go` `One` already declares one-cardinality links. A `connectrules.Endpoint.Cardinality` field would be a second declaration that disagrees with it, and `voteLocations` would be its only reader.
+**Answer:** To user (above). D-1 drops the `connectrules` and `hops` changes, along with STEP-3 and T-2 of the draft.
+
+### M-2 · blocker · The provenance sheet reads a record's provenance a second way
+`(*recordReader).outcome` builds `Provenance` from Source records and per-graph Observations, while the node now carries the same facts.
+**Answer:** Fixed. D-5 makes the node the one home, and § 6 Go core has `outcome` read the member's credibility and the row's certainty. The Out row is gone.
+
+### M-3 · major · `Outcome.SourceID` repeats `Member.SourceID`, and credibility is per Source
+**Answer:** Fixed. D-5 puts `Credibility` on `Member` (one join in `loadMembers`) and `Uncertain` on `Outcome` (one join), and takes the Source from the member. The Scale memory bound is cut to 2 MB.
+
+### M-4 · blocker · The vote's overlay in `PersonDerivedRows` gives S15-28's records read no slot
+**Answer:** Fixed. D-12 makes `placeVerdict` one function, and the cross-spike table in `deployment-plan.md` gains the row "S16-80 | S15-28".
+
+### M-5 · major · The containment rule is written twice, and the fast path hand-derives verdicts
+**Answer:** Fixed. D-6 extracts `(*placeGraph).folds`, which `FoldLocations` and the vote both call. D-7's fast-path verdicts read it too.
+
+### M-6 · major · A second link cap sits beside "the one read of an event's places"
+**Answer:** Fixed. D-9 caps links in `eventLocations` at `maxLifeOwners`, before the distinct-place cap. `maxVotingLinks` is gone. This also answers X-4.
+
+### M-7 · major · `subjectModule` repeats `keyModule`, and `ReconcileHandles` repeats `Reconcile`'s checks
+**Answer:** Fixed. `keyModule.folds` and a shared `validate` replace them (Codebase fit, STEP-4).
+
+### M-8 · major · Skills the PR makes incomplete are not loaded or updated
+**Answer:** Fixed. `add-match-rule` is in Skills to load, and STEP-9 adds the caller-fold line to it. The `add-seeded-vocabulary` concern goes away with M-1.
+
+### M-9 · minor · `gradeorder` name and the `DefaultKey` alias
+**Answer:** Fixed. The package is `sourcecredibilitygrades/gradeorder`, with one `DefaultKey` and no alias. STEP-2 moves every caller and test.
+
+### M-10 · minor · Written once
+**Answer:** Fixed. The graphcache details live in the Go core table only, the draft-history phrase is gone, and `placeVote.links` holds `FieldOwner` values instead of a separate verdict type.
+
+### X-1 · blocker · STEP-7 omits two tests that pin `ProjectionVersion` 12
+**Answer:** Fixed. STEP-7 names `searchindex_test.go` (line 246) and `core/search/handles_test.go` (line 385).
+
+### X-2 · blocker · The version bump is in the DoD but in no step
+**Answer:** Fixed. STEP-9 sets `VERSION`, `core/version.go` and both `MARKETING_VERSION` lines to 0.46.1 and runs `TestVersion`.
+
+### X-3 · blocker · T-5 contradicts `maxLifeOwners`
+**Answer:** Fixed. T-5 expects 63 place owners plus the date owner.
+
+### X-4 · major · Order of the 64-link cap against the fast path is ambiguous
+**Answer:** Fixed by M-6. The cap is applied in `eventLocations`, before raw places, the fast path and the owners.
+
+### X-5 · major · Candidate `Value` fields are underspecified
+**Answer:** Fixed. D-3 spells out the candidate: `Value{SubjectID: link.Neighbor, EntityID: link.Neighbor}`, with the Source and provenance taken from the member and the row. `folds` receives entity ids.
+
+### X-6 · major · T-6 cannot be written from its row
+**Answer:** Fixed. T-6 names the helper `placedBirth(src, toponym, person, birth, place) (personH, birthH, placeH)`.
+
+### X-7 · major · The fast-path equivalence ignores negative and provisional records
+**Answer:** Fixed. D-3 votes only `kept` and `folded` rows, and D-7 states why the equivalence then holds.
+
+### X-8 · minor · STEP-9 names `completed.md` and `deployment-plan.md` without a path
+**Answer:** Fixed. STEP-9 gives the full paths and says to update the map row's status.
+
+### X-9 · minor · STEP order
+**Answer:** Declined. The reviewer confirmed the order is sound.
+
+### X-10 · minor · Checks that need more than the plan gives
+**Answer:** Fixed. STEP-1 takes the baseline on the planning base before any change, and STEP-8 names `perf_test.go`. `nodes-B` is reported by `measure` (`bench_test.go` line 609, `metric+"-B"`).
+
+### X-11 · minor · T-2 uses a registered test bridge
+**Answer:** Fixed by M-1. The draft's T-2 is gone.
+
+## Cost
+
+Plan: 5,880 words at round 1, 5,640 at this revision (check-plan-docs info line).
+
+| Round | Reviewer | Model | Tokens |
+| --- | --- | --- | --- |
+| 1 | maintainability | opus | 177k |
+| 1 | executability | sonnet | 131k |
