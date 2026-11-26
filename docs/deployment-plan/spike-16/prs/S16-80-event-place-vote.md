@@ -12,7 +12,7 @@
 **Skills to load:** [`add-match-rule`](../../../../.agents/skills/add-match-rule/SKILL.md) (all of it: the comparer, its knob, its cause code), [`add-catalog-query`](../../../../.agents/skills/add-catalog-query/SKILL.md) (the leaf SQL package)
 **Rules that bind:** `.cursor/rules/go-tests.mdc`
 **Context:** [`docs/conclusion-reconciliation.md`](../../../conclusion-reconciliation.md) §5 (the pipeline), §7 (grouping policy, S11-06), §9 (values reached through other entities), §11.1 (places); [`docs/matching-model.md`](../../../matching-model.md) (value types, knob inventory); [`docs/catalog-caches.md`](../../../catalog-caches.md) (the `nodes` row); [`docs/ideas/one-bridge-cardinality.md`](../../../ideas/one-bridge-cardinality.md); working rules "(Batch 2) Every cache names the signal that updates it, and updates exactly", "(Batch 2) Memory is budgeted", Spike 16 rule "Crafted fan-out is capped, not engineered"; the user's calls of 2026-11-26 in § 5
-**Planned:** 2026-11-26 against `origin/main` @ `7a1d15c`
+**Planned:** 2026-11-26 against `origin/main` @ `4d0bb5f`
 **Review:** [`S16-80-event-place-vote.review.md`](S16-80-event-place-vote.review.md) — Fits with changes · Ready with changes, 3 rounds; To user answered (2026-11-26)
 
 ### Implementer — read this first
@@ -79,7 +79,7 @@ The PR builds this from the existing layers, not a branch for places: value comp
 | An event's places, everywhere they are composed (Event rows, Person life rows, search rows), are its location links' records reconciled at the event's date | STEP-6, T-4, AC-1.1 – AC-2.4 |
 | Every derived row's sheet lays its owners' verdicts over their records, and every sheet reads a record's provenance off the node | STEP-7, T-6, AC-3.1, AC-3.2, AC-3.3 |
 | Search documents are re-projected on open | STEP-8 |
-| Version 0.46.1; docs: reconciliation § 7, § 9, § 11.1; matching model; catalog caches; add-match-rule | STEP-10 |
+| Version 0.48.1; docs: reconciliation § 7, § 9, § 11.1; matching model; catalog caches; add-match-rule | STEP-10 |
 
 | Out | Home |
 | --- | --- |
@@ -111,7 +111,7 @@ The PR builds this from the existing layers, not a branch for places: value comp
 | Swift | `macos/App/Features/Conclusions/PersonDetailContent.swift` `rows`; `EventDetailContent.swift` `placeRow`; `macos/App/Platform/DerivedPlace.swift`; `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceSheetContent.swift` `derived`; `macos/App/Platform/ReconciledValueDisplay.swift` `outcomePhrase` | Lead and mixed come from `places`; the sheet groups owners by place, shown place first; "folded" (`valueRank` 0), "outvoted (N of M Sources)" and "weak · …" render. No Swift change |
 | Tests | `core/database/conclusionsummaries/placechains_test.go` `TestBirthLocationsFoldWhenPartOf`, `TestSiblingBirthPlacesStayCompetingUnderASharedParent`, `TestPersonRowOwners`, `TestPersonDerivedRows`; `eventplaces_cap_test.go` `TestCraftedEventPlaces`, `TestEventPlacesCapInputs`, `TestCraftedLifeOwners`; `core/database/conclusiondetails/placerecords_test.go` | All use one Source, so no vote reaches a majority |
 | Test builders | `core/database/graphcache/graphcachetest/graphcachetest.go` `OpenCatalog`, `Canon`; `placerecords_test.go` `birthAt` | `OpenCatalog` installs no credibility grades; `Canon` has one Source, Artifact, graph and Citation, refs `TST-n` compared as strings; `birthAt` promotes fresh handles each call |
-| Version | `VERSION`, `core/version.go` `Version`, `macos/Provenencia.xcodeproj/project.pbxproj` `MARKETING_VERSION` (four lines: app and tests, Debug and Release) | 0.46.0; `core/version_test.go` `TestVersion` |
+| Version | `VERSION`, `core/version.go` `Version`, `macos/Provenencia.xcodeproj/project.pbxproj` `MARKETING_VERSION` (four lines: app and tests, Debug and Release) | 0.48.0; `core/version_test.go` `TestVersion` |
 
 **Precedent.** `valuecompare.date` and `dateModule` are a comparer with `Contains` and a module that folds on it. `value.Text.Partial` is the knob a `Contains` similarity reads. `core/database/scalarcols` is the leaf SQL package `graphcache` already imports. S16-42 bumped `ProjectionVersion` when a summary row's content changed.
 
@@ -262,7 +262,7 @@ Do: rerun STEP-1's benchmark, and `CGO_ENABLED=1 go test -tags fts5 ./core/datab
 Check: within § 6 Scale; the budgets pass; both figures in the PR description.
 
 **STEP-10 — Version and docs.**
-Files: `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj` (all four `MARKETING_VERSION` lines) → 0.46.1; `docs/conclusion-reconciliation.md` (§ 7: the policy sentence and the subject row per Rules this plan bends; § 9: a derived place reconciles across the event's location links; § 11.1: the vote, the containment fold at the event's date, the shared-parent rule of AC-2.2, and that "one place per event" is decided in the vote until the idea file); `docs/matching-model.md` (the **value** row lists a subject); `docs/catalog-caches.md` (`nodes` row: members carry credibility, outcome rows certainty; the new `nodes-B`); `.agents/skills/add-match-rule/SKILL.md` ("Catalog data comes in through `Rules`" per Rules this plan bends; § Add a comparer step 3's `noComparer` now holds `"unregistered"`); `docs/deployment-plan/spike-16/completed.md`; `docs/deployment-plan/spike-16/deployment-plan.md` (the S16-80 row's status); this plan (status). The version bump rides in this step's commit.
+Files: `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj` (all four `MARKETING_VERSION` lines) → 0.48.1; `docs/conclusion-reconciliation.md` (§ 7: the policy sentence and the subject row per Rules this plan bends; § 9: a derived place reconciles across the event's location links; § 11.1: the vote, the containment fold at the event's date, the shared-parent rule of AC-2.2, and that "one place per event" is decided in the vote until the idea file); `docs/matching-model.md` (the **value** row lists a subject); `docs/catalog-caches.md` (`nodes` row: members carry credibility, outcome rows certainty; the new `nodes-B`); `.agents/skills/add-match-rule/SKILL.md` ("Catalog data comes in through `Rules`" per Rules this plan bends; § Add a comparer step 3's `noComparer` now holds `"unregistered"`); `docs/deployment-plan/spike-16/completed.md`; `docs/deployment-plan/spike-16/deployment-plan.md` (the S16-80 row's status); this plan (status). The version bump rides in this step's commit.
 Do: per the Definition of done.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/ -run TestVersion` passes; `python3 scripts/check-plan-docs.py --links docs/conclusion-reconciliation.md docs/catalog-caches.md docs/matching-model.md` reports no broken link.
 
