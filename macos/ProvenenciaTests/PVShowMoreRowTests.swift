@@ -37,7 +37,14 @@ struct PVShowMoreRowHostedTests {
         }
     }
 
+    /// Holds the ask back until the test has seen the list laid out, so the request never
+    /// precedes the rows it scrolls to.
+    @MainActor @Observable final class Trigger {
+        var asking = false
+    }
+
     private struct Harness: View {
+        let trigger: Trigger
         @State private var probing = true
 
         var body: some View {
@@ -46,7 +53,7 @@ struct PVShowMoreRowHostedTests {
                     ForEach(0 ..< 12, id: \.self) { index in
                         Text(verbatim: "Row \(index)").frame(height: 60).id(index)
                     }
-                    if probing { Probe { probing = false } }
+                    if trigger.asking && probing { Probe { probing = false } }
                 }
             }
             // An unshown window, and a CI runner with no display, steps no animation, so
@@ -57,12 +64,14 @@ struct PVShowMoreRowHostedTests {
     }
 
     @Test func revealScrollsAfterTheCallerLeaves() async throws {
-        let (_, host) = hostInBorderlessWindow(Harness(), windowSize: CGSize(width: 300, height: 200))
+        let trigger = Trigger()
+        let (_, host) = hostInBorderlessWindow(Harness(trigger: trigger), windowSize: CGSize(width: 300, height: 200))
         // Wait for the list to lay out, so the scroll has rows to find.
         let laidOut = await eventually(host) {
             descendant(NSScrollView.self, in: host).map { ($0.documentView?.frame.height ?? 0) >= 720 } ?? false
         }
         #expect(laidOut)
+        trigger.asking = true
         let scrollView = try #require(descendant(NSScrollView.self, in: host))
         let visible = await eventually(host) {
             let rect = scrollView.documentVisibleRect
