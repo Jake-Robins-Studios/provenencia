@@ -6,8 +6,8 @@ import (
 
 // Declarative provenencia seed registry (create-time starter for new catalogs):
 // the citation vocabulary of the Spike 15 map, section 6.8. The types and their
-// formats live here; the fields are in registry_fields.go and the suggestions
-// in registry_suggestions.go.
+// formats live here; the fields are in registry_fields.go, and Install derives
+// the suggestions from the formats (registry_suggestions.go).
 
 // seedType is one Source type. Formats name fields by key; Install stores them
 // by id through sourcetypes.ToStored.
@@ -20,13 +20,6 @@ type seedType struct {
 // researcher marks the value unknown ("" for none).
 type seedField struct {
 	Key, Label, DataType, Description, UnknownText string
-}
-
-// seedSuggestion is one type's suggested fields, in order; a field's position
-// is its sort order.
-type seedSuggestion struct {
-	TypeKey   string
-	FieldKeys []string
 }
 
 // certificateFormats is the one pattern of the three civil certificates: word
