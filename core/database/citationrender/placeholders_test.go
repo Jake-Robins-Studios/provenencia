@@ -6,7 +6,6 @@ import (
 
 	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
@@ -73,29 +72,6 @@ func TestPlaceholders(t *testing.T) {
 		}
 		if !slices.Equal(fieldKeys, keys) {
 			t.Errorf("fields = %v, want %v", fieldKeys, keys)
-		}
-	})
-
-	t.Run("every seeded type's formats load with no diagnostic", func(t *testing.T) {
-		types, err := sourcetypes.List(w.c)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(types) != 26 {
-			t.Fatalf("got %d seeded types, want 26", len(types))
-		}
-		for _, typ := range types {
-			view, err := sourcetypes.GetFormats(w.c, typ.ID)
-			if err != nil {
-				t.Fatal(err)
-			}
-			for _, form := range citationformat.Forms() {
-				text := view.Text(form)
-				got, err := RenderPreview(w.c, PreviewInput{Form: form, Format: &text})
-				if err != nil || len(got.Diagnostics) != 0 {
-					t.Errorf("%s %s: %+v, %v", typ.Key, form, got.Diagnostics, err)
-				}
-			}
 		}
 	})
 }

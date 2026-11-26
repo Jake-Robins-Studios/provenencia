@@ -42,11 +42,16 @@ you push.
 
 ```
 - [ ] One behavior, stated in one sentence a researcher would recognize
-      ("Copy Source keeps the date's qualifier"), with a reproducible wrong result
+      ("Copy Source keeps the date's qualifier"), with a reproducible wrong result,
+      or a seeded vocabulary change a researcher would recognize ("A map has its
+      own Source type")
 - [ ] At most about 40 changed lines of non-test code, in at most 3 non-test files
 - [ ] No migration, no catalog table or column, no catalogmodel change
 - [ ] No new or changed FFI method, proto message, or engine.proto field
-- [ ] No new package, registry, seeded vocabulary, searchable kind, or workspace place
+- [ ] No new package, registry, searchable kind, or workspace place. Seeded
+      vocabulary is fine as rows added to or changed in an existing seed
+      registry, following add-seeded-vocabulary (user, 2026-11-26); a new seed
+      domain or Install is not
 - [ ] No chrome change: every view looks the same before and after, except
       copy (a corrected string through add-localized-string is fine).
       A view that looks different needs a brief; the user can waive it, and the
