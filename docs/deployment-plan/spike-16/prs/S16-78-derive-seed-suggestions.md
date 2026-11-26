@@ -1,7 +1,7 @@
 # S16-78 — Install derives each seeded type's suggested fields from its formats
 
 **Status:** Landed in [#993](https://github.com/Jake-Robins-Studios/provenencia/pull/993) (2026-11-26)
-**Landed:** As planned; no difference from the plan.
+**Landed:** As planned, then one user change after review (user, 2026-11-26: the seed is data; only `Install` and the suggestion rule are tested). D-4 and T-3's per-type and census checks are superseded: `TestSuggestedKeys` tests the rule on synthetic formats. T-4 is superseded: `TestSeedAnnotations` was deleted, with `TestSeedCitations` and its golden, `TestSeedFieldsAreRead`, `TestSeedTypes`, `TestSeededFormatsNeedOnlySuggestedFields`, `TestSeedPlaceFields`, and `TestInstall`'s 26/69 count pin. AC-1.4's census spot check went with them. See the ship log's "User change" section.
 **Spike / slice:** Spike 16 · Slice 6j — A Voters list type
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the suggestion rows a new project gets are the same, so every view looks the same)
