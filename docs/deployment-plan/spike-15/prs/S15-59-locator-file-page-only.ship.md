@@ -52,7 +52,7 @@ Nits (logged): `CON-3 · S15-59 plan:299 · Landed bullet says "no Step names" b
 Merged `origin/main` @ `7a44c0f66` (#990, S16-78 plan docs only). Gate PASS after merge.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: none · to user: —
+Gate PASS · CI green · open: none · follow-ups: none · to user: —
 
 ## Cost
 Plan: 5,100 words (check-plan-docs info line).
