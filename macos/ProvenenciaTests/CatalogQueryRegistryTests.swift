@@ -1436,24 +1436,37 @@ struct CatalogQueryRegistryTests {
         session.apply(.empty, .updatedSourceType(stranger))
         #expect(handle.value == [book, renamed])
 
-        // The engine reports a type delete with its `source_vocabulary` list, so the list also
-        // reloads (policy `.revalidate`); the store holds what the engine would.
+        // The engine reports a type delete as `deleted` alone, with no list, so the row drops with
+        // one patch and the list neither reloads nor goes stale.
         store.sourceTypesByProject[projectDir] = [renamed]
         let bookDeleted = CatalogWriteEffects(
-            lists: [.sourceVocabulary],
             deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["t-book"])]
         )
         #expect(CatalogQueryFollows.deleted(.sourceType).ids(in: bookDeleted) == ["t-book"])
         session.apply(bookDeleted)
         #expect(handle.value == [renamed])
-        await waitForQuery(handle)
-        #expect(handle.value == [renamed])
+        #expect(!handle.isStale)
+        #expect(!handle.isFetching)
         session.apply(bookDeleted)
         #expect(handle.value == [renamed])
         session.apply(CatalogWriteEffects(deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["gone"])]))
         #expect(handle.value == [renamed])
         let registry = CatalogQueryRegistry.standard
         #expect(registry.invalidations(by: .updatedSourceType(renamed), project: session.projectKey).isEmpty)
+    }
+
+    /// A type delete reports `deleted` and no list, so a warmed field list, whose `usedBy` names the
+    /// type in a citation format, is marked stale.
+    @Test func sourceTypeDeleteMarksTheFieldsListStale() async {
+        let store = FakeStore()
+        let session = makeSession(store: store)
+        let key = CatalogQueryKey.metadataFieldsList(project: session.projectKey)
+        store.fieldsByProject[projectDir] = [catalogMetadataField("f1", label: "Author")]
+        let handle: QueryHandle<[CatalogMetadataField]> = session.query(key)
+        await waitForQuery(handle)
+        #expect(!handle.isStale)
+        session.apply(CatalogWriteEffects(deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["t-book"])]))
+        #expect(handle.isStale)
     }
 
     /// T-7 (D-7): a suggestion write patches the type's one key and the row's count with no load,

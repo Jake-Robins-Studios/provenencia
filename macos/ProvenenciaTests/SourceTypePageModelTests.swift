@@ -588,7 +588,6 @@ struct SourceTypePageModelTests {
             let author = catalogMetadataField("f1", label: "Author")
             let store = FakeStore()
             store.nextWriteEffects = CatalogWriteEffects(
-                lists: [.sourceVocabulary],
                 deleted: [CatalogWriteEffectsDeleted(entity: .sourceType, ids: ["t2"])]
             )
             let (model, session) = await makePageModel(

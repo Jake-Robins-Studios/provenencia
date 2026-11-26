@@ -200,8 +200,8 @@ type Effect struct {
 	Search  []SearchDoc
 	// Lists are the catalog-wide lists a change to the table moves. Which
 	// updates move them is one choice: all (the default), those writing
-	// ListsOnField, or none (ListsOnCreateDelete). Creates and deletes always
-	// move them.
+	// ListsOnField, or none (ListsOnCreateDelete). Creates and deletes move
+	// them, a delete unless ListsNotOnDelete.
 	Lists []List
 	// ListsOnField, when set, narrows an update: it moves Lists only if it
 	// writes this field.
@@ -209,8 +209,11 @@ type Effect struct {
 	// ListsOnCreateDelete, when set, means an update never moves Lists. It
 	// is the other choice beside ListsOnField, and needs Lists.
 	ListsOnCreateDelete bool
-	Structure           Path
-	None                bool
+	// ListsNotOnDelete, when set, means a delete does not move Lists: its
+	// followers learn it from Deleted. It needs Lists and Deleted.
+	ListsNotOnDelete bool
+	Structure        Path
+	None             bool
 }
 
 // Has reports whether the batch changed the list.
@@ -324,13 +327,16 @@ func ownedValue(entity, col string, sourceOwners ...Path) Effect {
 }
 
 // movesLists reports whether the change moves the entry's Lists: always for
-// a create or delete, and for an update never under ListsOnCreateDelete, else
+// a create, and for a delete unless ListsNotOnDelete, and for an update never under ListsOnCreateDelete, else
 // only when it writes ListsOnField.
 func (e Effect) movesLists(ch rowchange.Change) bool {
 	if len(e.Lists) == 0 {
 		return false
 	}
 	if ch.Action == rowchange.ActionUpdate && e.ListsOnCreateDelete {
+		return false
+	}
+	if ch.Action == rowchange.ActionDelete && e.ListsNotOnDelete {
 		return false
 	}
 	if ch.Action != rowchange.ActionUpdate || e.ListsOnField == "" {
@@ -477,6 +483,9 @@ var registry = map[string]Effect{
 		Entity:  "source_type",
 		Deleted: onDelete(self()),
 		Lists:   []List{ListSourceVocabulary},
+		// A type delete reports Deleted: the types list drops the row with one
+		// patch and the field list follows Deleted, so no list moves.
+		ListsNotOnDelete: true,
 		// Each path lists the type columns its document reads, so a format-only
 		// change (citation_*) reprojects nothing. The type document is
 		// searchindex.ReprojectSourceType; the Source document, ReprojectSource.
@@ -574,7 +583,7 @@ func metadataEffects(list []catalogmodel.MetadataLevelTables, reg map[string]Eff
 		}
 		for _, table := range []string{e.Values, e.Layout} {
 			eff := reg[table]
-			if eff.Entity != "" || !eff.SourceScope.zero() || eff.Lists != nil || eff.ListsOnCreateDelete {
+			if eff.Entity != "" || !eff.SourceScope.zero() || eff.Lists != nil || eff.ListsOnCreateDelete || eff.ListsNotOnDelete {
 				panic("effects: " + table + " sets a field metadataEffects owns")
 			}
 			eff.Entity = table
@@ -676,6 +685,9 @@ func (e Effect) validate(table string) error {
 	}
 	if e.ListsOnCreateDelete && len(e.Lists) == 0 {
 		return errf("%s: ListsOnCreateDelete without Lists", table)
+	}
+	if e.ListsNotOnDelete && (len(e.Lists) == 0 || e.Deleted.zero()) {
+		return errf("%s: ListsNotOnDelete without Lists and Deleted", table)
 	}
 	if e.ListsOnCreateDelete && e.ListsOnField != "" {
 		return errf("%s: ListsOnCreateDelete with ListsOnField", table)
