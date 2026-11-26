@@ -770,7 +770,7 @@ Runs after slice 7, before slice 8 (user, 2026-11-22). Re-cut later the same day
 
 **Ships.** Go and Swift. The `{citation.page}` built-in and its separate requirement go: the seed's `{meta.page|citation.page}` becomes `{meta.page}`, `sourcemetadata.Board.Page` and the `CitationPage` arm of `needsAt`'s `builtinHeads` go, and `GetSourceWorkspaceResponse.page_requirement` is reserved. No visible change: the page is a Citation field since S15-56.
 **Deletes.** `citationformat.CitationPage` and its built-ins row; `CitationBuiltin.citationPage` (`Platform/CitationFormatVocabulary.swift`); `GetSourceWorkspaceResponse.page_requirement` (`engine.proto` field 12, reserved; set in `api/ffi/handlers/sources.go`).
-**Check.** Go tests: a researcher's format with `{citation.page}` gets the unknown-placeholder diagnostic; the seeded citations render unchanged.
+**Check.** Go tests: a researcher's format with `{citation.page}` gets the `unknown_builtin` diagnostic; the seeded citations render unchanged.
 **Context.** Rule "The printed page is a metadata field"; `core/citationformat/builtins.go`, `core/database/sourcemetadata/annotation.go`. Updates [`citation-formats.md`](../../citation-formats.md) (the `citation.page` row) and [`source-layer-data-model.md`](../../source-layer-data-model.md) § 5.2 ("A Source's board also carries … the printed page").
 
 #### S15-59 — The locator only finds things in its Artifact
