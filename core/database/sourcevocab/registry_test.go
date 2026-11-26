@@ -47,6 +47,16 @@ func TestSuggestedKeys(t *testing.T) {
 			want:    []string{"a"},
 		},
 		{
+			name:    "list-needed fields come before short-needed ones",
+			formats: sourcetypes.Formats{Full: `{meta.a}`, List: `{meta.z}`, Short: `{meta.y}`},
+			want:    []string{"a", "z", "y"},
+		},
+		{
+			name:    "every field option of an unmet needed chain is appended",
+			formats: sourcetypes.Formats{Full: `{meta.a}`, List: `{meta.y|meta.z}`},
+			want:    []string{"a", "y", "z"},
+		},
+		{
 			name:    "built-ins name no field",
 			formats: sourcetypes.Formats{Full: `{source.title}, {meta.a}[ ({source.date:full})]`, List: `{source.title}`},
 			want:    []string{"a"},
