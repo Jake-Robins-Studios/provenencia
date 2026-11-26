@@ -377,6 +377,7 @@ struct ConclusionPictureViewer: View {
     }
 }
 
+#if DEBUG
 #Preview("Viewer, no image") {
     let outcome = CatalogReconcilerOutcome(
         observationID: "o1", observationRef: "OBS-1", reason: .kept, valueRank: 1, deniedByObservationID: "",
@@ -416,3 +417,4 @@ struct ConclusionPictureViewer: View {
         open: { _, _ in }
     )
 }
+#endif

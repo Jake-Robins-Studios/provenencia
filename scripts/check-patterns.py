@@ -43,6 +43,7 @@ class Rule:
     exclude: tuple[str, ...] = ()
     tests_too: bool = False
     before_preview: bool = False    # Swift: only lines above the file's first #Preview
+    outside_debug: bool = False     # Swift: only lines outside an `#if DEBUG` region
 
 
 RULES = [
@@ -122,6 +123,15 @@ RULES = [
         exclude=("macos/App/Platform/L10n.swift",),
     ),
     Rule(
+        "swift-debug-only-in-release",
+        ("macos/App/*.swift",),
+        None,  # built in main() from the names `macos/App` declares only under `#if DEBUG`
+        "a Debug-only type (FakeStore, a preview fixture) outside `#if DEBUG` breaks the Release build; "
+        "wrap the `#Preview` or the fixture file in `#if DEBUG`",
+        "macos-client-patterns Previews and tests (#1003)",
+        outside_debug=True,
+    ),
+    Rule(
         "kit-legacy-folder",
         ("macos/App/DesignSystem/Components/Core/*", "macos/App/DesignSystem/Components/Forms/*",
          "macos/App/DesignSystem/Components/Research/*"),
@@ -185,6 +195,47 @@ def file_lines(path: str) -> list[str]:
         return []
 
 
+def debug_regions(lines: list[str]) -> list[bool]:
+    """Whether each line sits inside an `#if DEBUG` region (its `#else` is not)."""
+    out: list[bool] = []
+    stack: list[list] = []  # [in DEBUG, condition]
+    for line in lines:
+        s = line.strip()
+        if s.startswith("#if "):
+            cond = s[4:].strip()
+            stack.append([cond == "DEBUG", cond])
+        elif s.startswith("#elseif"):
+            if stack:
+                stack[-1][0] = False
+        elif s.startswith("#else"):
+            if stack:
+                stack[-1][0] = stack[-1][1] == "!DEBUG"
+        elif s.startswith("#endif"):
+            if stack:
+                stack.pop()
+        out.append(any(frame[0] for frame in stack))
+    return out
+
+
+SWIFT_DECL_RE = re.compile(
+    r"^(?:@\w+(?:\([^)]*\))?\s+)*(?:(?:public|internal|private|fileprivate|final|nonisolated)\s+)*"
+    r"(?:enum|struct|class|actor|protocol|typealias)\s+([A-Z]\w*)"
+)
+
+
+def debug_only_names() -> re.Pattern[str] | None:
+    """Top-level types `macos/App` declares only inside `#if DEBUG`, as one word pattern."""
+    debug, release = set(), set()
+    for path in (ROOT / "macos/App").rglob("*.swift"):
+        lines = path.read_text(encoding="utf-8").splitlines()
+        for line, in_debug in zip(lines, debug_regions(lines)):
+            m = SWIFT_DECL_RE.match(line)
+            if m:
+                (debug if in_debug else release).add(m.group(1))
+    names = sorted(debug - release)
+    return re.compile(r"\b(" + "|".join(names) + r")\b") if names else None
+
+
 def allowed(rule: Rule, text: str, prev: str) -> bool:
     for line in (text, prev):
         m = ALLOW_RE.search(line)
@@ -212,18 +263,25 @@ def main(argv: list[str]) -> int:
             if rule.pattern is None and applies(rule, path):
                 findings.append(f"{path}: {rule.id}: {rule.message} ({rule.source})")
 
+    for rule in RULES:
+        if rule.outside_debug:
+            rule.pattern = debug_only_names()
+
     for path, hunk in sorted(lines.items()):
         rules = [r for r in RULES if r.pattern is not None and applies(r, path)]
         if not rules:
             continue
         whole = file_lines(path)
         preview_at = next((i + 1 for i, l in enumerate(whole) if l.lstrip().startswith("#Preview")), None)
+        in_debug = debug_regions(whole) if any(r.outside_debug for r in rules) else []
         for num, text in hunk:
             if COMMENT_RE.match(text):
                 continue
             prev = whole[num - 2] if 1 < num <= len(whole) + 1 else ""
             for rule in rules:
                 if rule.before_preview and preview_at is not None and num > preview_at:
+                    continue
+                if rule.outside_debug and 0 < num <= len(in_debug) and in_debug[num - 1]:
                     continue
                 if rule.pattern.search(text) and not allowed(rule, text, prev):
                     findings.append(f"{path}:{num}: {rule.id}: {rule.message} ({rule.source})")

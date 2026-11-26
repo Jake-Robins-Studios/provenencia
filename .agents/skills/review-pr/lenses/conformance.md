@@ -185,3 +185,8 @@ The shape to copy. Names in the example are illustrative.
 `evidencegraphs.ListProgress` counts a primary as filed when *any* claim
 is accepted, not when every primary has one. Failing test:
 `TestEvidenceStatus/one_of_two_primaries_filed` → want In progress, got Filed."
+- **A Debug-only type in the Release build.** `FakeStore` and the preview
+  fixtures are declared under `#if DEBUG`; a `#Preview` or fixture that names
+  one outside a guard compiles in Debug, so the gate passes, and breaks the
+  Release build (#1003). `scripts/check-patterns.py` rule
+  `swift-debug-only-in-release` checks it.
