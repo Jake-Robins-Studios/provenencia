@@ -1,19 +1,19 @@
 # S15-56 — The composer edits a Citation's metadata
 
-**Status:** Blocked — on board S15-D29
+**Status:** Planned
 **Spike / slice:** Spike 15 · Slice 11 — Metadata at any level
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D29](../design/S15-D29-citation-composer-metadata.md), written 2026-11-25, board not drawn
-**Board:** — (filled when the board is agreed: link, frames, and whether the board sits before or after the transcription in the side form)
+**Brief:** [S15-D29](../design/S15-D29-citation-composer-metadata.md), board agreed 2026-11-26
+**Board:** [Claude Design — Citation Composer](https://claude.ai/artifact/3GSFQZjqdQjL8v2rpgMiDc), page *Citation Composer*, section "S15-D29 · The Citation's metadata", frames 1a – 10 (drawn by the *Citation Header* component's `metaFieldNode` and `sheetNode`). The implementer can open the link; the brief's CB rows and § 6 macOS say what it draws
 **Depends on:** S15-55 (landed [#970](https://github.com/Jake-Robins-Studios/provenencia/pull/970)), S15-60 (landed [#975](https://github.com/Jake-Robins-Studios/provenencia/pull/975)), S15-64 (landed [#959](https://github.com/Jake-Robins-Studios/provenencia/pull/959)), S15-D29
 **Blocks:** S15-58, S15-39, S15-41
 **Branch:** `s15-56-composer-citation-metadata`
-**Version bump:** minor, 0.43.0 (today's `VERSION`) → **0.44.0** (or the next minor after `main`'s `VERSION` when you rebase): the composer gains a board and the wire gains `ListedCitation` fields ([`docs/versioning.md`](../../../versioning.md))
+**Version bump:** minor, 0.43.0 (today's `VERSION`) → **0.44.0** (or the next minor after `main`'s `VERSION` when you rebase): the composer gains a metadata sheet and the wire gains `ListedCitation` fields ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-ffi-handler`](../../../../.agents/skills/add-ffi-handler/SKILL.md), [`add-workspace-place`](../../../../.agents/skills/add-workspace-place/SKILL.md) (the composer place's keys, the citations-by-Artifact refreshes), [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md), [`add-localized-string`](../../../../.agents/skills/add-localized-string/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md)
 **Rules that bind:** `.cursor/rules/go-tests.mdc`, `.cursor/rules/swift-tests.mdc` (FakeStore seeds what Go composes)
 **Context:** working rules "One metadata board", "A board shows what its owner inherits", "The printed page is a metadata field", "Metadata saves with its owner's write", "A board adds a field in an inline row", "One window"; [`source-layer-data-model.md` § 5](../../../source-layer-data-model.md); [`catalog-caches.md` § Swift caches](../../../catalog-caches.md#swift-caches)
-**Planned:** 2026-11-25 against `main` @ `620ddaa`
-**Review:** [`S15-56-composer-citation-metadata.review.md`](S15-56-composer-citation-metadata.review.md) — Fits with changes; Ready with changes; two rounds, no blocker open; two answers from the user (2026-11-25)
+**Planned:** 2026-11-25 against `main` @ `620ddaa`; reworked for the agreed board 2026-11-26
+**Review:** [`S15-56-composer-citation-metadata.review.md`](S15-56-composer-citation-metadata.review.md) — Fits with changes; Ready with changes; two rounds and a check of the rework for the agreed board, no blocker open
 
 ### Implementer — read this first
 
@@ -30,7 +30,7 @@
 
 ## 1. Objective
 
-A researcher edits a Citation's metadata in the citation composer, on the same board every other owner has: the type's suggestions, the values the Citation inherits from its graph, Artifact or Source, its own values, and Add field. The values save with the Citation's Save. The Printed page input goes: the printed page is the board's **Page** row, and the Conclusion detail, the composer's Citation menu and the citation line read the Citation's own Page value.
+A researcher edits a Citation's metadata from the citation composer: a Metadata line under Label (**Edit metadata…** and a count) opens a **Citation metadata** sheet holding the same board every other owner has: the Citation's own values, the type's suggestions, what it inherits from its graph, Artifact or Source, and Add field. The sheet saves on its own (board S15-D29, 2026-11-26). The Printed page input goes: the printed page is the board's **Page** row, and the Conclusion detail, the composer's Citation menu and the citation line read the Citation's own Page value.
 
 **Why now.** S15-54 made a Citation hold values and its writes take a draft; S15-55 gave a new Citation a draft board under its graph and Artifact; S15-64 drew inherited rows; S15-60 seeded `page`. Nothing draws a Citation board yet, and the composer's Printed page writes a locator key no format will read once S15-58 lands.
 
@@ -38,17 +38,17 @@ A researcher edits a Citation's metadata in the citation composer, on the same b
 
 ## 2. User stories
 
-**US-1.** As a researcher, when I make or edit a Citation in the composer, I fill its metadata on its board so that its citation prints its page and column.
+**US-1.** As a researcher, when I edit a Citation in the composer, I fill its metadata in its sheet so that its citation prints its page and column.
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-1.1 | A newspaper Source (type Newspaper item, seeded); **New citation** on its PDF Artifact; Page "2" and Column "4" typed on the board; Save | One `CreateCitationWithObservations` carries both values; the Citation reopens with Page "2" and Column "4" saved rows; its rendered citation reads "…, p. 2, col. 4; …" |
-| AC-1.2 | That Citation open; Column changed to "5"; Save | One `UpdateCitation` carries the change; Label and transcription unchanged; the board shows "5" |
-| AC-1.3 | A new Citation, no Save yet; an Observation added first (the composer creates the Citation through `ensureCitationID`) with Page "3" typed on the board | The board change enables Save, as a Label change does; the ensure-create carries Page "3"; after it the host is saved (`citationDirty` false); a later Column "4" and Save sends an `UpdateCitation` whose draft holds Column alone |
-| AC-1.4 | A Citation whose graph holds Page "2" and which holds none | Its Page row shows "2" with "From Evidence graph"; its citation prints "p. 2" |
-| AC-1.5 | An unsaved board change (a value typed and confirmed), then the Citation menu's pick of another Citation | The composer's discard confirm shows, as for an unsaved Label; Discard drops the change |
-| AC-1.6 | **New citation** on an Artifact whose graph was deleted after the composer opened | The board's place shows `L10n.CitationComposer.metadataBoardUnavailable`; Label and the transcription save as today, and the create sends no metadata |
-| AC-1.7 | Any Artifact kind (image, PDF, audio, video, unsupported) | The board shows; there is no Printed page field |
+| AC-1.1 | A saved Citation on a newspaper Source (type Newspaper item, seeded) with no own values; Edit metadata…; Page "2" and Column "4" typed in the sheet; Save metadata | One `UpdateCitation` with the Citation's saved fields and a draft of both values; the sheet closes; the line reads "2 own · 2 inherited" once the list reloads; its rendered citation reads "…, p. 2, col. 4; …" |
+| AC-1.2 | Label edited and not saved, then Edit metadata…, Column changed to "5", Save metadata | The `UpdateCitation` carries the saved Label, not the typed one; the form still shows the typed Label and its Save stays enabled |
+| AC-1.3 | **New citation**, not saved yet, on a graph holding Page "2" and Column "4" and a Source holding Published in and Provider | The button reads "Metadata" and is off; the count reads "Inherits 4 values. Add its own after the first save"; after the first Save the line reads "4 inherited" and the button is on |
+| AC-1.4 | A Citation whose graph holds Page "2" and which holds none; the sheet open | Its Page row shows "2" with "From Evidence graph"; its citation prints "p. 2" |
+| AC-1.5 | A value typed in the sheet, then Cancel | The kit's discard confirm asks; Discard closes the sheet and stores nothing |
+| AC-1.6 | **New citation** on an Artifact whose graph was deleted after the composer opened | The line shows `L10n.CitationComposer.metadataBoardUnavailable` and no button; Label and the transcription save as today |
+| AC-1.7 | Any Artifact kind (image, PDF, audio, video, unsupported) | The Metadata line shows; there is no Printed page field |
 
 **US-2.** As a researcher reading a Conclusion or picking a Citation, I see the Citation's own printed page.
 
@@ -65,11 +65,11 @@ A researcher edits a Citation's metadata in the citation composer, on the same b
 
 | In | Covered by |
 | --- | --- |
-| The Citation's board in both form arrangements (CB-1, CB-W1, CB-W2), Tab order and VoiceOver (CB-7, CB-8) | STEP-9 |
-| A new Citation's draft board; a saved Citation's board from the cached list (CB-2, CB-3) | STEP-4, STEP-8 |
-| Values save in the Citation's create and update; one Save; leave confirm (CB-4) | STEP-5, STEP-8 |
-| The board's read failure copy (CB-5; S15-55 review UX-1) | STEP-7, STEP-8 |
-| Menu row reads the own Page (CB-6) | STEP-4, STEP-9 |
+| The Metadata line and its count in both form arrangements (CB-1, CB-2, CB-W1), Tab order and VoiceOver (CB-8, CB-9) | STEP-9 |
+| The Citation metadata sheet over a saved Citation's board from the cached list (CB-3); a new Citation's inherited count from the draft board read (CB-5) | STEP-4, STEP-8 |
+| The sheet saves on its own through `UpdateCitation`; Cancel asks when something was typed (CB-4) | STEP-5, STEP-8 |
+| The read failure line (CB-6; S15-55 review UX-1) | STEP-7, STEP-8 |
+| Menu row reads the own Page (CB-7) | STEP-4, STEP-9 |
 | `graphfill` reads the Citation's own `page` (and so the Conclusion detail, `CitationLineDisplay` and the likeness and depiction viewers) | STEP-1, STEP-2 |
 | Value writes at every level refresh the composer's Citation list | STEP-3, STEP-6 |
 | The board's files move to their own folder (user, 2026-11-25) | STEP-6 |
@@ -86,7 +86,8 @@ A researcher edits a Citation's metadata in the citation composer, on the same b
 | An engine error code for "a parent of the draft board is gone" | not planned (map scope entry: the client copy) |
 | Renaming the board's `L10n.Sources` keys after the move | not planned |
 | Moving existing locator `page_label`s into `page` values | not planned (user, 2026-11-25: the product owner updates dogfood projects by hand) |
-| A board that refreshes while its Citation stays open in the composer | not planned (rule "One window": no other view edits while the composer shows) |
+| Metadata on a Citation not yet saved | not planned (board S15-D29 frame 6: off until the first save) |
+| A metadata draft on `CreateCitationWithObservations` from Swift | not planned (a new Citation has no sheet) |
 | A field's unknown-text edit refreshing loaded graphs | S15-46 |
 | A metadata draft on `CreateCitedBridge` | not planned (S15-54: a bridge's Citation takes values through `UpdateCitation`) |
 
@@ -101,18 +102,18 @@ A researcher edits a Citation's metadata in the citation composer, on the same b
 | Carriers | `graphcache.EvidenceObservation.PageLabel`; `conclusiondetails.Outcome.PageLabel` (:95, copied :576); `api/ffi/handlers/conclusion_detail.go` `reconcilerOutcomeProto` (:170) → `ReconcilerOutcomeDetail.page_label = 24` | Unchanged; they carry what `graphfill` sets |
 | Reads | `core/database/effects/registry.go` `type Read`, `ReadCitations` (:37, "the citation counts and the citations by Artifact of a graph"), `KeyTable`, `"citation_metadata"` (:379), `"source_metadata"` (:364), `metadataEffects` (:532); `reads_test.go` `TestReadsDeclare`; Swift `Features/Workspace/Session/CatalogMutation.swift` `CatalogRead` (:83) | No metadata table moves a read the composer's list follows |
 | List RPC | `api/ffi/handlers/citations.go` `ListCitationsByArtifact` (:213); `engine.proto` `ListedCitation` (:2718) | No board, no page |
-| Citation writes | `citations.go` `CreateCitationWithObservations` (:15), `UpdateCitation` (:159); proto `metadata` 12/4 and 9/3 | Take a draft and answer the board since S15-54; Swift sends none. Both report `citations` for the graph, so the composer's list reloads after each |
+| Citation writes | `citations.go` `UpdateCitation` (:159), proto `metadata` 9/3; `core/database/citations/citations.go` `Update` (:336) | Takes a draft and answers the board since S15-54; Swift sends none. `citations.Update` writes and audits nothing when the fields equal the stored ones (`change == nil`), so an update carrying the saved fields is a metadata-only write. It reports `citations` for the graph, so the composer's list reloads |
 | Swift store | `macos/App/Platform/GenealogyStore.swift` `createCitationWithObservations` (:2129), `updateCitation` (:2149), `listCitationsByArtifact` (:2185), `CatalogListedCitation` (:425); `GoStore.swift` (:2345); `FakeStore.swift` (Artifact draft recorders :263–269, `metadataByOwner`, its own create caller :2750); `macos/ProvenenciaTests/OnboardingModelTests.swift` stub | No metadata argument or rows |
 | Cache | `Features/Workspace/Session/CatalogQueryRegistry.swift` `.citationsByArtifact` (:367), `.citationCounts` (:301); `PlaceRegistry.swift` the `.citationComposer` spec (:55–72) | The list follows `.reads(.citations)`; the composer place does not warm `.metadataFieldsList` |
 | Board files | `Features/Sources/MetadataBoardView.swift`, `MetadataBoardModel.swift`, `MetadataBoardHost.swift` (protocol + `SourcePageMetadataHost`), `MetadataDraftHost.swift`, `MetadataBoardDialogs.swift`; `SourceOwnerForm.swift` `DraftMetadataBoardField` | Sources-only snowflakes; the composer would be their first caller elsewhere |
-| Composer writes | `Features/CitationComposer/CitationComposerContext.swift` `createCitationIfNeeded` (:121), `applyWrite` (:81), `citationsKey(artifactID:)` (:86), `fieldsKey` (Properties); `CitationFieldsDraft.swift` `saveCitation` | No metadata |
-| Composer state | `CitationComposerModel.swift` `hasUnsavedDocumentWork` (:350), `:392`, `:541`, `canSaveCitation` (:744), `pageLabel` (:309), `loadCitation`, `openBlankCitation`, `resetComposerIdentity`, `selectArtifactAndLoad`, `fetchOpenCitation`, `cachedCitation` | Dirty is `fields.isDirty` alone |
+| Composer writes | `Features/CitationComposer/CitationComposerContext.swift` `applyWrite` (:81), `citationsKey(artifactID:)` (:86), `fieldsKey` (Properties) | No metadata |
+| Composer state | `CitationComposerModel.swift` `pageLabel` (:309), `activeCitationID`, `selectedArtifactID`, `openBlankCitation`, `resetComposerIdentity`, `selectArtifactAndLoad`, `isTranscribing`, `isDrawingDepiction`; `CitationFieldsDraft.baseline` | No metadata |
 | Composer form | `CitationComposerEvidenceColumn.swift` `CitationFormFocus`, `labelAndPrintedPage`, `printedPageField`, `CitationStepMenuRow.locatorText`; `CitationComposerView.swift` `composeSplit` (:299); `Features/ArtifactViewer/ArtifactViewerKind.swift` `supportsPrintedPage` | Draws Printed page from the locator |
 | Go tests | `core/database/graphfill/records_test.go` `TestGraphRecordsCarryCitationWords` (:238), `TestLoadParsesEachCitationOnce` (:327); `core/database/conclusiondetails/conclusiondetails_test.go` `TestForEntityCitationParts` (:218); `api/ffi/handlers/conclusion_detail_test.go` `TestConclusionDetailProtoCarriesVoteArtifactAndMembers` (:201) | The first three assert the locator's label; the last builds an `Outcome` by hand and stays as is |
 | Swift tests | `macos/ProvenenciaTests/ArtifactViewerModelTests.swift` (:65–69, `supportsPrintedPage`); `CitationComposerModelTests.swift` (:827–830 `order(…printedPageOffered:)`, :835–857 `locatorText` with `pageLabel`); `CatalogQueryRegistryTests.swift` | Use the APIs this PR deletes |
 | Docs that go false | `docs/interpretation-layer-data-model.md` :253 ("The composer writes `page_label` from its Printed page field"); `.agents/skills/add-workspace-place/SKILL.md` :175 (every board Save goes through `SourcePageContext.applySavedMetadata`); `docs/macos-client-patterns.md` :89 (the `reads` list); `docs/source-layer-data-model.md` § 5.5 (the boards list) | Name the old shape |
 
-**Precedent.** S15-34 (#819) and S15-10 (#829) put a draft board on the Artifact sheet: `ArtifactSheetModel.init` builds `MetadataDraftHost` and then `MetadataBoardModel(host:)` in one switch (cached rows for edit, the draft read for add), sends `host.draft` in its one write and calls `host.markSaved()`. Copy that; the composer's rows come from its cached Citation list, and its write's own `citations` read reloads that list, so no patch is added.
+**Precedent.** S15-34 (#819) put a draft board in a sheet: `ArtifactSheet` presents `ArtifactSheetModel` with `pvFormDialog(item:copy:width:isRunning:isDirty:confirmDisabled:…)`, the model builds `MetadataDraftHost` from the cached rows and then `MetadataBoardModel(host:)`, sends `host.draft` in its one write and calls `host.markSaved()`. Copy that shape for the sheet; its rows come from the composer's cached Citation list, and its write's own `citations` read reloads that list, so no patch is added.
 
 ## 5. Decisions
 
@@ -124,14 +125,14 @@ A researcher edits a Citation's metadata in the citation composer, on the same b
 | D-4 | `graphfill` keeps parsing the locator for `ArtifactPage` and stops reading its `Label` (`citationWords.pageLabel` goes); after the scan it calls `CitationPages` once over the graph's Citation ids and sets each Observation's `PageLabel` from it. `CitationLineDisplay` and the proto are unchanged: "p. unpaginated" and "p. [14]" read as the seeded formats print them | One batched read per graph load; S15-54 D-7 already invalidates loaded graphs on `citation_metadata` | A per-Citation read; a proto mark field (the text carries it) |
 | D-5 | A new read `effects.ReadCitationBoards = "citation_boards"` ("the Citation boards of a graph's Citations: their own and inherited metadata values"), key table `evidence_graphs`. The four values tables report it, as `Reads` extras in `registry` (`evidence_graph_metadata` and `artifact_metadata` gain partial literals that `metadataEffects` fills, as S15-61 D-9 lets an entry declare extras): `citation_metadata` `up("citation_id", "graph_id")`; `evidence_graph_metadata` `field("graph_id")`; `artifact_metadata` `from("artifact_id", chain(inbound("citations", "artifact_id"), field("graph_id")))`; `source_metadata` `graphsOfSource(field("source_id"))`, beside its `ReadInheritedValues`. Swift `CatalogRead.citationBoards`; `.citationsByArtifact` follows it as it follows `.citations`; `.citationCounts` does not | Each own or inherited value move reaches the composer's list (S15-54 Out, S15-64 Next adds), and count keys do not reload on metadata edits | Reusing `ReadCitations` (its counts would reload on every value write); deriving the paths from `MetadataTables.Ups` (they point up; this path points down from an owner to the graphs of the Citations under it, which no table declares) |
 | D-6 | `ListedCitation` gains `repeated MetadataWorkspaceEntry metadata = 4` (the Citation's board) and `string page_label = 5` (the own Page's `PageText`, "" none), named as `ReconcilerOutcomeDetail.page_label`. `ListCitationsByArtifact` makes one `sourcemetadata.ListWorkspaces` call over the listed Citations, resolves `PageFieldID` once on `c.DB()`, and takes each `page_label` from that board's entry whose `Field.ID` is the page field and whose `Value` is set, through `PageText`: the page and the board come from the same rows | Rule "One window": the composer opens a Citation from the cached list with no fresh read; one read per Artifact (Scale) | A `GetMetadataBoard` per Citation opened; a second `readByOwners` beside the boards |
-| D-7 | Swift `createCitationWithObservations` gains `metadata: CatalogMetadataDraft?` and returns `(CatalogCitation, [CatalogObservation], [CatalogMetadataEntry], CatalogWriteEffects)`; `updateCitation` gains `metadata:` and returns `(CatalogCitation, [CatalogMetadataEntry], CatalogWriteEffects)`; rows map with `Self.mapMetadataEntry` as `updateArtifact` maps them. `CatalogListedCitation` gains `metadata: [CatalogMetadataEntry] = []` and `pageLabel: String = ""`. FakeStore records each draft in `createCitationMetadata` and `updateCitationMetadata` arrays and applies none, as its Artifact recorders do; its listed Citations carry seeded `metadata` and `pageLabel`, never computed from entries; its own caller and the test stub pass `nil` | S15-54 D-12: the store gains the draft with its first caller; `swift-tests.mdc` | A metadata write after the Citation's (rule "Metadata saves with its owner's write") |
-| D-8 | The open Citation's board lives on `CitationComposerContext` (the context every `ensureCitationID` caller already shares): `metadataHost: MetadataDraftHost?`, `metadataBoard: MetadataBoardModel?`, `metadataBoardError: String?`, set only by `openMetadataBoard(for listed: CatalogListedCitation?) async`. It clears the error, then: a listed Citation → host from `listed.metadata`; nil (a new Citation) → host from `store.getDraftMetadataBoard(projectDir:parents: [graph, Artifact], level: .citation)`, nil while it reads; then the board model from the host, as `ArtifactSheetModel.init` does. The fields are `metadataFields`, the `.metadataFieldsList(project:)` query, which the `.citationComposer` place now warms. Callers: `loadCitation` (the listed row from `citationsKey(artifactID:)`'s cached value; a Citation read through `getCitation` because it is not there gets the error line, D-14), `openBlankCitation`, `resetComposerIdentity`, `selectArtifactAndLoad`, and `discardLeaveChanges`' revert branch (it rebuilds the open Citation's board as opening it does; the `keepDraft` branch leaves the board as it is). `cachedCitation(id:)` returns the `CatalogListedCitation`, and `FetchedCitation` gains `listed: CatalogListedCitation?`, nil on the `store.getCitation` fallback, which stays for the Citation's own fields. After a create, the host is kept and marked saved (D-9), so a later update sends only the changes since. A cache reload while the Citation stays open does not rebuild it | One place builds the board, as the Artifact sheet's init does; "One window" bounds staleness to the next open | The host on `CitationFieldsDraft` (`ensureCitationID` takes only its values) |
-| D-9 | Writes: `createCitationIfNeeded` sends `metadataHost?.draft`; `saveCitation` sends it on update. On success `metadataHost?.markSaved()`, then `applyWrite(effects)` as today; the write's `citations` read reloads the list with the saved board and page (user, 2026-11-25: no `.wroteMetadataBoard` patch on the list) | One mechanism per write | Patching the cached list (a second path; its page would stay stale until the reload) |
-| D-10 | Board-dependent: the board sits in a `DraftMetadataBoardField` labelled `L10n.CitationComposer.metadataLabel` under Label in both arrangements; in the side form, before or after the transcription as the board decides (CB-W1). Filled from the board before `Planned` | Brief CB-1, CB-W1 | A composer-only board view |
-| D-11 | `CitationComposerModel.citationDirty` is `fields.isDirty || (context.metadataHost?.isChanged ?? false)`; `hasUnsavedDocumentWork`, `canSaveCitation` and the reads at `:392` and `:541` use it | CB-4: one Save, one leave confirm | A board Save button |
-| D-12 | `metadataBoardError` is `L10n.CitationComposer.metadataBoardUnavailable` when `(error as? CoreInvokeError)?.engineCode == .sourceMetadataInvalid` (as `MetadataBoardModel.swift:307` checks), and for a Citation missing from the cached list; else `L10n.Errors.message(for:)`. The host stays nil, so a create sends no metadata | CB-5; S15-55 D-6 | The engine's save-worded sentence; a raw code string |
+| D-7 | Swift `updateCitation` gains `metadata: CatalogMetadataDraft?` and returns `(CatalogCitation, [CatalogMetadataEntry], CatalogWriteEffects)`; rows map with `Self.mapMetadataEntry` as `updateArtifact` maps them; `CitationFieldsDraft.saveCitation` passes `nil`. `createCitationWithObservations` is unchanged. `CatalogListedCitation` gains `metadata: [CatalogMetadataEntry] = []` and `pageLabel: String = ""`. FakeStore records each update draft in `updateCitationMetadata` and applies none, as its Artifact recorders do; its listed Citations carry seeded `metadata` and `pageLabel`, never computed from entries; the test stub follows the new signature | S15-54 D-12: the store gains the draft with its first caller; `swift-tests.mdc` | A draft on the create (a new Citation has no sheet) |
+| D-8 | The composer reads the open Citation's rows, never stores them: `CitationComposerModel.metadataRows` *(new)* is the `metadata` of the `CatalogListedCitation` with `activeCitationID` in the cached `citationsKey(artifactID: selectedArtifactID)` value, so it follows every reload of that list (a sheet save, a Citation create, D-5 and D-17). A new Citation (no `activeCitationID`) reads `draftMetadataRows` *(new)*, set from `store.getDraftMetadataBoard(projectDir:parents: [graph, Artifact], level: .citation)` by `openBlankCitation`, `resetComposerIdentity` and `selectArtifactAndLoad`, and cleared when a Citation opens. `metadataLineError` *(new)* is D-12's. The field list is `metadataFields`, the `.metadataFieldsList(project:)` query, which the `.citationComposer` place now warms | One source of truth for the line and the sheet: the cached list | A host built per Citation open on the context (no board in the form any more) |
+| D-9 | The sheet is `CitationMetadataSheetModel` *(new, `Features/CitationComposer/`)*, held as `CitationComposerModel.metadataSheet: CitationMetadataSheetModel?` and presented by `CitationMetadataSheet` *(new)* with `pvFormDialog(item:)`: width 600, `scrollsBody: true`, `isDirty: host.isChanged`, `confirmDisabled: !host.isChanged`, `isRunning: isSaving`. `requestEditMetadata()` builds it from `metadataRows` and `metadataFields` (`MetadataDraftHost`, then `MetadataBoardModel(host:)`), the Citation's id, ref and Label. Its `save()` calls `store.updateCitation` with the Citation's saved fields, `fields.baseline` (locator, transcription, Label, uncertain, note), and `metadata: host.draft`; on success it calls `host.markSaved()` and `context.applyWrite(effects)`, and the dialog closes; on failure `board.showRefusal(error)` places a refusal on its row, else the sheet's save error shows, as `ArtifactSheetModel.save` does. The citation form's fields are not touched | Board S15-D29: the sheet saves on its own; `citations.Update` writes nothing for equal fields, so this is the owner's write (rule "Metadata saves with its owner's write") with no new RPC | A metadata-only RPC (a second write path); saving the sheet with the citation's Save (the board chose otherwise) |
+| D-10 | The Metadata line (`CitationComposerEvidenceColumn.metadataLine` *(new)*) sits under Label in both `sideForm` and `panelForm`, in place of `labelAndPrintedPage`: `PVField(label: L10n.CitationComposer.metadataLabel)` holding `PVButton(.secondary, size: .sm, icon: .list)` and a `PVFont.body(size: PVTypeScale.caption)` `PVColor.textMuted` count (italic on a new Citation), wrapping as the board's flex row does. The button is `editMetadata` ("Edit metadata…") on a saved Citation and `metadataNew` ("Metadata"), disabled, on a new one; it is disabled while `isTranscribing || isDrawingDepiction`; its accessibility hint is the count. With `metadataLineError` the field holds only `PVErrorText(error, announces: true)` | Board S15-D29 frames 1a, 1b, 6, 7, 9 (`metaFieldNode`) | Values drawn in the form (the board removed them) |
+| D-11 | The count (`CitationComposerModel.metadataCount` *(new)*): own = rows with `hasValue`; inherited = rows without `hasValue` and with `inherited`; `L10n.CitationComposer.metadataCount(own:inherited:)` joins the non-zero parts with " · ", `metadataNone` when both are zero; a new Citation reads `metadataInheritsNew(count:)` over `draftMetadataRows`' inherited rows | Board S15-D29 `metaFieldNode` | Counting in Go (the rows already carry both facts) |
+| D-12 | `metadataLineError` is `L10n.CitationComposer.metadataBoardUnavailable` when the draft read fails with `(error as? CoreInvokeError)?.engineCode == .sourceMetadataInvalid` (as `MetadataBoardModel.swift:307` checks), and when the cached list is loaded and lacks `activeCitationID` (a Citation read through `store.getCitation`); any other draft read error is `L10n.Errors.message(for:)`. While the list key has no value yet, the line shows the button off and no count | CB-6; S15-55 D-6 | The engine's save-worded sentence; a raw code string |
 | D-13 | `CitationStepMenuRow.locatorText(pageLabel:locator:)` takes the listed Citation's `pageLabel` for "p. 14" and the locator for "image 37" and "region" | User, 2026-11-25: the row shows the Citation's own Page value | Dropping the printed page from the row |
-| D-14 | `CitationFormFocus` keeps `.label` and `.transcription`; `order(_:)` takes the layout alone and answers `[.label, .transcription]` for `.side`, `[.transcription, .label]` for `.panel` | CB-7: the Tab list names text fields only, as the Artifact sheet's | Adding the board to the Tab list |
+| D-14 | `CitationFormFocus` keeps `.label` and `.transcription`; `order(_:)` takes the layout alone and answers `[.label, .transcription]` for `.side`, `[.transcription, .label]` for `.panel` | CB-8: the Tab list names text fields only, as the Artifact sheet's | Adding the button to the Tab list |
 | D-15 | The board's six types move, unchanged, to `macos/App/Features/MetadataBoard/` *(new)* (Codebase fit): `MetadataBoardView.swift`, `MetadataBoardModel.swift`, `MetadataBoardHost.swift` without `SourcePageMetadataHost` (which moves to `Features/Sources/SourcePageMetadataHost.swift` *(new)*), `MetadataDraftHost.swift`, `MetadataBoardDialogs.swift`, and `DraftMetadataBoardField` out of `SourceOwnerForm.swift` into `DraftMetadataBoardField.swift`. Synchronized folders: no project-file edit | User, 2026-11-25: the board gains a second feature (`design-system-layers.md`: a snowflake is called from one feature) | Leaving them under Sources |
 | D-16 | No migration of locator `page_label`s (Out) | User, 2026-11-25 | — |
 | D-17 | `CatalogMutationKind.boardVocabulary: Set<CatalogMutationKind>` = `[.changedSourceType, .updatedMetadataField, .deletedMetadataField, .wroteTypeSuggestions, .changedCitationFormats]`, the edits that change a board's labels, suggestions or annotations. `.sourceWorkspace`'s `invalidateOn` is its own kinds unioned with it (unchanged in effect); `.citationsByArtifact` gains `invalidateOn: CatalogMutationKind.boardVocabulary` with `.allCached(.citationsByArtifact)`, marked stale while hidden | Every cache that holds a board follows one declared set (`docs/catalog-caches.md`: every cache names the signal that updates it); S15-39's flags then read current annotations | A second hand-written list on the Citation key |
@@ -150,22 +151,24 @@ A researcher edits a Citation's metadata in the citation composer, on the same b
 | `effects.ReadCitationBoards`; Swift `CatalogRead.citationBoards` | read | `ReadInheritedValues` | Keyed by Source; the list key holds a graph |
 | `ListedCitation.metadata`, `.page_label` | proto | `CreateCitationWithObservationsResponse.metadata` | Extends the list message |
 | `CatalogListedCitation.metadata`, `.pageLabel` | Swift | — | Mirror D-6 |
-| `CitationComposerContext.metadataHost`, `.metadataBoard`, `.metadataBoardError`, `.metadataFields`, `openMetadataBoard(for:)` | members | `ArtifactSheetModel.host`, `.board`, `init` | Same types, built once where the composer's writes are |
+| `CitationMetadataSheetModel`, `CitationMetadataSheet` | type, view | `ArtifactSheetModel`, `ArtifactSheet` | Same shape over the Citation; the Artifact sheet also edits Label, file and graphs |
+| `CitationComposerModel.metadataRows`, `.draftMetadataRows`, `.metadataLineError`, `.metadataCount`, `.metadataSheet`, `requestEditMetadata()`; `CitationComposerContext.metadataFields` | members | `SourcePageContext.metadataRows(for:)`, `.fields` | The composer's own reads of its cached list |
+| `CitationComposerEvidenceColumn.metadataLine` | view | `labelField` | The board's line |
 | `CatalogMutationKind.boardVocabulary` | set | `.sourceWorkspace`'s `invalidateOn` list | Shared by both board caches (D-17) |
-| `CitationComposerModel.citationDirty` | property | `fields.isDirty` | Adds the board |
-| FakeStore `createCitationMetadata`, `updateCitationMetadata` | test recorders | `createArtifactMetadata` | Same shape |
-| `L10n.CitationComposer.metadataLabel` ("Citation metadata"), `.metadataBoardUnavailable` | keys | `L10n.Sources.artifactCopyDetailsLabel` | The composer's namespace |
+| FakeStore `updateCitationMetadata` | test recorder | `updateArtifactMetadata` | Same shape |
+| The § 6 Strings keys | keys | `L10n.Sources.artifactCopyDetailsLabel` | The composer's namespace |
 | `macos/App/Features/MetadataBoard/` *(new)* | folder | `Features/Sources` | D-15 |
 
-**Builds on.** `MetadataDraftHost`, `MetadataBoardModel`, `DraftMetadataBoardField` (rule "One metadata board"); the effects registry's `Reads`; the composer's `applyWrite` reload.
+**Builds on.** `MetadataDraftHost`, `MetadataBoardModel`, `MetadataBoardView` (rule "One metadata board"); `pvFormDialog(item:)`; the effects registry's `Reads`; the composer's `applyWrite` reload.
 **Deletes.** `ArtifactLocatorCapabilities.supportsPrintedPage` and its four values; `CitationComposerModel.pageLabel`; `CitationFormFocus.printedPage` and `order`'s `printedPageOffered:`; `labelAndPrintedPage`, `printedPageField`; `L10n.CitationComposer.printedPageLabel`, `printedPagePrompt`, `printedPageHelp` and their catalog keys; `citationWords.pageLabel` in `graphfill`.
-**Next adds.** S15-39 and S15-41 draw flags and marks on this board, in its new folder, with no composer change. S15-58 deletes `{citation.page}`; S15-59 deletes `CitationLocatorDraft.pageLabel`, then read only by the locator codec.
+**Next adds.** S15-39 and S15-41 draw flags and marks on this board, in its new folder, with no composer change (the sheet shows them). S15-58 deletes `{citation.page}`; S15-59 deletes `CitationLocatorDraft.pageLabel`, then read only by the locator codec.
 
 ### Reach
 
 | New path or state | Destination | Checked: resets on the new id · handles a missing referent · shows the state |
 | --- | --- | --- |
-| A Citation board in the composer | `MetadataBoardView` via `DraftMetadataBoardField` | Rebuilt per opened Citation (D-8); a deleted parent or an unlisted Citation shows D-12's line |
+| The Citation metadata sheet over the composer | `MetadataBoardView` in `CitationMetadataSheet` | Built from the cached rows each time it opens (D-9); a deleted parent or an unlisted Citation shows D-12's line and no button |
+| `UpdateCitation` with the saved fields from the sheet | `citations.Update` | Equal fields write nothing (`change == nil`); an unsaved Label stays unsaved (AC-1.2) |
 | A cold composer (restore, deep link) | the board's field list | The place warms `.metadataFieldsList` (D-8) |
 | Metadata values tables reporting `citation_boards` | `.citationsByArtifact` refresh | Hidden keys mark stale (descriptor `whenHidden: .markStale`) |
 | A type change, field relabel or delete, suggestion or format edit while the composer is closed | the cached Citation boards | D-17 marks every cached list stale |
@@ -206,11 +209,11 @@ None — no catalog change.
 
 ### macOS
 
-The brief's inventory (completed from the board, D-10): the citation form (`sideForm`, `panelForm`) holds Label, then `DraftMetadataBoardField` with prefix `citationComposer.metadata`, shown when `context.metadataBoard` is not nil, else D-12's line through `PVErrorText` as `citationLoadErrorLine` draws its own; the menu row per D-13. States: a new Citation's board appears when its read answers (no loading state); a 30-row board scrolls with the form. Accessibility: CB-8, from the shared rows.
+From the brief's inventory: the Metadata line (D-10) under Label in both arrangements; the sheet (D-9) over the composer, 600pt at both widths, its body the shared board in `.form` placement with prefix `citationComposer.metadata`; the menu row per D-13. States: a new Citation's line waits for the draft read with the button off; a 30-row board scrolls inside the sheet; a failed read shows D-12's line. Accessibility: CB-9; the sheet's rows read as on the Artifact sheet.
 
 ### Strings
 
-New: `L10n.CitationComposer.metadataLabel` = "Citation metadata"; `L10n.CitationComposer.metadataBoardUnavailable` = "The Citation's metadata can't be shown. Close the composer and open it again from the Source." Changed: `sourceTypes.suggested.meaning` → "Offered on every Source, Artifact, Evidence graph and Citation of this type"; the translator comments of `sources.page.metadataInheritedFrom`, `metadataInheritedAccessibility` and `metadataOverrides` name the level as "(Source, Artifact or Evidence graph)". Removed: the keys in **Deletes**.
+New, under `L10n.CitationComposer`: `metadataLabel` = "Metadata"; `editMetadata` = "Edit metadata…"; `metadataNew` = "Metadata"; `metadataCount(own:inherited:)` = "%1$lld own · %2$lld inherited", with "%lld own" and "%lld inherited" when one part is zero (`metadataCountOwn`, `metadataCountInherited`); `metadataNone` = "None yet"; `metadataInheritsNew(count:)` = "Inherits %lld values. Add its own after the first save" (plural: "Inherits 1 value. …"); `metadataSheetTitle` = "Citation metadata"; `metadataSheetSubtitle(ref:label:)` = "%1$@ · %2$@. Saves on its own; the rest of the citation is not resaved", the label `metadataNoLabel` = "no label" when empty; `saveMetadata` = "Save metadata"; the sheet's Cancel reuses `L10n.Sources.cancelAction`; `metadataBoardUnavailable` = "The Citation's metadata can't be shown. Close the composer and open it again from the Source." Changed: `sourceTypes.suggested.meaning` → "Offered on every Source, Artifact, Evidence graph and Citation of this type"; the translator comments of `sources.page.metadataInheritedFrom`, `metadataInheritedAccessibility` and `metadataOverrides` name the level as "(Source, Artifact or Evidence graph)". Removed: the keys in **Deletes**.
 
 ## 7. Steps
 
@@ -249,12 +252,12 @@ Files: `Platform/L10n.swift`, `Resources/Localizable.xcstrings`. Skill: `add-loc
 Do: § 6 Strings, all but the removals.
 Check: the app builds.
 
-**STEP-8 — The composer holds and saves the board**
-Files: `CitationComposerContext.swift`, `CitationFieldsDraft.swift`, `CitationComposerModel.swift`, `CitationComposerModelTests.swift`.
+**STEP-8 — The composer reads the rows; the sheet saves them**
+Files: `CitationComposerContext.swift`, `CitationFieldsDraft.swift`, `CitationComposerModel.swift`, `CitationMetadataSheetModel.swift` *(new)*, `CitationMetadataSheet.swift` *(new)*, `CitationComposerView.swift` (presents the sheet), `CitationComposerModelTests.swift`.
 Do: D-8, D-9, D-11, D-12.
 Check: T-7, T-8 pass.
 
-**STEP-9 — The form draws it; Printed page goes**
+**STEP-9 — The form draws the line; Printed page goes**
 Files: `CitationComposerEvidenceColumn.swift`, `CitationComposerView.swift`, `Features/ArtifactViewer/ArtifactViewerKind.swift`, `ArtifactViewerModelTests.swift` (drop the `supportsPrintedPage` lines), `CitationComposerModelTests.swift` (the focus-order test asserts D-14's two orders; the `locatorText` test becomes T-9). Skill: `add-ui-component`.
 Do: D-10, D-13, D-14; the Deletes but the strings.
 Check: the app builds; T-9 passes; manual check steps 1–4.
@@ -281,8 +284,8 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | T-4 | Go | `core/database/effects/reads_test.go` `TestReadsDeclare`; `reads_resolve_test.go` `TestMetadataValuesNameCitationGraphs` *(new)* | `ReadCitationBoards` lists the four values tables, and `ReadCitations` does not; a value set on a Citation, its graph, its Artifact and its Source each names the Citation's graph | D-5 |
 | T-5 | Go | `api/ffi/handlers/citations_test.go` `TestListCitationsByArtifactBoards` *(new)* | two Citations, one with own Page "2" → its `metadata` holds the saved Page row and `page_label` "2"; the other's Page entry carries `inherited` from the graph and `page_label` "" | AC-2.6, D-6 |
 | T-6 | Go | same file `TestListCitationsByArtifactScale` *(new)* | 60 Citations, 8 values each → every board holds its 8 rows and every `page_label` is right; the time logged with `t.Logf` | D-6, Scale |
-| T-7 | Swift | `CitationComposerModelTests.swift` `newCitationSavesBoard` *(new)* | New citation, Page "2" set on the host, Save → `createCitationMetadata` holds the draft; `citationDirty` false; then Column "4" and Save → `updateCitationMetadata` holds Column alone. The same create through `ensuredCitationID` | AC-1.1, AC-1.3, D-9 |
-| T-8 | Swift | same file `boardChangeIsUnsaved`, `draftReadFailure` *(new)* | a host change → `canSaveCitation` and `hasUnsavedDocumentWork` true; Save → `updateCitationMetadata` holds only the draft; a draft read failing with `sourcemetadata.invalid` → `metadataBoardError` is the new string, host nil | AC-1.2, AC-1.5, AC-1.6, D-11, D-12 |
+| T-7 | Swift | `CitationComposerModelTests.swift` `metadataSheetSavesOnItsOwn` *(new)* | a saved Citation with listed rows; `requestEditMetadata()`; Page "2" set on the host; `save()` → `updateCitationMetadata` holds the draft and the update carries `fields.baseline`, not a typed unsaved Label; `metadataSheet` nil after; FakeStore's reloaded list row then gives `metadataCount` "2 own · 2 inherited" | AC-1.1, AC-1.2, D-9, D-11 |
+| T-8 | Swift | same file `newCitationMetadataLine`, `metadataLineFailure` *(new)* | a new Citation with a seeded draft board of 4 inherited rows → `metadataCount` is "Inherits 4 values…", the button off; a draft read failing with `sourcemetadata.invalid` → `metadataLineError` is the new string; a loaded list without the open Citation → the same; a host change → the sheet's `isDirty` true | AC-1.3, AC-1.5, AC-1.6, D-8, D-12 |
 | T-9 | Swift | same file `menuRowReadsOwnPage` (the `locatorText` test, rewritten) | `locatorText(pageLabel: "2", locator: page 2)` → "p. 2 · image 2"; `pageLabel: ""`, page 40 → "image 40" | AC-2.6, D-13 |
 | T-10 | Swift | `CatalogQueryRegistryTests.swift` `composerWarmsMetadataFields` *(new)*; `citationBoardsReloadCitationList` *(new)* | the `.citationComposer` spec lists `.metadataFieldsList`; a `citation_boards` read for a graph revalidates that graph's `.citationsByArtifact` key and no `.citationCounts` key; `.changedSourceType` and `.updatedMetadataField` each mark a hidden `.citationsByArtifact` key stale (`boardVocabularyStalesCitationLists` *(new)*) | D-5, D-8, D-17 |
 | T-11 | Go | `core/database/sourcevocab/registry_test.go` `TestFieldKeysMatchSeed` *(new)* | `vocabkey.FieldPage` is a seeded field's key | D-1 |
@@ -312,31 +315,31 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `M
 
 Bar 13, on a new project (the seed has `page`):
 
-1. Add Source **Calder Gazette** of type Newspaper item with a PDF Artifact and a graph. Open the composer; **New citation**: the Citation metadata board shows Page and Column empty, Published in inherited if set on the Source; no Printed page field.
-2. Type Page "2" and Column "4", Save. Reopen the Citation from the Citation menu: both are saved rows; the menu row reads "p. 2 · image …"; the provenance sheet's citation reads "…, p. 2, col. 4…".
-3. Give the graph Page "7" on its form. A second **New citation** on the same graph shows Page "7" "From Evidence graph" (AC-1.4); save it with a Label only; its citation prints "p. 7".
-4. Open a Citation on an image Artifact and one on an audio Artifact: each shows the board and no Printed page field (AC-1.7).
+1. Add Source **Calder Gazette** of type Newspaper item with a PDF Artifact and a graph; give the Source Published in and Provider. Open the composer; **New citation**: no Printed page field; the Metadata button is off and reads "Inherits 2 values. Add its own after the first save".
+2. Save the Citation with a Label. Edit metadata… opens the 600pt sheet: Published in and Provider "From Source", Page and Column empty. Type Page "2" and Column "4", Save metadata: the sheet closes, the line reads "2 own · 2 inherited", the Citation menu row reads "p. 2 · image …", the provenance sheet's citation reads "…, p. 2, col. 4…".
+3. Give the graph Page "7" on its form. Save a second **New citation** on the same graph with a Label only; its sheet shows Page "7" "From Evidence graph" (AC-1.4); its citation prints "p. 7".
+4. Open a Citation on an image Artifact and one on an audio Artifact: each has the Metadata line and no Printed page field (AC-1.7).
 5. Promote an Observation of the first Citation to a Conclusion: the Conclusion detail's line reads "p. 2".
-6. Type a value, then pick another Citation: the discard confirm shows. Resize across 1600pt with an override open: the text stays.
+6. Type a Label without saving, then change a value in the sheet and Save metadata: the typed Label stays unsaved. Type in the sheet and Cancel: the discard confirm asks. Resize across 1600pt with the sheet open: it stays 600pt and keeps its text.
 
 ## 11. Risks and stop conditions
 
 | Risk | Mitigation |
 | --- | --- |
 | `from("artifact_id", chain(inbound(…), field(…)))` does not check against `evidence_graphs` | T-4; Stop condition |
-| Opening the board races a fast Citation switch | `openMetadataBoard` runs inside the open task, after its `Task.isCancelled` checks |
+| The draft read for a new Citation races a fast Artifact switch | `draftMetadataRows` is set only when the read's Artifact is still `selectedArtifactID` |
 
 **Stop and report if:**
 
 - A D-5 path fails `validate` or names no graph in T-4.
 - `CitationPages` cannot run on `graphcache.Graph` after D-3 (a `*sql.Tx`-only call underneath).
 - `ListCitationsByArtifact` calls a board or page read per Citation.
-- The agreed board places the board away from Label, or adds a control the inventory does not list.
+- An `UpdateCitation` with the saved fields writes an audit row for the Citation itself (T-7 against `citations.Update`).
 - A moved board file needs a code change to build in its new folder (D-15 moves only).
 
 ## 12. Open questions
 
-- The board's placement in the side form, before or after the transcription (D-10). Recommended: after Label, before the transcription, as the brief draws first. Answered by the board.
+None.
 
 ## 13. PR
 
