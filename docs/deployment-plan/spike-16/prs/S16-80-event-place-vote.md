@@ -1,6 +1,6 @@
 # S16-80 — An event's places reconcile by their records
 
-**Status:** Draft
+**Status:** Planned
 **Spike / slice:** Spike 16 · Slice 6k — Event places by evidence
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the life rows, the Event page's Place row and the provenance sheet draw what they draw today; only which place leads, the mixed badge and each record's outcome words change, and every outcome phrase already exists)
@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc`
 **Context:** [`docs/conclusion-reconciliation.md`](../../../conclusion-reconciliation.md) §5 (the pipeline), §7 (grouping policy, S11-06), §9 (values reached through other entities), §11.1 (places); [`docs/matching-model.md`](../../../matching-model.md) (value types, knob inventory); [`docs/catalog-caches.md`](../../../catalog-caches.md) (the `nodes` row); [`docs/ideas/one-bridge-cardinality.md`](../../../ideas/one-bridge-cardinality.md); working rules "(Batch 2) Every cache names the signal that updates it, and updates exactly", "(Batch 2) Memory is budgeted", Spike 16 rule "Crafted fan-out is capped, not engineered"; the user's calls of 2026-11-26 in § 5
 **Planned:** 2026-11-26 against `origin/main` @ `7a1d15c`
-**Review:** [`S16-80-event-place-vote.review.md`](S16-80-event-place-vote.review.md) — Fits with changes · Ready with changes, 3 rounds; To user: confirm the bend of "Catalog data comes in through `Rules`"
+**Review:** [`S16-80-event-place-vote.review.md`](S16-80-event-place-vote.review.md) — Fits with changes · Ready with changes, 3 rounds; To user answered (2026-11-26)
 
 ### Implementer — read this first
 
@@ -137,7 +137,7 @@ The PR builds this from the existing layers, not a branch for places: value comp
 
 **Rules this plan bends.**
 
-- **`add-match-rule` "Catalog data comes in through `Rules`".** `Within` is catalog-derived context that rides on the value, because it holds per value and per date. Why: containment at a date cannot be a catalog-wide table. User's answer: the user asked for the long-term shape and the writer proposed this (2026-11-26); confirmation pending (review log, To user). STEP-10 rewrites the line: catalog tables come through `Rules`; per-value context the caller derives at the value's date (a subject's `Within`) rides on the value.
+- **`add-match-rule` "Catalog data comes in through `Rules`".** `Within` is catalog-derived context that rides on the value, because it holds per value and per date. Why: containment at a date cannot be a catalog-wide table. User's answer: accepted, 2026-11-26. STEP-10 rewrites the line: catalog tables come through `Rules`; per-value context the caller derives at the value's date (a subject's `Within`) rides on the value.
 - **§ 7 "Terms, subjects and depictions keep their catalog identity" and the subject row's Fold "none" (S11-06).** Subjects still group by identity and now fold on `Contains` when their value carries `Within`. User's answer: 2026-11-26, a place that contains another linked place folds into it (Canada into Swift Current). STEP-10 rewrites the sentence and the row.
 
 ## 6. Design

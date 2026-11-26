@@ -1,11 +1,11 @@
 # Review — S16-80 An event's places reconcile by their records
 
-**Verdict:** Fits with changes — Ready with changes (round 3, asked for by the user after the reshape)
+**Verdict:** Fits with changes — Ready with changes (round 3, asked for by the user after the reshape); To user answered; Planned
 **Rounds:** 3. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
 
-- **"Catalog data comes in through `Rules`" (add-match-rule).** A place's `Within` (what contains it at the event's date) rides on the value, not in `Rules`, because it holds per value and per date. **Writer's recommendation: accept**, and rewrite the skill line so per-value context the caller derives at the value's date rides on the value while catalog tables come through `Rules`.
+- **"Catalog data comes in through `Rules`" (add-match-rule).** A place's `Within` (what contains it at the event's date) rides on the value, not in `Rules`, because it holds per value and per date. **Answered: accepted (user, 2026-11-26).** STEP-10 rewrites the skill line so per-value context the caller derives at the value's date rides on the value while catalog tables come through `Rules`.
 - **M-1:** answered 2026-11-26: no declaration yet (D-1).
 - **M-12:** answered by the reshape. The user asked for the long-term shape (2026-11-26): containment is data on the value, value compare's subject comparer owns the rule, and the reconciler folds on `Contains`.
 
