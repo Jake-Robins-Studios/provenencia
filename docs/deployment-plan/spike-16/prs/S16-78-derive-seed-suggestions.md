@@ -12,7 +12,7 @@
 **Skills to load:** [`add-seeded-vocabulary`](../../../../.agents/skills/add-seeded-vocabulary/SKILL.md)
 **Rules that bind:** `.cursor/rules/go-tests.mdc`
 **Context:** [`docs/seeded-vocabulary.md`](../../../seeded-vocabulary.md) § 2.3 (the suggestion rule, user 2026-11-20 and 2026-11-23); [`docs/citation-formats.md`](../../../citation-formats.md) § Needed and used; the S16-79 plan review, finding M-5 ([`S16-79-voters-list-type.review.md`](S16-79-voters-list-type.review.md)); user, 2026-11-26: "plan it first"
-**Planned:** 2026-11-26 against `origin/main` @ `0886b43` (fetch it; a local `main` may be older)
+**Planned:** 2026-11-26 against `origin/main` @ `0886b43`; refreshed 2026-11-26 against `5b2606d` (fetch it; a local `main` may be older)
 **Review:** [`S16-78-derive-seed-suggestions.review.md`](S16-78-derive-seed-suggestions.review.md) — Fits · Ready with changes, 2 rounds; no blocker open; To user: none
 
 ### Implementer — read this first
