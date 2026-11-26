@@ -776,7 +776,7 @@ Runs after slice 7, before slice 8 (user, 2026-11-22). Re-cut later the same day
 
 #### S15-59 — The locator only finds things in its Artifact
 
-**Ships.** Go and Swift. The locator's page selector holds `artifact_page` alone: `page_label`, `page_unknown`, `page_supplied` and the label-only selector go from `core/locator` and from `CitationLocatorDraft`. Reads ignore those keys in stored documents and never fail on them; a Citation saved again writes them out. No migration. No visible change.
+**Ships.** Go and Swift. The locator's page selector holds `artifact_page` alone: `page_label`, `page_unknown`, `page_supplied` and the label-only selector go from `core/locator` and from `CitationLocatorDraft`. Reads ignore those keys in stored documents and never fail on them; the composer's next save of a Citation's locator writes them out, and a save that sends the stored locator unchanged keeps it. No migration. No visible change.
 **Deletes.** `locator.PageRef` and `locator.Page` (for `locator.ArtifactPage`); `selectorRaw`'s `PageLabel`, `PageUnknown`, `PageSupplied` and `pageMark`; the label branches of `validatePage` and `ValidateDepictionRegion`'s comment; `CitationLocatorDraft.pageLabel`.
 **Check.** Go tests: a stored locator with a `page_label` reads and renders; a save that sends it unchanged keeps it, and the composer's re-save writes it out; a new locator with one is refused.
 **Context.** Rule "The locator only finds things in its Artifact"; S15-13, S15-44 (whose locator parts this retires); `core/locator/validate.go`, `core/locator/depiction.go`. Updates [`interpretation-layer-data-model.md`](../../interpretation-layer-data-model.md) §§ 3.2, 3.3 and 3.6 (the page selector and its `page_label` examples).
