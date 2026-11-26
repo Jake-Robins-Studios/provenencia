@@ -128,3 +128,26 @@ S16-78 landed with a user change: the seed is data, and no test validates regist
 | R1 | executability | sonnet | 105k |
 | R2 | maintainability | opus | 133k |
 | R2 | executability | sonnet | 115k |
+
+### Second refresh (against `d96d26ccb`)
+
+The implementer stopped at round 0: the Map type (#997) holds an eleventh hand copy of the copy clause. User, 2026-11-26: Map joins `copyLayer` (D-7 as written). The refresh also drops the seed-entry subtest step (#999 deleted it), moves the type count to 27 → 28 and the version to 0.48.0.
+
+**Reviewers:** maintainability (opus), executability (sonnet), one round. Verdicts: Fits · Ready with changes. No blocker or major.
+
+- **M-1 · minor · `registry.go` header still calls the seed § 6.8.** Fixed — STEP-2 rewords it to "began as".
+- **M-2 · minor · Skill bullet's hand list of older formats.** Fixed — STEP-4's bullet says formats written before the rule may print the copy first, `registry.go` being their record; no list.
+- **M-3 · minor · Copy-type counts restated in prose.** Declined — each count names a different set (hand copies, types, `rg` hits) the implementer checks against; the stop condition caught the drift this time, which is its job.
+- **X-1 · minor · D-5 says `election` is needed in the list form.** Fixed — D-5: full and short.
+- **X-2 · minor · Commit order.** Fixed — STEP-1 stays uncommitted through STEP-2.
+- **X-3 · minor · Skill step 2 replacement leaves a dangling clause.** Fixed — STEP-4 quotes and replaces the whole sentence.
+- **X-4 · minor · STEP-4 check misses "The 69 are".** Fixed — added, plus an `rg` for "is the citation vocabulary of".
+- **X-5 · nit · Bullet vs sentence.** Fixed — appended to the `seedTypes` bullet.
+- **X-6 · nit · Stale ship log.** Logged; the orchestrator updates it.
+
+**Verdict (second refresh):** Fits · Ready with changes, one round; no blocker open; To user: answered (Map joins).
+
+| Round | Reviewer | Model | Tokens |
+| --- | --- | --- | --- |
+| R1 | maintainability | opus | 92k |
+| R1 | executability | sonnet | 120k |
