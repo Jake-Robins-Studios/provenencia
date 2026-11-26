@@ -69,7 +69,7 @@ struct PersonTimelineList: View {
     /// The scale once every item is measured, kept while the items, the line's years and the
     /// viewport stay as they were, so an unfold moves only the rows below it.
     @State private var keptScale: PersonTimelinePlacement.KeptScale?
-    /// The first item an unfold added, to scroll into view once it is placed.
+    /// The first item a keyboard Show more revealed, scrolled into view once placed.
     @State private var pendingReveal: String?
     /// Keeps the keyboard on a card across a width change or a reload that takes it.
     @State private var keeper = FocusKeeper<String>()
@@ -109,8 +109,8 @@ struct PersonTimelineList: View {
                 }
             }
             .pvScrollsRowIntoView(scrollTarget, anchor: .top, whenRequested: scrollRequest)
-            // A keyboard Show more of the dated list asks for its first revealed row; it scrolls
-            // to the top once placed (`rebuild()`).
+            // A keyboard Show more of the dated or undated list asks for its first revealed row
+            // (the `.more` row passes `String` ids); it scrolls to the top once placed (`rebuild()`).
             .environment(\.pvShowMoreReveal, PVShowMoreReveal { pendingReveal = $0.base as? String })
         }
         .overlay(alignment: .topLeading) {
