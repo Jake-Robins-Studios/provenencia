@@ -38,8 +38,9 @@ new Install into **`onboarding.createCatalog` only**.
    - `registry_suggestions.go` `suggestedKeys` — derives each type's suggested fields from its formats (§ 2.3); a type needs no list of its own
 2. The Source seed began as the citation vocabulary of the Spike 15 map § 6.8 and
    `registry.go` is now its record. It is the one exception to a small starter:
-   the Spike 15 rule "The seed is the product default" decided it. New projects get whatever is in the registry at
-   create time; existing catalogs are not backfilled on open.
+   the Spike 15 rule "The seed is the product default" decided it. New projects
+   get whatever is in the registry at create time; existing catalogs are not
+   backfilled on open.
 3. All registry rows are **`origin = provenencia`**. Researcher rows use `Create` (`user`);
    plugin rows use `UpsertTx` (`plugin:<id>`) — never put those in the registry.
    Origins, primary kinds and the Property keys code reads by name come from
