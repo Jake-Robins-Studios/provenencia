@@ -95,4 +95,4 @@
 | --- | --- | --- | --- |
 | 1 | maintainability | opus | 149k |
 | 1 | executability | sonnet | 145k |
-| 2 | both lenses | opus | — |
+| 2 | both lenses | opus | 116k |
