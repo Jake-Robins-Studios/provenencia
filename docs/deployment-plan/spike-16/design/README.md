@@ -12,8 +12,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | S16-D15 | Add Source sheet: the shared Source fields (Title, Type, Published date, Description, Private) | — | **S16-73** |
 | S16-D16 | Copy Source sheet: the shared Source fields filled from the original, above the credibility tick and the Artifact checklist | — | **S16-74** |
 | S16-D17 | Copy Source sheet: the original's metadata as an editable board, and a type change | — | **S16-75** |
-| [S16-D18](S16-D18-family-parents-once.md) | Person page Family: each parent drawn once when parent sets share them, a sibling joined to only some parents with the others shown as not recorded | — | **S16-81** |
-| [S16-D19](S16-D19-family-marriages.md) | Person page Family: a couple's marriage date and place, between the parents and between the person and each partner | — | **S16-82** |
+| [S16-D18](S16-D18-family-parents-and-marriages.md) | Person page Family: each parent drawn once when parent sets share them, a sibling joined to only some parents with the others shown as not recorded, and each couple's marriage date and place | — | **S16-81** |
 
 ## Archived
 
