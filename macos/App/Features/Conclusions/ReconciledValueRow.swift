@@ -51,7 +51,7 @@ struct ReconciledValueRow: View {
             .frame(minHeight: 52)
             .padding(.vertical, PVSpacing.space3)
             if folded.hidden > 0 {
-                ConclusionShowMoreRow(
+                PVShowMoreRow(
                     hidden: folded.hidden,
                     fold: ReconciledValueRowModel.listFold,
                     focus: $focusedStop,

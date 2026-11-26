@@ -97,7 +97,7 @@ struct PersonTimelineList: View {
                             stacksPeople: PersonTimelinePlacement.stacksPeople(met, widthClass: widthClass),
                             open: open,
                             revealed: content.firstRevealed(by:),
-                            expand: unfold,
+                            expand: expand,
                             focused: $focused
                         )
                         .id(item.id)
@@ -109,6 +109,9 @@ struct PersonTimelineList: View {
                 }
             }
             .pvScrollsRowIntoView(scrollTarget, anchor: .top, whenRequested: scrollRequest)
+            // A keyboard Show more of the dated list asks for its first revealed row; it scrolls
+            // to the top once placed (`rebuild()`).
+            .environment(\.pvShowMoreReveal, PVShowMoreReveal { pendingReveal = $0.base as? String })
         }
         .overlay(alignment: .topLeading) {
             if let lifeline = placement.lifeline {
@@ -156,13 +159,6 @@ struct PersonTimelineList: View {
             scrollTarget = target
             scrollRequest += 1
         }
-    }
-
-    /// "Show N more": the Show more row moves the keyboard to the first item it adds; a
-    /// fold of rows also scrolls it into view once placed.
-    private func unfold(_ fold: PersonTimelineContent.Fold) {
-        if case .participants = fold {} else { pendingReveal = content.firstRevealed(by: fold) }
-        expand(fold)
     }
 
     /// A click on a point or a cap: the list scrolls the item to the top, again on
@@ -242,12 +238,13 @@ private struct PersonTimelineItemView: View {
                     .foregroundStyle(PVColor.textMuted)
             }
         case .more(let fold, let count):
-            ConclusionShowMoreRow(
+            PVShowMoreRow(
                 hidden: count,
                 fold: PersonTimelineContent.eventFold,
                 focus: focused,
                 stop: item.id,
-                revealed: revealed(fold)
+                revealed: revealed(fold),
+                revealedRow: revealed(fold).map(AnyHashable.init)
             ) { expand(fold) }
         }
     }
@@ -338,7 +335,7 @@ private struct PersonTimelineEventRow: View {
                 ForEach(row.participants) { card($0) }
             }
             if row.participantsHidden > 0 {
-                ConclusionShowMoreRow(
+                PVShowMoreRow(
                     hidden: row.participantsHidden,
                     fold: PersonTimelineContent.participantFold(widthClass),
                     focus: focused,
