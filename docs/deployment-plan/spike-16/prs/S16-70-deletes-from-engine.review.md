@@ -64,6 +64,23 @@ The plan put "a Source delete moves the types' `usedBy`" in Swift through a new 
 ### M-7 · minor · Log the handle lists' way of dropping a deleted row
 **Answer:** Fixed. An Out row and a STEP-7 line in `docs/ideas/catalog-query-layer.md`.
 
+## Round 2
+
+### X-8 · major · `.createdSource` is left as a kind no descriptor names
+**Answer:** Fixed. **Deletes** removes `CatalogMutationKind.createdSource` and its arm; `.createdSource` joins the patch-only nil arm (D-8).
+
+### X-9 · minor · T-8 does not test what D-3 protects
+**Answer:** Fixed. T-8 holds the first load, as `patchDuringFirstLoadFallsBack` does, and expects no restart at revision 0.
+
+### X-10 · minor · AC-2.4 and AC-2.5 fixtures do not match `seedStore`
+**Answer:** Fixed. T-5 builds its own two-type store.
+
+### X-11 · minor · STEP-7 doc edits leave wording to the implementer
+**Answer:** Fixed. STEP-7 quotes the patterns doc's patch-only list before and after, names `.sourceType` on the skill's Mark stale row, and quotes the idea file's line 7.
+
+### X-12 · minor · `.sourcesList`'s `whenHidden` unspecified
+**Answer:** Fixed. The Sources list row keeps `whenHidden: .markStale` and its `.merged` refresh.
+
 ## Cost
 
 Plan: 4,976 words at round 1, 5,736 after the round-1 answers (check-plan-docs info line).
@@ -72,3 +89,4 @@ Plan: 4,976 words at round 1, 5,736 after the round-1 answers (check-plan-docs i
 | --- | --- | --- | --- |
 | 1 | maintainability | opus | — |
 | 1 | executability | sonnet | 146k |
+| 2 | executability | sonnet | 177k |
