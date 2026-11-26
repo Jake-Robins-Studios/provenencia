@@ -1,4 +1,4 @@
-# S16-74 — Install derives each seeded type's suggested fields from its formats
+# S16-78 — Install derives each seeded type's suggested fields from its formats
 
 **Status:** Planned
 **Spike / slice:** Spike 16 · Slice 6j — A Voters list type
@@ -6,14 +6,14 @@
 **Brief:** — (no chrome change: the suggestion rows a new project gets are the same, so every view looks the same)
 **Board:** —
 **Depends on:** —
-**Blocks:** S16-73
-**Branch:** `s16-74-derive-seed-suggestions`
+**Blocks:** S16-79
+**Branch:** `s16-78-derive-seed-suggestions`
 **Version bump:** none — a new project's rows are byte for byte the same; no wire or catalog change ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-seeded-vocabulary`](../../../../.agents/skills/add-seeded-vocabulary/SKILL.md)
 **Rules that bind:** `.cursor/rules/go-tests.mdc`
-**Context:** [`docs/seeded-vocabulary.md`](../../../seeded-vocabulary.md) § 2.3 (the suggestion rule, user 2026-11-20 and 2026-11-23); [`docs/citation-formats.md`](../../../citation-formats.md) § Needed and used; the S16-73 plan review, finding M-5 ([`S16-73-voters-list-type.review.md`](S16-73-voters-list-type.review.md)); user, 2026-11-26: "plan it first"
+**Context:** [`docs/seeded-vocabulary.md`](../../../seeded-vocabulary.md) § 2.3 (the suggestion rule, user 2026-11-20 and 2026-11-23); [`docs/citation-formats.md`](../../../citation-formats.md) § Needed and used; the S16-79 plan review, finding M-5 ([`S16-79-voters-list-type.review.md`](S16-79-voters-list-type.review.md)); user, 2026-11-26: "plan it first"
 **Planned:** 2026-11-26 against `origin/main` @ `0886b43` (fetch it; a local `main` may be older)
-**Review:** [`S16-74-derive-seed-suggestions.review.md`](S16-74-derive-seed-suggestions.review.md) — Fits · Ready with changes, 2 rounds; no blocker open; To user: none
+**Review:** [`S16-78-derive-seed-suggestions.review.md`](S16-78-derive-seed-suggestions.review.md) — Fits · Ready with changes, 2 rounds; no blocker open; To user: none
 
 ### Implementer — read this first
 
@@ -32,7 +32,7 @@
 
 Each seeded Source type suggests exactly the fields its formats read (§ 2.3's rule), but the list is typed by hand in `seedSuggestions` and a test derives the same list to catch a difference. After this PR, `Install` derives each type's list from its formats with that rule, and the hand lists go. A new project gets the same rows in the same order.
 
-**Why now.** S16-73 adds a type and changes eleven types' copy layer; each such change means hand-deriving lists the code already derives. The user asked for this first (2026-11-26).
+**Why now.** S16-79 adds a type and changes eleven types' copy layer; each such change means hand-deriving lists the code already derives. The user asked for this first (2026-11-26).
 
 **What stays.** The rule itself, the rows and sort orders a new project gets, `CopyType`, `AppendSuggestion`, researcher types (their suggestions are the researcher's, never derived).
 
@@ -60,7 +60,7 @@ Each seeded Source type suggests exactly the fields its formats read (§ 2.3's r
 | Out | Home |
 | --- | --- |
 | Deriving suggestions for a researcher's type, or when a researcher edits a seeded type's formats | not planned (a researcher's list is theirs) |
-| Any change to a format or to the rule | S16-73 (formats); not planned (rule) |
+| Any change to a format or to the rule | S16-79 (formats); not planned (rule) |
 
 ## 4. Current state
 
@@ -99,7 +99,7 @@ Each seeded Source type suggests exactly the fields its formats read (§ 2.3's r
 
 **Builds on.** `citationformat.Requirements`, the § 2.3 rule.
 **Deletes.** `seedSuggestions`, `seedSuggestion`, `derivedSuggestions` (and `registry_test.go`'s `maps` import, which only it used; `mustParseForm` stays, other tests use it), the hand-compare in `TestSeedSuggestionsFollowFormats`, the "unknown type" case (replaced, D-5), `Install`'s `fieldIDs` guard (D-2); every doc line naming them.
-**Next adds.** S16-73's type and its copy-layer change need no suggestion edits and no count edit.
+**Next adds.** S16-79's type and its copy-layer change need no suggestion edits and no count edit.
 
 ### Reach
 
@@ -156,7 +156,7 @@ Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/... ./core/
 **STEP-3 — Docs**
 Files: `docs/seeded-vocabulary.md`, `.agents/skills/add-seeded-vocabulary/SKILL.md`, `docs/deployment-plan/spike-16/completed.md`, `docs/deployment-plan/spike-16/deployment-plan.md` (map row), this plan.
 Do: `seeded-vocabulary.md` line 83: "Product-seeded Source types/fields/suggestions live in a **code registry** (`core/database/sourcevocab/registry.go`, `registry_fields.go`, `registry_suggestions.go`)" → "Product-seeded Source types and fields live in a **code registry** (`core/database/sourcevocab/registry.go`, `registry_fields.go`), and `Install` derives each type's suggestions from its formats (`registry_suggestions.go` `suggestedKeys`, § 2.3)"; "and each type's suggested fields, one list per type" stays. § 2.3: "The seed lists each type's fields as one list, derived from the type's formats in first-read order:" becomes "`Install` derives each seeded type's list from its formats (`suggestedKeys`), in first-read order:", "`TestSeedSuggestionsFollowFormats` derives the lists from the formats and fails on any difference, in order, and" becomes "`TestSuggestedKeys` checks each list, and"; "all offer the same 18 fields" → "all offer the same fields". Skill: the table row's `seedSuggestions` becomes "suggestions derived from the formats"; step 1's `registry_suggestions.go` bullet becomes "`registry_suggestions.go` `suggestedKeys` — derives each type's suggested fields from its formats (§ 2.3); a type needs no list of its own"; step 6's `TestSeedSuggestionsFollowFormats` becomes `TestSuggestedKeys`. After the PR is open: this plan Landed, the map row `Landed #N`, a `completed.md` entry ("Seeded types' suggested fields are derived from their formats at install; new projects get the same rows").
-Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-16/prs/S16-74-derive-seed-suggestions.md` passes.
+Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-16/prs/S16-78-derive-seed-suggestions.md` passes.
 
 Commits: one per behavior. The subject is one full imperative sentence ending in a period ("Derive each seeded type's suggested fields from its formats at install.").
 
@@ -212,5 +212,5 @@ None.
 
 ## 13. PR
 
-**Title:** S16-74 — Install derives each seeded type's suggested fields from its formats
-**Body:** objective in one sentence; US-1 against AC-1.1 – AC-1.4; STEP-1's equality run as evidence; deviations; manual check; `Plan: docs/deployment-plan/spike-16/prs/S16-74-derive-seed-suggestions.md`.
+**Title:** S16-78 — Install derives each seeded type's suggested fields from its formats
+**Body:** objective in one sentence; US-1 against AC-1.1 – AC-1.4; STEP-1's equality run as evidence; deviations; manual check; `Plan: docs/deployment-plan/spike-16/prs/S16-78-derive-seed-suggestions.md`.

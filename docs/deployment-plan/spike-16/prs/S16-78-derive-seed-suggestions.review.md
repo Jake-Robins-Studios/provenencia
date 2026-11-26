@@ -1,11 +1,11 @@
-# Review — S16-74 Install derives each seeded type's suggested fields from its formats
+# Review — S16-78 Install derives each seeded type's suggested fields from its formats
 
 **Verdict:** Fits · Ready with changes, two rounds; no blocker open.
 **Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet) ([`review-plan`](../../../../.agents/skills/review-plan/SKILL.md)).
 
 ## To user
 
-None. The PR itself is the user's answer to S16-73's review finding M-5 (2026-11-26).
+None. The PR itself is the user's answer to S16-79's review finding M-5 (2026-11-26).
 
 ## Writer's own calls
 
@@ -23,7 +23,7 @@ None. The PR itself is the user's answer to S16-73's review finding M-5 (2026-11
 ### M-3 · major · `docs/seeded-vocabulary.md` line 83 stays false
 **Answer:** Fixed. STEP-3 rewrites its clause, and § 4's Docs row names it.
 
-### M-4 · major · The census count of 18 is S16-73's first edit
+### M-4 · major · The census count of 18 is S16-79's first edit
 **Answer:** Fixed with option A. `TestSuggestedKeys` pins `creator` first and `citing` last with no count, and § 2.3 drops "18".
 
 ### M-5 · minor · "Names only seeded fields" repeats `TestSeedFieldsAreRead`

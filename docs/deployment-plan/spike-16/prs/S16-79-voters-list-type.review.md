@@ -1,4 +1,4 @@
-# Review — S16-73 A seeded Voters list type cites a voter list down to the entry
+# Review — S16-79 A seeded Voters list type cites a voter list down to the entry
 
 **Verdict:** Fits with changes · Ready with changes, two rounds; no blocker open; To user answered (2026-11-26).
 **Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet) ([`review-plan`](../../../../.agents/skills/review-plan/SKILL.md)).
@@ -6,7 +6,7 @@
 ## To user
 
 - **M-2: share the copy layer?** Answered (user, 2026-11-26): "Share it, title everywhere". One `copyLayer` const replaces the ten hand copies, and every record type prints the database title when it is set. The plan gains US-4, D-7's new text and STEP-2.
-- **M-5: derive suggestions in Install?** Answered (user, 2026-11-26): "Yes, plan it first". This became the preparatory PR S16-74 ([plan](S16-74-derive-seed-suggestions.md)). S16-73 depends on it and is `Blocked — on S16-74`, and it adds no hand suggestion list.
+- **M-5: derive suggestions in Install?** Answered (user, 2026-11-26): "Yes, plan it first". This became the preparatory PR S16-78 ([plan](S16-78-derive-seed-suggestions.md)). S16-79 depends on it and is `Blocked — on S16-78`, and it adds no hand suggestion list.
 
 ## Writer's own calls
 
@@ -55,7 +55,7 @@
 **Answer:** Fixed. `placeholders_test.go` asserts non-empty, and the `seedFields` comment drops its count (STEP-1, STEP-3, T-9).
 
 ### M-5 · major · Hand entry in `seedSuggestions`
-**Answer:** To user, answered "plan it first". This is S16-74.
+**Answer:** To user, answered "plan it first". This is S16-78.
 
 ### M-6 · minor · `fixture` gains a fourth mode
 **Answer:** Declined. Making `values` the fixture's one input rewrites how the golden builds its full, bare and no-page fixtures for every type. That is a refactor this PR does not need. `values` is one documented switch beside them.
@@ -67,8 +67,8 @@
 
 Fresh reviewers had the plan and this log: maintainability (opus) gave Fits with changes, and executability (sonnet) gave Ready with changes. Both confirmed that every round-1 answer holds.
 
-### M-8 / X-1 (round 2) · blocker · STEP-2 breaks S16-74's census count of 18
-**Answer:** Fixed in S16-74. Its `TestSuggestedKeys` now pins `creator` first, `citing` last and no count, and § 2.3 drops "18" (S16-74 M-4, option A). S16-73's STEP-2 says the test stays green, and a stop condition catches a census list without `database_title` before `format`.
+### M-8 / X-1 (round 2) · blocker · STEP-2 breaks S16-78's census count of 18
+**Answer:** Fixed in S16-78. Its `TestSuggestedKeys` now pins `creator` first, `citing` last and no count, and § 2.3 drops "18" (S16-78 M-4, option A). S16-79's STEP-2 says the test stays green, and a stop condition catches a census list without `database_title` before `format`.
 
 ### X-2 (round 2) · major · The version bump has no step
 **Answer:** Fixed. STEP-5 moves `VERSION`, `core/version.go` and every `MARKETING_VERSION` to the next minor.
