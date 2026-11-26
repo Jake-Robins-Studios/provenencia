@@ -1,5 +1,4 @@
 import AppKit
-import Observation
 import SwiftUI
 import Testing
 @testable import Provenencia
@@ -21,21 +20,25 @@ struct PVShowMoreRowTests {
 }
 
 /// The reveal scroll in a real (never shown) window: a caller that asks for a scroll and leaves
-/// the tree in the same update still gets it, because the provider holds the request.
+/// the tree in the same action still gets it, because the provider holds the request.
 @Suite(.serialized, .hostedWindows)
 @MainActor
 struct PVShowMoreRowHostedTests {
     private struct Probe: View {
         @Environment(\.pvShowMoreReveal) private var reveal
+        let leave: () -> Void
 
         var body: some View {
-            Color.clear.frame(height: 1).onAppear { reveal(AnyHashable(11)) }
+            Color.clear.frame(height: 1).onAppear {
+                // Asks and leaves in one action, as a Show more does on the last page.
+                reveal(AnyHashable(11))
+                leave()
+            }
         }
     }
 
     private struct Harness: View {
-        @State private var probing = false
-        let trigger: Trigger
+        @State private var probing = true
 
         var body: some View {
             ScrollView {
@@ -43,7 +46,7 @@ struct PVShowMoreRowHostedTests {
                     ForEach(0 ..< 12, id: \.self) { index in
                         Text(verbatim: "Row \(index)").frame(height: 60).id(index)
                     }
-                    if probing { Probe() }
+                    if probing { Probe { probing = false } }
                 }
             }
             // An unshown window has no display link to step the scroll animation, so a
@@ -51,29 +54,17 @@ struct PVShowMoreRowHostedTests {
             .transaction { $0.disablesAnimations = true }
             .pvScrollsShowMoreReveals()
             .frame(width: 300, height: 200)
-            .onChange(of: trigger.fired) {
-                probing = true
-                // The caller leaves in the next update, as a Show more does on the last page.
-                DispatchQueue.main.async { probing = false }
-            }
         }
     }
 
-    @Observable
-    final class Trigger {
-        var fired = 0
-    }
-
     @Test func revealScrollsAfterTheCallerLeaves() async throws {
-        let trigger = Trigger()
-        let (_, host) = hostInBorderlessWindow(Harness(trigger: trigger), windowSize: CGSize(width: 300, height: 200))
-        // The list is laid out before the caller asks, so the scroll has rows to find.
+        let (_, host) = hostInBorderlessWindow(Harness(), windowSize: CGSize(width: 300, height: 200))
+        // Wait for the list to lay out, so the scroll has rows to find.
         let laidOut = await eventually(host) {
             descendant(NSScrollView.self, in: host).map { ($0.documentView?.frame.height ?? 0) >= 720 } ?? false
         }
         #expect(laidOut)
         let scrollView = try #require(descendant(NSScrollView.self, in: host))
-        trigger.fired += 1
         let visible = await eventually(host) {
             let rect = scrollView.documentVisibleRect
             return rect.minY <= 660 && rect.maxY >= 720
