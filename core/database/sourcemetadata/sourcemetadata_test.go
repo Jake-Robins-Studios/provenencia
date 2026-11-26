@@ -2868,24 +2868,66 @@ func TestDamagedMarksReadSettled(t *testing.T) {
 	})
 }
 
-// seededType is the product-seeded Source type with the key.
-func seededType(t *testing.T, c *database.Catalog, key string) sourcetypes.Type {
+// vocabWorld is a catalog with a user and the tests' own vocabulary, with no
+// product seed: a researcher text field for each of vocabLabels, and the Source
+// types testType makes. A seed edit changes no test that uses it.
+func vocabWorld(t testing.TB) (c *database.Catalog, userID []byte) {
 	t.Helper()
-	ty, err := sourcetypes.Lookup(c, key, vocabkey.OriginProvenencia)
+	c, userID = emptyWorld(t)
+	for _, label := range vocabLabels {
+		if _, err := runFieldCreate(c, label, metadatafields.DataTypeText, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return c, userID
+}
+
+// vocabLabels are vocabWorld's fields; each key is its label in kebab case.
+var vocabLabels = []string{
+	"Jurisdiction", "Creator", "Item", "URL", "Provider", "Publisher", "Publication place", "Column",
+	"Line number", "Schedule", "Folio", "Author", "Author sort", "Coverage", "Short title", "Medium",
+	"Leaf", "Leaf range",
+}
+
+// vocabField is the vocabWorld field with the key.
+func vocabField(t testing.TB, c *database.Catalog, key string) metadatafields.Field {
+	t.Helper()
+	f, err := metadatafields.Lookup(c, key, vocabkey.OriginUser)
 	if err != nil {
+		t.Fatalf("field %s: %v", key, err)
+	}
+	return f
+}
+
+// testType makes a researcher Source type with the formats, suggesting the
+// vocabWorld fields with the keys, in order.
+func testType(t testing.TB, c *database.Catalog, userID []byte, label string, f sourcetypes.Formats, suggested ...string) sourcetypes.Type {
+	t.Helper()
+	ty, _, err := writes.Run(c, writes.Op{Action: "create_source_type", UserID: userID},
+		func(tx *database.Tx) (sourcetypes.Type, []rowchange.Change, error) {
+			return sourcetypes.Create(tx, sourcetypes.CreateInput{Label: label})
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range suggested {
+		if err := sourcevocab.AppendSuggestion(c, ty.ID, vocabField(t, c, key).ID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := sourcetypestest.SetFormats(c, userID, ty.ID, f); err != nil {
 		t.Fatal(err)
 	}
 	return ty
 }
 
-// seededField is the product-seeded metadata field with the key.
-func seededField(t *testing.T, c *database.Catalog, key string) metadatafields.Field {
+// tallyFormats is a census-like type: the jurisdiction needed, the creator, item
+// and URL used, all four suggested.
+var tallyFormats = sourcetypes.Formats{Full: "{meta.jurisdiction}[, {meta.creator}][, {meta.item}][; {meta.url}]."}
+
+func newTally(t testing.TB, c *database.Catalog, userID []byte, label string) sourcetypes.Type {
 	t.Helper()
-	f, err := metadatafields.Lookup(c, key, vocabkey.OriginProvenencia)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return f
+	return testType(t, c, userID, label, tallyFormats, "jurisdiction", "creator", "item", "url")
 }
 
 // entryOf is the entry for the field key, and whether the board holds one.
@@ -2908,7 +2950,7 @@ func boardOf(t *testing.T, c *database.Catalog, o Owner) Board {
 	return boards[0]
 }
 
-// ledger is a custom type whose full format reads line_number from a graph, else the Source.
+// ledger is a custom type whose full format reads the line number from a graph, else the Source.
 type ledger struct {
 	typeID []byte
 	line   metadatafields.Field
@@ -2916,11 +2958,11 @@ type ledger struct {
 	graph  Owner
 }
 
-// newLedger makes the line-number type (suggesting line_number at graph) in a seeded
-// world, a Source of it and one graph.
+// newLedger makes the line-number type (suggesting the line number) in a
+// vocabWorld, a Source of it and one graph.
 func newLedger(t *testing.T, c *database.Catalog, userID []byte) ledger {
 	t.Helper()
-	l := ledger{line: seededField(t, c, "line_number")}
+	l := ledger{line: vocabField(t, c, "line-number")}
 	ty, _, err := writes.Run(c, writes.Op{Action: "create_source_type", UserID: userID},
 		func(tx *database.Tx) (sourcetypes.Type, []rowchange.Change, error) {
 			return sourcetypes.Create(tx, sourcetypes.CreateInput{Label: "Line ledger"})
@@ -2932,7 +2974,7 @@ func newLedger(t *testing.T, c *database.Catalog, userID []byte) ledger {
 	if err := sourcevocab.AppendSuggestion(c, ty.ID, l.line.ID); err != nil {
 		t.Fatal(err)
 	}
-	l.setFormats(t, c, userID, sourcetypes.Formats{Full: "{meta.line_number}."})
+	l.setFormats(t, c, userID, sourcetypes.Formats{Full: "{meta.line-number}."})
 	l.src = newSource(t, c, userID, ty.ID, "Ledger 1")
 	l.graph = newLevelOwner(t, c, userID, l.src, vocabkey.LevelGraph)
 	return l
@@ -2946,11 +2988,17 @@ func (l ledger) setFormats(t *testing.T, c *database.Catalog, userID []byte, f s
 }
 
 func TestListWorkspacesAnnotations(t *testing.T) {
-	c, userID := seededWorld(t)
+	c, userID := vocabWorld(t)
 	needed := citationformat.NeedNeeded
+	tally := newTally(t, c, userID, "Tally")
+	// volume is book-like: the list form reads the author sort, else the author.
+	volume := testType(t, c, userID, "Volume", sourcetypes.Formats{
+		Full: "{meta.author}, *{source.title}*.",
+		List: "{meta.author-sort|meta.author}. *{source.title}*.",
+	}, "author")
 
-	t.Run("census", func(t *testing.T) {
-		src := newSource(t, c, userID, seededType(t, c, "census").ID, "1900 census")
+	t.Run("a type's annotations on the Source and Artifact boards", func(t *testing.T) {
+		src := newSource(t, c, userID, tally.ID, "1900 tally")
 		art := newLevelOwner(t, c, userID, src, vocabkey.LevelArtifact)
 		boards, err := ListWorkspaces(c, []Owner{sourceOwner(src.ID), art})
 		if err != nil {
@@ -2966,20 +3014,20 @@ func TestListWorkspacesAnnotations(t *testing.T) {
 		if e, ok := entryOf(boards[1].Entries, "url"); !ok || e.Annotation.Need != citationformat.NeedUsed {
 			t.Errorf("artifact url = %+v, %v; want used", e.Annotation, ok)
 		}
-		// The census list is every board's: the fields its formats read at
+		// The type's list is every board's: the fields its formats read at
 		// other levels show on the Source board too, empty and suggested.
-		for _, key := range []string{"item", "line_number", "folio", "dwelling_number", "family_number", "schedule_number", "provider"} {
+		for _, key := range []string{"item", "url"} {
 			if e, ok := entryOf(boards[0].Entries, key); !ok || !e.Suggested || e.Value != nil || e.Annotation.Need != citationformat.NeedUsed {
-				t.Errorf("%s on the census Source board = %+v, %v; want an empty suggested used field", key, e, ok)
+				t.Errorf("%s on the Source board = %+v, %v; want an empty suggested used field", key, e, ok)
 			}
 		}
 	})
 
 	t.Run("a Source's jurisdiction is met elsewhere on its Artifact's board", func(t *testing.T) {
-		src := newSource(t, c, userID, seededType(t, c, "birth_certificate").ID, "Birth of Ada")
+		src := newSource(t, c, userID, tally.ID, "Tally of Ada")
 		art := newLevelOwner(t, c, userID, src, vocabkey.LevelArtifact)
 		gr := newLevelOwner(t, c, userID, src, vocabkey.LevelGraph)
-		jur := seededField(t, c, "jurisdiction")
+		jur := vocabField(t, c, "jurisdiction")
 		jurOn := func(o Owner) WorkspaceEntry {
 			e, ok := entryOf(boardOf(t, c, o).Entries, "jurisdiction")
 			if !ok {
@@ -3005,9 +3053,9 @@ func TestListWorkspacesAnnotations(t *testing.T) {
 	})
 
 	t.Run("a graph's value is below the Source's board", func(t *testing.T) {
-		src := newSource(t, c, userID, seededType(t, c, "birth_certificate").ID, "Birth of Bea")
+		src := newSource(t, c, userID, tally.ID, "Tally of Bea")
 		gr := newLevelOwner(t, c, userID, src, vocabkey.LevelGraph)
-		if _, _, err := runSetOwner(c, userID, gr, Input{FieldID: seededField(t, c, "jurisdiction").ID, ValueText: "Ottawa County"}); err != nil {
+		if _, _, err := runSetOwner(c, userID, gr, Input{FieldID: vocabField(t, c, "jurisdiction").ID, ValueText: "Ottawa County"}); err != nil {
 			t.Fatal(err)
 		}
 		e, ok := entryOf(boardOf(t, c, sourceOwner(src.ID)).Entries, "jurisdiction")
@@ -3017,24 +3065,27 @@ func TestListWorkspacesAnnotations(t *testing.T) {
 	})
 
 	t.Run("a list-only field is needed on the Source board alone", func(t *testing.T) {
-		src := newSource(t, c, userID, seededType(t, c, "book").ID, "Another book")
+		src := newSource(t, c, userID, volume.ID, "Another book")
 		art := newLevelOwner(t, c, userID, src, vocabkey.LevelArtifact)
-		if e, ok := entryOf(boardOf(t, c, sourceOwner(src.ID)).Entries, "author_sort"); !ok || e.Annotation.Need != needed {
-			t.Errorf("Source board author_sort = %+v, %v; want needed", e.Annotation, ok)
+		if e, ok := entryOf(boardOf(t, c, sourceOwner(src.ID)).Entries, "author-sort"); !ok || e.Annotation.Need != needed {
+			t.Errorf("Source board author-sort = %+v, %v; want needed", e.Annotation, ok)
 		}
-		if e, ok := entryOf(boardOf(t, c, art).Entries, "author_sort"); ok {
-			t.Errorf("Artifact board lists author_sort = %+v; the list form reads the Source alone", e.Annotation)
+		if e, ok := entryOf(boardOf(t, c, art).Entries, "author-sort"); ok {
+			t.Errorf("Artifact board lists author-sort = %+v; the list form reads the Source alone", e.Annotation)
 		}
-		if err := runDismissOwner(c, userID, art, seededField(t, c, "author_sort").ID); err != nil {
+		if err := runDismissOwner(c, userID, art, vocabField(t, c, "author-sort").ID); err != nil {
 			t.Errorf("dismissing a list-only field below the Source = %v, want allowed", err)
 		}
 	})
 
-	t.Run("photograph shows an unsuggested head after the suggestions", func(t *testing.T) {
-		src := newSource(t, c, userID, seededType(t, c, "photograph").ID, "Portrait of Alice")
+	t.Run("an unsuggested head shows after the suggestions", func(t *testing.T) {
+		portrait := testType(t, c, userID, "Portrait", sourcetypes.Formats{
+			Full: "{source.title}[, {meta.medium}].", Short: "{meta.short-title|source.title}.",
+		}, "medium")
+		src := newSource(t, c, userID, portrait.ID, "Portrait of Alice")
 		entries := boardOf(t, c, sourceOwner(src.ID)).Entries
 		last := entries[len(entries)-1]
-		if last.Field.Key != "short_title" || last.Suggested || last.Value != nil || last.Annotation.Need != citationformat.NeedUsed {
+		if last.Field.Key != "short-title" || last.Suggested || last.Value != nil || last.Annotation.Need != citationformat.NeedUsed {
 			t.Fatalf("last entry = %+v, want the empty unsuggested used short title", last)
 		}
 		for _, e := range entries[:len(entries)-1] {
@@ -3045,19 +3096,19 @@ func TestListWorkspacesAnnotations(t *testing.T) {
 	})
 
 	t.Run("a valued field the formats read is met elsewhere", func(t *testing.T) {
-		src := newSource(t, c, userID, seededType(t, c, "book").ID, "A book")
-		if _, err := runSet(c, userID, src.ID, Input{FieldID: seededField(t, c, "author").ID, ValueText: "Ada Robins"}); err != nil {
+		src := newSource(t, c, userID, volume.ID, "A book")
+		if _, err := runSet(c, userID, src.ID, Input{FieldID: vocabField(t, c, "author").ID, ValueText: "Ada Robins"}); err != nil {
 			t.Fatal(err)
 		}
-		e, ok := entryOf(boardOf(t, c, sourceOwner(src.ID)).Entries, "author_sort")
+		e, ok := entryOf(boardOf(t, c, sourceOwner(src.ID)).Entries, "author-sort")
 		if !ok || e.Suggested || e.Annotation.Need != needed || !e.Annotation.MetElsewhere {
-			t.Fatalf("author_sort = %+v, %v; want unsuggested, needed, met elsewhere", e, ok)
+			t.Fatalf("author-sort = %+v, %v; want unsuggested, needed, met elsewhere", e, ok)
 		}
 	})
 
 	t.Run("a valued suggested field is annotated once", func(t *testing.T) {
-		src := newSource(t, c, userID, seededType(t, c, "census").ID, "1910 census")
-		if _, err := runSet(c, userID, src.ID, Input{FieldID: seededField(t, c, "item").ID, ValueText: "Roll 4"}); err != nil {
+		src := newSource(t, c, userID, tally.ID, "1910 tally")
+		if _, err := runSet(c, userID, src.ID, Input{FieldID: vocabField(t, c, "item").ID, ValueText: "Roll 4"}); err != nil {
 			t.Fatal(err)
 		}
 		n := 0
@@ -3075,12 +3126,12 @@ func TestListWorkspacesAnnotations(t *testing.T) {
 	})
 
 	t.Run("a valued unsuggested head is annotated once", func(t *testing.T) {
-		census := seededType(t, c, "census")
-		item := seededField(t, c, "item")
-		if err := sourcevocab.DeleteSuggestion(c, census.ID, item.ID); err != nil {
+		other := newTally(t, c, userID, "Second tally")
+		item := vocabField(t, c, "item")
+		if err := sourcevocab.DeleteSuggestion(c, other.ID, item.ID); err != nil {
 			t.Fatal(err)
 		}
-		src := newSource(t, c, userID, census.ID, "1920 census")
+		src := newSource(t, c, userID, other.ID, "1920 tally")
 		if _, err := runSet(c, userID, src.ID, Input{FieldID: item.ID, ValueText: "Roll 4"}); err != nil {
 			t.Fatal(err)
 		}
@@ -3101,9 +3152,9 @@ func TestListWorkspacesAnnotations(t *testing.T) {
 	t.Run("the line-number type", func(t *testing.T) {
 		l := newLedger(t, c, userID)
 		note := func() Annotation {
-			e, ok := entryOf(boardOf(t, c, l.graph).Entries, "line_number")
+			e, ok := entryOf(boardOf(t, c, l.graph).Entries, "line-number")
 			if !ok {
-				t.Fatal("no line_number entry on the graph board")
+				t.Fatal("no line-number entry on the graph board")
 			}
 			return e.Annotation
 		}
@@ -3133,7 +3184,7 @@ func TestListWorkspacesAnnotations(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := sourcevocab.AppendSuggestion(c, ty.ID, seededField(t, c, "folio").ID); err != nil {
+		if err := sourcevocab.AppendSuggestion(c, ty.ID, vocabField(t, c, "folio").ID); err != nil {
 			t.Fatal(err)
 		}
 		src := newSource(t, c, userID, ty.ID, "Plain")
@@ -3148,11 +3199,11 @@ func TestListWorkspacesAnnotations(t *testing.T) {
 }
 
 func TestDismissNeeded(t *testing.T) {
-	c, userID := seededWorld(t)
+	c, userID := vocabWorld(t)
 	layoutRows := func() int { return countRows(t, c, "source_metadata_layout") }
 
-	cert := newSource(t, c, userID, seededType(t, c, "birth_certificate").ID, "Birth of Alice")
-	jur := seededField(t, c, "jurisdiction")
+	cert := newSource(t, c, userID, newTally(t, c, userID, "Tally").ID, "Tally of Alice")
+	jur := vocabField(t, c, "jurisdiction")
 	err := runDismissSuggestion(c, userID, cert.ID, jur.ID)
 	if !errors.Is(err, ErrInvalid) {
 		t.Fatalf("dismissing a needed field = %v, want ErrInvalid", err)
@@ -3182,8 +3233,9 @@ func TestDismissNeeded(t *testing.T) {
 	})
 
 	t.Run("a used unsuggested field hides when dismissed", func(t *testing.T) {
-		reg := newSource(t, c, userID, seededType(t, c, "church_register").ID, "Register")
-		cov := seededField(t, c, "coverage")
+		register := testType(t, c, userID, "Register", sourcetypes.Formats{List: "{source.title}[, {meta.coverage}]."})
+		reg := newSource(t, c, userID, register.ID, "Register")
+		cov := vocabField(t, c, "coverage")
 		if e, ok := entryOf(boardOf(t, c, sourceOwner(reg.ID)).Entries, "coverage"); !ok || e.Suggested || e.Annotation.Need != citationformat.NeedUsed {
 			t.Fatalf("coverage = %+v, %v; want unsuggested, used", e, ok)
 		}
@@ -3196,8 +3248,8 @@ func TestDismissNeeded(t *testing.T) {
 	})
 
 	t.Run("a used suggested field is dismissed as before", func(t *testing.T) {
-		census := newSource(t, c, userID, seededType(t, c, "census").ID, "1900 census")
-		creator := seededField(t, c, "creator")
+		census := newSource(t, c, userID, newTally(t, c, userID, "Second tally").ID, "1900 tally")
+		creator := vocabField(t, c, "creator")
 		before := layoutRows()
 		if err := runDismissSuggestion(c, userID, census.ID, creator.ID); err != nil {
 			t.Fatal(err)
@@ -3212,16 +3264,16 @@ func TestDismissNeeded(t *testing.T) {
 }
 
 func TestAnnotationsFollowFormats(t *testing.T) {
-	c, userID := seededWorld(t)
+	c, userID := vocabWorld(t)
 	l := newLedger(t, c, userID)
-	line := func() (WorkspaceEntry, bool) { return entryOf(boardOf(t, c, l.graph).Entries, "line_number") }
+	line := func() (WorkspaceEntry, bool) { return entryOf(boardOf(t, c, l.graph).Entries, "line-number") }
 	if _, err := writes.RunChanges(c, writes.Op{Action: "update_metadata", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 		return Apply(tx, userID, l.graph, Draft{Layout: []LayoutRow{{FieldID: l.line.ID, SortOrder: 0, Dismissed: true}}})
 	}); err != nil {
 		t.Fatal(err)
 	}
 	if e, ok := line(); !ok || e.Annotation.Need != citationformat.NeedNeeded {
-		t.Fatalf("with the format, line_number = %+v, %v; want shown and needed despite its dismissed row", e, ok)
+		t.Fatalf("with the format, line-number = %+v, %v; want shown and needed despite its dismissed row", e, ok)
 	}
 
 	l.setFormats(t, c, userID, sourcetypes.Formats{})
@@ -3238,7 +3290,7 @@ func TestAnnotationsFollowFormats(t *testing.T) {
 }
 
 func TestAnnotationsDanglingField(t *testing.T) {
-	c, userID := seededWorld(t)
+	c, userID := vocabWorld(t)
 	l := newLedger(t, c, userID)
 	dangling := uuid.New()
 	db, err := c.DB()
@@ -3249,37 +3301,39 @@ func TestAnnotationsDanglingField(t *testing.T) {
 	if _, err := db.Exec(`UPDATE source_types SET citation_full = ? WHERE id = ?`, full, l.typeID); err != nil {
 		t.Fatal(err)
 	}
-	if entries := boardOf(t, c, sourceOwner(l.src.ID)).Entries; len(entries) != 1 || entries[0].Field.Key != "line_number" {
+	if entries := boardOf(t, c, sourceOwner(l.src.ID)).Entries; len(entries) != 1 || entries[0].Field.Key != "line-number" {
 		t.Errorf("source board = %+v, want the line number alone and no entry for a dangling head", entries)
 	}
-	e, ok := entryOf(boardOf(t, c, l.graph).Entries, "line_number")
+	e, ok := entryOf(boardOf(t, c, l.graph).Entries, "line-number")
 	if !ok || e.Annotation.Need != citationformat.NeedNeeded || len(e.Annotation.Alternatives) != 0 || e.Annotation.MetElsewhere {
-		t.Errorf("graph line_number = %+v, %v; want needed with no alternative", e.Annotation, ok)
+		t.Errorf("graph line-number = %+v, %v; want needed with no alternative", e.Annotation, ok)
 	}
 }
 
 func TestSourceBoardBuiltins(t *testing.T) {
-	c, userID := seededWorld(t)
-	census := newSource(t, c, userID, seededType(t, c, "census").ID, "1900 census")
-	court := newSource(t, c, userID, seededType(t, c, "court_report").ID, "Report")
+	c, userID := vocabWorld(t)
+	// tally's date stands outside any group; report reads a leaf, else a leaf range.
+	tally := newSource(t, c, userID, testType(t, c, userID, "Tally", sourcetypes.Formats{Full: "{source.date:year} tally, {source.title}."}).ID, "1900 tally")
+	report := testType(t, c, userID, "Report", sourcetypes.Formats{Full: "*{source.title}*, {meta.leaf|meta.leaf-range}."}, "leaf")
+	court := newSource(t, c, userID, report.ID, "Report")
 	plain := sourcetypesLedger(t, c, userID)
 
-	if b := boardOf(t, c, sourceOwner(census.ID)); b.Date.Need != citationformat.NeedNeeded || b.Date.MetElsewhere {
-		t.Errorf("census date %+v; want needed and unmet", b.Date)
+	if b := boardOf(t, c, sourceOwner(tally.ID)); b.Date.Need != citationformat.NeedNeeded || b.Date.MetElsewhere {
+		t.Errorf("tally date %+v; want needed and unmet", b.Date)
 	}
-	pages := seededField(t, c, "page_range")
-	e, ok := entryOf(boardOf(t, c, sourceOwner(court.ID)).Entries, "page")
+	pages := vocabField(t, c, "leaf-range")
+	e, ok := entryOf(boardOf(t, c, sourceOwner(court.ID)).Entries, "leaf")
 	if !ok || e.Annotation.Need != citationformat.NeedNeeded || e.Annotation.MetElsewhere || len(e.Annotation.Alternatives) != 1 ||
 		e.Annotation.Alternatives[0].Field == nil || !bytes.Equal(e.Annotation.Alternatives[0].Field.ID, pages.ID) {
-		t.Errorf("court report page entry = %+v, %v; want suggested, needed, unmet, alternative page_range", e.Annotation, ok)
+		t.Errorf("report leaf entry = %+v, %v; want suggested, needed, unmet, alternative leaf-range", e.Annotation, ok)
 	}
 	if _, err := runSet(c, userID, court.ID, Input{FieldID: pages.ID, ValueText: "12-14"}); err != nil {
 		t.Fatal(err)
 	}
-	if e, _ := entryOf(boardOf(t, c, sourceOwner(court.ID)).Entries, "page"); !e.Annotation.MetElsewhere {
-		t.Errorf("court report page entry with page_range = %+v, want met elsewhere", e.Annotation)
+	if e, _ := entryOf(boardOf(t, c, sourceOwner(court.ID)).Entries, "leaf"); !e.Annotation.MetElsewhere {
+		t.Errorf("report leaf entry with leaf-range = %+v, want met elsewhere", e.Annotation)
 	}
-	art := newLevelOwner(t, c, userID, census, vocabkey.LevelArtifact)
+	art := newLevelOwner(t, c, userID, tally, vocabkey.LevelArtifact)
 	if ab := boardOf(t, c, art); ab.Date.Need != "" {
 		t.Errorf("artifact board date %+v; want none", ab.Date)
 	}
@@ -3290,17 +3344,17 @@ func TestSourceBoardBuiltins(t *testing.T) {
 	// The built-in head path, held on the Source date: a type whose format
 	// heads a chain with it.
 	l := newLedger(t, c, userID)
-	l.setFormats(t, c, userID, sourcetypes.Formats{Full: "{source.date|meta.page_range}."})
+	l.setFormats(t, c, userID, sourcetypes.Formats{Full: "{source.date|meta.leaf-range}."})
 	pb := boardOf(t, c, sourceOwner(l.src.ID)).Date
 	if pb.Need != citationformat.NeedNeeded || pb.MetElsewhere || len(pb.Alternatives) != 1 ||
 		pb.Alternatives[0].Field == nil || !bytes.Equal(pb.Alternatives[0].Field.ID, pages.ID) {
-		t.Errorf("built-in head date = %+v, want needed, unmet, one alternative page_range", pb)
+		t.Errorf("built-in head date = %+v, want needed, unmet, one alternative leaf-range", pb)
 	}
 	if _, err := runSet(c, userID, l.src.ID, Input{FieldID: pages.ID, ValueText: "12-14"}); err != nil {
 		t.Fatal(err)
 	}
 	if got := boardOf(t, c, sourceOwner(l.src.ID)).Date; !got.MetElsewhere {
-		t.Errorf("built-in head date with page_range = %+v, want met elsewhere", got)
+		t.Errorf("built-in head date with leaf-range = %+v, want met elsewhere", got)
 	}
 }
 
@@ -3317,12 +3371,12 @@ func sourcetypesLedger(t *testing.T, c *database.Catalog, userID []byte) sources
 	return newSource(t, c, userID, ty.ID, "Ledger")
 }
 
-// TestListWorkspacesAnnotationsScale reads a census Source with 60 Artifacts and
+// TestListWorkspacesAnnotationsScale reads a tally Source with 60 Artifacts and
 // 60 graphs in one call: every board comes back annotated.
 func TestListWorkspacesAnnotationsScale(t *testing.T) {
-	c, userID := seededWorld(t)
-	src := newSource(t, c, userID, seededType(t, c, "census").ID, "1900 census")
-	if _, err := runSet(c, userID, src.ID, Input{FieldID: seededField(t, c, "url").ID, ValueText: "https://example.org/census"}); err != nil {
+	c, userID := vocabWorld(t)
+	src := newSource(t, c, userID, newTally(t, c, userID, "Tally").ID, "1900 tally")
+	if _, err := runSet(c, userID, src.ID, Input{FieldID: vocabField(t, c, "url").ID, ValueText: "https://example.org/census"}); err != nil {
 		t.Fatal(err)
 	}
 	owners := []Owner{sourceOwner(src.ID)}
@@ -3358,17 +3412,22 @@ func TestListWorkspacesAnnotationsScale(t *testing.T) {
 	}
 }
 
-// BenchmarkListWorkspacesScale reads 121 boards of a census Source with its 16
-// suggested fields valued on the Source: every Artifact and graph board carries
+// BenchmarkListWorkspacesScale reads 121 boards of a Source whose type suggests
+// 16 fields, each valued on the Source: every Artifact and graph board carries
 // the 16 inherited values.
 func BenchmarkListWorkspacesScale(b *testing.B) {
-	c, userID := seededWorld(b)
-	census, err := sourcetypes.Lookup(c, "census", vocabkey.OriginProvenencia)
-	if err != nil {
-		b.Fatal(err)
+	c, userID := emptyWorld(b)
+	var keys []string
+	for i := range 16 {
+		f, err := runFieldCreate(c, "Field "+strconv.Itoa(i+1), metadatafields.DataTypeText, "")
+		if err != nil {
+			b.Fatal(err)
+		}
+		keys = append(keys, f.Key)
 	}
-	src := newSource(b, c, userID, census.ID, "1900 census")
-	suggested, err := sourcevocab.ListSuggestions(c, census.ID)
+	ty := testType(b, c, userID, "Wide", sourcetypes.Formats{}, keys...)
+	src := newSource(b, c, userID, ty.ID, "1900 tally")
+	suggested, err := sourcevocab.ListSuggestions(c, ty.ID)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -3449,14 +3508,13 @@ func TestEveryBoardOffersTheTypeList(t *testing.T) {
 // owner inherits from the Source and says whether the board keeps it with no
 // value of its own; the Source's own board inherits nothing.
 func TestListWorkspacesInherited(t *testing.T) {
-	c, userID := seededWorld(t)
-	census := seededType(t, c, "census")
-	if _, err := sourcetypestest.SetFormats(c, userID, census.ID, sourcetypes.Formats{Full: "{meta.provider}, {meta.publisher}"}); err != nil {
-		t.Fatal(err)
-	}
-	src := newSource(t, c, userID, census.ID, "1880 census, Calder County")
+	c, userID := vocabWorld(t)
+	// The type reads the provider and the publisher, and suggests the
+	// provider, the line number and the schedule.
+	census := testType(t, c, userID, "Tally", sourcetypes.Formats{Full: "{meta.provider}, {meta.publisher}"}, "provider", "line-number", "schedule")
+	src := newSource(t, c, userID, census.ID, "1880 tally, Calder County")
 	for key, text := range map[string]string{"provider": "Ancestry", "publisher": "Ashby Press", "column": "4"} {
-		if _, err := runSet(c, userID, src.ID, Input{FieldID: seededField(t, c, key).ID, ValueText: text}); err != nil {
+		if _, err := runSet(c, userID, src.ID, Input{FieldID: vocabField(t, c, key).ID, ValueText: text}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -3500,8 +3558,8 @@ func TestListWorkspacesInherited(t *testing.T) {
 		}
 	})
 	t.Run("own values", func(t *testing.T) {
-		for key, text := range map[string]string{"provider": "FamilySearch", "publisher": "Calder Press", "line_number": "14", "column": "7"} {
-			if _, _, err := runSetOwner(c, userID, art, Input{FieldID: seededField(t, c, key).ID, ValueText: text}); err != nil {
+		for key, text := range map[string]string{"provider": "FamilySearch", "publisher": "Calder Press", "line-number": "14", "column": "7"} {
+			if _, _, err := runSetOwner(c, userID, art, Input{FieldID: vocabField(t, c, key).ID, ValueText: text}); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -3511,7 +3569,7 @@ func TestListWorkspacesInherited(t *testing.T) {
 		}{
 			"provider":    {"FamilySearch", "Ancestry@source", true},
 			"publisher":   {"Calder Press", "Ashby Press@source", true},
-			"line_number": {"14", "<none>", true},
+			"line-number": {"14", "<none>", true},
 			"column":      {"7", "4@source", false},
 		} {
 			e, ok := entry(art, key)
@@ -3522,7 +3580,7 @@ func TestListWorkspacesInherited(t *testing.T) {
 	})
 	t.Run("a dismissed suggestion stays hidden though the Source holds a value", func(t *testing.T) {
 		d := newLevelOwner(t, c, userID, src, vocabkey.LevelArtifact)
-		schedule := seededField(t, c, "schedule")
+		schedule := vocabField(t, c, "schedule")
 		if _, err := runSet(c, userID, src.ID, Input{FieldID: schedule.ID, ValueText: "Population"}); err != nil {
 			t.Fatal(err)
 		}
@@ -3534,19 +3592,20 @@ func TestListWorkspacesInherited(t *testing.T) {
 		}
 	})
 	t.Run("marks", func(t *testing.T) {
-		book := newSource(t, c, userID, seededType(t, c, "book").ID, "History of Calder County")
-		if _, err := runSet(c, userID, book.ID, Input{FieldID: seededField(t, c, "publisher").ID, Mark: valuemark.Mark{Unknown: true}}); err != nil {
+		volume := testType(t, c, userID, "Volume", sourcetypes.Formats{}, "publisher", "publication-place")
+		book := newSource(t, c, userID, volume.ID, "History of Calder County")
+		if _, err := runSet(c, userID, book.ID, Input{FieldID: vocabField(t, c, "publisher").ID, Mark: valuemark.Mark{Unknown: true}}); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := runSet(c, userID, book.ID, Input{FieldID: seededField(t, c, "publication_place").ID, ValueText: "Calder County", Mark: valuemark.Mark{Supplied: true}}); err != nil {
+		if _, err := runSet(c, userID, book.ID, Input{FieldID: vocabField(t, c, "publication-place").ID, ValueText: "Calder County", Mark: valuemark.Mark{Supplied: true}}); err != nil {
 			t.Fatal(err)
 		}
 		a := newLevelOwner(t, c, userID, book, vocabkey.LevelArtifact)
 		if e, _ := entry(a, "publisher"); e.Inherited == nil || !e.Inherited.Mark.Unknown {
 			t.Fatalf("publisher inherited %+v, want marked unknown", e.Inherited)
 		}
-		if e, _ := entry(a, "publication_place"); e.Inherited == nil || !e.Inherited.Mark.Supplied || e.Inherited.ValueText != "Calder County" {
-			t.Fatalf("publication_place inherited %+v, want supplied", e.Inherited)
+		if e, _ := entry(a, "publication-place"); e.Inherited == nil || !e.Inherited.Mark.Supplied || e.Inherited.ValueText != "Calder County" {
+			t.Fatalf("publication-place inherited %+v, want supplied", e.Inherited)
 		}
 	})
 }
@@ -3554,9 +3613,9 @@ func TestListWorkspacesInherited(t *testing.T) {
 // TestListDraftWorkspaceInherited: the draft board of an Artifact or a graph
 // not yet made carries the Source's values as inherited.
 func TestListDraftWorkspaceInherited(t *testing.T) {
-	c, userID := seededWorld(t)
-	src := newSource(t, c, userID, seededType(t, c, "census").ID, "1880 census, Calder County")
-	if _, err := runSet(c, userID, src.ID, Input{FieldID: seededField(t, c, "provider").ID, ValueText: "Ancestry"}); err != nil {
+	c, userID := vocabWorld(t)
+	src := newSource(t, c, userID, testType(t, c, userID, "Tally", sourcetypes.Formats{}, "provider").ID, "1880 tally, Calder County")
+	if _, err := runSet(c, userID, src.ID, Input{FieldID: vocabField(t, c, "provider").ID, ValueText: "Ancestry"}); err != nil {
 		t.Fatal(err)
 	}
 	for _, level := range []vocabkey.Level{vocabkey.LevelArtifact, vocabkey.LevelGraph} {
@@ -3590,7 +3649,7 @@ func newCitationOwners(t testing.TB, c *database.Catalog, userID []byte, src sou
 // TestListWorkspacesAncestors: a Citation's board reads its graph, Artifact and
 // Source, nearest first; an Artifact's and a graph's read the Source only.
 func TestListWorkspacesAncestors(t *testing.T) {
-	c, userID := seededWorld(t)
+	c, userID := vocabWorld(t)
 	l := newLedger(t, c, userID)
 	n := 0
 	// fixture is a fresh Source of the ledger type with its Artifact, graph and Citation.
@@ -3611,9 +3670,9 @@ func TestListWorkspacesAncestors(t *testing.T) {
 	unknown := Input{Mark: valuemark.Mark{Unknown: true}}
 	lineOn := func(t *testing.T, b Board) WorkspaceEntry {
 		t.Helper()
-		e, ok := entryOf(b.Entries, "line_number")
+		e, ok := entryOf(b.Entries, "line-number")
 		if !ok {
-			t.Fatalf("no line_number entry")
+			t.Fatalf("no line-number entry")
 		}
 		return e
 	}
@@ -3674,11 +3733,11 @@ func TestListWorkspacesAncestors(t *testing.T) {
 		set(t, g, Input{ValueText: "7"})
 		ea := lineOn(t, boardOf(t, c, a))
 		if ea.Inherited != nil || ea.Annotation.MetElsewhere {
-			t.Errorf("Artifact line_number = inherited %+v, met %v; want none, not met", ea.Inherited, ea.Annotation.MetElsewhere)
+			t.Errorf("Artifact line-number = inherited %+v, met %v; want none, not met", ea.Inherited, ea.Annotation.MetElsewhere)
 		}
 		eg := lineOn(t, boardOf(t, c, g))
 		if eg.Value == nil || eg.Value.ValueText != "7" || eg.Inherited != nil {
-			t.Errorf("graph line_number = value %+v, inherited %+v; want 7, none", eg.Value, eg.Inherited)
+			t.Errorf("graph line-number = value %+v, inherited %+v; want 7, none", eg.Value, eg.Inherited)
 		}
 	})
 
@@ -3710,12 +3769,12 @@ func TestListWorkspacesAncestors(t *testing.T) {
 // TestListWorkspacesCitationsScale: the boards of 60 Citations of one Artifact
 // and graph cost the SELECTs of one, and read inside the budget.
 func TestListWorkspacesCitationsScale(t *testing.T) {
-	c, userID := seededWorld(t)
-	src := newSource(t, c, userID, seededType(t, c, "census").ID, "1900 census")
+	c, userID := vocabWorld(t)
+	src := newSource(t, c, userID, testType(t, c, userID, "Tally", tallyFormats, "provider", "url", "item").ID, "1900 tally")
 	a, g, first := newCitationOwners(t, c, userID, src)
 	set := func(o Owner, key, text string) {
 		t.Helper()
-		if _, _, err := runSetOwner(c, userID, o, Input{FieldID: seededField(t, c, key).ID, ValueText: text}); err != nil {
+		if _, _, err := runSetOwner(c, userID, o, Input{FieldID: vocabField(t, c, key).ID, ValueText: text}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -3759,7 +3818,7 @@ func TestListWorkspacesCitationsScale(t *testing.T) {
 // TestListDraftWorkspaceParents: a draft board names its parents, any order,
 // and equals the saved board of an owner holding nothing under them.
 func TestListDraftWorkspaceParents(t *testing.T) {
-	c, userID := seededWorld(t)
+	c, userID := vocabWorld(t)
 	l := newLedger(t, c, userID)
 	src := newSource(t, c, userID, l.typeID, "Ledger 2")
 	a, g, cit := newCitationOwners(t, c, userID, src)
@@ -3781,10 +3840,10 @@ func TestListDraftWorkspaceParents(t *testing.T) {
 			if len(got) != len(saved) {
 				t.Fatalf("%d draft entries, want %d", len(got), len(saved))
 			}
-			e, _ := entryOf(got, "line_number")
+			e, _ := entryOf(got, "line-number")
 			if e.Annotation.Need != citationformat.NeedNeeded || !e.Annotation.MetElsewhere || e.Inherited == nil ||
 				e.Inherited.ValueText != "7" || e.Inherited.Owner.Level != vocabkey.LevelGraph {
-				t.Errorf("line_number = %+v, inherited %+v; want needed, met, 7 from the graph", e.Annotation, e.Inherited)
+				t.Errorf("line-number = %+v, inherited %+v; want needed, met, 7 from the graph", e.Annotation, e.Inherited)
 			}
 			for i := range got {
 				d, s := got[i], saved[i]
@@ -3808,8 +3867,8 @@ func TestListDraftWorkspaceParents(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if e, ok := entryOf(got, "line_number"); !ok || (e.Inherited == nil || e.Inherited.ValueText != "14" || e.Inherited.Owner.Level != vocabkey.LevelSource) {
-				t.Errorf("%s draft line_number inherited %+v, want 14 from the Source", level, e.Inherited)
+			if e, ok := entryOf(got, "line-number"); !ok || (e.Inherited == nil || e.Inherited.ValueText != "14" || e.Inherited.Owner.Level != vocabkey.LevelSource) {
+				t.Errorf("%s draft line-number inherited %+v, want 14 from the Source", level, e.Inherited)
 			}
 		}
 	})

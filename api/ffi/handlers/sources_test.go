@@ -380,18 +380,9 @@ func TestGetSourceWorkspace(t *testing.T) {
 		{
 			name: "workspace reads source-specific data only",
 			reqFn: func(t *testing.T) proto.Message {
-				dir, userID, typeID := sourceFixture(t)
-				cout, err := CreateSource(marshalProto(t, &engine.CreateSourceRequest{
-					ProjectDir: dir, UserId: userID, SourceTypeId: typeID, Title: "Book",
-				}))
-				if err != nil {
-					t.Fatal(err)
-				}
-				var created engine.CreateSourceResponse
-				if err := proto.Unmarshal(cout, &created); err != nil {
-					t.Fatal(err)
-				}
-				return &engine.GetSourceWorkspaceRequest{ProjectDir: dir, SourceId: created.Source.Id}
+				dir, userID, _ := sourceFixture(t)
+				id := researcherSource(t, dir, userID, "Book", nil, newUserField(t, dir, userID, "Clerk"))
+				return &engine.GetSourceWorkspaceRequest{ProjectDir: dir, SourceId: id}
 			},
 			after: func(t *testing.T, raw []byte, _ proto.Message) {
 				var resp engine.GetSourceWorkspaceResponse
@@ -401,19 +392,20 @@ func TestGetSourceWorkspace(t *testing.T) {
 				if resp.Source.GetTitle() != "Book" {
 					t.Fatalf("source %+v", resp.Source)
 				}
-				// The type's seeded suggestions still arrive as empty
-				// metadata rows — that join is per-source, unlike the
-				// vocabulary lists, which each have their own RPC.
+				// The type's suggestions still arrive as empty metadata
+				// rows — that join is per-source, unlike the vocabulary
+				// lists, which each have their own RPC.
 				if len(resp.Metadata) == 0 {
-					t.Fatal("expected suggested metadata rows for the seeded type")
+					t.Fatal("expected suggested metadata rows for the type")
 				}
 			},
 		},
 		{
-			name: "census asks the Source date",
+			name: "a date outside any group asks the Source date",
 			reqFn: func(t *testing.T) proto.Message {
 				dir, userID, _ := sourceFixture(t)
-				return &engine.GetSourceWorkspaceRequest{ProjectDir: dir, SourceId: seededSourceOfType(t, dir, userID, "census")}
+				id := researcherSource(t, dir, userID, "Tally", &engine.CitationFormats{Full: "{source.title}, {source.date:year}."})
+				return &engine.GetSourceWorkspaceRequest{ProjectDir: dir, SourceId: id}
 			},
 			after: func(t *testing.T, raw []byte, _ proto.Message) {
 				var resp engine.GetSourceWorkspaceResponse
@@ -426,10 +418,11 @@ func TestGetSourceWorkspace(t *testing.T) {
 			},
 		},
 		{
-			name: "a birth certificate's date sits in a group",
+			name: "a date in a group is used",
 			reqFn: func(t *testing.T) proto.Message {
 				dir, userID, _ := sourceFixture(t)
-				return &engine.GetSourceWorkspaceRequest{ProjectDir: dir, SourceId: seededSourceOfType(t, dir, userID, "birth_certificate")}
+				id := researcherSource(t, dir, userID, "Notice", &engine.CitationFormats{Full: "{source.title}[ ({source.date:full})]."})
+				return &engine.GetSourceWorkspaceRequest{ProjectDir: dir, SourceId: id}
 			},
 			after: func(t *testing.T, raw []byte, _ proto.Message) {
 				var resp engine.GetSourceWorkspaceResponse
