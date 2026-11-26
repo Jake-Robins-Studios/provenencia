@@ -533,6 +533,31 @@ func TestGetFormats(t *testing.T) {
 		}
 	})
 
+	t.Run("a stored citation.page reads with its mistake (AC-2.3)", func(t *testing.T) {
+		f := newFormatFixture(t)
+		text := "p. {citation.page}"
+		f.setRaw(t, "citation_full", text, f.typeID)
+		view, err := GetFormats(f.c, f.typeID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := []citationformat.FormDiagnostic{diag("full", citationformat.CodeUnknownBuiltin, 4, 17)}
+		if view.Full != text || !reflect.DeepEqual(view.Diagnostics, want) {
+			t.Fatalf("view %+v", view)
+		}
+		// The write refuses the same text (AC-2.2): nothing saves.
+		saved, res, err := f.update(t, f.typeID, view.Formats)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(saved.Diagnostics, want) || res.Revision != 0 {
+			t.Fatalf("resave: view %+v, result %+v", saved, res)
+		}
+		if got := f.raw(t, "citation_full", f.typeID).String; got != text {
+			t.Fatalf("stored %q", got)
+		}
+	})
+
 	t.Run("an id with no field stays an id token (AC-4.2)", func(t *testing.T) {
 		f := newFormatFixture(t)
 		x := uuid.New()

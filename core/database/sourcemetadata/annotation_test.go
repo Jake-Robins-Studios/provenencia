@@ -62,13 +62,13 @@ func TestNeedsAt(t *testing.T) {
 	tok := func(id uuid.UUID) string { return "#" + id.String() }
 	src, gr := vocabkey.LevelSource, vocabkey.LevelGraph
 	tests := []struct {
-		name  string
-		full  string
-		list  string
-		level vocabkey.Level
-		need  map[uuid.UUID]citationformat.Need
-		order []uuid.UUID
-		page  citationformat.Need // the need of the printed page's chain, "" for none
+		name    string
+		full    string
+		list    string
+		level   vocabkey.Level
+		need    map[uuid.UUID]citationformat.Need
+		order   []uuid.UUID
+		builtin citationformat.Need // the need of the Source date's chain, "" for none
 	}{
 		{name: "outside a group is needed", full: "{meta." + tok(a) + "}.", level: src,
 			need: map[uuid.UUID]citationformat.Need{a: citationformat.NeedNeeded}, order: []uuid.UUID{a}},
@@ -90,8 +90,8 @@ func TestNeedsAt(t *testing.T) {
 			need: map[uuid.UUID]citationformat.Need{a: citationformat.NeedNeeded, b: citationformat.NeedUsed}, order: []uuid.UUID{a}},
 		{name: "an always-set option makes the chain used", full: "{meta." + tok(a) + "|source.title}", level: src,
 			need: map[uuid.UUID]citationformat.Need{a: citationformat.NeedUsed}, order: []uuid.UUID{a}},
-		{name: "a built-in head leaves its options used", full: "{citation.page|meta." + tok(p) + "}", level: src,
-			need: map[uuid.UUID]citationformat.Need{p: citationformat.NeedUsed}, page: citationformat.NeedNeeded},
+		{name: "a built-in head leaves its options used", full: "{source.date|meta." + tok(p) + "}", level: src,
+			need: map[uuid.UUID]citationformat.Need{p: citationformat.NeedUsed}, builtin: citationformat.NeedNeeded},
 		{name: "the strongest chain wins", full: "[{meta." + tok(a) + "}]{meta." + tok(a) + "}", level: src,
 			need: map[uuid.UUID]citationformat.Need{a: citationformat.NeedNeeded}, order: []uuid.UUID{a}},
 		{name: "a field named by key is not read", full: "{meta.line_number}.", level: src,
@@ -106,17 +106,17 @@ func TestNeedsAt(t *testing.T) {
 			if !reflect.DeepEqual(ln.order, tt.order) {
 				t.Errorf("order = %v, want %v", ln.order, tt.order)
 			}
-			var page citationformat.Need
-			for _, ch := range ln.builtinHeads[citationformat.CitationPage] {
-				page = page.Max(ch.Need)
+			var builtin citationformat.Need
+			for _, ch := range ln.builtinHeads[citationformat.SourceDate] {
+				builtin = builtin.Max(ch.Need)
 			}
-			if page != tt.page {
-				t.Errorf("page need = %q, want %q", page, tt.page)
+			if builtin != tt.builtin {
+				t.Errorf("built-in need = %q, want %q", builtin, tt.builtin)
 			}
 		})
 	}
 	t.Run("built-in heads only at the source level", func(t *testing.T) {
-		ln := needsAt(chainsOf(t, "{citation.page}"), vocabkey.LevelGraph)
+		ln := needsAt(chainsOf(t, "{source.date}"), vocabkey.LevelGraph)
 		if ln.builtinHeads != nil {
 			t.Errorf("builtinHeads = %v at graph", ln.builtinHeads)
 		}
@@ -314,7 +314,7 @@ func TestCitationValuesResolve(t *testing.T) {
 		{"a field named by key", build(map[vocabkey.Level]map[string]Row{src: rows("9", supplied)}),
 			citationformat.Target{Field: citationformat.FieldRef{Key: "line_number"}}, citationformat.Value{}},
 		{"a built-in that is set", build(nil), citationformat.SourceDate, dated},
-		{"a built-in that is not", build(nil), citationformat.CitationPage, citationformat.Value{}},
+		{"a built-in that is not", build(nil), citationformat.CitationImage, citationformat.Value{}},
 		{"without the graph", build(map[vocabkey.Level]map[string]Row{gr: rows("14", supplied), src: rows("9", supplied)}).Without(gr),
 			fieldTarget(a), citationformat.Value{Text: "9", Mark: supplied, UnknownText: "n.l."}},
 		{"without the Source", build(map[vocabkey.Level]map[string]Row{src: rows("9", supplied)}).Without(src),
@@ -347,9 +347,9 @@ func TestAppendOptions(t *testing.T) {
 		fieldTarget(a),
 		fieldTarget(b),
 		{Field: citationformat.FieldRef{Key: "line_number"}},
-		citationformat.CitationPage,
+		citationformat.CitationImage,
 	}
-	seen := map[citationformat.Target]bool{citationformat.CitationPage: true}
+	seen := map[citationformat.Target]bool{citationformat.CitationImage: true}
 	got := AppendOptions(nil, seen, targets, fields)
 	want := []Alternative{
 		{Level: vocabkey.LevelSource, Builtin: "date"},

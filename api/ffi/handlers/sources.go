@@ -121,7 +121,6 @@ func GetSourceWorkspace(in []byte) ([]byte, error) {
 		out.GraphMetadata = boards[1+len(artIDs):]
 		out.Credibility = cred
 		out.DateRequirement = requirementProto(read[0].Date)
-		out.PageRequirement = requirementProto(read[0].Page)
 		return nil
 	})
 	if err == nil {

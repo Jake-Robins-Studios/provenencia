@@ -12693,12 +12693,6 @@ extension L10n {
             comment: "Name of the built-in placeholder graphName"
         )
 
-        static let nameCitationPage = LocalizedStringResource(
-            "citationFormats.builtin.citationPage",
-            defaultValue: "Page",
-            comment: "Name of the built-in placeholder citationPage"
-        )
-
         static let nameCitationImage = LocalizedStringResource(
             "citationFormats.builtin.citationImage",
             defaultValue: "Image",
@@ -12959,7 +12953,6 @@ extension L10n.CitationFormats {
         case .sourceDate: L10n.string(option == .year ? nameDateYear : nameSourceDate)
         case .artifactLabel: L10n.string(nameArtifactLabel)
         case .graphName: L10n.string(nameGraphName)
-        case .citationPage: L10n.string(nameCitationPage)
         case .citationImage: L10n.string(nameCitationImage)
         case .citationLabel: L10n.string(nameCitationLabel)
         }

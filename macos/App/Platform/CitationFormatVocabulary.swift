@@ -52,7 +52,6 @@ enum CitationBuiltin: String, CaseIterable, Sendable {
     case sourceDate = "source.date"
     case artifactLabel = "artifact.label"
     case graphName = "graph.name"
-    case citationPage = "citation.page"
     case citationImage = "citation.image"
     case citationLabel = "citation.label"
 }

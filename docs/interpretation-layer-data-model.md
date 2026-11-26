@@ -250,7 +250,7 @@ A-3
 folio 17r
 ```
 
-A page whose original prints no number omits `page_label` and is marked `page_unknown`; a printed page the researcher took from elsewhere is marked `page_supplied`. The two never appear together, an unknown page has no `page_label`, and a supplied one has a non-blank one (`core/valuemark`). A citation prints an unknown page as "unpaginated" and a supplied one in square brackets. The composer no longer writes `page_label`: the printed page is the Citation's own Page metadata value (the seeded `page` field, edited on its board in the composer), which the Conclusion detail, the Citation menu and the citation line read; the locator keeps the file page only.
+A page whose original prints no number omits `page_label` and is marked `page_unknown`; a printed page the researcher took from elsewhere is marked `page_supplied`. The two never appear together, an unknown page has no `page_label`, and a supplied one has a non-blank one (`core/valuemark`). No citation reads these marks; a citation prints the Page field's marks. The composer no longer writes `page_label`: the printed page is the Citation's own Page metadata value (the seeded `page` field, edited on its board in the composer), which the Conclusion detail, the Citation menu and the citation line read; the locator keeps the file page only.
 
 The general rule is:
 

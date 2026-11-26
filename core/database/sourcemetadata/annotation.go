@@ -14,7 +14,7 @@ import (
 )
 
 // Annotation is what the owner's Source type's citation formats ask of one
-// head on a board: a metadata field, or the Source date or the printed page.
+// head on a board: a metadata field, or the Source date.
 // The zero Annotation is none: the formats do not read the head.
 type Annotation struct {
 	// Need is needed or used; "" is none.
@@ -38,11 +38,10 @@ type Alternative struct {
 }
 
 // Board is one owner's entries. A Source owner's board also carries what its
-// type asks of the Source date and of the printed page; every other owner's are
-// none.
+// type asks of the Source date; every other owner's is none.
 type Board struct {
-	Entries    []WorkspaceEntry
-	Date, Page Annotation
+	Entries []WorkspaceEntry
+	Date    Annotation
 }
 
 // CitationValue is what a stored metadata value gives a citation: its text and
@@ -281,8 +280,9 @@ type levelNeeds struct {
 	need  map[uuid.UUID]citationformat.Need
 	order []uuid.UUID
 	heads map[uuid.UUID][]citationformat.Requirement
-	// builtinHeads holds the chains headed by the Source date and the printed
-	// page, keyed by that head. It is filled only for the source level.
+	// builtinHeads holds the chains headed by a built-in a board annotates,
+	// keyed by that head: the Source date is its one key. It is filled only
+	// for the source level.
 	builtinHeads map[citationformat.Target][]citationformat.Requirement
 }
 
@@ -299,7 +299,7 @@ func fieldAt(t citationformat.Target, level vocabkey.Level) (uuid.UUID, bool) {
 // needsAt reads the chains of one type at one level. The first option of a chain
 // is its head and takes the chain's need; every later option that is a field at
 // level is used. A field's need is the strongest over its chains. At the source
-// level it also keeps the chains headed by the Source date and the printed page.
+// level it also keeps the chains headed by the Source date.
 func needsAt(chains []citationformat.Requirement, level vocabkey.Level) levelNeeds {
 	ln := levelNeeds{
 		need:  map[uuid.UUID]citationformat.Need{},
@@ -321,7 +321,7 @@ func needsAt(chains []citationformat.Requirement, level vocabkey.Level) levelNee
 				}
 				ln.heads[id] = append(ln.heads[id], ch)
 				ln.need[id] = ln.need[id].Max(ch.Need)
-			case ln.builtinHeads != nil && (t == citationformat.SourceDate || t == citationformat.CitationPage):
+			case ln.builtinHeads != nil && t == citationformat.SourceDate:
 				ln.builtinHeads[t] = append(ln.builtinHeads[t], ch)
 			}
 		}

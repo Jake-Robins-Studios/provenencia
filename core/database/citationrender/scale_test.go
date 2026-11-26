@@ -39,7 +39,7 @@ var scaleValues = []struct {
 	{"evidence_graph_metadata", "graph_id", map[string]string{
 		"schedule_number": "9", "dwelling_number": "112", "family_number": "118", "item": "Ada Robins",
 	}},
-	{"citation_metadata", "citation_id", map[string]string{"line_number": "14"}},
+	{"citation_metadata", "citation_id", map[string]string{"line_number": "14", "page": "14"}},
 }
 
 // seedScale files 30 Sources of the seeded census type, each dated 1880 and

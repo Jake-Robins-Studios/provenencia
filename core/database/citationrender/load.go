@@ -162,7 +162,6 @@ func fillValues(tx *sql.Tx, subs []*subject, templates []*citationformat.Templat
 		if c := s.cited; c != nil {
 			v.Builtins[citationformat.ArtifactLabel] = citationformat.Value{Text: c.ArtifactLabel}
 			v.Builtins[citationformat.GraphName] = citationformat.Value{Text: c.GraphName}
-			v.Builtins[citationformat.CitationPage] = citationformat.Value{Text: s.page.Label, Mark: s.page.Mark}
 			if s.page.ArtifactPage > 0 {
 				v.Builtins[citationformat.CitationImage] = citationformat.Value{Text: strconv.Itoa(s.page.ArtifactPage)}
 			}

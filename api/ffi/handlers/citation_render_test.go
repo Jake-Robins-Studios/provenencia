@@ -17,6 +17,8 @@ const (
 	renderCensusList  = "Calder County, Westmark. 1880 Westmark census, population schedule."
 )
 
+// pageLocatorJSON is a Citation's locator with a page selector. Its page_label
+// no longer prints: a Citation's own Page value does. S15-59 removes the label.
 func pageLocatorJSON(label string) string {
 	return `{"version":1,"selectors":[{"type":"page","page_label":"` + label + `"}]}`
 }
@@ -78,6 +80,7 @@ func newRenderWorld(t *testing.T) renderWorld {
 		"accessed_date": "12 March 2025", "citing": "county film 7, item 3",
 	})
 	w.citation = newCitation(t, dir, userID, w.artifact, w.graph, pageLocatorJSON("14"))
+	setValues(t, dir, userID, ids, "citation", w.citation, map[string]string{"page": "14"})
 	return w
 }
 
@@ -117,6 +120,9 @@ func TestRenderCitations(t *testing.T) {
 	t.Run("AC-1.2 equal pages group", func(t *testing.T) {
 		same := newCitation(t, w.dir, w.userID, w.artifact, w.graph, pageLocatorJSON("14"))
 		other := newCitation(t, w.dir, w.userID, w.artifact, w.graph, pageLocatorJSON("15"))
+		pageIDs := fieldIDsByKey(t, w.dir)
+		setValues(t, w.dir, w.userID, pageIDs, "citation", same, map[string]string{"page": "14"})
+		setValues(t, w.dir, w.userID, pageIDs, "citation", other, map[string]string{"page": "15"})
 		out, err := renderCitations(t, w.dir, w.citation, same, other)
 		if err != nil {
 			t.Fatal(err)
@@ -144,7 +150,7 @@ func TestRenderCitations(t *testing.T) {
 		var ty engine.CreateSourceTypeResponse
 		mustRPC(t, CreateSourceType, &engine.CreateSourceTypeRequest{ProjectDir: w.dir, UserId: w.userID, Label: "Pamphlet"}, &ty)
 		formats := setFormats(t, w.dir, w.userID, ty.GetType().GetId(), &engine.CitationFormats{
-			Full: "{meta.publisher}; {source.date}; p. {citation.page}.",
+			Full: "{meta.publisher}; {source.date}; p. {meta.page}.",
 		})
 		if len(formats.GetDiagnostics()) != 0 {
 			t.Fatalf("diagnostics %v", formats.GetDiagnostics())
@@ -170,6 +176,16 @@ func TestRenderCitations(t *testing.T) {
 			`{"version":1,"selectors":[{"type":"page","page_unknown":true}]}`)
 		b := made("B", "Ashby Press", &engine.ValueMark{Supplied: true}, qualifiedDate("ABT", 1880, 0, 0), &engine.ValueMark{Supplied: true},
 			`{"version":1,"selectors":[{"type":"page","page_label":"23","page_supplied":true}]}`)
+		page := fieldIDsByKey(t, w.dir)["page"]
+		for _, set := range []struct {
+			id, text string
+			mark     *engine.ValueMark
+		}{{a, "", &engine.ValueMark{Unknown: true}}, {b, "23", &engine.ValueMark{Supplied: true}}} {
+			mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
+				ProjectDir: w.dir, UserId: w.userID, Owner: &engine.MetadataOwner{Level: "citation", Id: set.id},
+				FieldId: page, ValueText: set.text, Mark: set.mark,
+			}, &engine.SetMetadataResponse{})
+		}
 		out, err := renderCitations(t, w.dir, a, b)
 		if err != nil || len(out.GetCitations()) != 2 {
 			t.Fatalf("got %v, %v", out, err)
@@ -427,7 +443,7 @@ func TestRenderSeededPage(t *testing.T) {
 		}
 	})
 
-	t.Run("AC-1.3 a Citation's page beats the locator's", func(t *testing.T) {
+	t.Run("AC-1.3 a Citation's own page answers", func(t *testing.T) {
 		cit := newCitation(t, w.dir, w.userID, w.artifact, w.graph, pageLocatorJSON("14"))
 		setValues(t, w.dir, w.userID, ids, "citation", cit, map[string]string{"line_number": "21", "page": "15"})
 		want := strings.NewReplacer("p. 14,", "p. 15,", "line 14,", "line 21,").Replace(renderCensusFull)

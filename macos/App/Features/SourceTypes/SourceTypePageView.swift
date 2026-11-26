@@ -299,7 +299,7 @@ private struct SourceTypePageContent: View {
     store.suggestedFieldCounts["t1"] = 7
     store.citationFormatsByType["t1"] = CatalogCitationFormatsReply(formats: CatalogCitationFormats(
         typeID: "t1",
-        full: "{meta.author}, *{source.title}* ({source.date:year})[, p. {citation.page}].",
+        full: "{meta.author}, *{source.title}* ({source.date:year})[, p. {meta.page}].",
         short: "{meta.author}, *{source.title}*.",
         list: "{meta.author}. *{source.title}*. {source.date:year}."
     ))

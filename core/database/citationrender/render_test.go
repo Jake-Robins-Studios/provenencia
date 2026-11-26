@@ -162,6 +162,8 @@ func (w *world) graph(sourceID []byte) evidencegraphs.Graph {
 	return evidencegraphstest.SoleGraph(w.t, w.c, sourceID)
 }
 
+// pageLocator is a Citation's locator with a page selector. Its page_label no
+// longer prints: a Citation's own Page value does. S15-59 removes the label.
 func pageLocator(label string) string {
 	return `{"version":1,"selectors":[{"type":"page","page_label":"` + label + `"}]}`
 }
@@ -250,6 +252,7 @@ func newCensus(t *testing.T) *census {
 		w.set(vocabkey.LevelArtifact, art.ID, k, v, m)
 	}
 	cit := w.cite(art.ID, graph.ID, "", pageLocator("14"))
+	w.set(vocabkey.LevelCitation, cit, "page", "14", m)
 	return &census{world: w, typ: typ, src: src, art: art, graph: graph, citation: cit}
 }
 
@@ -367,6 +370,20 @@ func TestRenderCensus(t *testing.T) {
 	}
 	if got[0].Full.Plain() != censusFull || got[0].Short.Plain() != censusShort {
 		t.Errorf("full %q\nshort %q", got[0].Full.Plain(), got[0].Short.Plain())
+	}
+}
+
+// TestRenderLocatorLabelAlone is AC-1.2: a locator's page_label prints nothing
+// when no level holds a page value.
+func TestRenderLocatorLabelAlone(t *testing.T) {
+	w := newCensus(t)
+	id := w.cite(w.art.ID, w.graph.ID, "", pageLocator("23"))
+	got := w.render(id)
+	if len(got) != 1 {
+		t.Fatalf("got %d, want 1", len(got))
+	}
+	if full := got[0].Full.Plain(); strings.Contains(full, ", p.") {
+		t.Errorf("full = %q, want no page group", full)
 	}
 }
 
@@ -542,7 +559,7 @@ func TestRender(t *testing.T) {
 // TestRenderUnknownAndSupplied is AC-1.6.
 func TestRenderUnknownAndSupplied(t *testing.T) {
 	w := newWorld(t)
-	typ := w.newType("Pamphlet", sourcetypes.Formats{Full: `{meta.publisher}; {source.date}; p. {citation.page}.`})
+	typ := w.newType("Pamphlet", sourcetypes.Formats{Full: `{meta.publisher}; {source.date}; p. {meta.page}.`})
 	a := w.source(typ.ID, "Source A")
 	b := w.source(typ.ID, "Source B")
 	w.set(vocabkey.LevelSource, a.ID, "publisher", "", valuemark.Mark{Unknown: true})
@@ -552,6 +569,8 @@ func TestRenderUnknownAndSupplied(t *testing.T) {
 	artA, artB := w.artifact(a.ID, "Scan"), w.artifact(b.ID, "Scan")
 	ca := w.cite(artA.ID, w.graph(a.ID).ID, "", `{"version":1,"selectors":[{"type":"page","page_unknown":true}]}`)
 	cb := w.cite(artB.ID, w.graph(b.ID).ID, "", `{"version":1,"selectors":[{"type":"page","page_label":"23","page_supplied":true}]}`)
+	w.set(vocabkey.LevelCitation, ca, "page", "", valuemark.Mark{Unknown: true})
+	w.set(vocabkey.LevelCitation, cb, "page", "23", valuemark.Mark{Supplied: true})
 	got := w.render(ca, cb)
 	if len(got) != 2 {
 		t.Fatalf("got %d", len(got))
@@ -563,7 +582,7 @@ func TestRenderUnknownAndSupplied(t *testing.T) {
 
 func TestGroupKey(t *testing.T) {
 	w := newWorld(t)
-	typ := w.newType("Book of hours", sourcetypes.Formats{Full: `{source.title}, p. {citation.page}`})
+	typ := w.newType("Book of hours", sourcetypes.Formats{Full: `{source.title}, p. {meta.page}`})
 	withLabel := w.newType("Labelled", sourcetypes.Formats{Full: `{source.title}, {citation.label}`})
 	plainType := w.newType("Plain", sourcetypes.Formats{Full: `{source.title}`})
 	italicType := w.newType("Italic", sourcetypes.Formats{Full: `*{source.title}*`})
@@ -574,6 +593,9 @@ func TestGroupKey(t *testing.T) {
 	c14a := w.cite(art.ID, graph.ID, "a", pageLocator("14"))
 	c14b := w.cite(art.ID, graph.ID, "b", pageLocator("14"))
 	c15 := w.cite(art.ID, graph.ID, "a", pageLocator("15"))
+	for id, page := range map[*[]byte]string{&c14a: "14", &c14b: "14", &c15: "15"} {
+		w.set(vocabkey.LevelCitation, *id, "page", page, valuemark.Mark{})
+	}
 	got := w.render(c14a, c14b, c15)
 	if got[0].GroupKey != got[1].GroupKey || !strings.HasPrefix(got[0].GroupKey, "full:") {
 		t.Errorf("same page: %q vs %q", got[0].GroupKey, got[1].GroupKey)

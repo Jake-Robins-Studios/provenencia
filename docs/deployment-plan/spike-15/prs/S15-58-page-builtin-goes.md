@@ -1,6 +1,6 @@
 # S15-58 — The page built-in goes
 
-**Status:** Planned
+**Status:** Landed in [#987](https://github.com/Jake-Robins-Studios/provenencia/pull/987) (2026-11-26)
 **Spike / slice:** Spike 15 · Slice 11 — Metadata at any level
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: no view's layout or components change; the format editor's completion list is engine data and loses the `citation.page` row, as a deleted field would lose its row)
@@ -289,3 +289,11 @@ None.
 
 **Title:** S15-58 — The page built-in goes
 **Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check, with §10 step 3's statements; `Plan: docs/deployment-plan/spike-15/prs/S15-58-page-builtin-goes.md`.
+
+## Landed
+
+- `main`'s `VERSION` was 0.44.1 at rebase, so the bump is 0.44.1 to 0.45.0.
+- `docs/citation-formats.md` changed in the code commit, not the docs commit: `TestDocMatchesEngine` fails while the doc names `citation.page`.
+- The regenerated `engine.pb.swift` also drops swift-protobuf's `_storage` indirection for `GetSourceWorkspaceResponse`, which the generator does for a message with fewer fields.
+- `TestRenderLocatorLabelAlone` renders on `newCensus` and adds a second Citation with the locator label alone.
+- The manual check (section 10) was not run by the implementer.
