@@ -91,7 +91,7 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 41. **The Sources list is a native outline.** Every Source and Evidence graph is reached, selected and opened by mouse and keyboard from the list: a click selects a graph and selects a Source and opens its graphs, a double-click or Return opens a Source's page or a graph's canvas, the triangle or → and ← open and close a Source, and Back returns to the row opened, selected and in view with its Source open. (S16-D12; how Sources open is amended by bar 42.)
 42. **The Sources list is a native table.** Its columns are named and sort by their headers (title, published, added, updated), with no sort menu. One Source is open at a time: opening another closes it. A Source shows one status badge (Promoted when every graph is, Not started when every graph is, else In progress), and the status filter lists the Sources with that badge. The ref is under the title, and a double-click opens the Source first pressed. Everything else of bar 41 holds. (S16-D14.)
 43. **Back returns to the scroll position.** Back, Forward and a jump in history show a page scrolled where it was left, with what it had open (on Sources, the open Source); a position that no longer fits opens the page at the top.
-44. **A voters list cites down to the entry.** In a new project, a Voters list Source for a 1949 Canadian federal list seen on Ancestry gives a full citation that names the election, electoral district, polling division, page and entry, then the LAC series, reference R1003-6-3-E and Record Group 113-B, then the Ancestry database; a British register of electors and an American great register read right from the same fields. (Slice 6j.)
+44. **A voters list cites down to the entry.** In a new project, a Voters list Source for a 1949 Canadian federal list seen on Ancestry gives a full citation that names the election, electoral district, polling division, page and entry, then the LAC series, reference R1003-6-3-E and Record Group 113-B, then the Ancestry database; a British register of electors and an American great register read right from the same fields; every record type's citation names the online database it was seen in. (Slice 6j.)
 
 **Batch 7 — One window** (user, 2026-11-18; lands before Batch 6):
 
@@ -370,7 +370,8 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-70 | A Source or Source type delete is learned from the engine | 6g | Go and Swift: the `sources` and `source_types` registry entries report deleted ids; `CatalogDeletedEntity.source` and `.sourceType`; a `.deleted(entity)` follow and one row-removal patch; the Sources list, Source types list and Source page keys follow the write's effects; `.deletedSource`, `.deletedSourceType` and the `removes:` closure go; no visible change | — | S16-68 | — | Scoped |
 | S16-71 | The Sources list is a native table | 6h | Go and Swift: `Source` carries when it was made; the Sources rows move from the native list to SwiftUI's `Table` (Title with the ref under it, Evidence, Status, Type at Wide, Published, Added, Updated), sorted by their headers; one Source open at a time; one status badge a Source, matched by the status filter; the sort menu goes | S16-D14 | S16-66, S16-D14 | [plan](prs/S16-71-sources-table.md) | Landed [#969](https://github.com/Jake-Robins-Studios/provenencia/pull/969) |
 | S16-72 | Back returns to the scroll position | 6i | Swift: a history entry records the main scroll view's y offset (written to the history file) and, apart from it, a list's open row (not written); one kit modifier records and restores the offset on every main page's scroll view; the Sources list records its open Source; no usable offset opens at the top; row scrolls on arrival go | — | S16-71 | [plan](prs/S16-72-scroll-offset-history.md) | Landed [#973](https://github.com/Jake-Robins-Studios/provenencia/pull/973) |
-| S16-73 | A seeded Voters list type cites a voter list down to the entry | 6j | Go seed: type `voters_list` with three formats (record and locators, then the archive, then the copy); fields `election`, `electoral_district` and `polling_division` that hold the list's own words; `database_title` read for the first time; golden plus literal Canadian, British and American renders; new projects only | — | — | [plan](prs/S16-73-voters-list-type.md) | Draft |
+| S16-74 | Install derives each seeded type's suggested fields from its formats | 6j | Preparatory, Go: `suggestedKeys` moves the § 2.3 rule from the test into `sourcevocab`; `Install` writes the derived lists; `seedSuggestions` goes; new projects get the same rows | — | — | [plan](prs/S16-74-derive-seed-suggestions.md) | Draft |
+| S16-73 | A seeded Voters list type cites a voter list down to the entry | 6j | Go seed: one shared `copyLayer` that prints the database title for every record type; type `voters_list` with three formats (record and locators, then the archive, then the copy); fields `election`, `electoral_district` and `polling_division` that hold the list's own words; golden plus literal Canadian, British and American renders; new projects only | — | S16-74 | [plan](prs/S16-73-voters-list-type.md) | Blocked — on S16-74 |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -531,7 +532,8 @@ SLICE 6i — Back and scroll                           (after 6h)
   S16-72  Back returns to the scroll position
 
 SLICE 6j — A Voters list type                        (any time)
-  S16-73  A seeded Voters list type cites a voter list down to the entry
+  S16-74  Install derives each seeded type's suggested fields from its formats
+  S16-73  A seeded Voters list type cites a voter list down to the entry   (after S16-74)
   Check: bar 44.
   Check: bar 43.
 
@@ -616,7 +618,7 @@ S16-69: none
 S16-66 ──▶ S16-71
 S16-D14 ──▶ S16-71
 S16-71 ──▶ S16-72
-S16-73: none
+S16-74 ──▶ S16-73
 ```
 
 Batch 5 runs in order: each PR reads what the one before added (the key and the samples rule, then the summary's dating).
@@ -1159,6 +1161,14 @@ Design: [`catalog-query-layer.md`](catalog-query-layer.md).
 
 **Decided (user, 2026-11-26).** The working rule "(Batch 6) A seeded citation format is written to find the record again". One generic type for every country's voter lists; the archive goes before the copy; the record group prints as "Record Group 113-B", as on Government file; the provider's image number is not planned.
 **Today.** Voter lists fall to Record book (P2 local), which has no electoral geography and no archive reference; Ancestry's suggested citation for the Canadian lists names only the collection.
-**Ships.** Go seed. A `voters_list` type, three fields, its suggestions, and its formats; the golden and literal renders for a Canadian, a British and an American list. New projects only (rule "The seed is the product default").
+**Ships.** Go seed, after S16-74. One shared copy layer that prints the database title on every record type (user, 2026-11-26); a `voters_list` type, three fields and its formats; the golden and literal renders for a Canadian, a British and an American list. New projects only (rule "The seed is the product default").
 **Check.** Bar 44.
 **Context.** `core/database/sourcevocab`; [`docs/citation-formats.md`](../../citation-formats.md); [`docs/seeded-vocabulary.md`](../../seeded-vocabulary.md); the Spike 15 [citation map](../spike-15/evidence-explained-citation-map.md) chapter 9; precedent #967; skill `add-seeded-vocabulary`.
+
+#### S16-74 — Install derives each seeded type's suggested fields from its formats
+
+**Decided (user, 2026-11-26).** Plan it before S16-73 (S16-73 plan review, M-5).
+**Today.** `seedSuggestions` holds 26 lists typed by hand; `TestSeedSuggestionsFollowFormats` derives the same lists from the formats and fails on a difference.
+**Ships.** Go. The rule moves from the test into `sourcevocab` as `suggestedKeys`; `Install` writes its lists; the hand lists go. New projects get the same rows.
+**Check.** A new project's Census type suggests the same 18 fields; `rg seedSuggestion core` finds nothing.
+**Context.** `core/database/sourcevocab`; [`docs/seeded-vocabulary.md`](../../seeded-vocabulary.md) § 2.3; skill `add-seeded-vocabulary`.
