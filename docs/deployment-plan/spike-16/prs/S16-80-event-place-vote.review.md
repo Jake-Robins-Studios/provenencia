@@ -201,6 +201,10 @@ The user asked for this round after the reshape, with the objective: robust, lon
 
 Smaller notes: `Within` is a set whose order is not part of the contract (D-6). A place outside the graph has an empty `Within`. Entities made before `NewSource` keep their Source (STEP-3).
 
+## Refresh (2026-11-26, `7a1d15c` → `4d0bb5f`)
+
+`main` moved 70 commits (S15-30, S16-78, S16-79, S16-80's own plan commits). `git diff 7a1d15c 4d0bb5f` touches no Go package, test or doc that a Current state row, Codebase fit row or Step names; the Swift rows (`PersonDetailContent.swift`, `EventDetailContent.swift`, `DerivedPlace.swift`, `PVProvenanceSheetContent.swift`, `ReconciledValueDisplay.swift`) are unchanged, and every test the plan keeps green still exists. S16-78's rule that seed data is not tested binds nothing here: the plan's tests use grade keys as inputs, not the seed's content. The one stale line was the version: today 0.48.0, the patch bump goes to 0.48.1. No Decision changed, so no reviewer round ran.
+
 ## Cost
 
 Plan: 5,880 words at round 1, 5,640 after round 1, 6,298 after round 2, 6,742 after round 3 (check-plan-docs info line).
