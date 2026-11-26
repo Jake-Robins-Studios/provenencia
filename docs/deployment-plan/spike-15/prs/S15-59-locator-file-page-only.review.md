@@ -59,6 +59,14 @@
 ### M-6 · minor · Written once
 **Answer:** Fixed — STEP-7 drops the map edits; D-6 keeps the rule and leaves the sites to §4 and STEP-4.
 
+## Round 2
+
+### X-9 · blocker · D-3 and T-3 disagree on whether `Validate` accepts a file page above `math.MaxInt32`
+**Answer:** Fixed — D-3: `filePage` returns the raw page; `Validate` and `regionDocPages` accept a page above `MaxInt32` as today, and `citationPage` keeps the cap. T-3 stands.
+
+### X-10 · nit · STEP-5's list misses `graphcachetest.go`'s SQL-string copy
+**Answer:** Fixed — STEP-5 excludes it by name; its copy sits inside a SQL literal.
+
 ## Cost
 Plan: 4,680 words at round 1, about 5,100 after the answers (check-plan-docs info line).
 
@@ -66,3 +74,4 @@ Plan: 4,680 words at round 1, about 5,100 after the answers (check-plan-docs inf
 | --- | --- | --- | --- |
 | 1 | maintainability | opus | — |
 | 1 | executability | sonnet | 131k |
+| 2 | executability | sonnet | 97k |
