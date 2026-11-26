@@ -88,7 +88,7 @@ When extending or adding another vocabulary domain’s seed, follow the project 
 
 # 2. Source layer
 
-Schema: [`source-layer-data-model.md`](source-layer-data-model.md). The formats of each type are in the map's § 6.8; `core/database/sourcevocab/testdata/seed-citations.txt` holds every one rendered against an invented Source.
+Schema: [`source-layer-data-model.md`](source-layer-data-model.md). The formats of each type are in the map's § 6.8.
 
 ## 2.1 `source_types`
 
@@ -153,7 +153,7 @@ citation  page
 
 Suggested fields per type for cataloging UI. Not required; a Source may use fields not listed for its type. A type suggests each field once, in one ordered list, and every board of a Source of the type (the Source, each Artifact, each Evidence graph) offers all of it.
 
-`Install` derives each seeded type's list from its formats (`suggestedKeys`), in first-read order: the fields the full format reads, in the order it first reads them; then each field the list format, then the short format, needs outside any group that the full format does not use, appended in that order (none today: the certificates' full and short notes lead with `jurisdiction`; a chain whose option the full format already suggests adds nothing; user, 2026-11-20). Nothing else is added: a type suggests only the fields its formats read, so the record types suggest no copy fields their formats do not print (user, 2026-11-23). `TestSuggestedKeys` checks each list, and `TestSeededFormatsNeedOnlySuggestedFields` fails on a needed field no suggestion offers. A census Source, Artifact and Evidence graph all offer the same fields, the ones its three formats read, `creator` first and `citing` last.
+`Install` derives each seeded type's list from its formats (`suggestedKeys`), in first-read order: the fields the full format reads, in the order it first reads them; then each field the list format, then the short format, needs outside any group that the full format does not use, appended in that order (none today: the certificates' full and short notes lead with `jurisdiction`; a chain whose option the full format already suggests adds nothing; user, 2026-11-20). Nothing else is added: a type suggests only the fields its formats read, so the record types suggest no copy fields their formats do not print (user, 2026-11-23). `TestSuggestedKeys` tests the rule on synthetic formats; no test checks the seed's own lists. A census Source, Artifact and Evidence graph all offer the same fields, the ones its three formats read, `creator` first and `citing` last.
 
 ---
 

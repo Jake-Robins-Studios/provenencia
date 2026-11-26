@@ -36,7 +36,6 @@ new Install into **`onboarding.createCatalog` only**.
    - `registry.go` `seedTypes` — `key`, `label`, `description`, `IconKey`, `Formats` (the three citation formats, fields written by key; `Install` stores them by id through `sourcetypes.ToStored` with `preferOrigin` `provenencia`, so a researcher's field with the same key never captures one). The three certificates share `certificateFormats`, the journal article and the broadcast `journalArticleFormats`.
    - `registry_fields.go` `seedFields` — `key`, `label`, `data_type` (`text`|`url`), `Description`, `UnknownText` (what a value marked unknown prints, "" for none; no date key is seeded)
    - `registry_suggestions.go` `suggestedKeys` — derives each type's suggested fields from its formats (§ 2.3); a type needs no list of its own
-   After a format edit, `go test -tags fts5 -run TestSeedCitations ./core/database/sourcevocab -update` rewrites `testdata/seed-citations.txt` (every seeded format rendered against an invented Source); read the diff.
 2. The Source seed is the citation vocabulary of the Spike 15 map § 6.8, the one
    exception to a small starter: the Spike 15 rule "The seed is the product
    default" decided it. New projects get whatever is in the registry at
@@ -49,7 +48,7 @@ new Install into **`onboarding.createCatalog` only**.
 4. **No seed `INSERT`s** in `migrations/*.sql`. DDL-only migrations for new tables.
 5. Adding rows to the registry is enough for normal growth of the create-time
    starter. Do not reintroduce open-time heal.
-6. Tests: `TestInstall` in `sourcevocab_test.go` (empty catalog gets the registry row for row and the stored formats; a second install changes nothing; a user field with a seeded key does not capture a format; user twin left alone; deleted rows stay deleted without re-Install) and the registry tests in `registry_test.go` (`TestSuggestedKeys`, `TestSeedFieldsAreRead`, `TestSeedTypes`). Onboarding: open does not heal.
+6. Tests: the seed is data, so no test validates registry entries (user, 2026-11-26). `TestInstall` in `sourcevocab_test.go` checks that Install writes the registry row for row with the stored formats, a second install changes nothing, a user field with a seeded key does not capture a format, a user twin is left alone, deleted rows stay deleted without re-Install, and a bad entry rolls back. `TestSuggestedKeys` in `registry_test.go` tests the suggestion rule on synthetic formats. Onboarding: open does not heal.
 7. Run `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/... ./core/onboarding/...`.
 
 ### Subject vocabulary / credibility grades
