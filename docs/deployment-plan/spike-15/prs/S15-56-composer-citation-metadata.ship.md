@@ -1,7 +1,7 @@
 # Ship log — S15-56 The composer edits a Citation's metadata
 
 **Plan:** [`S15-56-composer-citation-metadata.md`](S15-56-composer-citation-metadata.md) · **Branch:** `s15-56-composer-citation-metadata` · **PR:** #982
-**State:** ready
+**State:** fixing 2
 
 Base: `main` @ `b42ec2c` (plan written against `620ddaa`).
 
@@ -79,11 +79,20 @@ Reviewers: CON, MNT, UX (each had a Fix-now blocker or major). Not sent: SEC+PRF
 | CON-1, CON-2, CON-4 | CON | — | Round-1 items | Resolved | `TestCitationLayoutNamesCitationGraph`, `TestReadsDeclare`, `newCitationLineAfterFirstSave`; SKILL.md:175 |
 | MNT-1, MNT-3, MNT-4 | MNT | — | Round-1 items | Resolved | `ListCitationWorkspaces` + shared `ownPage`; one list accessor chain; SKILL.md:175 |
 | UX-1, UX-2 | UX | — | Round-1 items | Resolved | `board.hasUnsavedChanges`; `scrollTarget`/`scrollRequest` passed to `pvFormDialog` |
-| CON-5 | CON | minor | F-4: a failed first-Citation load on an Artifact switch leaves a blank Citation with no draft-board read (count missing or the previous Artifact's) | To user | below the round-2 bar; one-line fix (also `refreshDraftMetadata()` when the load returns nil); no Fix plan 2 without a blocker |
+| CON-5 | CON | minor | F-4: a failed first-Citation load on an Artifact switch leaves a blank Citation with no draft-board read (count missing or the previous Artifact's) | To user → Fix now → F-7 (user, 2026-11-26) | below the round-2 bar; one-line fix; the user asked for it on this PR |
 
 Nits (logged): `MNT-8 · sourcemetadata.go:821-848 · ListCitationWorkspaces repeats ListWorkspaces' open-tx wrapper`
 
 No new blockers; no Fix plan 2. Merged `origin/main` (`0a5784aa6`, docs only) at `e63dec33e`; gate PASS.
+
+### Fix plan 2
+Not a round-2 blocker: the user asked for CON-5 on this PR (2026-11-26). No re-review; the orchestrator reads the fix.
+
+**F-7 — A failed first-Citation load on an Artifact switch still reads the draft board** (from CON-5)
+Files: `macos/App/Features/CitationComposer/CitationComposerModel.swift` (`selectArtifactAndLoad`), `macos/ProvenenciaTests/CitationComposerModelTests.swift`, FakeStore if it needs a per-id `getCitation` error.
+Failing test first: `selectArtifactDraftReadAfterFailedLoad` (new) — switch to an Artifact whose listed first Citation's `loadCitation` throws (FakeStore `getCitation` error for that id, graph handle without a value so the load reaches the store) → `activeCitationID == nil`, `citationLoadError != nil`, one `getDraftMetadataBoard` call for the new Artifact, and `metadataCount` reads that Artifact's draft board (not the previous Artifact's).
+Do: in `selectArtifactAndLoad`, when `showingLoadFailure(...)` returns nil, call `refreshDraftMetadata()` as the `else` branch does, e.g. `if await showingLoadFailure(...) == nil { refreshDraftMetadata() }`. Add a clause to the plan's Landed note.
+Check: the test fails before the change and passes after; scripts/check-pr.sh PASS.
 
 ## Result
 Gate PASS · CI pending · open: none blocker/major · follow-ups: — · to user: CON-5 (minor)
