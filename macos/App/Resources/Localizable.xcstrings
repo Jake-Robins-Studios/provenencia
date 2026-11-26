@@ -24803,18 +24803,6 @@
         }
       }
     },
-    "citationFormats.builtin.citationPage": {
-      "comment": "Name of the built-in placeholder citationPage",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Page"
-          }
-        }
-      }
-    },
     "citationFormats.builtin.citationImage": {
       "comment": "Name of the built-in placeholder citationImage",
       "extractionState": "manual",
