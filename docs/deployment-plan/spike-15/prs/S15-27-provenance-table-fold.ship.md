@@ -1,7 +1,7 @@
 # Ship log — S15-27 The provenance table folds a page at a time
 
 **Plan:** [`S15-27-provenance-table-fold.md`](S15-27-provenance-table-fold.md) · **Branch:** `s15-27-provenance-table-fold` · **PR:** #1006
-**State:** ready
+**State:** implementing (reshape)
 
 ## Round 0 — implement
 Not committed or pushed. **Stopped on** §11 "The Release test build fails". STEP-1 done in Debug (uncommitted on the local branch): `Timing.swift`, `CatalogListMergeTests` re-pointed, `PVProvenanceSheetLayoutTests`, `PVProvenancePreviewData.content(groups:summary:)` takes `String?`.
@@ -75,6 +75,12 @@ Nits (logged): `CON-5 · plan Landed note says "recipe-private"; the key is inte
 ## Result
 Gate PASS · CI pending at ready · open: none in code; CON-2 (§10 manual check) with the user · follow-ups: Return on a focused citation link may fire Done (pre-existing) · to user: SEC-1 answered (accepted, 2026-11-27)
 
+
+## Reshape (user, 2026-11-27)
+After the PR was ready, the user dropped citation runs entirely: every record is its own row, owner lines and value headings stay, and the fold counts records across the sheet; the engine's group key goes too. Replanned through plan-pr on the branch (`0459f185b`, review answered in `058bd8308`; review log "Reshape"). The loop restarts: round 0 implements the reshaped plan on top of the branch.
+
+## Reshape round 0 — implement
+
 ## Cost
 Plan: 5,424 words (check-plan-docs info line).
 
@@ -91,3 +97,6 @@ Plan: 5,424 words (check-plan-docs info line).
 | 1 | implementer fix | sonnet | 93k |
 | 2 | CON | opus | 46k |
 | | **Total** | | **888k** (largest: implementer resume, 146k) |
+| reshape | planner | opus | 257k+ |
+| reshape | plan maintainability | opus | 174k |
+| reshape | plan executability | opus | 173k |
