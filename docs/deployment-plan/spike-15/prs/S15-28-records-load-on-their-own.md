@@ -43,7 +43,7 @@ The engine gains what the provenance sheet needs to load a row's records when it
 | AC | Given / when | Then |
 | --- | --- | --- |
 | AC-1.1 | A name field with two records from one Source (`namedPerson`: James Robins, Kenneth Robins) | `record_counts` = records 2, sources 1 |
-| AC-1.2 | A name field merged from two Sources, one record each | records 2, sources 2 |
+| AC-1.2 | A name field merged from two Sources, one record each, the same name on both | records 2, sources 2 |
 | AC-1.3 | Two displayed values whose counted outcomes come from Sources A, A and B | sources 2 (distinct), not 3 |
 | AC-1.4 | Two displayed values with Support 3 and 1 and no outcome counted under either | sources 4 (summed Support) |
 | AC-1.5 | A Person's birth date row's owner field (`derivedRowsFixture`) | the owner field's `record_counts.records` = 2 |
@@ -190,7 +190,7 @@ None — no catalog change.
 | same | `func FieldRecords(c *database.Catalog, pairs []Pair, in *graphcache.PageInputs) ([]OwnerField, error)`: nil catalog or graph, or no pairs, is nil and reads nothing; one `OwnerField{Entity: canonicalentities.FromNode(n), Field: f}` per distinct pair with a field, in first-request order. Two pairs on one owner are two `OwnerField`s with the same entity |
 | same | `personDerivedRows(c, personID []byte, kinds []DerivedRowKind, in)` is today's `PersonDerivedRows` body with `lists` filtered to `kinds` before anything is read or recorded, `in.AddHandles(personID)` first, and the inline field step replaced by `fieldsByPair` over the kept lists' owners. `PersonDerivedRows` passes the four kinds. `func PersonDerivedRow(c *database.Catalog, personID []byte, kind DerivedRowKind, in *graphcache.PageInputs) (DerivedRow, bool, error)` passes one kind; false when no row comes back |
 | same | `type SheetRequest struct { Pairs []Pair; PersonID []byte; Kind DerivedRowKind }`; `type Sheet struct { Owners []OwnerField; Citations []citationrender.RenderedCitation }`; `func ProvenanceSheet(c *database.Catalog, req SheetRequest, in *graphcache.PageInputs) (Sheet, error)`: `Pairs` non-empty → `FieldRecords`; else `PersonID` set and `Kind` one of the four → `PersonDerivedRow`'s owners; else empty. Then `citationrender.RenderAll` over the owners' outcomes' `CitationID`s, distinct, in owner then outcome order |
-| `core/database/citationrender` | `render` gains a `limit int` parameter (the byte cap); `Render` passes `MaxBatchBytes`. `func RenderAll(c *database.Catalog, citationIDs [][]byte, in *graphcache.PageInputs) ([]RenderedCitation, error)`: an id not 16 bytes is `citations.ErrInvalid`; no ids is nil and reads nothing; one read transaction, as `Render` opens it; `renderAll(tx, ids, in, batch, limit)` *(new, unexported)* calls `render` on each batch of `batch` ids and leaves out a batch it refuses with `citations.ErrInvalid`; `RenderAll` passes `MaxCitations` and `MaxBatchBytes` |
+| `core/database/citationrender` | `render` gains a `limit int` parameter (the byte cap); `Render` passes `MaxBatchBytes`. `func RenderAll(c *database.Catalog, citationIDs [][]byte, in *graphcache.PageInputs) ([]RenderedCitation, error)`: an id not 16 bytes is `citations.ErrInvalid`; no ids is nil and reads nothing; one read transaction, as `Render` opens it; `renderAll(tx, ids, in, batch, limit)` *(new, unexported)* drops repeated ids (the first stays) and then calls `render` on each batch of `batch` ids and leaves out a batch it refuses with `citations.ErrInvalid`; `RenderAll` passes `MaxCitations` and `MaxBatchBytes` |
 
 ### FFI
 
@@ -245,7 +245,7 @@ None — no copy.
 **STEP-1 — Counts and denial facts**
 Files: `core/database/conclusiondetails/conclusiondetails.go`, `conclusiondetails_test.go`, `export_test.go`.
 Do: the types, fields and `finish` calls per Go core, D-5 and D-6. Export `RecordCountsOf(f Field) FieldRecordCounts` and `DenialFactsOf(f Field) []Outcome` in `export_test.go` for T-1.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/conclusiondetails/` passes with T-1, T-2.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/conclusiondetails/` passes with T-1, T-2, T-13.
 
 **STEP-2 — One pairs-to-fields step**
 Files: `conclusiondetails.go`, `conclusiondetails_test.go`, `placerecords_test.go`.
@@ -255,17 +255,17 @@ Check: the package tests pass with T-4 – T-6; `TestPlaceOwnersCarryTheVote` an
 **STEP-3 — Render in batches, and the sheet read**
 Files: `core/database/citationrender/render.go`, `render_test.go` (package `citationrender`, so it calls `renderAll` directly); `conclusiondetails.go`, `conclusiondetails_test.go`.
 Do: `render`'s `limit`, `RenderAll`, `renderAll`; `SheetRequest`, `Sheet`, `ProvenanceSheet`.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/citationrender/ ./core/database/conclusiondetails/` passes with T-3, T-13; `TestRenderScale` passes unchanged.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/citationrender/ ./core/database/conclusiondetails/` passes with T-3, T-12; `TestRenderScale` passes unchanged.
 
 **STEP-4 — Proto**
 Files: `api/proto/engine.proto`, `api/proto/engine/engine.pb.go`, `macos/App/Platform/Generated/engine.pb.swift`. Skill: `add-ffi-handler`.
 Do: the FFI section's messages, fields and comment. Run `./scripts/generate-proto.sh` on a machine with `protoc`, `protoc-gen-go` and `protoc-gen-swift` (the Mac that runs `xcodebuild`).
-Check: `go build ./...` passes; `git diff --stat` lists both generated files; `rg -n -U "Why\n// shows" api macos/App/Platform/Generated` finds nothing.
+Check: `go build ./...` passes; `git diff --stat` lists both generated files; `rg -n -U "the Why\s*\n\s*/+ shows" api macos/App/Platform/Generated` finds nothing.
 
 **STEP-5 — Handlers**
 Files: `api/ffi/handlers/conclusion_detail.go`, `citation_render.go`, `provenance_records.go` *(new)*, `api/ffi/dispatch.go`, `conclusion_detail_test.go`, `provenance_records_test.go` *(new)*. Skills: `add-ffi-handler`, `use-catalog-session`.
 Do: `derivedRowKinds`, `ownerFieldProto`, `renderedCitationsProto`, the counts and denial mapping, `GetProvenanceRecords`, dispatch.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./api/...` passes with T-9, T-11, T-12.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./api/...` passes with T-9, T-10, T-11.
 
 **STEP-6 — Scale**
 Files: `api/ffi/handlers/provenance_records_test.go` *(new)*, which STEP-5 creates.
@@ -290,17 +290,17 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | --- | --- | --- | --- | --- |
 | T-1 | Go | `conclusiondetails_test.go` `TestRecordCounts` *(new)*, table over hand-built `Field`s through `RecordCountsOf` | no displayed value → {0,0}; one displayed, Support 2, 2 outcomes → {2,2}; two displayed, counted outcomes from Sources A, A, B → Sources 2; two displayed with Support 3 and 1, nothing counted → Sources 4 | AC-1.3, AC-1.4, D-5 |
 | T-2 | Go | `conclusiondetails_test.go` `TestForEntityEvidence` (extended), `TestDenialFacts` *(new)* through `DenialFactsOf` | the fixture's negative: `DeniedAValue` true and the denied record's `DeniedBySourceTitle` the negative's Source title; a negative that denies nothing → false; a `denied` outcome whose denier is not in the field → ""; a `kept` outcome → "" | AC-2.1, AC-2.2, AC-2.3, D-6 |
-| T-3 | Go | `citationrender/render_test.go` `TestRenderAll` *(new)*, table through `renderAll` | `seedScale`'s 300 Citations with batch 120 → 300 rendered, in input order; a repeated id → once; batch 100 with a limit one Citation's text exceeds → that batch left out, the others rendered; a 15-byte id → `citations.ErrInvalid`; no ids → nil | AC-3.7, D-9 |
+| T-3 | Go | `citationrender/render_test.go` `TestRenderAll` *(new)*, table through `renderAll` | `seedScale`'s 300 Citations with batch 120 → 300 rendered, in input order; the first id repeated at the end, past the first batch → once; the first 250 ids with batch 100 and a limit of 60 times one rendered Citation's `size(Full) + size(Short)` (`seedScale`'s Citations render alike) → the two batches of 100 left out, the last 50 rendered; a 15-byte id → `citations.ErrInvalid`; no ids → nil | AC-3.7, D-9 |
 | T-4 | Go | `conclusiondetails_test.go` `TestFieldRecords` *(new)*, table | one pair → the `ForEntity` field for that Property, owner entity the handle; an event Subject with `asOfIn` records, pairs (`as_of`, `date`) → one owner, `as_of`; a repeated pair → one; an unknown owner and a merged owner → none; no pairs → nil; `holdsIDs` on the owner, graph and Source | AC-3.1, AC-3.2, AC-3.4, D-8 |
 | T-5 | Go | `conclusiondetails_test.go` `TestFieldRecordsMatchesTheDetail` *(new)* | for every field of `TestForEntityRecordsInputs`' Person, `FieldRecords` gives the detail's field, counts and denial facts included | D-3, D-4 |
-| T-6 | Go | `placerecords_test.go` `TestPersonDerivedRow` *(new)* | S16-80's "three Sources outvote the fourth" → the birth place row equals `PersonDerivedRows`' birth place row, the England owner's counts {1,0} and Swift Current's records 3; the inputs hold the Person; no death place → false; a non-Person id → false | AC-3.3, AC-3.4, D-7, D-10 |
+| T-6 | Go | `placerecords_test.go` `TestPersonDerivedRow` *(new)* | S16-80's "three Sources outvote the fourth" → the birth place row equals `PersonDerivedRows`' birth place row, the England owner's `RecordCounts.Records` 1 and Swift Current's 3; the inputs hold the Person; no death place → false; a non-Person id → false | AC-3.3, AC-3.4, D-7, D-10 |
 | T-7 | Go | `provenance_records_test.go` `TestDetailPayloadWithoutRecords` *(new)* | `researchedPerson(t, 30, 2)`: marshal `GetConclusionDetail`'s answer; clear every field's and derived owner's `Outcomes`; marshal again; log both byte counts; the second is smaller | AC-4.1 |
 | T-8 | Go | `provenance_records_test.go` `TestProvenanceRecordsScale` *(new)* | `researchedPerson(t, 30, 40)`: the name pair → 1,200 outcomes and 1,200 citations; `databasetest.WithinBudget(t, "1200 records", databasetest.Warm(read), 600*time.Millisecond)` | AC-4.2 |
 | T-9 | Go | `provenance_records_test.go` `TestGetProvenanceRecords` *(new)*, `runRPC` table | bad proto → error; `namedPersonID`'s name pair → one owner, `event` and `place` nil, 2 outcomes, counts {2,1}, 1 citation, `wantInputs` with the handle, graph and Source; `derivedRowsFixture` birth date → one owner whose `entity` and `event` are the Event, 2 outcomes, inputs hold the Person and the Event; unspecified kind → no owners; no `row` → no owners; malformed owner, Property or Person id → `request.invalid_id` | AC-3.1, AC-3.4, AC-3.5, AC-3.6 |
-| T-11 | Go | `provenance_records_test.go` `TestGetProvenanceRecordsWarmReadsNoRecordSQL` *(new)* | `namedPersonID`'s name pair read twice: same bytes; no graph query (`SetQueryCounterForTest`); the second read's `databasetest.CountSelects` equals a warm `citationrender.Render` of the same Citation ids | AC-3.8 |
-| T-12 | Go | `conclusion_detail_test.go` `TestGetConclusionDetail`, `TestGetConclusionDetailCarriesDerivedRows` (extended) | the name field's `record_counts` = {2,1}; the derived owner field's `record_counts.records` = 2 | AC-1.1, AC-1.5 |
-| T-13 | Go | `conclusiondetails_test.go` `TestProvenanceSheet` *(new)* | pairs → `FieldRecords`' owners with their Citations rendered once each; a Person and a kind → `PersonDerivedRow`'s owners; neither → empty and nothing recorded | AC-3.4, AC-3.6, D-2 |
-| T-14 | Go | `conclusiondetails_test.go` `TestForEntityRecordCounts` *(new)* | one Source with two names → {2,1}; two Sources with one name each → {2,2} | AC-1.1, AC-1.2 |
+| T-10 | Go | `provenance_records_test.go` `TestGetProvenanceRecordsWarmReadsNoRecordSQL` *(new)* | `namedPersonID`'s name pair read twice: same bytes; no graph query (`SetQueryCounterForTest`); the second read's `databasetest.CountSelects` equals a warm `citationrender.Render` of the same Citation ids | AC-3.8 |
+| T-11 | Go | `conclusion_detail_test.go` `TestGetConclusionDetail`, `TestGetConclusionDetailCarriesDerivedRows` (extended) | the name field's `record_counts` = {2,1}; the derived owner field's `record_counts.records` = 2 | AC-1.1, AC-1.5 |
+| T-12 | Go | `conclusiondetails_test.go` `TestProvenanceSheet` *(new)* | pairs → `FieldRecords`' owners with their Citations rendered once each; a Person and a kind → `PersonDerivedRow`'s owners; neither → empty and nothing recorded | AC-3.4, AC-3.6, D-2 |
+| T-13 | Go | `conclusiondetails_test.go` `TestForEntityRecordCounts` *(new)* | one Source with two names → {2,1}; two Sources with the same name, one record each → {2,2} | AC-1.1, AC-1.2 |
 
 Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `TestPlaceOwnersCarryTheVote`, `TestFieldsOfOnly`, `TestRenderScale`, `TestGetConclusionDetailWarmReadsNoRecordSQL`, any `runRPC` case with `exact: true` over a `ConclusionField` or `ReconcilerOutcomeDetail` (it now carries the new fields), and the Xcode build after regeneration.
 
@@ -311,7 +311,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 - [ ] Every T-# in §8 exists and passes
 - [ ] scripts/check-pr.sh prints check-pr: PASS (gofmt, go vet, go test, Xcode tests with no Swift warning, catalog and plan-doc checks)
 - [ ] No Out line was implemented; no code outside §4 / §6 was refactored
-- [ ] Sweep: `rg -n -U "Why\n// shows" api macos/App/Platform/Generated` and `rg -n "provenance sheet shows" core` find nothing; `scripts/check-guidance-names.py` passes (check-pr runs it)
+- [ ] Sweep: `rg -n -U "the Why\s*\n\s*/+ shows" api macos/App/Platform/Generated` and `rg -n "provenance sheet shows" core` find nothing; `scripts/check-guidance-names.py` passes (check-pr runs it)
 - [ ] Version bump as the header says (VERSION, core/version.go, MARKETING_VERSION together)
 - [ ] This plan: Status → Landed in #N (date); a Landed note lists every difference from the plan
 - [ ] deployment-plan.md: map row status; completed.md: one short paragraph of what shipped, with T-7's payload sizes and T-8's timing
@@ -327,7 +327,7 @@ The app does not call the new read until S15-29; the tests are the check of the 
 
 | Risk | Mitigation |
 | --- | --- |
-| Counts drift from what Swift shows today | T-1 and T-14 state Swift's rules; T-5 holds the sheet read equal to the detail |
+| Counts drift from what Swift shows today | T-1 and T-13 state Swift's rules; T-5 holds the sheet read equal to the detail |
 | 600 ms is missed on a slow runner | The budget sits above `TestRenderScale`'s 400 ms for the same 1,200 Citations; Verify mode skips budgets |
 | `researchedPerson(t, 30, 40)` is slow to seed (1,200 writes) | It seeds once per test; if the package's test time grows past 60 s, stop and report |
 
