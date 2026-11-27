@@ -44,7 +44,7 @@ Orchestrator read of the fix commits: MNT-1/CON-2 **Resolved** (`rg -nw Why maco
 Not run: no reviewer had a Fix-now blocker or major in round 1.
 
 ## Result
-Gate PASS · CI pending at time of writing · open: none · follow-ups: none · later PR: PRF-1 → S15-29 map Check · to user: — (§10 manual check is the user's)
+Gate PASS · CI green · open: none · follow-ups: none · later PR: PRF-1 → S15-29 map Check · to user: — (§10 manual check is the user's)
 
 ## Cost
 Plan: 5,355 words (check-plan-docs info line).
