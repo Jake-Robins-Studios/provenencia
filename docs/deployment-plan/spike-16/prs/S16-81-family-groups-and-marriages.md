@@ -1,6 +1,6 @@
 # S16-81 — Family groups siblings by their parents and shows each couple's marriage
 
-**Status:** Draft
+**Status:** Planned
 **Spike / slice:** Spike 16 · Slice 6l — Family parents
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S16-D18](../design/S16-D18-family-groups-and-marriages.md), board agreed 2026-11-27
@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc`, `.cursor/rules/match-rules.mdc`, `.cursor/rules/swift-tests.mdc`
 **Context:** brief [S16-D18](../design/S16-D18-family-groups-and-marriages.md); working rules "(Batch 6) Family groups siblings by their parents", "(Batch 6) Family shows a couple's marriage from its events", "(Batch 1) Crafted fan-out is capped, not engineered"; [S16-82's plan](S16-82-family-groups-and-marriages-read.md) and its **Landed** note; [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide). Swift checks need macOS with Xcode; STEP-9 needs `protoc` and its Go and Swift plugins (`scripts/generate-proto.sh` checks for them)
 **Planned:** 2026-11-27 against `main` @ `819a568`
-**Review:** — (not reviewed yet)
+**Review:** [`S16-81-family-groups-and-marriages.review.md`](S16-81-family-groups-and-marriages.review.md) — Fits with changes, Ready; 2 rounds, every finding answered
 
 ### Implementer — read this first
 
@@ -96,7 +96,7 @@ The family in every example is brief §5's: Johann Weber (b. 1817), parents Hein
 | FM-W1 lines sit where they sit at Regular | STEP-5, T-10 |
 | One table of life-line copy in whole phrases; b. and d. move into it | STEP-1, AC-3.3 |
 | The Go parity row for `kinship.SpouseEventTypes()` | STEP-2, AC-3.2 |
-| `EventSecondaryDisplay` moves to Platform; `L10n.list` joins names for this PR and its three existing callers | STEP-3 |
+| `EventSecondaryDisplay` moves to Platform; `L10n.list` joins names for this PR and its four existing callers; one `PVDatePlaceLine(_ line:)` draws every life line | STEP-3 |
 | Deleting the old fields and their mechanisms (§6 **Deletes**); `persondetail.Unit` with `Couples` | STEP-6 – STEP-9, AC-3.1 |
 | Previews F1 – F4, F6, M1 – M4 and 11h | STEP-4, STEP-5 |
 | Docs and guidance the deletions make false | STEP-10 |
@@ -123,7 +123,8 @@ The family in every example is brief §5's: Johann Weber (b. 1817), parents Hein
 | Life lines | `macos/App/Platform/PersonLifeDisplay.swift` `LifeLine`, `lifeLines(_:locale:missing:)`, private `lifeLine(_:facts:locale:missing:spoken:)` | Splices `L10n.Conclusions.a11yBorn`/`a11yBornInline` (and died) into `a11yLifeLine`, `a11yLifeLineKnown`, `a11yLifeLinePlaceOnly`; abbreviations `personBornAbbr`, `personDiedAbbr`; text through `L10n.Conclusions.lifeLineText`; these are their only readers |
 | Date · place line | `macos/App/DesignSystem/Components/DatePlaceLine/PVDatePlaceLine.swift` | `HStack(spacing: PVSpacing.space4)` of leading, date, "·", place, `extraCount`; no trailing part |
 | Event wording | `macos/App/Features/Conclusions/EventsListView.swift` `EventSecondaryDisplay` | A value formatter in a list view's file; read by `ConclusionSummaryDisplay`, `EventDetailContent`, `PersonTimelineContent`, `EventsListView` |
-| List joins | `macos/App/Platform/ReconciledValueDisplay.swift` (line 184), `macos/App/Features/SourceTypes/SourceTypeCopyModel.swift` (line 98), `macos/App/Features/Catalog/Search/CatalogSearchHitPresentation.swift` (line 73) | Three hand-rolled `ListFormatter` joins |
+| List joins | `macos/App/Platform/ReconciledValueDisplay.swift` (line 184), `macos/App/Features/SourceTypes/SourceTypeCopyModel.swift` (line 98), `macos/App/Features/Catalog/Search/CatalogSearchHitPresentation.swift` (line 73), `macos/App/DesignSystem/Recipes/DeleteImpact/PVDeleteImpact.swift` `cascadeLines` (line 79, `.formatted(.list(type: .and))`) | Four hand-rolled joins |
+| Life line drawers | `macos/App/Features/Conclusions/PersonDetailView.swift` `PersonDetailLifeLines` (line 78), `PersonsListView.swift` `PersonLifeLine` (line 75), `PVPersonCard.lines` (line 146) | Each copies `LifeLine` into `PVDatePlaceLine` field by field and restates `missing` |
 | Person card | `macos/App/DesignSystem/Recipes/PersonCard/PVPersonCard.swift` `PVPersonCardContent`, `PVPersonCard.lines` | Draws `content.lines` with `PVDatePlaceLine(…, missing: .omitted)`, no `extraCount` |
 | Seeded event terms | `macos/App/Platform/L10n.swift` `L10n.PropertyTerm.resource`; `macos/App/Platform/ConclusionVocabulary.swift` `SeededEventTypeTerm`, `CatalogOrigin.isProduct` | The switch shape the parity test reads; the origin check `PropertyTermDisplay.name` uses |
 | Family copy | `L10n.swift` `L10n.Conclusions.familyCaption*`, `familyGroup*`, `familyThisPerson` | `familyCaptionOtherParent(s)` read only by the content's parent captions |
@@ -132,7 +133,7 @@ The family in every example is brief §5's: Johann Weber (b. 1817), parents Hein
 | Handler | `api/ffi/handlers/person_detail.go` `GetPersonFamily`, `familyUnitKindProto` | Maps `family.UnitCouples[k]` and the origin siblings (lines 177–186) |
 | Family read | `core/database/persondetail/family.go` `Family.UnitCouples`, `OriginSibling`, `PersonFamily` (returns `(Family, []OriginSibling, Summaries, error)`), `originSiblings`, `indexCouples`, `dropUnread` | `UnitCouples` is parallel to `Units` |
 | Kinship | `core/kinship/families.go` `UnitParents`, `UnitSiblings`, `Unit.Empty`, `FamilyUnits(person, kin, kinOf, rules)`, `parentUnits` (with `paired`), `subset`; kept: `sharedParents`, `spouseLink`, `filedSpouseLink`, `pairsParents`, `SiblingGroups`, `Couples` | `FamilyUnits` returns parent sets, partners, one-parent and siblings units; only `parentUnits` reads `rules` |
-| Comments naming the old shape | `core/kinship/siblings.go` (`Siblings` doc); `core/kinship/kinship.go` package doc; `docs/deployment-plan/spike-16/person-page-audit.md` line 107; the working rules' caps list (`deployment-plan.md` line 233) | Name `parentUnits` |
+| Comments naming the old shape | `core/kinship/siblings.go` (`Siblings` doc, line 28); `core/kinship/families.go` (lines 173, 191); `docs/deployment-plan/spike-16/person-page-audit.md` line 107; the working rules' caps list (`deployment-plan.md` line 233); the map's Scale line (line 113, "20 children in four parent sets"); `docs/ideas/value-formatting.md` ("Event and summary formatting live in Features") | Name `parentUnits`, parent sets, or `EventSecondaryDisplay` in `Features/` |
 | Go parity test | `api/ffi/swift_vocabulary_test.go` `TestSwiftVocabularyMatchesGo`, `swiftFuncBody`, `swiftEnumBody`, `swiftNamedKey`, subtest "every composer-worded term has composer wording" | No life-line row |
 | Swift tests | `macos/ProvenenciaTests/PersonFamilyContentTests.swift`, `PersonFamilyLayoutTests.swift`; `PersonDetailTests.swift` `lifeLinesOmitMissingHalves`, `lifeLinesSayUnknownUntilLifeEventsArrive` and the `extraPlaces` expectations (lines 478–517) | Assume parent sets, rails, `originSiblings` |
 | Go tests | `core/kinship/families_test.go` `TestFamilies`, `TestFamiliesMoreParentsThanMaxPivotEnd`, `TestFamiliesGrowth`, `TestFamiliesGrowthPairs`, `TestUnitEmpty`, `FuzzFamilyUnits`, helpers `unitsPastSiblingBound`, `linksPastSiblingBound`, `crowd`, `pairs`, `placements`, `shown`, `unitName`; `siblings_test.go` "50,000 parents and a sibling sharing them all"; `core/database/persondetail/family_test.go` `unitKind`, `relative`, `TestPersonFamily` (AC-1.2, AC-1.5), `TestPersonFamilyOriginSiblings`, "AC-2.8 …"; `family_drop_test.go` `TestDropUnread`; `caps_test.go`; `api/ffi/handlers/person_detail_test.go` "carries the person and the origin siblings" | Read the parent and siblings units or origin siblings |
@@ -144,21 +145,23 @@ The family in every example is brief §5's: Johann Weber (b. 1817), parents Hein
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
 | D-1 | One PR; the life-line copy table and the parity row are its first two commits | The table's only new reader is this PR's marriage line | A preparatory PR with nothing to show |
-| D-2 | `L10n.LifeLine` (shape in **Codebase fit**) holds each event type's copy as whole phrases: the abbreviation, the header's stated phrase, three inline phrases (date and place, date only, place only), an optional bare phrase, and for spouse types the with-spouse phrases. No phrase takes a translated word as an argument. `copy(eventTypeKey:origin:)` returns nil unless `CatalogOrigin.isProduct(origin)`, then switches over `SeededEventTypeTerm` constants. Birth and death have no bare phrase and no with-spouse phrases; marriage has both | `add-localized-string` "Whole phrases"; the origin rule sits with the lookup, as `PropertyTermDisplay.name` does | One table of bare words spliced into shared formats — a splice per sentence |
-| D-3 | `PersonLifeDisplay.lifeLine` builds every line from a `Copy`: `.stated` uses `stated` with the "unknown" fill-ins; `.omitted` picks the phrase by which halves are present, and with both missing uses `bare`, or returns nil when the copy has none. So a person's missing b. or d. is left out and a marriage with neither half is kept (FM-4) by the table's data, not a flag | One builder (user, 2026-11-27: "married in Altona") | A `keepsBare` Bool for one caller |
-| D-4 | A named line (FM-2) passes the other spouse's `PVTitleSource`. Spoken, `lifeLine` picks the with-spouse phrase ("married abt 1816, Kiel, with Heinrich Weber", from `title.spokenText`); drawn, `LifeLine.trailing` is the with-spouse drawn phrase (", with Heinrich Weber", from `title.text`). Family speaks that label with no couple before it (user, 2026-11-27) | FM-2, FM-6; the tile just before the line names the other spouse | Prefixing the couple — "Heinrich Weber" spoken twice |
-| D-5 | An unnamed line is spoken as the couple's names, `L10n.list([a, b], locale:)`, then the line's label, through `L10n.DesignSystem.spokenJoin`: "Heinrich Weber and Anna Weber, married 3 May 1812, Altona". A parents' couple names parents i then j (D-9); a partner's couple names the person, then the partner. With no focus tile (`family.person` nil) a partner's line is spoken by its own label | FM-6; one list join | A "%@ and %@" key |
+| D-2 | `L10n.LifeLine` (shape in **Codebase fit**) holds each event type's copy as whole phrases: the abbreviation, the header's stated phrase, three inline phrases (date and place, date only, place only), an optional bare phrase, and for spouse types the with-spouse phrases. No phrase takes a translated word as an argument. `copy(eventTypeKey:origin:)` returns nil unless `CatalogOrigin.isProduct(origin)`, then switches over `SeededEventTypeTerm` constants. Birth and death have a stated phrase and no bare or with-spouse phrases; marriage has bare and with-spouse phrases and no stated one (no marriage line is `.stated`) | `add-localized-string` "Whole phrases"; the origin rule sits with the lookup, as `PropertyTermDisplay.name` does | One table of bare words spliced into shared formats — a splice per sentence |
+| D-3 | `PersonLifeDisplay.lifeLine` builds every line from a `Copy`: `.stated` uses `stated` with the "unknown" fill-ins (nil when the copy has none); `.omitted` picks the phrase by which halves are present, and with both missing uses `bare`, or returns nil when the copy has none. So a person's missing b. or d. is left out and a marriage with neither half is kept (FM-4) by the table's data, not a flag | One builder (user, 2026-11-27: "married in Altona") | A `keepsBare` Bool for one caller |
+| D-4 | A named line (FM-2) passes the other spouse's `PVTitleSource`. Spoken, `lifeLine` picks the with-spouse phrase ("married abt 1816, Kiel, with Heinrich Weber", from `title.spokenText`); drawn, `LifeLine.trailing` is the with-spouse drawn phrase (", with Heinrich Weber", from `title.text`). Every life line is drawn through one `PVDatePlaceLine(_ line:dateTone:showsExtraPlaces:)` *(new)*, which passes `trailing` and the `missing` the line was built with; the three existing drawers and Family use it. Family speaks that label with no couple before it (user, 2026-11-27) | FM-2, FM-6; the tile just before the line names the other spouse | Prefixing the couple — "Heinrich Weber" spoken twice |
+| D-5 | An unnamed line is spoken as the couple's names (each tile's `title.spokenText`), `L10n.list([a, b], locale:)`, then the line's label, through `L10n.DesignSystem.spokenJoin`: "Heinrich Weber and Anna Weber, married 3 May 1812, Altona". A parents' couple names parents i then j (D-9); a partner's couple names the person, then the partner. With no focus tile (`family.person` nil) a partner's line is spoken by its own label | FM-6; one list join | A "%@ and %@" key |
 | D-6 | The left column draws `family.siblingGroups` in the engine's order with no regrouping. Tile ids are `l-g{k}-{personID}`, k the group's index in `siblingGroups`; the right column keeps `r-{index}-{personID}`. Marriage line ids are `l-g{k}-m-{eventID}` and `r-{index}-m-{eventID}` | A parent in two groups needs an id per group; k is stable across folds | A per-parent counter |
 | D-7 | One fold, `.siblings`, over every group's children other than the person, in group order. Group 0 always shows; another group shows when its first child does, with all its parents. The person sits in group 0 at their engine place when the sibling before them shows, else last of group 0's shown children (today's rule). The Show more row sits under the last shown child. `firstRevealed(by: .siblings)` is the first revealed child, or its group's first parent when that child is its group's first child. `Fold.parentSets` and `"more.parentSets"` go | FG-6; the keyboard lands on the first new stop in Tab order | Folding parent tiles |
-| D-8 | Captions: group 0 is PARENTS (two or more parents), PARENT (one), SIBLINGS (none, with a sibling besides the person), or none. Another group is SHARED PARENTS, SHARED PARENT, or OTHER SIBLINGS (no parents). Labels: group 0 "This person, siblings and parents", "This person and parents", "This person and siblings" or "This person", by whether it has parents and a child other than the person in the engine's list; another group with parents "Children of %@" (names by `L10n.list`); without, "Other siblings" (the caption's key, as the one-parent unit's label reuses "Children") | FG-3, FG-4 | — |
-| D-9 | A group's lines come from its `coupleIndexes`, in that order, each couple's marriages in the engine's order. For a couple whose ends sit at i < j among the group's parents (matched by entity id): `drawnAfter` = i when j = i + 1, else j; `spokenAfter` = j. Lines name the other spouse (parent i) only when the group has more than two parents. An index past `couples`, or a couple with an end not among the group's parents, draws nothing. A partner unit's lines come from its `coupleIndexes` and sit at the top of its group, read first | FM-2, FM-6 | Swift matching couples by id pair across the family |
+| D-8 | Captions: group 0 is PARENTS (two or more parents), PARENT (one), SIBLINGS (none, with a sibling besides the person), or none. Another group is SHARED PARENTS, SHARED PARENT, or OTHER SIBLINGS (no parents). Labels: group 0 "This person, siblings and parents", "This person and parents", "This person and siblings" or "This person", by whether it has parents and a child other than the person in the engine's list; another group with parents "Children of %@" (the parents' `title.spokenText` by `L10n.list`); without, "Other siblings" (the caption's key, as the one-parent unit's label reuses "Children") | FG-3, FG-4 | — |
+| D-9 | A group's lines come from its `coupleIndexes`, in that order, each couple's marriages in the engine's order. For a couple whose ends sit among the group's parents (matched by entity id), i is the lower index and j the higher, whichever end is A: `drawnAfter` = i when j = i + 1, else j; `spokenAfter` = j. Lines with the same `drawnAfter` stack in `coupleIndexes` order, then marriage order. Lines name the other spouse (parent i) only when the group has more than two parents. An index past `couples`, or a couple with an end not among the group's parents, draws nothing. A partner unit's lines come from its `coupleIndexes` and sit at the top of its group, read first | FM-2, FM-6 | Swift matching couples by id pair across the family |
 | D-10 | Geometry: each sibling group reserves the 26 pt caption band; parents at x 20, full column width; children at x 52, width less 32 (x 20, full width, in a group with no parents); the gap after any parent (the last one included, before the children) is 12 pt plus 21 pt per line in it, each line 21 pt tall starting 6 pt below the tile; sibling groups are 20 pt apart (`siblingGroupGap`); the right column keeps its caption band and 28 pt between partner groups (`betweenGroups` renamed `partnerGroupGap`); a partner group's lines start at its top and its tile moves down 21 pt per line plus 4 pt when it has any; one line per sibling group at x 10 (`lineX`), from its first tile's centre to its last child's, horizontals to x 20 for parents and x 52 for children; a parentless group of two or more is joined with horizontals to x 20; a lone parentless child has no line. `railX`, `bracketX` and `afterSet` go | The agreed board; every tile keeps 92 pt | — |
 | D-11 | Each `PersonFamilyLayout.Group` holds one ordered `items` list (tile, line, Show more) in VoiceOver order; the diagram walks it once and gives each item `accessibilitySortPriority(Double(items.count - index))` inside the group's container | A two-parent line is drawn between the tiles but read after the second (FM-6); one list holds the order once | A separate `readingOrder` beside three arrays |
 | D-12 | `persondetail.Family.Units` becomes `[]Unit`, `Unit{kinship.Unit; Couples []int}`, as `Group` is; `UnitCouples` goes; `indexCouples` fills `Unit.Couples` | No parallel slice to misalign | Keeping `UnitCouples` |
 | D-13 | Proto: field 3 and `OriginSibling` go, with `reserved 3; reserved "origin_siblings";`; `FAMILY_UNIT_KIND_PARENTS` and `_SIBLINGS` go, with `reserved 1, 4; reserved "FAMILY_UNIT_KIND_PARENTS", "FAMILY_UNIT_KIND_SIBLINGS";`. `kinship.UnitPartner` becomes `iota + 1`. `FamilyUnits(person, kin, kinOf)` drops `rules` and returns the partner units, then the one-parent unit when not empty | No reader is left (user, 2026-11-27); no dead parameter | Leaving them deprecated |
 | D-14 | `PersonFamily` returns `(Family, conclusionsummaries.Summaries, error)` | The origin siblings are gone | — |
 | D-15 | The kinship tests that bound parent sets move their bound to `SiblingGroups` (T-12, T-13) | What the page now draws is the groups | Deleting the bounds |
-| D-16 | `EventSecondaryDisplay` moves unchanged to `macos/App/Platform/EventSecondaryDisplay.swift` *(new)*; `EventSecondaryLine` stays | A Platform formatter must not live in a list view's file once Platform reads it | Calling into the feature file |
+| D-16 | `EventSecondaryDisplay` moves unchanged to `macos/App/Platform/EventSecondaryDisplay.swift` *(new)*; `EventSecondaryLine` stays; `ConclusionSummaryDisplay` stays in `Features/` (its idea line is reworded, STEP-10) | A Platform formatter must not live in a list view's file once Platform reads it | Moving `ConclusionSummaryDisplay` too — it reads list kinds in `Features/`, outside this PR |
+| D-18 | `L10n.list` uses `.autoupdatingCurrent` by default; `CatalogSearchHitPresentation`'s `.current` becomes that default (the same locale for a running app) | One join, one default | — |
+| D-19 | `siblingGroups` empty (fakes only; the engine always sends group 0): the left column draws nothing and `isEmpty` is true when the right column is empty too | No crash on a hand-built value | Inventing a group 0 |
 | D-17 | The brief's FM-6 examples follow the user's two answers, changed in this planning commit | Brief and plan agree (user, 2026-11-27) | — |
 
 **Rules this plan bends.** None.
@@ -170,14 +173,15 @@ The family in every example is brief §5's: Johann Weber (b. 1817), parents Hein
 | New *(this PR adds)* | Kind | Closest existing | Why not reuse or extend it |
 | --- | --- | --- | --- |
 | `L10n.LifeLine`, `.Copy`, `.SpouseCopy`, `.birth`, `.death`, `.marriage`, `copy(eventTypeKey:origin:)`, `text(abbreviation:rest:)` *(new; the last moves from `L10n.Conclusions.lifeLineText`)* | L10n namespace | `L10n.PropertyTerm`, `L10n.Conclusions.personBornAbbr`, `a11yLifeLine*` | One home for a life line's copy; the old constants move in or go |
-| `L10n.list(_:locale:)` *(new)* | func | the three joins in §4 | They become its callers |
+| `L10n.list(_:locale:)` *(new)* | func | the four joins in §4 | They become its callers |
+| `PVDatePlaceLine(_ line:dateTone:showsExtraPlaces:)` *(new)*, `LifeLine.missing` *(new)* | init, field | the three drawers in §4 | One mapping; the drawers call it (D-4) |
 | `PersonLifeDisplay.lifeLine(_:date:place:extraPlaces:missing:partner:)`, `eventLine(_:partner:locale:)` *(new)*; `LifeLine.trailing` *(new)* | func, field | private `lifeLine(_:facts:…)` | Generalised from it; the private one goes |
 | `PVDatePlaceLine.trailing` *(new)* | component param | `extraCount` | The brief marks the component Extend |
 | `macos/App/Platform/EventSecondaryDisplay.swift` *(new)*, moved | file | `EventsListView.swift` | D-16 |
 | Family keys (§6 **Strings**) *(new)* | keys | `familyCaption*`, `familyGroup*` | Brief copy |
 | `PersonFamilyContent.SiblingGroup`, `.MarriageLine`, `.ParentMarriage`, `siblingGroups`, `Group.marriages`, `allMarriageLines` *(new)* | types, fields | `PersonFamilyContent.Group` | The left group has parents, a caption and parents' lines; the right `Group` keeps its name |
 | `PersonFamilyLayout.PlacedLine`, `.Placed`, `Group.items`, `lineX`, `marriageLineHeight`, `partnerMarriageGap`, `siblingGroupGap`; `betweenGroups` → `partnerGroupGap` *(new / renamed)* | types, consts | `PlacedTile`, `PlacedMore`, `afterSet` | Placed like tiles; `tiles` and `more` become computed from `items` |
-| `PersonTimelinePreviewData.eventSummary(_:type:subjects:when:place:picture:)`, `When.about(Int32)` *(new, split out of `event`)*; `PersonFamilyPreviewData.group`, `couple`, `marriage` and the fixtures of §6 **macOS** *(new)* | helpers | `PersonTimelinePreviewData.event`, `PersonFamilyPreviewData.unit`, `origin` | `event` calls `eventSummary`; `origin` goes |
+| `PersonTimelinePreviewData.eventSummary(_:type:subjects:dating:place:picture:)` *(new, split out of `event`)*; `PersonFamilyPreviewData.group`, `couple`, `marriage` and the fixtures of §6 **macOS** *(new)* | helpers | `PersonTimelinePreviewData.event`, `PersonFamilyPreviewData.unit`, `origin` | `event` calls `eventSummary`; `origin` goes |
 | `persondetail.Unit` *(new)* | type | `persondetail.Group` | Same shape (D-12) |
 | Parity subtest "every spouse event type has life-line copy" *(new)*, regex `lifeLineCase` *(new)* | test | "every composer-worded term has composer wording", `wordingCase` | Same pattern over another switch |
 
@@ -195,7 +199,7 @@ enum LifeLine {
     }
     struct Copy: Equatable {
         let abbreviation: LocalizedStringResource // "b."
-        let stated: LocalizedStringResource       // "Born %1$@, %2$@"
+        let stated: LocalizedStringResource?      // "Born %1$@, %2$@"; nil for marriage
         let dateAndPlace: LocalizedStringResource // "born %1$@, %2$@"
         let dateOnly: LocalizedStringResource     // "born %@"
         let placeOnly: LocalizedStringResource    // "born in %@"
@@ -214,13 +218,19 @@ struct LifeLine: Equatable {
     var place: String?
     var extraPlaces: Int = 0
     var trailing: String? = nil   // drawn after the place: ", with Heinrich Weber"
+    var missing: PVDatePlaceLine.Missing   // as built
     var accessibilityLabel: String
     var text: String              // today's text, then `trailing`
 }
 static func lifeLine(_ copy: L10n.LifeLine.Copy, date: String?, place: String?, extraPlaces: Int = 0,
                      missing: PVDatePlaceLine.Missing, partner: PVTitleSource? = nil) -> LifeLine?
 static func eventLine(_ event: CatalogEventSummary, partner: PVTitleSource? = nil,
-                      locale: Locale = .autoupdatingCurrent) -> LifeLine?   // always .omitted
+                      locale: Locale = .autoupdatingCurrent) -> LifeLine?   // always .omitted; extraPlaces from EventSecondaryDisplay.content
+
+// PersonLifeDisplay.swift (imports SwiftUI)
+extension PVDatePlaceLine {
+    init(_ line: PersonLifeDisplay.LifeLine, dateTone: Color = PVColor.textPrimary, showsExtraPlaces: Bool = false)
+}
 
 // PersonFamilyContent.swift
 struct MarriageLine: Equatable { var id: String; var line: PersonLifeDisplay.LifeLine; var accessibilityLabel: String }
@@ -292,7 +302,7 @@ None — no catalog change.
 
 | Building block | Component | Home | Notes |
 | --- | --- | --- | --- |
-| Family diagram | Snowflake, Extend | `PersonFamilySection.swift` `PersonFamilyDiagram` | Lines as today (one-point rects, `PVColor.borderStrong`); captions as today; per group one `ForEach` over `items` (D-11); a line item is `PVDatePlaceLine(leading:date:place:accessibilityLabel:missing: .omitted, trailing:)` in its frame, no `extraCount`, not focusable |
+| Family diagram | Snowflake, Extend | `PersonFamilySection.swift` `PersonFamilyDiagram` | Lines as today (one-point rects, `PVColor.borderStrong`); captions as today; per group one `ForEach` over `items` (D-11); a line item is `PVDatePlaceLine(marriage.line)` in its frame, not focusable |
 | Family layout | Snowflake, Extend | `PersonFamilyLayout.swift` | D-10, D-11; doc comment: "each sibling group under its caption, its parents then its children, one line per group" |
 | Family content | Snowflake, Extend | `PersonFamilyContent.swift` | D-5 – D-9; doc comment drops "parent sets" |
 | Show more row | `PVShowMoreRow` | unchanged | D-7 |
@@ -301,7 +311,7 @@ None — no catalog change.
 | Life-line copy | — | `L10n.swift`, beside `L10n.PropertyTerm` | D-2 |
 | Previews | Snowflake | `PersonFamilyPreviewData.swift`, `#Preview`s in `PersonFamilySection.swift` | One per fixture below, named "F1 Shared parent", "F2 Records that disagree", "F3 One-parent groups", "F4 Unrelated sets", "F6 No parents recorded", "M1 Marriages", "M2 Missing halves", "M3 Two marriages", "M4 Three parents", "11h After clicking Anna" |
 
-Fixtures (`PersonFamilyPreviewData`; `group(_ parents:, _ children:, couples: [Int] = [])`, `unit(_:partners:children:couples:)`, `couple(_ a: String, _ b: String, _ marriages: CatalogEventSummary...)` by entity id, `marriage(_ id:, when: PersonTimelinePreviewData.When?, place: String?)` = `PersonTimelinePreviewData.eventSummary(id, type: SeededEventTypeTerm.marriage, when:, place:)`):
+Fixtures (`PersonFamilyPreviewData`; `group(_ parents:, _ children:, couples: [Int] = [])`, `unit(_:partners:children:couples:)`, `couple(_ a: String, _ b: String, _ marriages: CatalogEventSummary...)` by entity id, `marriage(_ id:, _ date: CatalogDateValueInput?, place: String?)` = `PersonTimelinePreviewData.eventSummary(id, type: SeededEventTypeTerm.marriage, dating: date.map { CatalogEventDating(kind: .occurrence, low: $0) }, place:)`. `eventSummary` builds what `event` builds today before `when?.apply(to:)`, with `dating` set; `event` calls it with `dating: nil`, then applies `when` as today. Dates below are `CatalogDateValueInput(kind: "point", startYear:startMonth:startDay:)`; abt 1816 is `CatalogDateValueInput(kind: "point", qualifier: "ABT", startYear: 1816)`):
 
 | Fixture | Groups | Units | Couples |
 | --- | --- | --- | --- |
@@ -310,11 +320,14 @@ Fixtures (`PersonFamilyPreviewData`; `group(_ parents:, _ children:, couples: [I
 | `oneParentGroups` (F3) | [Heinrich, Anna]: Margarethe, Johann, Friedrich; [Heinrich]: Wilhelm; [Anna]: Christian | — | — |
 | `unrelatedSets` (F4) | [Heinrich, Anna, Georg Becker, Katharina Becker]: Johann; [Heinrich, Anna]: Margarethe, Friedrich; [Georg, Katharina]: Christian; []: Elisabeth Weber | — | — |
 | `siblingsOnly` (F6) | []: Clara 1815, Johann, Karl 1820 | — | — |
-| `married` (M1) | `full`'s, group 0 couples [0] | `full`'s, Maria couples [1] | heinrich+anna: `.day(1812, 5, 3)` Altona; johann+maria: `.day(1841, 6, 12)` Hamburg |
-| `marriageHalves` (M2) | group 0 couples [0] | Maria [1], Sophie [2] | heinrich+anna: no date, Altona; johann+maria: `.day(1841, 6, 12)`, no place; johann+sophie: neither |
-| `twoMarriages` (M3) | `full`'s | Maria [0] | johann+maria: `.day(1841, 6, 12)` Hamburg, then no date, Lübeck |
-| `threeParentMarriages` (M4) | `conflicting`'s, couples [0, 1], [0], [1] | — | heinrich+anna: `.day(1812, 5, 3)` Altona; heinrich+katharina: `.about(1816)` Kiel |
+| `married` (M1) | `full`'s, group 0 couples [0] | `full`'s, Maria couples [1] | heinrich+anna: 1812-05-03 Altona; johann+maria: 1841-06-12 Hamburg |
+| `marriageHalves` (M2) | group 0 couples [0] | Maria [1], Sophie [2] | heinrich+anna: no date, Altona; johann+maria: 1841-06-12, no place; johann+sophie: neither |
+| `twoMarriages` (M3) | `full`'s | Maria [0] | johann+maria: 1841-06-12 Hamburg, then no date, Lübeck |
+| `threeParentMarriages` (M4) | `conflicting`'s, couples [0, 1], [0], [1] | — | heinrich+anna: 1812-05-03 Altona; heinrich+katharina: abt 1816 Kiel |
 | `annaOnly` (11h) | []: Anna (person, no link) | Heinrich: Margarethe, Johann, Friedrich, Wilhelm | — |
+| `alone` | []: Johann (person, no link) | — | — |
+
+Tests that need only the right column start from `alone` and set `units`.
 
 **Frames in words** (Regular pane 1102, primary column 1038; Wide the same with wider columns and a 96 pt gutter):
 - **F1.** Caption PARENTS at the top left. Heinrich's tile, Anna's below. Margarethe, Johann (raised, "This person" badge), Friedrich, Wilhelm indented 32 pt beneath. One line at x 10 from Heinrich's centre to Wilhelm's, short horizontals to each tile. 20 pt lower: SHARED PARENT, Anna, Christian indented, its own line. Right column unchanged.
@@ -329,7 +342,7 @@ States: empty as today (`isEmpty`: group 0 holds only the person, with no parent
 
 L10n keys *(new)*, all in `L10n.LifeLine` unless named:
 - birth: `lifeLine.birth.abbreviation` "b.", `.stated` "Born %1$@, %2$@", `.dateAndPlace` "born %1$@, %2$@", `.dateOnly` "born %@", `.placeOnly` "born in %@"; death the same with "d.", "Died", "died".
-- marriage: `lifeLine.marriage.abbreviation` "m.", `.stated` "Married %1$@, %2$@", `.dateAndPlace` "married %1$@, %2$@", `.dateOnly` "married %@", `.placeOnly` "married in %@", `.bare` "married"; `.withSpouse.dateAndPlace` "married %1$@, %2$@, with %3$@", `.withSpouse.dateOnly` "married %1$@, with %2$@", `.withSpouse.placeOnly` "married in %1$@, with %2$@", `.withSpouse.bare` "married, with %@", `.withSpouse.drawn` ", with %@" (its comment: drawn after the place, the comma attached).
+- marriage: `lifeLine.marriage.abbreviation` "m.", `.dateAndPlace` "married %1$@, %2$@", `.dateOnly` "married %@", `.placeOnly` "married in %@", `.bare` "married"; `.withSpouse.dateAndPlace` "married %1$@, %2$@, with %3$@", `.withSpouse.dateOnly` "married %1$@, with %2$@", `.withSpouse.placeOnly` "married in %1$@, with %2$@", `.withSpouse.bare` "married, with %@", `.withSpouse.drawn` ", with %@" (its comment: drawn after the place, the comma attached).
 - `lifeLine.text` "%1$@ %2$@" (moved).
 - `L10n.Conclusions`: `conclusions.family.caption.sharedParent` "Shared parent", `.sharedParents` "Shared parents", `.otherSiblings` "Other siblings"; `conclusions.family.group.childrenOf` "Children of %@", `.thisPersonSiblingsAndParents` "This person, siblings and parents", `.thisPersonAndParents` "This person and parents".
 
@@ -339,22 +352,22 @@ Removed: the keys in **Deletes**. `familyThisPerson`'s comment becomes "the pers
 
 **STEP-1 — One table of life-line copy.**
 Files: `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`, `macos/App/Platform/PersonLifeDisplay.swift`. Skill: `add-localized-string`.
-Do: `L10n.LifeLine` with birth and death (marriage in STEP-3); `lifeLine(_:date:place:extraPlaces:missing:partner:)` (D-3); `lifeLines` calls it with `L10n.LifeLine.birth` and `.death`; the person-line keys of **Deletes** go.
+Do: `L10n.LifeLine` whole, with `SpouseCopy` and all three copies and their keys (§6 **Strings**); `lifeLine(_:date:place:extraPlaces:missing:partner:)` (D-3); `lifeLines` calls it with `L10n.LifeLine.birth` and `.death`; the person-line keys of **Deletes** go.
 Check: `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' -only-testing:ProvenenciaTests/PersonDetailTests` passes unchanged (T-1); `python3 scripts/check-localizable-xcstrings.py` passes.
 
 **STEP-2 — The parity row.**
 Files: `api/ffi/swift_vocabulary_test.go`.
-Do: T-2's subtest: read `swiftFuncBody(t, swiftL10n, "static func copy(eventTypeKey")`, collect `lifeLineCase` (`case SeededEventTypeTerm\.(\w+): return`) names, map them to keys through `swiftNamedKey` over `swiftEnumBody(t, swiftVocabulary, "SeededEventTypeTerm")`, and fail for each `string(k)` of `kinship.SpouseEventTypes()` it lacks. STEP-1 has no marriage case yet, so add the marriage `Copy` here with its keys (STEP-3 uses it).
+Do: T-2's subtest: read `swiftFuncBody(t, swiftL10n, "static func copy(eventTypeKey")`, collect the names it switches on, map them to keys through `swiftNamedKey` over `swiftEnumBody(t, swiftVocabulary, "SeededEventTypeTerm")`, and fail for each `string(k)` of `kinship.SpouseEventTypes()` it lacks. Read the names with `namedTerms(lifeLineCase, body)`, `lifeLineCase` = `case (SeededEventTypeTerm)\.(\w+): return`.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./api/ffi/ -run TestSwiftVocabularyMatchesGo` passes; with the marriage case removed it fails (run once, restore).
 
 **STEP-3 — A marriage is a life line.**
-Files: `macos/App/Platform/EventSecondaryDisplay.swift` *(new, moved)*, `EventsListView.swift`, `L10n.swift`, `Localizable.xcstrings`, `ReconciledValueDisplay.swift`, `SourceTypeCopyModel.swift`, `CatalogSearchHitPresentation.swift`, `PersonLifeDisplay.swift`, `PVDatePlaceLine.swift`, `macos/App/DesignSystem/README.md`, `macos/ProvenenciaTests/PersonLifeDisplayTests.swift` *(new)*. Skills: `add-ui-component`, `add-localized-string`, `add-swift-test`.
-Do: D-16; `L10n.list(_ parts: [String], locale: Locale = .autoupdatingCurrent) -> String` (a `ListFormatter` with that locale, `?? parts.joined(separator: ", ")`) and its three callers; `LifeLine.trailing`, `eventLine`, `PVDatePlaceLine.trailing` and its preview (D-4, §6 **macOS**).
+Files: `macos/App/Platform/EventSecondaryDisplay.swift` *(new, moved)*, `EventsListView.swift`, `L10n.swift`, `ReconciledValueDisplay.swift`, `SourceTypeCopyModel.swift`, `CatalogSearchHitPresentation.swift`, `PVDeleteImpact.swift`, `PersonLifeDisplay.swift`, `PVDatePlaceLine.swift`, `PersonDetailView.swift`, `PersonsListView.swift`, `PVPersonCard.swift`, `macos/App/DesignSystem/README.md`, `macos/ProvenenciaTests/PersonLifeDisplayTests.swift` *(new)*. Skills: `add-ui-component`, `add-localized-string`, `add-swift-test`.
+Do: D-16; `L10n.list(_ parts: [String], locale: Locale = .autoupdatingCurrent) -> String` (a `ListFormatter` with that locale, `?? parts.joined(separator: ", ")`) and its four callers (D-18); `LifeLine.trailing`, `LifeLine.missing`, `eventLine`, `PVDatePlaceLine.trailing` and its preview, `PVDatePlaceLine(_ line:…)` and the three drawers on it (`PersonLifeLine` passes `dateTone: PVColor.textMuted, showsExtraPlaces: true`; the others the defaults) (D-4, §6 **macOS**).
 Check: `-only-testing:ProvenenciaTests/PersonLifeDisplayTests -only-testing:ProvenenciaTests/PersonDetailTests` passes (T-1, T-3); the full `xcodebuild test` passes.
 
 **STEP-4 — Family draws the sibling groups.**
 Files: `PersonFamilyContent.swift`, `PersonFamilyLayout.swift`, `PersonFamilySection.swift`, `PersonFamilyPreviewData.swift`, `PersonTimelinePreviewData.swift`, `L10n.swift`, `Localizable.xcstrings`, `PersonFamilyContentTests.swift`, `PersonFamilyLayoutTests.swift`. Skills: `add-ui-component`, `add-localized-string`, `add-swift-test`.
-Do: D-6 – D-8, D-10, D-11 without lines; the fixtures F1 – F4, F6, 11h and their previews; `eventSummary` and `When.about` split out; the caption and label keys; `familyCaptionOtherParent(s)` deleted.
+Do: D-6 – D-8, D-10, D-11, D-19 without lines; the fixtures F1 – F4, F6, 11h, `alone` and their previews; `eventSummary` split out; the caption and label keys; `familyCaptionOtherParent(s)` deleted.
 Check: `-only-testing:ProvenenciaTests/PersonFamilyContentTests -only-testing:ProvenenciaTests/PersonFamilyLayoutTests` passes (T-4, T-6 – T-9); each preview renders in Xcode.
 
 **STEP-5 — Family draws each couple's marriages.**
@@ -370,7 +383,7 @@ Check: `rg -n "originSiblings|CatalogOriginSibling|kind: \.parents|kind: \.sibli
 **STEP-7 — The Family read sends no origin siblings.**
 Files: `core/database/persondetail/family.go`, `family_test.go`, `family_drop_test.go`, `caps_test.go`, `family_query_test.go`, `api/ffi/handlers/person_detail.go`, `person_detail_test.go`. Skill: `add-ffi-handler`.
 Do: D-12, D-14; delete `OriginSibling`, `originSiblings`, `TestPersonFamilyOriginSiblings`; the handler drops its origin-siblings loop (the proto field stays unset until STEP-9); T-16, T-17.
-Check: `rg -n "PersonFamily\(|persondetail.Families\(|kinship.FamilyUnits\(" core api --glob '*.go'` lists only the callers §4 names; `CGO_ENABLED=1 go test -tags fts5 ./core/database/persondetail/... ./api/ffi/...` passes.
+Check: `rg -n "PersonFamily\(|persondetail.Families\(|kinship.FamilyUnits\(" core api --glob '*.go' --glob '!*_test.go'` lists only `core/database/persondetail/family.go` (`Families` calling `FamilyUnits`, the `PersonFamily` definition) and `api/ffi/handlers/person_detail.go` (`GetPersonFamily`); `CGO_ENABLED=1 go test -tags fts5 ./core/database/persondetail/... ./api/ffi/...` passes.
 
 **STEP-8 — Kinship makes no parent-set units.**
 Files: `core/kinship/families.go`, `siblings.go`, `kinship.go`, `families_test.go`, `siblings_test.go`, `core/database/persondetail/family.go`, `family_test.go`, `api/ffi/handlers/person_detail.go`. Skill: `add-match-rule`.
@@ -383,9 +396,9 @@ Do: D-13's proto half; `./scripts/generate-proto.sh`; `mapFamilyUnit` loses the 
 Check: `rg -n "UnitParents|UnitSiblings|parentUnits|OriginSibling|UnitCouples|origin_siblings|originSiblings" core api macos --glob '!*.pb.go' --glob '!**/Generated/**'` finds nothing; `scripts/check-pr.sh` prints `check-pr: PASS`.
 
 **STEP-10 — Docs.**
-Files: `.agents/skills/add-match-rule/SKILL.md` (the `core/kinship` paragraph: "with more parents than `Rules.MaxPivotEnd`, `FamilyUnits` pairs none and places each sibling once" → "`Couples` pairs no parents"), `docs/deployment-plan/spike-16/deployment-plan.md` (caps list "the bound `parentUnits` already uses" → "`pairsParents`"; map row), `docs/deployment-plan/spike-16/person-page-audit.md` (line 107, the same), `docs/ideas/person-page-performance.md` (the P-8 sentence: siblings ship as the groups' children; `origin_siblings` is gone), `docs/macos-client-patterns.md` (one accessibility line: a drawn diagram orders VoiceOver with `accessibilitySortPriority` from one ordered list, as `PersonFamilyLayout.Group.items`), `docs/deployment-plan/spike-16/completed.md`, this plan, `docs/deployment-plan/spike-16/design/` (the brief and its `.review.md` → `design/archive/`; the `design/README.md` row moves).
-Do: per the Definition of done.
-Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-16/prs/S16-81-family-groups-and-marriages.md` and `scripts/check-guidance-names.py` pass; `rg -n "parentUnits|origin_siblings|OriginSibling" docs .agents .cursor --glob '!docs/deployment-plan/spike-16/prs/**' --glob '!docs/deployment-plan/archive/**'` finds nothing.
+Files: `.agents/skills/add-match-rule/SKILL.md` (the `core/kinship` paragraph: "with more parents than `Rules.MaxPivotEnd`, `FamilyUnits` pairs none and places each sibling once" → "`Couples` pairs no parents"), `docs/deployment-plan/spike-16/deployment-plan.md` (caps list "the bound `parentUnits` already uses" → "the bound `pairsParents` uses"; Scale line "20 children in four parent sets" → "20 children in four sibling groups"; map row), `docs/ideas/value-formatting.md` ("Event and summary formatting live in Features": `EventSecondaryDisplay` moved to `Platform/` in S16-81; `ConclusionSummaryDisplay` still lives in `Features/`), `docs/deployment-plan/spike-16/person-page-audit.md` (line 107, the same), `docs/ideas/person-page-performance.md` (the P-8 sentence: siblings ship as the groups' children; `origin_siblings` is gone), `docs/macos-client-patterns.md` (a new bullet in § 1 after "One sectioned detail page": a drawn diagram orders VoiceOver with `accessibilitySortPriority` from one ordered list, as `PersonFamilyLayout.Group.items`), `docs/deployment-plan/spike-16/completed.md`, this plan, `docs/deployment-plan/spike-16/design/` (the brief and its `.review.md` → `design/archive/`; the `design/README.md` row moves); `VERSION`, `core/version.go`, `MARKETING_VERSION` in `macos/Provenencia.xcodeproj/project.pbxproj` (Debug and Release) → 0.49.0, in its own commit "Bump the version to 0.49.0 for Family sibling groups and marriages.".
+Do: per the Definition of done. The map's S16-81 and S16-82 scope entries, the working rules and both plans describe the old fields as history and stay as they are.
+Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-16/prs/S16-81-family-groups-and-marriages.md` and `scripts/check-guidance-names.py` pass; `rg -n "parentUnits|origin_siblings|OriginSibling" .agents .cursor docs/*.md docs/ideas docs/deployment-plan/spike-16/person-page-audit.md` finds nothing, and `rg -n "parentUnits" docs/deployment-plan/spike-16/deployment-plan.md` finds only the S16-82 scope entry and S16-81's own.
 
 Commits: one per behavior. The subject is one full imperative sentence that says what changed for the researcher, ending in a period, like the rest of `git log` ("Restore list scroll after the sort is applied."). No WIP commits.
 
@@ -395,11 +408,11 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | --- | --- | --- | --- | --- |
 | T-1 | Swift | `PersonDetailTests.swift` `lifeLinesOmitMissingHalves`, `lifeLinesSayUnknownUntilLifeEventsArrive`, the `extraPlaces` expectations | Unchanged: "born 3 May 1790, Bremen", "died 1851", "Born date unknown, place unknown", `["b.", "d."]` | AC-3.3, D-2, D-3 |
 | T-2 | Go | `api/ffi/swift_vocabulary_test.go` `TestSwiftVocabularyMatchesGo` "every spouse event type has life-line copy" *(new)* | Today's L10n → pass; a spouse type with no case → an error naming it | AC-3.2 |
-| T-3 | Swift | `PersonLifeDisplayTests.swift` `eventLineWordsAndSpeaksAMarriage` *(new)* | en_US. 12 Jun 1841 at Hamburg → abbreviation "m.", text "m. 12 Jun 1841 · Hamburg", label "married 12 Jun 1841, Hamburg"; place only → "married in Altona"; date only → "married 12 Jun 1841"; neither → a line, text "m.", label "married"; partner Heinrich Weber with abt 1816 at Kiel → text "m. abt 1816 · Kiel, with Heinrich Weber", label "married abt 1816, Kiel, with Heinrich Weber"; type `burial`, or origin "user" → nil. `L10n.list(["A", "B"], locale: en)` → "A and B" | AC-2.3, AC-2.7, D-2, D-3, D-4 |
+| T-3 | Swift | `PersonLifeDisplayTests.swift` `eventLineWordsAndSpeaksAMarriage` *(new)* | en_US. 12 Jun 1841 at Hamburg → abbreviation "m.", text "m. 12 Jun 1841 · Hamburg", label "married 12 Jun 1841, Hamburg"; place only → "married in Altona"; date only → "married 12 Jun 1841"; neither → a line, text "m.", label "married"; partner Heinrich Weber with abt 1816 at Kiel → text "m. abt 1816 · Kiel, with Heinrich Weber", label "married abt 1816, Kiel, with Heinrich Weber"; type `burial`, or origin "user" → nil; `eventLine` keeps `extraPlaces` 1 for two places. `L10n.list(["A", "B"], locale: en)` → "A and B" | AC-2.3, AC-2.7, D-2, D-3, D-4 |
 | T-4 | Swift | `PersonFamilyContentTests.swift` `siblingGroupsFromFamily` *(replaces `columnsFromFamily`)* | F1 → parent names `[["Heinrich Weber","Anna Weber"],["Anna Weber"]]`, children `[["Margarethe Weber","Johann Weber","Friedrich Weber","Wilhelm Weber"],["Christian Weber"]]`, Johann the focus with no location; all tile ids unique (`l-g0-anna`, `l-g1-anna`); F2, F3, F4, F6, 11h → the groups of AC-1.2 – AC-1.6; right column as today | AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5, AC-1.6, D-6 |
 | T-5 | Swift | `PersonFamilyContentTests.swift` `badCoupleIndexesDrawNothing` *(new)* | A group with `coupleIndexes: [7]`, and one whose couple's B is not among its parents → no marriages, no crash | D-9 |
 | T-6 | Swift | `PersonFamilyContentTests.swift` `captionsAndGroupLabels` *(rewritten)* | F1 captions `["Parents","Shared parent"]`, labels `["This person, siblings and parents","Children of Anna Weber"]`; F2 `["Parents","Shared parents","Shared parents"]` and AC-1.2's labels; F3 AC-1.3's; F4 group 0 "This person and parents", last "Other siblings" / OTHER SIBLINGS; F6 `["Siblings"]`, "This person and siblings"; 11h no caption, "This person"; one parent in group 0 → "Parent"; right-column cases as today | AC-1.2, AC-1.3, AC-1.4, AC-1.5, AC-1.6, D-8 |
-| T-7 | Swift | `PersonFamilyContentTests.swift` `foldsEachListAtThirty`, `expandedShowsAll`, `foldKeepsTheFocus`, `childrenAndSiblingsPage`, `anchorResolvesToTheTileOrItsFold` *(rewritten)*; `foldDropsHiddenSetIndexes` deleted | 20 + 20 → 30 shown, `siblingsHidden` 10, group 1 drawn with Anna; 30 + 5 → group 1 not drawn, `firstRevealed(by: .siblings)` = `l-g1-anna`; the person 40th of 130 in group 0 → today's expectations with `l-g0-` ids; `l-p0-anna`, `l-s-margarethe` → nil; a hidden group's parent → `more.siblings`; partner and children folds as today | AC-1.8, AC-1.9, AC-1.10, D-7 |
+| T-7 | Swift | `PersonFamilyContentTests.swift` `foldsEachListAtThirty`, `expandedShowsAll`, `foldKeepsTheFocus`, `childrenAndSiblingsPage`, `anchorResolvesToTheTileOrItsFold` *(rewritten)*; `foldDropsHiddenSetIndexes` deleted | 20 + 20 → 30 shown, `siblingsHidden` 10, group 1 drawn with Anna; 30 + 5 → group 1 not drawn, `firstRevealed(by: .siblings)` = `l-g1-anna`; the person 40th of 130 in group 0 → today's expectations with `l-g0-` ids; `l-p0-anna`, `l-s-margarethe` → nil; a hidden group's parent → `more.siblings`; partner and children folds as today. Also rewritten onto `alone` or the F fixtures: `aCoParentIsAPartnerAndNoPersonMeansNoFocus` (no focus in `siblingGroups[0]`), `tilesOpenTheRelativeOnFamily` (`siblingGroups[0].parents[1]` is Anna, role "Parent"), `fiftyMembersKeepOrder`, `partnersFoldNamesTheFirstRevealedUnit`, `emptyFamilyIsEmpty` (`CatalogPersonFamily(units: [])` and `alone` → `isEmpty`; `full` → not) | AC-1.8, AC-1.9, AC-1.10, D-7, D-19 |
 | T-8 | Swift | `PersonFamilyLayoutTests.swift` `regularAndWideMeasures` *(rewritten)* | F1 at 1038 Regular: column 485, right x 553, bus x 521; Heinrich (20, 26), Anna y 130, Margarethe (52, 234) width 453, Wilhelm y 546; line x 10 from y 72 to 592; group 1 caption y 658, its Anna y 684, Christian y 788, its line 730 to 834. At 1180 Regular and Wide: every tile's y the same, columns 556 and 532 | AC-1.1, D-10 |
 | T-9 | Swift | `PersonFamilyLayoutTests.swift` `noLineLeavesItsGroup` *(replaces `parentSetRails`)*; `siblingsOnlyAndTheFocusAlone`, `fiftySiblingsStack`, `fiftySiblingsFolded` *(rewritten)* | F2, F3, F4: every vertical segment at x 10 lies inside its group's frame; no two groups' frames intersect; F4 Elisabeth at x 20, no segment at her centre; F6 Clara (20, 26) with a line at x 10; 11h focus (20, 26); 49 siblings in one two-parent group → 52 tiles, no overlap, height 26 + 52 × 104 − 12; folded → 31 children and one more row, no line reaches it; each group's `items` are parents, then children, then the more row | AC-1.4, AC-1.5, AC-1.6, AC-1.7, D-10, D-11 |
 | T-10 | Swift | `PersonFamilyLayoutTests.swift` `marriageLinesSitBetweenTheCouple` *(new)* | M1: the line (20, 124, 485 × 21), Anna y 151, Margarethe y 255; Maria's line (553, 26, 485 × 21), Maria's tile y 51. M3: Maria y 72. M4 group 0: Heinrich–Anna's line between Heinrich and Anna, Heinrich–Katharina's below Katharina; in `items`, each line follows its j parent (Anna, then Katharina). Wide at 1180: the same y | AC-2.1, AC-2.4, AC-2.5, D-10, D-11 |
@@ -421,7 +434,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 - [ ] scripts/check-pr.sh prints check-pr: PASS (gofmt, go vet, go test, Xcode tests with no Swift warning, catalog and plan-doc checks)
 - [ ] No Out line was implemented; no code outside §4 / §6 was refactored
 - [ ] New user-facing copy is in L10n + Localizable.xcstrings; no stale strings left
-- [ ] Sweep: each renamed or deleted name `rg`'d by its old, qualified name across `.agents/`, `.cursor/rules/`, `docs/` and `L10n.swift` with no hit left outside plans and archives; `scripts/check-guidance-names.py` passes (check-pr runs it)
+- [ ] Sweep: each renamed or deleted name `rg`'d by its old, qualified name across `.agents/`, `.cursor/rules/`, `docs/*.md`, `docs/ideas/` and `L10n.swift` with no hit left (STEP-10's Check); `scripts/check-guidance-names.py` passes (check-pr runs it)
 - [ ] Every row of **Rules this plan bends** has the user's answer, and its rule is updated
 - [ ] UI matches the brief inventory; no new kit primitive unless the brief marks it New
 - [ ] Version bump as the header says (VERSION, core/version.go, MARKETING_VERSION together) — or none
@@ -451,7 +464,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 
 - `CatalogPersonFamily.siblingGroups`, `couples` or `coupleIndexes` differ from §4 (S16-82's shape changed).
 - VoiceOver reads a two-parent marriage line before the second parent with `accessibilitySortPriority` applied (D-11 cannot work).
-- STEP-7's `rg` lists a caller of `PersonFamily`, `Families` or `FamilyUnits` that §4 does not name.
+- STEP-7's `rg` lists a caller beyond the ones its Check names.
 - A brief frame and an AC here disagree.
 - `swiftFuncBody` cannot read `static func copy(eventTypeKey` (T-2).
 - `PersonTimelinePreviewData.event`'s output changes when it calls `eventSummary` (a Timeline test fails).

@@ -1,7 +1,7 @@
 # Review — S16-81 Family groups siblings by their parents and shows each couple's marriage
 
-**Verdict:** pending round 2
-**Rounds:** 1 so far. **Reviewers:** maintainability (opus), executability (sonnet)
+**Verdict:** Fits with changes — Ready; every finding answered, nothing open.
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
 - None. Two product calls were asked and answered before review (2026-11-27): a place-only marriage line is spoken "married in Altona"; a line that names the other spouse is spoken as drawn, with no couple before it.
@@ -13,6 +13,9 @@
 - Geometry constants (D-10): lines 6 pt below a tile; the 4 pt partner offset only when a partner has a marriage.
 - `EventSecondaryDisplay` moves to Platform, and `L10n.list` takes over the three existing `ListFormatter` joins (D-16, STEP-3).
 - `FamilyUnits` drops `rules` (D-13).
+- `ConclusionSummaryDisplay` stays in `Features/`; only `EventSecondaryDisplay` moves (D-16).
+- An empty `siblingGroups` draws nothing on the left (D-19).
+- The version bump is 0.48.3 → 0.49.0 (minor), done in STEP-10.
 
 ## Round 1
 
@@ -85,10 +88,47 @@
 ### X-10 – X-14 · minor/nit · Paths and line numbers
 **Answer:** Fixed. `ConclusionVocabulary.swift` and `completed.md` are now full paths, the `PersonDetailTests` names are given, `FakeStore` is dropped from STEP-6, and the brief's `.review.md` archives too. The header says which checks need macOS or `protoc`.
 
+## Round 2
+
+### M-14 · blocker · `L10n.list` leaves `PVDeleteImpact.cascadeLines`' `.formatted(.list(type: .and))` beside it
+**Answer:** Fixed. §4 "List joins" names it; STEP-3 moves it onto `L10n.list`.
+
+### M-15 · blocker · A fourth hand-written `LifeLine` → `PVDatePlaceLine` mapping, which drops `trailing`
+**Answer:** Fixed. D-4 and Codebase fit add one `PVDatePlaceLine(_ line:dateTone:showsExtraPlaces:)`, with `LifeLine.missing` set when the line is built. STEP-3 moves `PersonDetailLifeLines`, `PersonLifeLine` and `PVPersonCard.lines` onto it; Family uses it in STEP-5.
+
+### Not raised (round 2 maintainability)
+- `value-formatting.md` goes stale: Fixed (D-16, STEP-10 rewords it).
+- The map's Scale line names parent sets: Fixed (STEP-10).
+- `lifeLine.marriage.stated` has no reader: Fixed (`stated` is optional, nil for marriage).
+- T-2 should reuse `namedTerms`: Fixed (STEP-2).
+
+### X-1 · blocker · STEP-10's sweep cannot come back empty
+**Answer:** Fixed. The check covers `.agents`, `.cursor`, `docs/*.md`, `docs/ideas` and the audit file. The map's scope entries, the working rules and the plans keep their history (STEP-10 Do).
+
+### X-2 · blocker · The marriage copy's step
+**Answer:** Fixed. STEP-1 adds the whole `L10n.LifeLine` table, `SpouseCopy` and all its keys included; STEP-2 is test-only.
+
+### X-3 · blocker · The fixtures do not compile against `When`
+**Answer:** Fixed. `eventSummary` takes `dating:` and `marriage` takes a `CatalogDateValueInput`. Their forms are given, and `When` is unchanged.
+
+### X-4 · major · Other content tests and an empty `siblingGroups`
+**Answer:** Fixed. T-7 names the five tests and their new inputs; D-19 and the `alone` fixture cover the empty case.
+
+### X-5 · minor · `kinship.go` names no `parentUnits`
+**Answer:** Fixed. The §4 row now names `siblings.go:28` and `families.go:173,191`.
+
+### X-6 · minor · STEP-7's expected callers
+**Answer:** Fixed. They are listed in its Check.
+
+### X-7 · minor · Small choices
+**Answer:** Fixed. The version bump is in STEP-10. `stated` is optional. Names are spoken with `spokenText` (D-5, D-8). A reversed couple is matched by lower and higher index, and lines at one position stack (D-9). `eventLine` keeps `extraPlaces` (T-3). The `L10n.list` locale is D-18. The patterns doc's place is § 1. The Review line is set.
+
 ## Cost
-Plan: 7,710 words at round 1, 8,568 after the round-1 fixes (check-plan-docs info line).
+Plan: 7,710 words at round 1, 8,568 at round 2, 9,085 at the verdict (check-plan-docs info line).
 
 | Round | Reviewer | Model | Tokens |
 | --- | --- | --- | --- |
 | 1 | maintainability | opus | 193k |
 | 1 | executability | sonnet | 151k |
+| 2 | maintainability | opus | 214k |
+| 2 | executability | sonnet | 196k |
