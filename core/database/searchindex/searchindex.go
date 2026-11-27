@@ -39,7 +39,8 @@ const (
 //	    nicknames that fold into its shown name (S14-21).
 //	11: summary inputs beside the handle documents (S14-40).
 //	12: an Event's dating, as-ofs included (S16-42).
-const ProjectionVersion = 12
+//	13: an event's places are its location links' records reconciled (S16-80).
+const ProjectionVersion = 13
 
 // Tagged body line prefixes for Source rollups (parsed by core/search for
 // match field codes + snippets).

@@ -243,7 +243,7 @@ func TestEventSecondaryIndexesDating(t *testing.T) {
 	if got := eventMatchSecondary(dated); !reflect.DeepEqual(got, []string{"1849"}) {
 		t.Errorf("a date indexed %q", got)
 	}
-	if ProjectionVersion != 12 {
-		t.Errorf("ProjectionVersion = %d, want 12", ProjectionVersion)
+	if ProjectionVersion != 13 {
+		t.Errorf("ProjectionVersion = %d, want 13", ProjectionVersion)
 	}
 }
