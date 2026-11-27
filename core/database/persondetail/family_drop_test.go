@@ -17,25 +17,27 @@ func TestDropUnread(t *testing.T) {
 	row := func(n byte) conclusionsummaries.PersonSummary {
 		return conclusionsummaries.PersonSummary{Entity: canonicalentities.Entity{ID: id(n)}}
 	}
-	family := Family{Person: id(1), Units: []kinship.Unit{
-		{Kind: kinship.UnitParents, Partners: []kinship.Relative{rel(2), rel(3)}, Children: []kinship.Relative{rel(4)}},
-		{Kind: kinship.UnitPartner, Partners: []kinship.Relative{rel(5)}, Children: []kinship.Relative{rel(6)}},
-		{Kind: kinship.UnitOneParent, Children: []kinship.Relative{rel(7)}},
-		{Kind: kinship.UnitSiblings, Children: []kinship.Relative{rel(8)}},
-	}}
-	// 3, 4 and 6 and 5 are read; 2, 7 and 8 are not. The parents unit keeps 3; the
-	// partner unit keeps both; the one-parent and siblings units are empty.
-	got := dropUnread(family, conclusionsummaries.NewSummaries([]conclusionsummaries.PersonSummary{row(3), row(4), row(5), row(6)}, nil, nil))
-	if len(got.Units) != 2 {
-		t.Fatalf("%d units, want 2: %+v", len(got.Units), got.Units)
+	unit := func(kind kinship.UnitKind, partners []kinship.Relative, children []kinship.Relative) Unit {
+		return Unit{Unit: kinship.Unit{Kind: kind, Partners: partners, Children: children}}
 	}
-	if u := got.Units[0]; len(u.Partners) != 1 || u.Partners[0].ID[0] != 3 || len(u.Children) != 1 {
-		t.Fatalf("parents unit %+v", u)
+	family := Family{Person: id(1), Units: []Unit{
+		unit(kinship.UnitPartner, []kinship.Relative{rel(2)}, []kinship.Relative{rel(4)}),
+		unit(kinship.UnitPartner, []kinship.Relative{rel(5)}, []kinship.Relative{rel(6)}),
+		unit(kinship.UnitOneParent, nil, []kinship.Relative{rel(7)}),
+	}}
+	// 3, 4, 5 and 6 are read; 2 and 7 are not. The first partner is unread and leaves its unit
+	// empty although its child is read; the second keeps both; the one-parent unit is empty.
+	got := dropUnread(family, conclusionsummaries.NewSummaries([]conclusionsummaries.PersonSummary{row(3), row(4), row(5), row(6)}, nil, nil))
+	if len(got.Units) != 1 {
+		t.Fatalf("%d units, want 1: %+v", len(got.Units), got.Units)
+	}
+	if u := got.Units[0]; len(u.Partners) != 1 || u.Partners[0].ID[0] != 5 || len(u.Children) != 1 || u.Children[0].ID[0] != 6 {
+		t.Fatalf("partner unit %+v", u)
 	}
 	// A partner no one read empties its unit although it has a child.
 	got = dropUnread(family, conclusionsummaries.NewSummaries([]conclusionsummaries.PersonSummary{row(3), row(4), row(6)}, nil, nil))
-	if len(got.Units) != 1 || got.Units[0].Kind != kinship.UnitParents {
-		t.Fatalf("units %+v", got.Units)
+	if len(got.Units) != 0 {
+		t.Fatalf("units %+v, want none", got.Units)
 	}
 }
 

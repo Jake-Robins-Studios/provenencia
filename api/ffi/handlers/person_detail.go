@@ -104,7 +104,7 @@ func GetPersonFamily(in []byte) ([]byte, error) {
 	out := &engine.GetPersonFamilyResponse{}
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
 		inputs := c.Graph().PageInputs()
-		family, siblings, summaries, err := persondetail.PersonFamily(c, entityID, inputs)
+		family, summaries, err := persondetail.PersonFamily(c, entityID, inputs)
 		if err != nil {
 			return err
 		}
@@ -130,7 +130,7 @@ func GetPersonFamily(in []byte) ([]byte, error) {
 			}
 			return out
 		}
-		for k, u := range family.Units {
+		for _, u := range family.Units {
 			partners, err := members(u.Partners)
 			if err != nil {
 				return err
@@ -143,7 +143,7 @@ func GetPersonFamily(in []byte) ([]byte, error) {
 				Kind:          familyUnitKindProto(u.Kind),
 				Partners:      partners,
 				Children:      children,
-				CoupleIndexes: indexes(family.UnitCouples[k]),
+				CoupleIndexes: indexes(u.Couples),
 			})
 		}
 		for _, g := range family.Groups {
@@ -174,15 +174,6 @@ func GetPersonFamily(in []byte) ([]byte, error) {
 		}
 		if h, ok := summaries.Person(entityID); ok {
 			out.Person = personSummaryProto(h, paths)
-		}
-		for _, s := range siblings {
-			m, err := familyMemberProto(s.Relative, summaries, paths)
-			if err != nil {
-				return err
-			}
-			o := &engine.OriginSibling{Member: m}
-			o.ParentSets = indexes(s.ParentSets)
-			out.OriginSiblings = append(out.OriginSiblings, o)
 		}
 		out.Inputs = pageInputsProto(inputs)
 		return nil
@@ -371,14 +362,10 @@ func familyMemberProto(r kinship.Relative, summaries conclusionsummaries.Summari
 
 func familyUnitKindProto(k kinship.UnitKind) engine.FamilyUnitKind {
 	switch k {
-	case kinship.UnitParents:
-		return engine.FamilyUnitKind_FAMILY_UNIT_KIND_PARENTS
 	case kinship.UnitPartner:
 		return engine.FamilyUnitKind_FAMILY_UNIT_KIND_PARTNER
 	case kinship.UnitOneParent:
 		return engine.FamilyUnitKind_FAMILY_UNIT_KIND_ONE_PARENT
-	case kinship.UnitSiblings:
-		return engine.FamilyUnitKind_FAMILY_UNIT_KIND_SIBLINGS
 	}
 	return engine.FamilyUnitKind_FAMILY_UNIT_KIND_UNSPECIFIED
 }
