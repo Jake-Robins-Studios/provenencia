@@ -57,4 +57,4 @@ Plan: 5,355 words (check-plan-docs info line).
 | 1 | UX | opus | 67k |
 | 1 | SEC+PRF | opus | 82k |
 | 1 fix | implementer | sonnet | 76k |
-| | **Total** | | **604k** |
+| | **Total** | | **526k** |
