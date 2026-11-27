@@ -83,8 +83,7 @@ func (v Value) compareValue(valueType string) valuecompare.Value {
 // specific value, folds into into when value compare reads from as the broader
 // side of a Contains. Both units carry their value compare value as data.
 func foldsOnContains(rules valuecompare.Rules, from, into unit) bool {
-	res, det := valuecompare.Compare(from.data.(valuecompare.Value), into.data.(valuecompare.Value), rules)
-	return res.Relation == valuecompare.Contains && det.Broader == valuecompare.SideA
+	return valuecompare.FoldsInto(from.data.(valuecompare.Value), into.data.(valuecompare.Value), rules)
 }
 
 // keyModule is a value type whose values are the same exactly when their

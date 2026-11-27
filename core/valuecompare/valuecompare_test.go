@@ -144,3 +144,30 @@ func TestSubjectCompare(t *testing.T) {
 		})
 	}
 }
+
+// TestFoldsInto: a value folds into one it is the broader side of, not the
+// reverse, and not into itself.
+func TestFoldsInto(t *testing.T) {
+	rules := matchregistry.Default().Value
+	subj := func(entity byte, within ...byte) valuecompare.Value {
+		v := valuecompare.Value{Type: propertymeta.ValueTypeSubject, Entity: []byte{entity}}
+		for _, w := range within {
+			v.Within = append(v.Within, []byte{w})
+		}
+		return v
+	}
+	broad, narrow := subj(3), subj(1, 3)
+	for _, tc := range []struct {
+		name       string
+		from, into valuecompare.Value
+		want       bool
+	}{
+		{"the broader folds into the one within it", broad, narrow, true},
+		{"the narrower does not fold into its container", narrow, broad, false},
+		{"a value does not fold into itself", broad, broad, false},
+	} {
+		if got := valuecompare.FoldsInto(tc.from, tc.into, rules); got != tc.want {
+			t.Fatalf("%s: FoldsInto = %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}

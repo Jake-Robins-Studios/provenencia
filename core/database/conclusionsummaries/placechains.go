@@ -375,7 +375,7 @@ func (g *placeGraph) FoldLocations(places []ChainedPlace, values map[string]valu
 				continue
 			}
 			// A link back up (a cycle at this date) is Different, not "below".
-			if res, det := valuecompare.Compare(values[string(id)], values[string(other)], rules); res.Relation == valuecompare.Contains && det.Broader == valuecompare.SideA {
+			if valuecompare.FoldsInto(values[string(id)], values[string(other)], rules) {
 				covered = true
 				break
 			}

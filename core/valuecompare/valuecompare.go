@@ -197,6 +197,20 @@ var comparers = map[string]comparer{
 	propertymeta.ValueTypeSubject:   subject{},
 }
 
+// FoldsInto is the one S11-06 fold-on-Contains check: from, a less specific
+// value, folds into into when Compare reads from as the broader side of a
+// Contains.
+func FoldsInto(from, into Value, r Rules) bool {
+	res, det := Compare(from, into, r)
+	return FoldsResult(res, det)
+}
+
+// FoldsResult is FoldsInto's test on a Compare already made, for a caller that
+// also reads the Detail.
+func FoldsResult(res Result, det Detail) bool {
+	return res.Relation == Contains && det.Broader == SideA
+}
+
 // Compare relates a to b under rules. Values of different types, and types
 // without a comparer, are Unknown with cause unsupported.
 func Compare(a, b Value, rules Rules) (Result, Detail) {
