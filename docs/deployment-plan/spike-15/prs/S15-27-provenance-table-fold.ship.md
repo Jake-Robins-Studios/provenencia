@@ -1,7 +1,7 @@
 # Ship log — S15-27 The provenance table folds a page at a time
 
 **Plan:** [`S15-27-provenance-table-fold.md`](S15-27-provenance-table-fold.md) · **Branch:** `s15-27-provenance-table-fold` · **PR:** #1006
-**State:** fixing 1
+**State:** ready
 
 ## Round 0 — implement
 Not committed or pushed. **Stopped on** §11 "The Release test build fails". STEP-1 done in Debug (uncommitted on the local branch): `Timing.swift`, `CatalogListMergeTests` re-pointed, `PVProvenanceSheetLayoutTests`, `PVProvenancePreviewData.content(groups:summary:)` takes `String?`.
@@ -58,6 +58,23 @@ Files: `docs/deployment-plan/spike-15/prs/S15-27-provenance-table-fold.md`.
 Do: in Edges "Untrusted size" and the §11 risk row, add that several records repeating one citation under a value (runs of more than one record) are accepted as a data-entry case: they draw slowly and do not crash, with no cap (user, 2026-11-27). In the Landed note, add that Done gives up Return while Show more has focus (F-1), and that the best-of loops were merged into `Timing.swift` (F-2, superseding the Codebase fit row).
 Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-27-provenance-table-fold.md` 0 errors.
 
+
+## Round 1 — fix
+Head `504a59c14`. Gate PASS (orchestrator). F-1 to F-5 done; `doneGivesUpReturnToShowMore` red (no `doneShortcut`) then green. Deviations: `PVProvenanceShowMoreFocusKey` is internal (table and sheet are separate files); `completed.md` paragraph updated for F-1. Read by the orchestrator: MNT-1 **Resolved** (one generic `bestOfMilliseconds` in `Timing.swift`, plain form wraps it), MNT-2 **Resolved**, CON-3 **Resolved**.
+
+## Round 2 — review
+Reviewers: CON (CON-1 was a Fix-now blocker). Scope `64d40aff4...504a59c14`.
+
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| CON-1 | CON | blocker | (round 1) Return on Show more may fire Done | Resolved | Preference `PVProvenanceShowMoreFocusKey` → `doneShortcut(showMoreFocused:)`; key routing itself goes to the §10 manual check |
+
+Nits (logged): `CON-5 · plan Landed note says "recipe-private"; the key is internal` · `CON-6 · completed.md:5 · split the "and … and …" sentence`
+
+## Result
+Gate PASS · CI pending at ready · open: none in code; CON-2 (§10 manual check) with the user · follow-ups: Return on a focused citation link may fire Done (pre-existing) · to user: SEC-1 answered (accepted, 2026-11-27)
+
 ## Cost
 Plan: 5,424 words (check-plan-docs info line).
 
@@ -70,3 +87,7 @@ Plan: 5,424 words (check-plan-docs info line).
 | 1 | MNT | opus | 77k |
 | 1 | UX | opus | 96k |
 | 1 | SEC+PRF | opus | 76k |
+
+| 1 | implementer fix | sonnet | 93k |
+| 2 | CON | opus | 46k |
+| | **Total** | | **888k** (largest: implementer resume, 146k) |
