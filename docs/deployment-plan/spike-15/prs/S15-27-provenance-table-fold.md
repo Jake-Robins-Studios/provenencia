@@ -1,6 +1,6 @@
 # S15-27 — The provenance table folds a page at a time
 
-**Status:** Planned
+**Status:** Landed in [#1006](https://github.com/Jake-Robins-Studios/provenencia/pull/1006) (2026-11-27)
 **Spike / slice:** Spike 15 · Slice 8 — Provenance loading
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S15-D17](../design/archive/S15-D17-provenance-table-fold.md), board agreed 2026-11-26. No new brief: the only visual change past the agreed board is a rule between two records that repeat a citation, which only the data-entry case shows (user, 2026-11-27)

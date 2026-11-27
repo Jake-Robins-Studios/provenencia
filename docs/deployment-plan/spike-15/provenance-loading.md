@@ -4,13 +4,11 @@
 
 ## Cap the records a provenance table draws
 
-**Spike 15** (S15-21) shows each record's formatted citation and groups the records that share one, so the table draws fewer rows when a household's Citations group, but the rows it draws are longer. Measure the cap with grouped, formatted rows.
+**Spike 15** (S15-21) shows each record's formatted citation, so the rows it draws are longer. Measure the cap with formatted rows.
 
 The user accepted this risk on 2026-11-03 (S13-36 review SEC-1).
 
-Shipped in S15-27 ([S15-D17](design/archive/S15-D17-provenance-table-fold.md)) as a fold of 50 citation groups with the kit's Show more row. First layout, Debug build, best of 3: 300 records 1558 ms before, 271 ms after; 1,200 records 6691 ms before, 268 ms after.
-
-Accepted: a single citation group is never split, so a catalog whose Citations render one full citation still draws them all in one group.
+Shipped in S15-27 ([S15-D17](design/archive/S15-D17-provenance-table-fold.md)) as a fold of 50 records with the kit's Show more row. First layout, Debug build, best of 3: 300 records 1558 ms before, 266 ms after; 1,200 records 6691 ms before, 266 ms after.
 
 Related: the S13-36 ship log (in git with #702), SEC-1 and F-11.
 
