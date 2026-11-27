@@ -101,7 +101,7 @@ Head `45a9778bf`. F-8 done: `graphcache.RecordsKey` / `InputScope.Records`; `fin
 G-1 done (`b13d86032`, test-only: waits on `lastPromoteBatch != nil && claimBySubject["a"] != nil`; the other three `waitUntil` sites read only state written by the batch). Gate PASS on `b13d86032` (orchestrator run).
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: `TestListMergeMatchesReload` timing budget (promotealign), `bin/reseed-source-vocab` build broken on main · to user: —
+Gate PASS · CI green (Go tests, macOS tests) · open: none · follow-ups: `TestListMergeMatchesReload` timing budget (promotealign), `bin/reseed-source-vocab` build broken on main · to user: —
 
 Follow-ups (homes to be chosen by the user):
 - `core/database/promotealign` `TestListMergeMatchesReload` 20 ms wall-clock budget missed once (29 ms) under a parallel run; not touched by this PR.
