@@ -10,21 +10,28 @@ enum PersonLifeDisplay {
         return PVDatePlaceLine.text(date: dates, place: places)
     }
 
-    /// One life line: *b. 14 May 1817 · York*. Date and place come from the
-    /// Person summary. Nil when that half is not recorded.
+    /// One life line: *b. 14 May 1817 · York*, *m. 12 Jun 1841 · Hamburg*. Date and place come already
+    /// worded; nil when that half is not recorded.
     struct LifeLine: Equatable {
         var abbreviation: String
         var date: String?
         var place: String?
         /// Kept places beyond `place`. The list's +N.
         var extraPlaces: Int = 0
+        /// Drawn after the place and never cut: ", with Heinrich Weber" on a marriage that names the
+        /// other spouse.
+        var trailing: String?
+        /// How a missing half was built, so every drawer passes it on.
+        var missing: PVDatePlaceLine.Missing
         var accessibilityLabel: String
 
-        /// The line as plain text: the abbreviation, then date and place; a
-        /// missing half is left out ("b. 3 May 1790 · Bremen", "d. 1851").
+        /// The line as plain text: the abbreviation, then date, place and `trailing`; a missing half is
+        /// left out ("b. 3 May 1790 · Bremen", "d. 1851", "m., with Heinrich Weber").
         var text: String {
             let rest = PVDatePlaceLine.text(date: date, place: place)
-            return rest.isEmpty ? abbreviation : L10n.Conclusions.lifeLineText(abbreviation: abbreviation, rest: rest)
+            let tail = trailing ?? ""
+            if rest.isEmpty { return abbreviation + tail }
+            return L10n.LifeLine.text(abbreviation: abbreviation, rest: rest + tail)
         }
     }
 
@@ -46,48 +53,69 @@ enum PersonLifeDisplay {
         locale: Locale = .autoupdatingCurrent,
         missing: PVDatePlaceLine.Missing
     ) -> [LifeLine] {
-        let born = lifeLine(
-            L10n.Conclusions.personBornAbbr, facts: summary?.birth, locale: locale, missing: missing,
-            spoken: missing == .stated ? L10n.Conclusions.a11yBorn : L10n.Conclusions.a11yBornInline
-        )
-        let died = lifeLine(
-            L10n.Conclusions.personDiedAbbr, facts: summary?.death, locale: locale, missing: missing,
-            spoken: missing == .stated ? L10n.Conclusions.a11yDied : L10n.Conclusions.a11yDiedInline
-        )
-        return [born, died].compactMap { $0 }
+        func line(_ copy: L10n.LifeLine.Copy, _ facts: CatalogLifeFacts?) -> LifeLine? {
+            lifeLine(
+                copy,
+                date: dateText(facts?.date, locale: locale),
+                place: DerivedPlace.name(facts?.places ?? []),
+                extraPlaces: DerivedPlace.extra(facts?.places ?? []),
+                missing: missing
+            )
+        }
+        return [line(L10n.LifeLine.birth, summary?.birth), line(L10n.LifeLine.death, summary?.death)].compactMap { $0 }
     }
 
-    private static func lifeLine(
-        _ abbreviation: LocalizedStringResource,
-        facts: CatalogLifeFacts?,
-        locale: Locale,
+    /// One life line from a copy and its worded halves (nil or empty is not recorded).
+    ///
+    /// `.stated` speaks `copy.stated` with "unknown" for a missing half, and is nil for a copy with none.
+    /// `.omitted` speaks the phrase for the halves present; with neither it speaks `copy.bare`, and is nil
+    /// for a copy with none, so a person's missing b. or d. is left out and a marriage with neither half is
+    /// kept. A `partner` is the other spouse of a copy that names one: spoken in the label, drawn as
+    /// `trailing`.
+    static func lifeLine(
+        _ copy: L10n.LifeLine.Copy,
+        date: String?,
+        place: String?,
+        extraPlaces: Int = 0,
         missing: PVDatePlaceLine.Missing,
-        spoken: LocalizedStringResource
+        partner: PVTitleSource? = nil
     ) -> LifeLine? {
-        let date = dateText(facts?.date, locale: locale)
-        let place = DerivedPlace.name(facts?.places ?? [])
-        let word = L10n.string(spoken)
+        let date = date.flatMap { $0.isEmpty ? nil : $0 }
+        let place = place.flatMap { $0.isEmpty ? nil : $0 }
         let label: String
+        var trailing: String?
         switch missing {
         case .stated:
-            label = L10n.Conclusions.a11yLifeLine(
-                word,
-                date: PVDatePlaceLine.spokenDate(date.isEmpty ? nil : date),
-                place: PVDatePlaceLine.spokenPlace(place.isEmpty ? nil : place)
-            )
+            guard let stated = copy.stated else { return nil }
+            label = L10n.format(stated, PVDatePlaceLine.spokenDate(date), PVDatePlaceLine.spokenPlace(place))
         case .omitted:
-            switch (date.isEmpty, place.isEmpty) {
-            case (true, true): return nil
-            case (false, false): label = L10n.Conclusions.a11yLifeLine(word, date: date, place: place)
-            case (false, true): label = L10n.Conclusions.a11yLifeLineKnown(word, part: date)
-            case (true, false): label = L10n.Conclusions.a11yLifeLinePlaceOnly(word, place: place)
+            if let partner, let spouse = copy.withSpouse {
+                let name = partner.spokenText
+                switch (date, place) {
+                case let (date?, place?): label = L10n.format(spouse.dateAndPlace, date, place, name)
+                case let (date?, nil): label = L10n.format(spouse.dateOnly, date, name)
+                case let (nil, place?): label = L10n.format(spouse.placeOnly, place, name)
+                case (nil, nil): label = L10n.format(spouse.bare, name)
+                }
+                trailing = L10n.format(spouse.drawn, partner.text)
+            } else {
+                switch (date, place) {
+                case let (date?, place?): label = L10n.format(copy.dateAndPlace, date, place)
+                case let (date?, nil): label = L10n.format(copy.dateOnly, date)
+                case let (nil, place?): label = L10n.format(copy.placeOnly, place)
+                case (nil, nil):
+                    guard let bare = copy.bare else { return nil }
+                    label = L10n.string(bare)
+                }
             }
         }
         return LifeLine(
-            abbreviation: L10n.string(abbreviation),
-            date: date.isEmpty ? nil : date,
-            place: place.isEmpty ? nil : place,
-            extraPlaces: DerivedPlace.extra(facts?.places ?? []),
+            abbreviation: L10n.string(copy.abbreviation),
+            date: date,
+            place: place,
+            extraPlaces: extraPlaces,
+            trailing: trailing,
+            missing: missing,
             accessibilityLabel: label
         )
     }

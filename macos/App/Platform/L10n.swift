@@ -2374,6 +2374,174 @@ enum L10n {
         }
     }
 
+    /// A life line's copy (S16-81): what a Person's birth and death lines and a couple's marriage line
+    /// say, drawn and spoken, as whole phrases. A phrase takes data (a date, a place, a name) and never a
+    /// translated word, so a translation is a sentence, not a splice. Adding an event type that draws a
+    /// line is one `Copy` and one case in `copy(eventTypeKey:origin:)`; `TestSwiftVocabularyMatchesGo`
+    /// fails when a spouse event type has none.
+    enum LifeLine {
+        /// The phrases of a line that names the other spouse ("married 3 May 1812, Altona, with Heinrich Weber").
+        struct SpouseCopy: Equatable {
+            let dateAndPlace: LocalizedStringResource
+            let dateOnly: LocalizedStringResource
+            let placeOnly: LocalizedStringResource
+            let bare: LocalizedStringResource
+            /// What is drawn after the place: ", with Heinrich Weber".
+            let drawn: LocalizedStringResource
+        }
+
+        struct Copy: Equatable {
+            /// Drawn before the date and place ("b.").
+            let abbreviation: LocalizedStringResource
+            /// The header's line, both halves stated; nil for a line that is never stated.
+            let stated: LocalizedStringResource?
+            let dateAndPlace: LocalizedStringResource
+            let dateOnly: LocalizedStringResource
+            let placeOnly: LocalizedStringResource
+            /// Spoken with neither half; nil when such a line is left out.
+            let bare: LocalizedStringResource?
+            let withSpouse: SpouseCopy?
+        }
+
+        static let birth = Copy(
+            abbreviation: LocalizedStringResource(
+                "lifeLine.birth.abbreviation",
+                defaultValue: "b.",
+                comment: "Abbreviation before a Person's birth date and place on a life line"
+            ),
+            stated: LocalizedStringResource(
+                "lifeLine.birth.stated",
+                defaultValue: "Born %1$@, %2$@",
+                comment: "Spoken birth line of the Person header; 1 = the date or its unknown copy, 2 = the place or its unknown copy"
+            ),
+            dateAndPlace: LocalizedStringResource(
+                "lifeLine.birth.dateAndPlace",
+                defaultValue: "born %1$@, %2$@",
+                comment: "Spoken birth line of a person tile, mid-sentence; 1 = the date, 2 = the place"
+            ),
+            dateOnly: LocalizedStringResource(
+                "lifeLine.birth.dateOnly",
+                defaultValue: "born %@",
+                comment: "Spoken birth line of a person tile with only a date, mid-sentence; the argument is the date"
+            ),
+            placeOnly: LocalizedStringResource(
+                "lifeLine.birth.placeOnly",
+                defaultValue: "born in %@",
+                comment: "Spoken birth line of a person tile with only a place, mid-sentence; the argument is the place"
+            ),
+            bare: nil,
+            withSpouse: nil
+        )
+
+        static let death = Copy(
+            abbreviation: LocalizedStringResource(
+                "lifeLine.death.abbreviation",
+                defaultValue: "d.",
+                comment: "Abbreviation before a Person's death date and place on a life line"
+            ),
+            stated: LocalizedStringResource(
+                "lifeLine.death.stated",
+                defaultValue: "Died %1$@, %2$@",
+                comment: "Spoken death line of the Person header; 1 = the date or its unknown copy, 2 = the place or its unknown copy"
+            ),
+            dateAndPlace: LocalizedStringResource(
+                "lifeLine.death.dateAndPlace",
+                defaultValue: "died %1$@, %2$@",
+                comment: "Spoken death line of a person tile, mid-sentence; 1 = the date, 2 = the place"
+            ),
+            dateOnly: LocalizedStringResource(
+                "lifeLine.death.dateOnly",
+                defaultValue: "died %@",
+                comment: "Spoken death line of a person tile with only a date, mid-sentence; the argument is the date"
+            ),
+            placeOnly: LocalizedStringResource(
+                "lifeLine.death.placeOnly",
+                defaultValue: "died in %@",
+                comment: "Spoken death line of a person tile with only a place, mid-sentence; the argument is the place"
+            ),
+            bare: nil,
+            withSpouse: nil
+        )
+
+        static let marriage = Copy(
+            abbreviation: LocalizedStringResource(
+                "lifeLine.marriage.abbreviation",
+                defaultValue: "m.",
+                comment: "Abbreviation before a couple's marriage date and place on a life line"
+            ),
+            stated: nil,
+            dateAndPlace: LocalizedStringResource(
+                "lifeLine.marriage.dateAndPlace",
+                defaultValue: "married %1$@, %2$@",
+                comment: "Spoken marriage line of a couple; 1 = the date, 2 = the place"
+            ),
+            dateOnly: LocalizedStringResource(
+                "lifeLine.marriage.dateOnly",
+                defaultValue: "married %@",
+                comment: "Spoken marriage line of a couple with only a date; the argument is the date"
+            ),
+            placeOnly: LocalizedStringResource(
+                "lifeLine.marriage.placeOnly",
+                defaultValue: "married in %@",
+                comment: "Spoken marriage line of a couple with only a place; the argument is the place"
+            ),
+            bare: LocalizedStringResource(
+                "lifeLine.marriage.bare",
+                defaultValue: "married",
+                comment: "Spoken marriage line of a couple with neither a date nor a place"
+            ),
+            withSpouse: SpouseCopy(
+                dateAndPlace: LocalizedStringResource(
+                    "lifeLine.marriage.withSpouse.dateAndPlace",
+                    defaultValue: "married %1$@, %2$@, with %3$@",
+                    comment: "Spoken marriage line that names the other spouse; 1 = the date, 2 = the place, 3 = the spouse's name"
+                ),
+                dateOnly: LocalizedStringResource(
+                    "lifeLine.marriage.withSpouse.dateOnly",
+                    defaultValue: "married %1$@, with %2$@",
+                    comment: "Spoken marriage line that names the other spouse, with only a date; 1 = the date, 2 = the spouse's name"
+                ),
+                placeOnly: LocalizedStringResource(
+                    "lifeLine.marriage.withSpouse.placeOnly",
+                    defaultValue: "married in %1$@, with %2$@",
+                    comment: "Spoken marriage line that names the other spouse, with only a place; 1 = the place, 2 = the spouse's name"
+                ),
+                bare: LocalizedStringResource(
+                    "lifeLine.marriage.withSpouse.bare",
+                    defaultValue: "married, with %@",
+                    comment: "Spoken marriage line that names the other spouse, with neither a date nor a place; the argument is the spouse's name"
+                ),
+                drawn: LocalizedStringResource(
+                    "lifeLine.marriage.withSpouse.drawn",
+                    defaultValue: ", with %@",
+                    comment: "Drawn after a marriage line's place, the comma attached, to name the other spouse; the argument is the spouse's name"
+                )
+            )
+        )
+
+        /// The copy of an event type's life line; nil for a type that draws none, or one the product
+        /// does not seed (`origin` is the type term's).
+        static func copy(eventTypeKey: String, origin: String) -> Copy? {
+            guard CatalogOrigin.isProduct(origin) else { return nil }
+            switch eventTypeKey {
+            case SeededEventTypeTerm.birth: return birth
+            case SeededEventTypeTerm.death: return death
+            case SeededEventTypeTerm.marriage: return marriage
+            default: return nil
+            }
+        }
+
+        /// A life line as plain text: the abbreviation, then its date and place ("b. 3 May 1790 · Bremen").
+        static func text(abbreviation: String, rest: String) -> String {
+            let resource = LocalizedStringResource(
+                "lifeLine.text",
+                defaultValue: "%1$@ %2$@",
+                comment: "A life line as plain text: the abbreviation, then its date and place (the compact person card's tooltip line, \"b. 3 May 1790 · Bremen\"). Arguments are the abbreviation and the date and place."
+            )
+            return L10n.format(resource, abbreviation, rest)
+        }
+    }
+
     /// Seeded Property-term names (`propertyTerm.<propertyKey>.<termKey>`): one constant for every
     /// seeded term, beside its siblings. Adding a seeded term is one constant and one case in
     /// `resource(propertyKey:termKey:)`; `TestSwiftVocabularyMatchesGo` fails when one has none.
@@ -9966,15 +10134,6 @@ enum L10n {
             return L10n.format(resource, born, died)
         }
 
-        static func lifeLineText(abbreviation: String, rest: String) -> String {
-            let resource = LocalizedStringResource(
-                "conclusions.lifeLine.text",
-                defaultValue: "%1$@ %2$@",
-                comment: "A life line as plain text: the birth or death abbreviation, then its date and place (the compact person card's tooltip line, \"b. 3 May 1790 · Bremen\"). Arguments are the abbreviation and the date and place."
-            )
-            return L10n.format(resource, abbreviation, rest)
-        }
-
         static func lineJoin(first: String, rest: String) -> String {
             let resource = LocalizedStringResource(
                 "conclusions.line.join",
@@ -10843,18 +11002,6 @@ enum L10n {
             comment: "Thumbnail placeholder on a Place page when no image is recorded"
         )
 
-        static let personBornAbbr = LocalizedStringResource(
-            "conclusions.person.born",
-            defaultValue: "b.",
-            comment: "Abbreviation before a Person's birth date and place in the page header"
-        )
-
-        static let personDiedAbbr = LocalizedStringResource(
-            "conclusions.person.died",
-            defaultValue: "d.",
-            comment: "Abbreviation before a Person's death date and place in the page header"
-        )
-
         static let eventDate = LocalizedStringResource(
             "conclusions.event.date",
             defaultValue: "Date",
@@ -11035,18 +11182,6 @@ enum L10n {
             comment: "VoiceOver state of a concluded Conclusion field"
         )
 
-        static let a11yBorn = LocalizedStringResource(
-            "conclusions.a11y.born",
-            defaultValue: "Born",
-            comment: "VoiceOver word before a Person's birth date and place"
-        )
-
-        static let a11yDied = LocalizedStringResource(
-            "conclusions.a11y.died",
-            defaultValue: "Died",
-            comment: "VoiceOver word before a Person's death date and place"
-        )
-
         static func sourceCount(_ count: Int) -> String {
             L10n.format(LocalizedStringResource(
                 "conclusions.sourceCount",
@@ -11165,42 +11300,6 @@ enum L10n {
                 defaultValue: "%@, empty",
                 comment: "VoiceOver label of an empty field; argument is the field label"
             ), label)
-        }
-
-        static func a11yLifeLine(_ word: String, date: String, place: String) -> String {
-            L10n.format(LocalizedStringResource(
-                "conclusions.a11y.vital",
-                defaultValue: "%1$@ %2$@, %3$@",
-                comment: "VoiceOver for a Person header line; arguments are Born/Died, the date, and the place"
-            ), word, date, place)
-        }
-
-        static let a11yBornInline = LocalizedStringResource(
-            "conclusions.a11y.bornInline",
-            defaultValue: "born",
-            comment: "VoiceOver word before a person tile's birth date and place, mid-sentence"
-        )
-
-        static let a11yDiedInline = LocalizedStringResource(
-            "conclusions.a11y.diedInline",
-            defaultValue: "died",
-            comment: "VoiceOver word before a person tile's death date and place, mid-sentence"
-        )
-
-        static func a11yLifeLineKnown(_ word: String, part: String) -> String {
-            L10n.format(LocalizedStringResource(
-                "conclusions.a11y.vitalKnown",
-                defaultValue: "%1$@ %2$@",
-                comment: "VoiceOver for a person tile line with one half known; arguments are born/died and the date or the place"
-            ), word, part)
-        }
-
-        static func a11yLifeLinePlaceOnly(_ word: String, place: String) -> String {
-            L10n.format(LocalizedStringResource(
-                "conclusions.a11y.vitalPlaceOnly",
-                defaultValue: "%1$@ in %2$@",
-                comment: "VoiceOver for a person tile line with only a place known; arguments are born/died and the place"
-            ), word, place)
         }
 
         static func sexAtBirthBadge(_ value: String) -> String {

@@ -17610,18 +17610,6 @@
         }
       }
     },
-    "conclusions.lifeLine.text": {
-      "comment": "A life line as plain text: the birth or death abbreviation, then its date and place (the compact person card's tooltip line, \"b. 3 May 1790 · Bremen\"). Arguments are the abbreviation and the date and place.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ %2$@"
-          }
-        }
-      }
-    },
     "conclusions.line.join": {
       "comment": "Joins two parts of one secondary line (dates · places, a date · its phrase). Arguments are the two parts.",
       "extractionState": "manual",
@@ -18378,30 +18366,6 @@
         }
       }
     },
-    "conclusions.person.born": {
-      "comment": "Abbreviation before a Person's birth date and place in the page header",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "b."
-          }
-        }
-      }
-    },
-    "conclusions.person.died": {
-      "comment": "Abbreviation before a Person's death date and place in the page header",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "d."
-          }
-        }
-      }
-    },
     "conclusions.person.birthDate": {
       "comment": "Row label on a Person page",
       "extractionState": "manual",
@@ -18530,30 +18494,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "concluded"
-          }
-        }
-      }
-    },
-    "conclusions.a11y.born": {
-      "comment": "VoiceOver word before a Person's birth date and place",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Born"
-          }
-        }
-      }
-    },
-    "conclusions.a11y.died": {
-      "comment": "VoiceOver word before a Person's death date and place",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Died"
           }
         }
       }
@@ -19638,66 +19578,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ · %2$@"
-          }
-        }
-      }
-    },
-    "conclusions.a11y.vital": {
-      "comment": "VoiceOver for a Person header line; arguments are Born/Died, the date, and the place",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ %2$@, %3$@"
-          }
-        }
-      }
-    },
-    "conclusions.a11y.bornInline": {
-      "comment": "VoiceOver word before a person tile's birth date and place, mid-sentence",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "born"
-          }
-        }
-      }
-    },
-    "conclusions.a11y.diedInline": {
-      "comment": "VoiceOver word before a person tile's death date and place, mid-sentence",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "died"
-          }
-        }
-      }
-    },
-    "conclusions.a11y.vitalKnown": {
-      "comment": "VoiceOver for a person tile line with one half known; arguments are born/died and the date or the place",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ %2$@"
-          }
-        }
-      }
-    },
-    "conclusions.a11y.vitalPlaceOnly": {
-      "comment": "VoiceOver for a person tile line with only a place known; arguments are born/died and the place",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ in %2$@"
           }
         }
       }
@@ -25777,6 +25657,258 @@
           "stringUnit": {
             "state": "translated",
             "value": "date added unknown"
+          }
+        }
+      }
+    },
+    "lifeLine.birth.abbreviation": {
+      "comment": "Abbreviation before a Person's birth date and place on a life line",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "b."
+          }
+        }
+      }
+    },
+    "lifeLine.birth.stated": {
+      "comment": "Spoken birth line of the Person header; 1 = the date or its unknown copy, 2 = the place or its unknown copy",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Born %1$@, %2$@"
+          }
+        }
+      }
+    },
+    "lifeLine.birth.dateAndPlace": {
+      "comment": "Spoken birth line of a person tile, mid-sentence; 1 = the date, 2 = the place",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "born %1$@, %2$@"
+          }
+        }
+      }
+    },
+    "lifeLine.birth.dateOnly": {
+      "comment": "Spoken birth line of a person tile with only a date, mid-sentence; the argument is the date",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "born %@"
+          }
+        }
+      }
+    },
+    "lifeLine.birth.placeOnly": {
+      "comment": "Spoken birth line of a person tile with only a place, mid-sentence; the argument is the place",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "born in %@"
+          }
+        }
+      }
+    },
+    "lifeLine.death.abbreviation": {
+      "comment": "Abbreviation before a Person's death date and place on a life line",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "d."
+          }
+        }
+      }
+    },
+    "lifeLine.death.stated": {
+      "comment": "Spoken death line of the Person header; 1 = the date or its unknown copy, 2 = the place or its unknown copy",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Died %1$@, %2$@"
+          }
+        }
+      }
+    },
+    "lifeLine.death.dateAndPlace": {
+      "comment": "Spoken death line of a person tile, mid-sentence; 1 = the date, 2 = the place",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "died %1$@, %2$@"
+          }
+        }
+      }
+    },
+    "lifeLine.death.dateOnly": {
+      "comment": "Spoken death line of a person tile with only a date, mid-sentence; the argument is the date",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "died %@"
+          }
+        }
+      }
+    },
+    "lifeLine.death.placeOnly": {
+      "comment": "Spoken death line of a person tile with only a place, mid-sentence; the argument is the place",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "died in %@"
+          }
+        }
+      }
+    },
+    "lifeLine.marriage.abbreviation": {
+      "comment": "Abbreviation before a couple's marriage date and place on a life line",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "m."
+          }
+        }
+      }
+    },
+    "lifeLine.marriage.dateAndPlace": {
+      "comment": "Spoken marriage line of a couple; 1 = the date, 2 = the place",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "married %1$@, %2$@"
+          }
+        }
+      }
+    },
+    "lifeLine.marriage.dateOnly": {
+      "comment": "Spoken marriage line of a couple with only a date; the argument is the date",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "married %@"
+          }
+        }
+      }
+    },
+    "lifeLine.marriage.placeOnly": {
+      "comment": "Spoken marriage line of a couple with only a place; the argument is the place",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "married in %@"
+          }
+        }
+      }
+    },
+    "lifeLine.marriage.bare": {
+      "comment": "Spoken marriage line of a couple with neither a date nor a place",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "married"
+          }
+        }
+      }
+    },
+    "lifeLine.marriage.withSpouse.dateAndPlace": {
+      "comment": "Spoken marriage line that names the other spouse; 1 = the date, 2 = the place, 3 = the spouse's name",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "married %1$@, %2$@, with %3$@"
+          }
+        }
+      }
+    },
+    "lifeLine.marriage.withSpouse.dateOnly": {
+      "comment": "Spoken marriage line that names the other spouse, with only a date; 1 = the date, 2 = the spouse's name",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "married %1$@, with %2$@"
+          }
+        }
+      }
+    },
+    "lifeLine.marriage.withSpouse.placeOnly": {
+      "comment": "Spoken marriage line that names the other spouse, with only a place; 1 = the place, 2 = the spouse's name",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "married in %1$@, with %2$@"
+          }
+        }
+      }
+    },
+    "lifeLine.marriage.withSpouse.bare": {
+      "comment": "Spoken marriage line that names the other spouse, with neither a date nor a place; the argument is the spouse's name",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "married, with %@"
+          }
+        }
+      }
+    },
+    "lifeLine.marriage.withSpouse.drawn": {
+      "comment": "Drawn after a marriage line's place, the comma attached, to name the other spouse; the argument is the spouse's name",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ", with %@"
+          }
+        }
+      }
+    },
+    "lifeLine.text": {
+      "comment": "A life line as plain text: the abbreviation, then its date and place (the compact person card's tooltip line, \"b. 3 May 1790 · Bremen\"). Arguments are the abbreviation and the date and place.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$@"
           }
         }
       }
