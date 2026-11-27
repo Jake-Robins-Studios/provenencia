@@ -1,9 +1,10 @@
 # S16-81 — Family groups siblings by their parents and shows each couple's marriage
 
-**Status:** Planned
+**Status:** Landed in [#1013](https://github.com/Jake-Robins-Studios/provenencia/pull/1013) (2026-11-27)
+**Landed:** As planned, except: the version bump is to 0.50.0 (main was already 0.49.0); STEP-4 and STEP-5, and STEP-7 and STEP-8, are one commit each; `scripts/check-patterns.py` no longer flags every new Swift file in `macos/App` (its own commit); added `marriageLineInset`, `MarriageLine.spokenLine` and `PersonFamilyLayout.frame(ofLine:)`; `eventSummary` was split out in STEP-3, where T-3 needs it; the P-8 sentence in `person-page-performance.md` does not name `origin_siblings`.
 **Spike / slice:** Spike 16 · Slice 6l — Family parents
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S16-D18](../design/S16-D18-family-groups-and-marriages.md), board agreed 2026-11-27
+**Brief:** [S16-D18](../design/archive/S16-D18-family-groups-and-marriages.md), board agreed 2026-11-27
 **Board:** [Claude Design — Person Detail](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ#page-Person-Detail---Family), turn "S16-D18 · Sibling groups and marriages". The implementer may not be able to open it: §6 **macOS** describes every frame in words, and the brief's §4 and §5 are the agreed text
 **Depends on:** S16-82 (landed [#1009](https://github.com/Jake-Robins-Studios/provenencia/pull/1009)), S16-D18
 **Blocks:** —
@@ -11,7 +12,7 @@
 **Version bump:** minor, 0.48.3 → 0.49.0 at the base — Family shows sibling groups and marriages, a feature; the wire loses fields only this binary read ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md), [`add-localized-string`](../../../../.agents/skills/add-localized-string/SKILL.md) (its "Whole phrases"), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md), [`add-ffi-handler`](../../../../.agents/skills/add-ffi-handler/SKILL.md), [`add-match-rule`](../../../../.agents/skills/add-match-rule/SKILL.md) (the `core/kinship` page functions paragraph)
 **Rules that bind:** `.cursor/rules/go-tests.mdc`, `.cursor/rules/match-rules.mdc`, `.cursor/rules/swift-tests.mdc`
-**Context:** brief [S16-D18](../design/S16-D18-family-groups-and-marriages.md); working rules "(Batch 6) Family groups siblings by their parents", "(Batch 6) Family shows a couple's marriage from its events", "(Batch 1) Crafted fan-out is capped, not engineered"; [S16-82's plan](S16-82-family-groups-and-marriages-read.md) and its **Landed** note; [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide). Swift checks need macOS with Xcode; STEP-9 needs `protoc` and its Go and Swift plugins (`scripts/generate-proto.sh` checks for them)
+**Context:** brief [S16-D18](../design/archive/S16-D18-family-groups-and-marriages.md); working rules "(Batch 6) Family groups siblings by their parents", "(Batch 6) Family shows a couple's marriage from its events", "(Batch 1) Crafted fan-out is capped, not engineered"; [S16-82's plan](S16-82-family-groups-and-marriages-read.md) and its **Landed** note; [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide). Swift checks need macOS with Xcode; STEP-9 needs `protoc` and its Go and Swift plugins (`scripts/generate-proto.sh` checks for them)
 **Planned:** 2026-11-27 against `main` @ `819a568`
 **Review:** [`S16-81-family-groups-and-marriages.review.md`](S16-81-family-groups-and-marriages.review.md) — Fits with changes, Ready; 2 rounds, every finding answered
 
