@@ -1578,6 +1578,20 @@ struct GoStore: GenealogyStore {
             originSiblings: resp.originSiblings.map {
                 CatalogOriginSibling(member: Self.mapFamilyMember($0.member), parentSets: $0.parentSets.map(Int.init))
             },
+            siblingGroups: resp.siblingGroups.map {
+                CatalogSiblingGroup(
+                    parents: $0.parents.map(Self.mapFamilyMember),
+                    children: $0.children.map(Self.mapFamilyMember),
+                    coupleIndexes: $0.coupleIndexes.map(Int.init)
+                )
+            },
+            couples: resp.couples.map {
+                CatalogFamilyCouple(
+                    aEntityId: $0.aEntityID,
+                    bEntityId: $0.bEntityID,
+                    marriages: $0.marriages.map(Self.mapEventSummary)
+                )
+            },
             inputs: Self.mapPageInputs(resp.inputs)
         )
     }
@@ -1675,7 +1689,8 @@ struct GoStore: GenealogyStore {
         return CatalogFamilyUnit(
             kind: kind,
             partners: u.partners.map(mapFamilyMember),
-            children: u.children.map(mapFamilyMember)
+            children: u.children.map(mapFamilyMember),
+            coupleIndexes: u.coupleIndexes.map(Int.init)
         )
     }
 
