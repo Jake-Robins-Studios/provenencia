@@ -2,7 +2,7 @@ import Foundation
 
 /// The Event page, worded from one `CatalogConclusionDetail` and the Event
 /// summary it carries (S9-24, board S9-D6). The summary supplies the title, the
-/// kept date or span (the band) and the places. The date's Why stays on this page's date row.
+/// kept date or span (the band) and the places. The date's records open in the provenance sheet from this page's date row.
 struct EventDetailContent: ConclusionDetailBody {
     var title: PVTitleSource
     var ref: String
@@ -43,9 +43,9 @@ struct EventDetailContent: ConclusionDetailBody {
 
     /// The Date row, following the dating Go chose and the Properties it names
     /// behind it (`datingProperties`); Swift picks no key. An as-of dating lists
-    /// the start, each kept as-of and the end as lines, and its Why holds every
+    /// the start, each kept as-of and the end as lines, and its provenance sheet holds every
     /// record behind them. Any other dating is one field's row, or, over several
-    /// fields, one row whose lead is the dating and whose Why holds their records.
+    /// fields, one row whose lead is the dating and whose provenance sheet holds their records.
     /// Stated empty when nothing is recorded.
     static func dateRow(
         _ fields: [CatalogConclusionField],
@@ -97,8 +97,7 @@ struct EventDetailContent: ConclusionDetailBody {
         return PVProvenanceSheetContent.listed(shown, propertyKey: field.propertyKey, role: words, locale: locale)
     }
 
-    /// The Place row. The first kept name, mixed when more survived. No Why:
-    /// that stays on the Place, which the row opens.
+    /// The Place row. The first kept name, mixed when more survived. No provenance control: its records stay on the Place, which the row opens.
     static func placeRow(_ summary: CatalogEventSummary?) -> ReconciledValueRowModel {
         let label = L10n.string(L10n.Conclusions.eventPlace)
         let empty = L10n.string(L10n.Conclusions.emptyEventPlace)

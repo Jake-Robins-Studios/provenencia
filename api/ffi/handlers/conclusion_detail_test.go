@@ -313,7 +313,7 @@ var warmReadTables = []string{
 	"identity_claims", "evidence_graphs", "sources", "artifacts", "auto_reconciler_outcomes",
 }
 
-// A warm open composes the Why and the gallery from the canonical node: it
+// A warm open composes the records and the gallery from the canonical node: it
 // reads neither the reconciler's outcome rows nor the depiction values, and
 // issues no graph query.
 func TestGetConclusionDetailWarmReadsNoReconcilerOrGallerySQL(t *testing.T) {

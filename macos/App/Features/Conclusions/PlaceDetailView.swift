@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The Place page (S9-27 / S9-40, board S9-D7). A configuration of
-/// `ConclusionDetailPage`: names with Why, period, parent chain, and
+/// `ConclusionDetailPage`: names, period, parent chain, and
 /// Part of / Contains / Succession relationship rows.
 struct PlaceDetailView: View {
     let session: WorkspaceSession

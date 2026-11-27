@@ -406,12 +406,11 @@ struct PersonDetailTests {
         #expect(session.toasts.cards.isEmpty)
     }
 
-    @Test func aMergedNameRowCarriesItsStateAndWhy() {
+    @Test func aMergedNameRowCarriesItsStateAndProvenance() {
         let row = PersonDetailContent(detail: detail()).rows[0]
         #expect(row.shown.lead == "James Robins" && row.shown.face == .text)
         #expect(row.shown.badge == .merged && row.count == "2 Sources" && row.against == nil)
         #expect(row.otherValuesLabel == nil && row.otherValues.isEmpty)
-        #expect(row.whyTitle == "Why James Robins")
         let nick = CatalogNameValue(form: "unused", parts: [
             CatalogNameValuePart(value: "James", type: "given"),
             CatalogNameValuePart(value: "Jake", type: "nick"),
@@ -419,7 +418,6 @@ struct PersonDetailTests {
         ])
         let nicked = PersonDetailContent(detail: detail(name: D.field("single", [D.value(1, "kept", .name(nick))],
             outcomes: [D.outcome("c", "kept", recorded: .name(nick))]))).rows[0]
-        #expect(nicked.whyTitle == "Why James “Jake” Robins")
         #expect(row.provenanceContent().records.map(\.phrase) == [
             "kept", "folded into James Robins", "outvoted (2 of 3 Sources)", "weak · low-trust Source",
         ])
@@ -685,9 +683,9 @@ struct PersonDetailTests {
         let birth = page.rows[1]
         #expect(birth.provenanceContent().groups.count == 1 && birth.provenanceContent().groups[0].owner == nil)
         #expect(birth.provenanceContent().records.count == 2 && birth.provenanceContent().records.allSatisfy { $0.counted })
-        #expect(birth.whyTitle == "Why “\(birth.shown.lead ?? "")”" && birth.shown.lead != nil)
+        #expect(birth.shown.lead != nil)
         // No death event: no Why.
-        #expect(page.rows[3].provenanceContent().records.isEmpty && page.rows[3].whyTitle == "")
+        #expect(page.rows[3].provenanceContent().records.isEmpty)
 
         // A date whose only record is denied: stated empty, with its Why.
         let denied = [CatalogDerivedRow(kind: .birthDate, owners: [
@@ -695,7 +693,6 @@ struct PersonDetailTests {
         ])]
         let empty = PersonDetailContent(detail: detail(summary: lifeSummary(), derivedRows: denied), locale: en).rows[1]
         #expect(empty.shown.lead == nil && empty.provenanceContent().records.count == 1)
-        #expect(empty.whyTitle == "Why “Birth date”")
     }
 
     @Test func anOwnerThatIsNotTheShownOneIsNamed() {

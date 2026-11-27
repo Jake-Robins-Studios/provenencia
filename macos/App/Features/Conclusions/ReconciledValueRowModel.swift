@@ -10,8 +10,8 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
         var label: String
     }
 
-    /// What the row's records are built from, not the records: a sheet or a
-    /// Why builds them when it opens (`provenanceContent()`).
+    /// What the row's records are built from, not the records: the sheet builds
+    /// them when it opens (`provenanceContent()`).
     private enum RecordsSource: Equatable {
         case field(CatalogConclusionField)
         case spanning([CatalogConclusionField])
@@ -35,7 +35,6 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
     var against: String?
     var otherValuesLabel: String?
     var otherValues: [PVProvenanceSheetContent.Value]
-    var whyTitle: String
     var accessibilityLabel: String
     /// A derived row opens the Event or Place it is read from. Nil otherwise.
     var opens: Opens?
@@ -46,6 +45,9 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
 
     /// How a long list of lines folds: the first 20, then 50 more a press.
     static let listFold = PagedFold(limit: 20, minimumHidden: 2)
+
+    /// Whether the row offers the provenance sheet: it has records, whatever its value line says.
+    var hasRecords: Bool { recordCount > 0 }
 
     /// How many records sit behind the row.
     var recordCount: Int {
@@ -71,11 +73,6 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
         otherValues = ReconciledValueDisplay.otherValues(field).map {
             PVProvenanceSheetContent.value($0, propertyKey: field.propertyKey, locale: locale, orders: orders)
         }
-        whyTitle = shown.listedValues.count > 1
-            ? L10n.Conclusions.whyThese(shown.listedValues.count, label: field.label)
-            : field.valueType == .name
-                ? L10n.Conclusions.whyTitleName(shown.lead ?? field.label)
-                : L10n.Conclusions.whyTitle(shown.lead ?? field.label)
         accessibilityLabel = ReconciledValueDisplay.accessibilityLabel(label: field.label, lead: Self.spokenValue(shown), field: field)
         source = .field(field)
         voice = .field(field)
@@ -117,7 +114,7 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
         }
     }
 
-    /// The sheet or Why content of the row, built from its records now. The
+    /// The sheet content of the row, built from its records now. The
     /// row's label and shown value go in, so a relabelled row and its sheet
     /// cannot disagree.
     func provenanceContent() -> PVProvenanceSheetContent {
@@ -135,7 +132,7 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
     }
 
     /// One Date row whose lead is a start–end span, or whose `listed` lines are
-    /// the dates behind an as-of dating. Why lists every record on those
+    /// the dates behind an as-of dating. Its sheet lists every record on those
     /// properties. The span is not one property's reconciled state, so it
     /// carries no badge.
     static func spanning(
@@ -155,17 +152,15 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
             id: id, label: label,
             shown: shown,
             count: nil, against: nil, otherValuesLabel: nil, otherValues: [],
-            whyTitle: "",
             accessibilityLabel: "",
             source: .spanning(fields), voice: .joined, locale: locale, orders: NameFormatOrders()
         )
         row.accessibilityLabel = row.accessibilityLabel(pages: 0)
-        if row.recordCount > 0 { row.whyTitle = L10n.Conclusions.whyTitle(lead ?? label) }
         return row
     }
 
     /// A date or place read off the canonical graph. A kept count above 1 is
-    /// the mixed badge. Its Why lists the owning handles' fields: the shown
+    /// the mixed badge. Its sheet lists the owning handles' fields: the shown
     /// owner's first, each under a group line when there are several or when
     /// the group is not the shown owner's, and only the shown owner's records
     /// in primary ink.
@@ -188,12 +183,11 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
             id: id, label: label,
             shown: .init(face: face, lead: lead, emptyText: emptyText, badge: mixed && lead != nil ? .mixed : nil),
             count: nil, against: nil, otherValuesLabel: nil, otherValues: [],
-            whyTitle: "", accessibilityLabel: "",
+            accessibilityLabel: "",
             source: .derived(owners: owners, shownOwnerID: shownOwnerID, kind: kind), voice: .joined,
             locale: locale, orders: orders
         )
         row.accessibilityLabel = row.accessibilityLabel(pages: 0)
-        if row.recordCount > 0 { row.whyTitle = L10n.Conclusions.whyTitle(lead ?? label) }
         row.opens = opens
         return row
     }
@@ -203,7 +197,7 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
         var row = Self(
             id: id, label: label,
             shown: .init(face: face, lead: nil, emptyText: emptyText, badge: nil),
-            count: nil, against: nil, otherValuesLabel: nil, otherValues: [], whyTitle: "",
+            count: nil, against: nil, otherValuesLabel: nil, otherValues: [],
             accessibilityLabel: "",
             source: .spanning([]), voice: .joined, locale: .autoupdatingCurrent, orders: NameFormatOrders()
         )
@@ -213,7 +207,7 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
 
     private init(
         id: String, label: String, shown: PVProvenanceSheetContent.Shown, count: String?, against: String?,
-        otherValuesLabel: String?, otherValues: [PVProvenanceSheetContent.Value], whyTitle: String,
+        otherValuesLabel: String?, otherValues: [PVProvenanceSheetContent.Value],
         accessibilityLabel: String, source: RecordsSource, voice: Voice, locale: Locale, orders: NameFormatOrders
     ) {
         self.id = id
@@ -223,7 +217,6 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
         self.against = against
         self.otherValuesLabel = otherValuesLabel
         self.otherValues = otherValues
-        self.whyTitle = whyTitle
         self.accessibilityLabel = accessibilityLabel
         self.source = source
         self.voice = voice

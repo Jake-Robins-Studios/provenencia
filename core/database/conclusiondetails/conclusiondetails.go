@@ -2,9 +2,9 @@
 // the catalog graph. For every Property its members' records speak to, it
 // returns the state, every auto-reconciled value (displayed or not, with its
 // reason), and the auto-reconciler's outcome for each Observation it
-// considered, joined to the record's Source: the "Why" a detail page shows.
+// considered, joined to the record's Source: the records a detail page's provenance sheet shows.
 //
-// Field values are the node's auto-reconciler ranks, and the Why's reconciler
+// Field values are the node's auto-reconciler ranks, and the sheet's reconciler
 // half (reason, value rank, denied by, vote) is the node's outcome rows. Term
 // labels come from the graph vocabulary. A record is three cached pieces
 // composed with no SQL: the node's outcome row, the Observation and its

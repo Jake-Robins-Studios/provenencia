@@ -60,9 +60,6 @@ struct PlaceDetailContent: ConclusionDetailBody {
         var row = ReconciledValueRowModel(field: field, locale: locale)
         row.shown.emptyText = empty
         row = row.relabeled(label, field: field)
-        if row.shown.listedValues.count > 1 {
-            row.whyTitle = L10n.Conclusions.whyThese(row.shown.listedValues.count, label: label)
-        }
         return row
     }
 

@@ -265,7 +265,6 @@ struct EventDetailTests {
         #expect(row.shown.lead == "as of 10 Jan 1990–10 Feb 2015")
         #expect(row.shown.badge == nil && row.count == nil)
         #expect(row.provenanceContent().records.count == 3)
-        #expect(row.whyTitle == "Why “as of 10 Jan 1990–10 Feb 2015”")
         #expect(row.accessibilityLabel == "Date, as of 10 Jan 1990; as of 10 Feb 2015")
         #expect(row.label == "Date")
     }
@@ -379,11 +378,10 @@ struct EventDetailTests {
 
         let both = page([unshown("date", "d"), unshown("start_date", "s")])
         #expect(both.shown.lead == nil && both.shown.emptyText == "No date recorded")
-        #expect(both.whyTitle == "Why “Date”")
         #expect(both.provenanceContent().records.map(\.id) == ["d", "s"])
 
         let none = page([])
-        #expect(none.shown.emptyText == "No date recorded" && none.provenanceContent().records.isEmpty && none.whyTitle == "")
+        #expect(none.shown.emptyText == "No date recorded" && none.provenanceContent().records.isEmpty)
     }
 
     @Test func aLongListFoldsTwentyThenFifty() {

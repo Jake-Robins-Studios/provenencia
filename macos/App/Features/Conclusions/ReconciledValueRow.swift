@@ -2,28 +2,17 @@ import SwiftUI
 
 /// One field on a Conclusion detail page (board S9-D5): label · lead value ·
 /// state badge, Source count and disagreement · disclosures for a mixed
-/// field's other values and for the Why. State is always text, never colour
+/// field's other values · the provenance control. State is always text, never colour
 /// alone. Snowflake: Person, Event and Place pages share it from this folder.
 struct ReconciledValueRow: View {
-    /// How the row offers where its value came from. `.why` is the Why disclosure
-    /// (the Event and Place pages). `.sheet` is the Person page's mode: the row
-    /// ends with a 28pt slot holding the provenance control (empty when the row
-    /// has no records) and draws no Why.
-    enum Provenance {
-        case why
-        case sheet
-    }
-
     let model: ReconciledValueRowModel
-    var provenance: Provenance = .why
-    /// Opens the provenance sheet on this row (`.sheet` mode only).
-    var openProvenance: () -> Void = {}
+    /// Opens the provenance sheet on this row.
+    let openProvenance: () -> Void
     /// The section's focus for the open arrow: the row's id when the arrow has the keyboard, so
     /// Back can give it back (`ConclusionDetailRowsSection`).
     let openFocus: FocusState<String?>.Binding
     @Environment(WorkspaceNavigation.self) private var navigation
     @State private var showsOtherValues = false
-    @State private var showsWhy = false
     /// How many pages of a long list of lines the row has revealed (`ReconciledValueRowModel.listFold`).
     @State private var folds = PagedFoldState<String>()
     /// Where the keyboard goes when the last page of lines is revealed and Show more leaves.
@@ -31,7 +20,7 @@ struct ReconciledValueRow: View {
 
     /// A disclosure stop of the row.
     private enum Stop: Hashable {
-        case why, provenance, others, more
+        case provenance, others, more
     }
 
     /// The value column starts after the label column and its gap.
@@ -44,9 +33,7 @@ struct ReconciledValueRow: View {
             HStack(alignment: .center, spacing: PVSpacing.space6) {
                 summary
                 disclosures
-                if provenance == .sheet {
-                    provenanceSlot
-                }
+                provenanceSlot
             }
             .frame(minHeight: 52)
             .padding(.vertical, PVSpacing.space3)
@@ -68,20 +55,15 @@ struct ReconciledValueRow: View {
                     .padding(.leading, Self.disclosureInset)
                     .padding(.bottom, PVSpacing.space5)
             }
-            if provenance == .why, showsWhy {
-                ReconciliationReasoningView(model: model)
-                .padding(.leading, Self.disclosureInset)
-                .padding(.bottom, PVSpacing.space5)
-            }
         }
         .accessibilityIdentifier("conclusion.detail.row.\(model.id)")
         .onChange(of: model.shown.listedValues.map(\.id)) { folds = PagedFoldState<String>() }
     }
 
-    /// The row's first disclosure stop: the Why (`.why`) or the provenance control (`.sheet`), else the
-    /// other values. Nil when the row has none.
+    /// The row's first disclosure stop: the provenance control when the row has records, else the other values.
+    /// Nil when the row has neither.
     private var firstStop: Stop? {
-        if model.recordCount > 0 { return provenance == .why ? .why : .provenance }
+        if model.hasRecords { return .provenance }
         return model.otherValuesLabel == nil ? nil : .others
     }
 
@@ -146,11 +128,6 @@ struct ReconciledValueRow: View {
                     .focused($focusedStop, equals: .others)
                     .accessibilityIdentifier("conclusion.detail.row.\(model.id).others")
             }
-            if provenance == .why, model.recordCount > 0 {
-                PVDisclosureButton(L10n.Conclusions.whyButton, isExpanded: $showsWhy)
-                    .focused($focusedStop, equals: .why)
-                    .accessibilityIdentifier("conclusion.detail.row.\(model.id).why")
-            }
             if let opens = model.opens {
                 PVIconButton(.arrowUpRight, label: opens.label, size: .sm, action: open(opens))
                     .focused(openFocus, equals: model.id)
@@ -172,7 +149,7 @@ struct ReconciledValueRow: View {
     /// records, else empty so the values line up (VoiceOver skips the empty slot).
     @ViewBuilder
     private var provenanceSlot: some View {
-        if model.recordCount == 0 {
+        if !model.hasRecords {
             Color.clear
                 .frame(width: 28, height: 28)
                 .accessibilityHidden(true)
@@ -220,11 +197,10 @@ struct ConclusionDetailRowsSection: View {
     let rows: [ReconciledValueRowModel]
     let refreshing: Bool
     var title: LocalizedStringResource? = nil
-    var provenance: ReconciledValueRow.Provenance = .why
 
     @Environment(WorkspaceNavigation.self) private var navigation
     @Environment(\.pvWidthClass) private var widthClass
-    /// The row whose provenance sheet is open (`.sheet` mode); one presenter for all rows.
+    /// The row whose provenance sheet is open; one presenter for all rows.
     @State private var provenanceItem: ProvenanceSheetItem?
     /// The row whose open arrow has the keyboard (`ReconciledValueRow.openFocus`).
     @FocusState private var openFocus: String?
@@ -250,7 +226,7 @@ struct ConclusionDetailRowsSection: View {
             }
             ForEach(rows) { row in
                 ReconciledValueRow(
-                    model: row, provenance: provenance,
+                    model: row,
                     openProvenance: { provenanceItem = ProvenanceSheetItem(id: row.id) },
                     openFocus: $openFocus
                 )

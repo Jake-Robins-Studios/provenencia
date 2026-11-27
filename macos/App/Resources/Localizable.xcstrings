@@ -17491,7 +17491,7 @@
       }
     },
     "conclusions.readAs.none": {
-      "comment": "Why table, Read as column: the record states nothing for this field",
+      "comment": "Provenance table, Read as column: the record states nothing for this field",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -17514,18 +17514,6 @@
         }
       }
     },
-    "conclusions.why.source": {
-      "comment": "Why table column heading: the Source the record is cited under",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Source"
-          }
-        }
-      }
-    },
     "provenanceSheet.column.outcome": {
       "comment": "Provenance table column heading: what the auto-reconciler did with the record",
       "extractionState": "manual",
@@ -17534,18 +17522,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Outcome"
-          }
-        }
-      }
-    },
-    "conclusions.why.button": {
-      "comment": "Button on a Conclusion field that shows the records behind its value",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Why"
           }
         }
       }
@@ -18943,61 +18919,13 @@
       }
     },
     "conclusions.readAs.not": {
-      "comment": "Why table, Read as column: a negative record saying the value is not this; argument is the value",
+      "comment": "Provenance table, Read as column: a negative record saying the value is not this; argument is the value",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "not %@"
-          }
-        }
-      }
-    },
-    "conclusions.why.title.name": {
-      "comment": "Heading of the records behind a name value; the argument is the displayed name, which may carry its own quotes",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Why %@"
-          }
-        }
-      }
-    },
-    "conclusions.why.title": {
-      "comment": "Heading of the records behind a value; argument is the value",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Why “%@”"
-          }
-        }
-      }
-    },
-    "conclusions.why.these": {
-      "comment": "Heading of the records behind several kept values; arguments are the count and the lowercased field label",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Why these %1$lld %2$@"
-          }
-        }
-      }
-    },
-    "conclusions.why.records": {
-      "comment": "VoiceOver label of the records behind a field; argument is the field label",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Records considered for %@"
           }
         }
       }

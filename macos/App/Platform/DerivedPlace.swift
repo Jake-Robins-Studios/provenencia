@@ -5,7 +5,7 @@ import Foundation
 /// Montreal) are one place, not a disagreement.
 enum DerivedPlace {
     /// The Place the row shows: the first whose line is not empty. The label,
-    /// the open arrow and the Why's ink all read this one Place.
+    /// the open arrow and the sheet's ink all read this one Place.
     static func shown(_ places: [CatalogChainedPlace]) -> CatalogChainedPlace? {
         places.first { !PlaceChainDisplay.placeLine($0).isEmpty }
     }
