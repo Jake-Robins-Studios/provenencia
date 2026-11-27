@@ -852,6 +852,12 @@ struct CatalogPersonFamily: Sendable, Equatable {
     /// Every sibling once with the person among them, in the order the page
     /// draws them.
     var originSiblings: [CatalogOriginSibling] = []
+    /// The person's siblings by the parents they share with the person, the
+    /// person among them; the first group is the person's.
+    var siblingGroups: [CatalogSiblingGroup] = []
+    /// Every couple the page shows with a marriage: the person and a partner, or
+    /// two of the person's parents. `siblingGroups` and `units` name them by index.
+    var couples: [CatalogFamilyCouple] = []
     var inputs = CatalogPageInputs()
 }
 
@@ -990,6 +996,28 @@ struct CatalogFamilyUnit: Sendable, Equatable {
     var kind: Kind
     var partners: [CatalogFamilyMember]
     var children: [CatalogFamilyMember]
+    /// For a `.partner` unit, the index in the family's `couples` of the couple
+    /// of the person and the partner; empty when they have no marriage.
+    var coupleIndexes: [Int] = []
+}
+
+/// The person's siblings who share exactly the same of the person's parents, the
+/// person among them. `parents` are the person's parents the group shares, in
+/// the person's parent order; `children` are in birth order, undated last, and
+/// the person's own member has no link. `coupleIndexes` are indexes in the
+/// family's `couples`: the couples among the group's parents.
+struct CatalogSiblingGroup: Sendable, Equatable {
+    var parents: [CatalogFamilyMember]
+    var children: [CatalogFamilyMember]
+    var coupleIndexes: [Int] = []
+}
+
+/// Two people the page shows together and the marriage events both are subjects
+/// of, earliest first.
+struct CatalogFamilyCouple: Sendable, Equatable {
+    var aEntityId: String
+    var bEntityId: String
+    var marriages: [CatalogEventSummary]
 }
 
 /// One relative and the person's link to them. `link` is nil for a co-parent

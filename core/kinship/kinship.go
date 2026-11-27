@@ -4,8 +4,9 @@
 // catalog, no I/O, no numbers; the catalog's bridge terms and the Rules come
 // in as arguments. It returns only implied links; `LinkSet` merges them with direct ones.
 // `Siblings` reads the siblings a shared parent implies, for the page; matching
-// never calls it. `KinOf` and `FamilyUnits` read a person's nuclear family for
-// the page, from links `LinkSet` has merged; matching never calls them.
+// never calls it. `KinOf`, `FamilyUnits`, `SiblingGroups` and `Couples` read a
+// person's nuclear family for the page, from links `LinkSet` has merged;
+// matching never calls them.
 package kinship
 
 import (

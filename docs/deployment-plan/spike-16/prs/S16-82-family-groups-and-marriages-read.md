@@ -1,6 +1,7 @@
 # S16-82 — The Family read sends sibling groups and each couple's marriages
 
-**Status:** Planned
+**Status:** Landed in [#1009](https://github.com/Jake-Robins-Studios/provenencia/pull/1009) (2026-11-27)
+**Landed:** As planned, except: T-9 is a new test, `TestDropUnreadGroupsAndCouples`, beside `TestDropUnread` rather than an extension of its literal; `spouseLink` calls a small `filedSpouseLink` (one spouse link a person files to another), since `core/kinship` may hold no literal number (`TestLayerPackages`). T-7 is a new test, `TestCraftedMarriages`, beside `TestCraftedFamily`. D-5's self-pair skip was dropped: load refuses a link from a record to itself (user ruling 2026-11-14). `PersonFamily` builds each couple's `Marriages` from the events it read, once, and `marriageEvents` no longer rewrites the couples; `Families` applies `maxMarriagesPerCouple` to the pivots it puts under `Marriages` (the one place the cap is applied), and `marriageEvents` loads what it kept. The sent shape is unchanged.
 **Spike / slice:** Spike 16 · Slice 6l — Family parents
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the engine sends new fields that nothing draws until S16-81)

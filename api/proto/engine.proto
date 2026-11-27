@@ -1965,6 +1965,13 @@ message GetPersonFamilyResponse {
   repeated OriginSibling origin_siblings = 3;
   // inputs is what this value was built from.
   PageInputs inputs = 4;
+  // sibling_groups is the person's siblings by the parents they share with the
+  // person, the person among them; the first group is the person's.
+  repeated SiblingGroup sibling_groups = 5;
+  // couples is every couple the page shows with a marriage: the person and a
+  // partner, or two of the person's parents. sibling_groups and units name them
+  // by index.
+  repeated FamilyCouple couples = 6;
 }
 
 // ListPersonEventsRequest asks for the events a canonical person took part in.
@@ -2137,6 +2144,25 @@ message FamilyUnit {
   FamilyUnitKind kind = 1;
   repeated FamilyMember partners = 2;
   repeated FamilyMember children = 3;
+  // couple_indexes names, for a PARTNER unit, the couple of the person and the
+  // partner in the response's couples, when they have a marriage.
+  repeated int32 couple_indexes = 4;
+}
+
+// SiblingGroup is the person's siblings who share exactly the same of the
+// person's parents, the person among them. The first group is the person's.
+message SiblingGroup {
+  repeated FamilyMember parents = 1;   // the person's parents the group shares, in the person's parent order
+  repeated FamilyMember children = 2;  // birth order, undated last; the person's member has no link
+  repeated int32 couple_indexes = 3;   // indexes into the response's couples: the couples among this group's parents
+}
+
+// FamilyCouple is two people the page shows together and the marriage events
+// both are subjects of, earliest first.
+message FamilyCouple {
+  string a_entity_id = 1;
+  string b_entity_id = 2;
+  repeated EventSummary marriages = 3;
 }
 
 // FamilyMember is one relative and the person's link to them; link is unset

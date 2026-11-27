@@ -6628,6 +6628,15 @@ public nonisolated struct Provenencia_Engine_V1_GetPersonFamilyResponse: Sendabl
   /// Clears the value of `inputs`. Subsequent reads from it will return its default value.
   public mutating func clearInputs() {self._inputs = nil}
 
+  /// sibling_groups is the person's siblings by the parents they share with the
+  /// person, the person among them; the first group is the person's.
+  public var siblingGroups: [Provenencia_Engine_V1_SiblingGroup] = []
+
+  /// couples is every couple the page shows with a marriage: the person and a
+  /// partner, or two of the person's parents. sibling_groups and units name them
+  /// by index.
+  public var couples: [Provenencia_Engine_V1_FamilyCouple] = []
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
@@ -7019,6 +7028,49 @@ public nonisolated struct Provenencia_Engine_V1_FamilyUnit: Sendable {
   public var partners: [Provenencia_Engine_V1_FamilyMember] = []
 
   public var children: [Provenencia_Engine_V1_FamilyMember] = []
+
+  /// couple_indexes names, for a PARTNER unit, the couple of the person and the
+  /// partner in the response's couples, when they have a marriage.
+  public var coupleIndexes: [Int32] = []
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+/// SiblingGroup is the person's siblings who share exactly the same of the
+/// person's parents, the person among them. The first group is the person's.
+public nonisolated struct Provenencia_Engine_V1_SiblingGroup: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  /// the person's parents the group shares, in the person's parent order
+  public var parents: [Provenencia_Engine_V1_FamilyMember] = []
+
+  /// birth order, undated last; the person's member has no link
+  public var children: [Provenencia_Engine_V1_FamilyMember] = []
+
+  /// indexes into the response's couples: the couples among this group's parents
+  public var coupleIndexes: [Int32] = []
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+/// FamilyCouple is two people the page shows together and the marriage events
+/// both are subjects of, earliest first.
+public nonisolated struct Provenencia_Engine_V1_FamilyCouple: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var aEntityID: String = String()
+
+  public var bEntityID: String = String()
+
+  public var marriages: [Provenencia_Engine_V1_EventSummary] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -20011,7 +20063,7 @@ nonisolated extension Provenencia_Engine_V1_GetPersonFamilyRequest: SwiftProtobu
 
 nonisolated extension Provenencia_Engine_V1_GetPersonFamilyResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".GetPersonFamilyResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}units\0\u{1}person\0\u{3}origin_siblings\0\u{1}inputs\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}units\0\u{1}person\0\u{3}origin_siblings\0\u{1}inputs\0\u{3}sibling_groups\0\u{1}couples\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -20023,6 +20075,8 @@ nonisolated extension Provenencia_Engine_V1_GetPersonFamilyResponse: SwiftProtob
       case 2: try { try decoder.decodeSingularMessageField(value: &self._person) }()
       case 3: try { try decoder.decodeRepeatedMessageField(value: &self.originSiblings) }()
       case 4: try { try decoder.decodeSingularMessageField(value: &self._inputs) }()
+      case 5: try { try decoder.decodeRepeatedMessageField(value: &self.siblingGroups) }()
+      case 6: try { try decoder.decodeRepeatedMessageField(value: &self.couples) }()
       default: break
       }
     }
@@ -20045,6 +20099,12 @@ nonisolated extension Provenencia_Engine_V1_GetPersonFamilyResponse: SwiftProtob
     try { if let v = self._inputs {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
     } }()
+    if !self.siblingGroups.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.siblingGroups, fieldNumber: 5)
+    }
+    if !self.couples.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.couples, fieldNumber: 6)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -20053,6 +20113,8 @@ nonisolated extension Provenencia_Engine_V1_GetPersonFamilyResponse: SwiftProtob
     if lhs._person != rhs._person {return false}
     if lhs.originSiblings != rhs.originSiblings {return false}
     if lhs._inputs != rhs._inputs {return false}
+    if lhs.siblingGroups != rhs.siblingGroups {return false}
+    if lhs.couples != rhs.couples {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -20642,7 +20704,7 @@ nonisolated extension Provenencia_Engine_V1_OriginSibling: SwiftProtobuf.Message
 
 nonisolated extension Provenencia_Engine_V1_FamilyUnit: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".FamilyUnit"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}kind\0\u{1}partners\0\u{1}children\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}kind\0\u{1}partners\0\u{1}children\0\u{3}couple_indexes\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -20653,6 +20715,7 @@ nonisolated extension Provenencia_Engine_V1_FamilyUnit: SwiftProtobuf.Message, S
       case 1: try { try decoder.decodeSingularEnumField(value: &self.kind) }()
       case 2: try { try decoder.decodeRepeatedMessageField(value: &self.partners) }()
       case 3: try { try decoder.decodeRepeatedMessageField(value: &self.children) }()
+      case 4: try { try decoder.decodeRepeatedInt32Field(value: &self.coupleIndexes) }()
       default: break
       }
     }
@@ -20668,6 +20731,9 @@ nonisolated extension Provenencia_Engine_V1_FamilyUnit: SwiftProtobuf.Message, S
     if !self.children.isEmpty {
       try visitor.visitRepeatedMessageField(value: self.children, fieldNumber: 3)
     }
+    if !self.coupleIndexes.isEmpty {
+      try visitor.visitPackedInt32Field(value: self.coupleIndexes, fieldNumber: 4)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -20675,6 +20741,87 @@ nonisolated extension Provenencia_Engine_V1_FamilyUnit: SwiftProtobuf.Message, S
     if lhs.kind != rhs.kind {return false}
     if lhs.partners != rhs.partners {return false}
     if lhs.children != rhs.children {return false}
+    if lhs.coupleIndexes != rhs.coupleIndexes {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_SiblingGroup: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".SiblingGroup"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}parents\0\u{1}children\0\u{3}couple_indexes\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeRepeatedMessageField(value: &self.parents) }()
+      case 2: try { try decoder.decodeRepeatedMessageField(value: &self.children) }()
+      case 3: try { try decoder.decodeRepeatedInt32Field(value: &self.coupleIndexes) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.parents.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.parents, fieldNumber: 1)
+    }
+    if !self.children.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.children, fieldNumber: 2)
+    }
+    if !self.coupleIndexes.isEmpty {
+      try visitor.visitPackedInt32Field(value: self.coupleIndexes, fieldNumber: 3)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_SiblingGroup, rhs: Provenencia_Engine_V1_SiblingGroup) -> Bool {
+    if lhs.parents != rhs.parents {return false}
+    if lhs.children != rhs.children {return false}
+    if lhs.coupleIndexes != rhs.coupleIndexes {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_FamilyCouple: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".FamilyCouple"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}a_entity_id\0\u{3}b_entity_id\0\u{1}marriages\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.aEntityID) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.bEntityID) }()
+      case 3: try { try decoder.decodeRepeatedMessageField(value: &self.marriages) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.aEntityID.isEmpty {
+      try visitor.visitSingularStringField(value: self.aEntityID, fieldNumber: 1)
+    }
+    if !self.bEntityID.isEmpty {
+      try visitor.visitSingularStringField(value: self.bEntityID, fieldNumber: 2)
+    }
+    if !self.marriages.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.marriages, fieldNumber: 3)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_FamilyCouple, rhs: Provenencia_Engine_V1_FamilyCouple) -> Bool {
+    if lhs.aEntityID != rhs.aEntityID {return false}
+    if lhs.bEntityID != rhs.bEntityID {return false}
+    if lhs.marriages != rhs.marriages {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

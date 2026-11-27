@@ -654,3 +654,162 @@ func TestKinOfCap(t *testing.T) {
 		}
 	})
 }
+
+func TestSpousePatterns(t *testing.T) {
+	if got := kinship.SpouseEventTypes(); !reflect.DeepEqual(got, []vocabkey.EventType{vocabkey.EventMarriage}) {
+		t.Errorf("SpouseEventTypes = %v, want [marriage]", got)
+	}
+	for pattern, want := range map[kinship.Pattern]bool{
+		kinship.PatternMarriageSpouses: true,
+		kinship.PatternBirthParents:    false,
+		kinship.PatternSharedParent:    false,
+	} {
+		if got := pattern.ImpliesSpouse(); got != want {
+			t.Errorf("%s.ImpliesSpouse() = %v, want %v", pattern, got, want)
+		}
+	}
+}
+
+// parentsOf is person 1's parent links to each id.
+func parentsOf(ids ...byte) []kinship.Link {
+	var ls []kinship.Link
+	for _, id := range ids {
+		ls = append(ls, linkTo(1, id))
+	}
+	return ls
+}
+
+// linkTo is person's link to other, carrying shapes.
+func linkTo(person, other byte, shapes ...kinship.Shape) kinship.Link {
+	return kinship.Link{Edge: kinship.Edge{A: p(person), B: p(other)}, Recording: kinship.Recording{Shapes: shapes}}
+}
+
+func sharedVia(parent byte) kinship.Shape {
+	return kinship.Shape{Pattern: kinship.PatternSharedParent, Pivot: p(parent)}
+}
+
+func marriedAt(event byte) kinship.Shape {
+	return kinship.Shape{Pattern: kinship.PatternMarriageSpouses, Pivot: e(event)}
+}
+
+// showGroups writes each group as "parents:children" in order, people as their
+// numbers and a nil-link member (the person) in brackets.
+func showGroups(groups []kinship.SiblingGroup) []string {
+	side := func(rs []kinship.Relative) string {
+		parts := make([]string, len(rs))
+		for i, r := range rs {
+			parts[i] = fmt.Sprint(int(r.ID[0] - 0x10))
+			if r.Link == nil {
+				parts[i] = "[" + parts[i] + "]"
+			}
+		}
+		return strings.Join(parts, ",")
+	}
+	var out []string
+	for _, g := range groups {
+		out = append(out, side(g.Parents)+":"+side(g.Children))
+	}
+	return out
+}
+
+func TestSiblingGroups(t *testing.T) {
+	// Person 1; parents 2 (Heinrich), 3 (Anna), 4 (Katharina); siblings 5.. .
+	cases := []struct {
+		name string
+		kin  kinship.Kin
+		want []string
+	}{
+		{"AC-1.1", kinship.Kin{
+			kinship.RoleParent:  parentsOf(2, 3),
+			kinship.RoleSibling: {linkTo(1, 5, sharedVia(2), sharedVia(3)), linkTo(1, 6, sharedVia(2), sharedVia(3)), linkTo(1, 7, sharedVia(3))},
+		}, []string{"2,3:5,6,[1]", "3:7"}},
+		{"AC-1.2", kinship.Kin{
+			kinship.RoleParent: parentsOf(2, 3, 4),
+			kinship.RoleSibling: {
+				linkTo(1, 5, sharedVia(2), sharedVia(3)), linkTo(1, 6, sharedVia(2), sharedVia(3), sharedVia(4)),
+				linkTo(1, 7, sharedVia(2), sharedVia(4)), linkTo(1, 8, sharedVia(2), sharedVia(3)),
+			},
+		}, []string{"2,3,4:6,[1]", "2,3:5,8", "2,4:7"}},
+		{"AC-1.3", kinship.Kin{
+			kinship.RoleParent:  parentsOf(2, 3),
+			kinship.RoleSibling: {linkTo(1, 5, sharedVia(3)), linkTo(1, 6, sharedVia(2))},
+		}, []string{"2,3:[1]", "2:6", "3:5"}},
+		{"AC-1.4", kinship.Kin{
+			kinship.RoleParent: parentsOf(2, 3, 4, 8),
+			kinship.RoleSibling: {
+				linkTo(1, 9), linkTo(1, 7, sharedVia(4), sharedVia(8)),
+				linkTo(1, 5, sharedVia(2), sharedVia(3)), linkTo(1, 6, sharedVia(2), sharedVia(3)),
+			},
+		}, []string{"2,3,4,8:[1]", "2,3:5,6", "4,8:7", ":9"}},
+		{"AC-1.5", kinship.Kin{kinship.RoleSibling: {linkTo(1, 5), linkTo(1, 6)}}, []string{":5,6,[1]"}},
+		{"AC-1.6", kinship.Kin{}, []string{":[1]"}},
+		{"eleven parents", kinship.Kin{
+			kinship.RoleParent:  parentsOf(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+			kinship.RoleSibling: {linkTo(1, 13, sharedVia(12))},
+		}, []string{"2,3,4,5,6,7,8,9,10,11,12:[1]", "12:13"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			groups := kinship.SiblingGroups(p(1), c.kin)
+			if got := showGroups(groups); !slices.Equal(got, c.want) {
+				t.Errorf("groups = %q, want %q", got, c.want)
+			}
+		})
+	}
+}
+
+// showCouples writes each couple as "a+b:pivots", people and events as their
+// numbers.
+func showCouples(cs []kinship.Couple) []string {
+	var out []string
+	for _, c := range cs {
+		var ev []string
+		for _, pv := range c.Pivots {
+			ev = append(ev, fmt.Sprint(int(pv[0]-0x20)))
+		}
+		out = append(out, fmt.Sprintf("%d+%d:%s", c.A[0]-0x10, c.B[0]-0x10, strings.Join(ev, ",")))
+	}
+	return out
+}
+
+func TestCouples(t *testing.T) {
+	birthShape := kinship.Shape{Pattern: kinship.PatternBirthParents, Pivot: e(9)}
+	// A married pair of parents 2 and 3 of person 1: only 3 files the spouse link.
+	cases := []struct {
+		name  string
+		kin   kinship.Kin
+		kinOf map[string]kinship.Kin
+		want  []string
+	}{
+		{"two marriage shapes and a repeated pivot", kinship.Kin{
+			kinship.RoleSpouse: {linkTo(1, 5, marriedAt(1), marriedAt(2), marriedAt(1))},
+		}, nil, []string{"1+5:1,2"}},
+		{"the same spouse twice", kinship.Kin{
+			kinship.RoleSpouse: {linkTo(1, 5, marriedAt(1)), linkTo(1, 5, marriedAt(2))},
+		}, nil, []string{"1+5:1"}},
+		{"a spouse link with no marriage shape", kinship.Kin{
+			kinship.RoleSpouse: {linkTo(1, 5, birthShape)},
+		}, nil, nil},
+		{"parents joined by a link filed by the second only", kinship.Kin{
+			kinship.RoleParent: parentsOf(2, 3),
+		}, map[string]kinship.Kin{string(p(3)): {kinship.RoleSpouse: {linkTo(3, 2, marriedAt(4))}}}, []string{"2+3:4"}},
+		{"parents paired only by a shared birth", kinship.Kin{
+			kinship.RoleParent: {linkTo(1, 2, birthShape), linkTo(1, 3, birthShape)},
+		}, nil, nil},
+		{"the person married to a parent who is married to another parent", kinship.Kin{
+			kinship.RoleParent: parentsOf(2, 3),
+			kinship.RoleSpouse: {linkTo(1, 2, marriedAt(1))},
+		}, map[string]kinship.Kin{string(p(2)): {kinship.RoleSpouse: {linkTo(2, 3, marriedAt(2))}}}, []string{"1+2:1", "2+3:2"}},
+		{"eleven parents pair none", kinship.Kin{
+			kinship.RoleParent: parentsOf(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+		}, map[string]kinship.Kin{string(p(2)): {kinship.RoleSpouse: {linkTo(2, 3, marriedAt(1))}}}, nil},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := showCouples(kinship.Couples(p(1), c.kin, c.kinOf, rules))
+			if !slices.Equal(got, c.want) {
+				t.Errorf("couples = %q, want %q", got, c.want)
+			}
+		})
+	}
+}

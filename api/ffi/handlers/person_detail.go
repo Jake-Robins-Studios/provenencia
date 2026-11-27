@@ -123,7 +123,14 @@ func GetPersonFamily(in []byte) ([]byte, error) {
 			}
 			return out, nil
 		}
-		for _, u := range family.Units {
+		indexes := func(ix []int) []int32 {
+			var out []int32
+			for _, i := range ix {
+				out = append(out, int32(i))
+			}
+			return out
+		}
+		for k, u := range family.Units {
 			partners, err := members(u.Partners)
 			if err != nil {
 				return err
@@ -133,10 +140,37 @@ func GetPersonFamily(in []byte) ([]byte, error) {
 				return err
 			}
 			out.Units = append(out.Units, &engine.FamilyUnit{
-				Kind:     familyUnitKindProto(u.Kind),
-				Partners: partners,
-				Children: children,
+				Kind:          familyUnitKindProto(u.Kind),
+				Partners:      partners,
+				Children:      children,
+				CoupleIndexes: indexes(family.UnitCouples[k]),
 			})
+		}
+		for _, g := range family.Groups {
+			parents, err := members(g.Parents)
+			if err != nil {
+				return err
+			}
+			children, err := members(g.Children)
+			if err != nil {
+				return err
+			}
+			out.SiblingGroups = append(out.SiblingGroups, &engine.SiblingGroup{
+				Parents:       parents,
+				Children:      children,
+				CoupleIndexes: indexes(g.Couples),
+			})
+		}
+		for _, c := range family.Couples {
+			couple := &engine.FamilyCouple{AEntityId: database.UUIDString(c.A), BEntityId: database.UUIDString(c.B)}
+			for _, m := range c.Marriages {
+				h, ok := summaries.Event(m)
+				if !ok {
+					return fmt.Errorf("get_person_family: marriage %s has no summary", database.UUIDString(m))
+				}
+				couple.Marriages = append(couple.Marriages, eventSummaryProto(h, paths))
+			}
+			out.Couples = append(out.Couples, couple)
 		}
 		if h, ok := summaries.Person(entityID); ok {
 			out.Person = personSummaryProto(h, paths)
@@ -147,9 +181,7 @@ func GetPersonFamily(in []byte) ([]byte, error) {
 				return err
 			}
 			o := &engine.OriginSibling{Member: m}
-			for _, k := range s.ParentSets {
-				o.ParentSets = append(o.ParentSets, int32(k))
-			}
+			o.ParentSets = indexes(s.ParentSets)
 			out.OriginSiblings = append(out.OriginSiblings, o)
 		}
 		out.Inputs = pageInputsProto(inputs)

@@ -12,6 +12,7 @@ import (
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusiondetails"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusionsummaries"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache/graphcachetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/nameformats"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/persondetail"
@@ -268,14 +269,6 @@ func TestPersonFamily(t *testing.T) {
 }
 
 func TestPersonFamilyOriginSiblings(t *testing.T) {
-	// born gives a person a birth event (with the parents named) and, when
-	// year is not 0, a birth date.
-	born := func(w *kinWorld, p []byte, y int, father, mother []byte) {
-		ev, _ := w.k.Birth(p, father, mother)
-		if y != 0 {
-			w.k.Date(ev, vocabkey.PropertyDate, *datevaluetest.YMD(y, 0, 0))
-		}
-	}
 	// origin reads the origin siblings as "name[parent sets]", each set as its
 	// parents' names joined with "+".
 	origin := func(w *kinWorld, id []byte) []string {
@@ -319,10 +312,10 @@ func TestPersonFamilyOriginSiblings(t *testing.T) {
 		w := newKinWorld(t)
 		johann, heinrich, anna := w.person("Johann"), w.person("Heinrich"), w.person("Anna")
 		marg, fried, wil := w.person("Margarethe"), w.person("Friedrich"), w.person("Wilhelm")
-		born(w, johann, 1817, heinrich, anna)
-		born(w, fried, 1820, heinrich, anna)
-		born(w, wil, 0, heinrich, anna)
-		born(w, marg, 1815, heinrich, anna)
+		bornIn(w, johann, 1817, heinrich, anna)
+		bornIn(w, fried, 1820, heinrich, anna)
+		bornIn(w, wil, 0, heinrich, anna)
+		bornIn(w, marg, 1815, heinrich, anna)
 		check(t, origin(w, johann), "Margarethe[Anna+Heinrich]", "Johann[Anna+Heinrich]", "Friedrich[Anna+Heinrich]", "Wilhelm[Anna+Heinrich]")
 		f, _, _, err := persondetail.PersonFamily(w.c, johann, w.c.Graph().PageInputs())
 		if err != nil {
@@ -346,11 +339,11 @@ func TestPersonFamilyOriginSiblings(t *testing.T) {
 		w := newKinWorld(t)
 		johann, heinrich, anna, kath := w.person("Johann"), w.person("Heinrich"), w.person("Anna"), w.person("Katharina")
 		marg, fried, wil, chris := w.person("Margarethe"), w.person("Friedrich"), w.person("Wilhelm"), w.person("Christian")
-		born(w, johann, 1817, heinrich, anna)
-		born(w, fried, 1820, heinrich, anna)
-		born(w, marg, 1815, heinrich, anna)
-		born(w, wil, 0, heinrich, anna)
-		born(w, chris, 1823, nil, nil)
+		bornIn(w, johann, 1817, heinrich, anna)
+		bornIn(w, fried, 1820, heinrich, anna)
+		bornIn(w, marg, 1815, heinrich, anna)
+		bornIn(w, wil, 0, heinrich, anna)
+		bornIn(w, chris, 1823, nil, nil)
 		for _, p := range [][]byte{johann, fried, chris} {
 			w.k.Parent(heinrich, p)
 			w.k.Parent(kath, p)
@@ -363,11 +356,11 @@ func TestPersonFamilyOriginSiblings(t *testing.T) {
 		w := newKinWorld(t)
 		johann, heinrich, anna, kath := w.person("Johann"), w.person("Heinrich"), w.person("Anna"), w.person("Katharina")
 		marg, fried, wil, chris := w.person("Margarethe"), w.person("Friedrich"), w.person("Wilhelm"), w.person("Christian")
-		born(w, johann, 1817, heinrich, anna)
-		born(w, fried, 1820, heinrich, anna)
-		born(w, marg, 1815, heinrich, anna)
-		born(w, wil, 0, heinrich, anna)
-		born(w, chris, 1823, nil, nil)
+		bornIn(w, johann, 1817, heinrich, anna)
+		bornIn(w, fried, 1820, heinrich, anna)
+		bornIn(w, marg, 1815, heinrich, anna)
+		bornIn(w, wil, 0, heinrich, anna)
+		bornIn(w, chris, 1823, nil, nil)
 		for _, p := range [][]byte{johann, fried, chris} {
 			w.k.Parent(heinrich, p)
 			w.k.Parent(kath, p)
@@ -380,17 +373,17 @@ func TestPersonFamilyOriginSiblings(t *testing.T) {
 	t.Run("recorded sibling after the set", func(t *testing.T) {
 		w := newKinWorld(t)
 		pat, john, mary, quin, rae := w.person("Pat"), w.person("John"), w.person("Mary"), w.person("Quin"), w.person("Rae")
-		born(w, pat, 1840, john, mary)
-		born(w, quin, 1842, john, mary)
+		bornIn(w, pat, 1840, john, mary)
+		bornIn(w, quin, 1842, john, mary)
 		w.k.Relationship(pat, rae, "sibling")
 		check(t, origin(w, pat), "Pat[John+Mary]", "Quin[John+Mary]", "Rae[]")
 	})
 	t.Run("recorded siblings only", func(t *testing.T) {
 		w := newKinWorld(t)
 		clara, ida, bernhard := w.person("Clara"), w.person("Ida"), w.person("Bernhard")
-		born(w, clara, 1841, nil, nil)
-		born(w, ida, 1838, nil, nil)
-		born(w, bernhard, 1844, nil, nil)
+		bornIn(w, clara, 1841, nil, nil)
+		bornIn(w, ida, 1838, nil, nil)
+		bornIn(w, bernhard, 1844, nil, nil)
 		w.k.Relationship(clara, ida, "sibling")
 		w.k.Relationship(clara, bernhard, "sibling")
 		check(t, origin(w, clara), "Ida[]", "Clara[]", "Bernhard[]")
@@ -451,5 +444,296 @@ func TestPersonFamilyRecordsInputs(t *testing.T) {
 		w.k.Parent(quinn, pat)
 		m3, _ := w.k.Marriage(quinn, rhea)
 		holdsIDs(t, "handles", read(t, w, pat), false, pat, quinn, m3)
+	})
+}
+
+// bornIn gives a person a birth event naming the parents (nil leaves one out)
+// and, when year is not 0, a birth date.
+func bornIn(w *kinWorld, p []byte, year int, father, mother []byte) {
+	ev, _ := w.k.Birth(p, father, mother)
+	if year != 0 {
+		w.k.Date(ev, vocabkey.PropertyDate, *datevaluetest.YMD(year, 0, 0))
+	}
+}
+
+// filedParents records each parent of child as a parent relationship, in order,
+// and gives the child a birth dated year when year is not 0.
+func filedParents(w *kinWorld, child []byte, year int, parents ...[]byte) {
+	for _, p := range parents {
+		w.k.Parent(p, child)
+	}
+	bornIn(w, child, year, nil, nil)
+}
+
+// groupsOf writes each sibling group as "Heinrich+Anna: Margarethe, Johann":
+// its parents in order joined with "+", then its children in order.
+func (w *kinWorld) groupsOf(f persondetail.Family) []string {
+	names := func(rs []kinship.Relative, sep string) string {
+		var out []string
+		for _, r := range rs {
+			out = append(out, w.name(r.ID))
+		}
+		return strings.Join(out, sep)
+	}
+	var out []string
+	for _, g := range f.Groups {
+		out = append(out, names(g.Parents, "+")+": "+names(g.Children, ", "))
+	}
+	return out
+}
+
+func TestPersonFamilyGroups(t *testing.T) {
+	check := func(t *testing.T, w *kinWorld, id []byte, want ...string) persondetail.Family {
+		t.Helper()
+		f, err := w.family(id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := w.groupsOf(f); !reflect.DeepEqual(got, want) {
+			t.Fatalf("groups:\n got %q\nwant %q", got, want)
+		}
+		return f
+	}
+	type cast struct {
+		w                                 *kinWorld
+		johann, heinrich, anna, kath      []byte
+		marg, fried, wil, chris, georg, e []byte
+	}
+	newCast := func(t *testing.T) cast {
+		w := newKinWorld(t)
+		return cast{w: w,
+			johann: w.person("Johann"), heinrich: w.person("Heinrich"), anna: w.person("Anna"), kath: w.person("Katharina"),
+			marg: w.person("Margarethe"), fried: w.person("Friedrich"), wil: w.person("Wilhelm"), chris: w.person("Christian"),
+			georg: w.person("Georg Becker"), e: w.person("Elisabeth")}
+	}
+	t.Run("AC-1.1", func(t *testing.T) {
+		c := newCast(t)
+		bornIn(c.w, c.johann, 1817, c.heinrich, c.anna)
+		bornIn(c.w, c.fried, 1820, c.heinrich, c.anna)
+		bornIn(c.w, c.marg, 1815, c.heinrich, c.anna)
+		bornIn(c.w, c.wil, 0, c.heinrich, c.anna)
+		bornIn(c.w, c.chris, 1823, nil, c.anna)
+		c.w.k.Marriage(c.heinrich, c.anna)
+		check(t, c.w, c.johann, "Heinrich+Anna: Margarethe, Johann, Friedrich, Wilhelm", "Anna: Christian")
+	})
+	t.Run("AC-1.2", func(t *testing.T) {
+		c := newCast(t)
+		filedParents(c.w, c.johann, 1817, c.heinrich, c.anna, c.kath)
+		filedParents(c.w, c.fried, 1820, c.heinrich, c.anna, c.kath)
+		filedParents(c.w, c.marg, 1815, c.heinrich, c.anna)
+		filedParents(c.w, c.wil, 0, c.heinrich, c.anna)
+		filedParents(c.w, c.chris, 1823, c.heinrich, c.kath)
+		check(t, c.w, c.johann,
+			"Heinrich+Anna+Katharina: Johann, Friedrich",
+			"Heinrich+Anna: Margarethe, Wilhelm",
+			"Heinrich+Katharina: Christian")
+	})
+	t.Run("AC-1.3", func(t *testing.T) {
+		c := newCast(t)
+		bornIn(c.w, c.johann, 1817, c.heinrich, c.anna)
+		bornIn(c.w, c.wil, 1819, c.heinrich, nil)
+		bornIn(c.w, c.chris, 1823, nil, c.anna)
+		check(t, c.w, c.johann, "Heinrich+Anna: Johann", "Heinrich: Wilhelm", "Anna: Christian")
+	})
+	t.Run("AC-1.4", func(t *testing.T) {
+		c := newCast(t)
+		filedParents(c.w, c.johann, 1817, c.heinrich, c.anna, c.georg, c.kath)
+		filedParents(c.w, c.marg, 1815, c.heinrich, c.anna)
+		filedParents(c.w, c.fried, 1820, c.heinrich, c.anna)
+		filedParents(c.w, c.chris, 1823, c.georg, c.kath)
+		c.w.k.Relationship(c.johann, c.e, "sibling")
+		c.w.k.Marriage(c.heinrich, c.anna)
+		c.w.k.Marriage(c.georg, c.kath)
+		check(t, c.w, c.johann,
+			"Heinrich+Anna+Georg Becker+Katharina: Johann",
+			"Heinrich+Anna: Margarethe, Friedrich",
+			"Georg Becker+Katharina: Christian",
+			": Elisabeth")
+	})
+	t.Run("AC-1.5", func(t *testing.T) {
+		c := newCast(t)
+		clara, karl := c.w.person("Clara"), c.w.person("Karl")
+		bornIn(c.w, c.johann, 1817, nil, nil)
+		bornIn(c.w, clara, 1815, nil, nil)
+		bornIn(c.w, karl, 1820, nil, nil)
+		c.w.k.Relationship(c.johann, clara, "sibling")
+		c.w.k.Relationship(c.johann, karl, "sibling")
+		check(t, c.w, c.johann, ": Clara, Johann, Karl")
+	})
+	t.Run("AC-1.6", func(t *testing.T) {
+		c := newCast(t)
+		check(t, c.w, c.johann, ": Johann")
+	})
+	t.Run("a merged sibling is dropped with a group it empties", func(t *testing.T) {
+		c := newCast(t)
+		bornIn(c.w, c.johann, 1817, c.heinrich, c.anna)
+		bornIn(c.w, c.marg, 1815, c.heinrich, c.anna)
+		bornIn(c.w, c.chris, 1823, nil, c.anna)
+		stranger := c.w.person("Stranger")
+		c.w.k.Merge(c.chris, stranger)
+		c.w.k.Commit(c.chris, stranger)
+		check(t, c.w, c.johann, "Heinrich+Anna: Margarethe, Johann")
+	})
+	t.Run("a merged parent leaves the group its children and its other parents", func(t *testing.T) {
+		c := newCast(t)
+		bornIn(c.w, c.johann, 1817, c.heinrich, c.anna)
+		bornIn(c.w, c.marg, 1815, c.heinrich, c.anna)
+		stranger := c.w.person("Stranger")
+		c.w.k.Merge(c.heinrich, stranger)
+		c.w.k.Commit(c.heinrich, stranger)
+		f, err := c.w.family(c.johann)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := c.w.groupsOf(f)
+		if len(got) == 0 || got[0] != "Anna: Margarethe, Johann" {
+			t.Fatalf("groups %q", got)
+		}
+	})
+}
+
+func TestPersonFamilyCouples(t *testing.T) {
+	// couples writes each couple as "A+B: marriage ids in order, as m1, m2".
+	couples := func(w *kinWorld, f persondetail.Family, marriages map[string]string) []string {
+		var out []string
+		for _, c := range f.Couples {
+			var ms []string
+			for _, m := range c.Marriages {
+				ms = append(ms, marriages[string(m)])
+			}
+			out = append(out, w.name(c.A)+"+"+w.name(c.B)+": "+strings.Join(ms, ", "))
+		}
+		return out
+	}
+	t.Run("a dated marriage first, an undated one second", func(t *testing.T) {
+		w := newKinWorld(t)
+		johann, maria := w.person("Johann"), w.person("Maria")
+		undated, _ := w.k.Marriage(johann, maria)
+		dated, _ := w.k.Marriage(johann, maria)
+		w.k.Date(dated, vocabkey.PropertyDate, *datevaluetest.YMD(1841, 6, 12))
+		w.k.Commit(dated, undated)
+		f, err := w.family(johann)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := couples(w, f, map[string]string{string(dated): "1841", string(undated): "undated"})
+		if want := []string{"Johann+Maria: 1841, undated"}; !reflect.DeepEqual(got, want) {
+			t.Fatalf("couples %q, want %q", got, want)
+		}
+	})
+	t.Run("parents, a partner through a child only, a spouse link with no marriage", func(t *testing.T) {
+		w := newKinWorld(t)
+		johann, heinrich, anna, sophie, ida := w.person("Johann"), w.person("Heinrich"), w.person("Anna"), w.person("Sophie"), w.person("Ida")
+		bornIn(w, johann, 1817, heinrich, anna)
+		m, _ := w.k.Marriage(heinrich, anna)
+		bornIn(w, w.person("Kid"), 1845, johann, sophie)
+		w.k.Relationship(johann, ida, "spouse")
+		f, err := w.family(johann)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := couples(w, f, map[string]string{string(m): "m"})
+		if want := []string{"Heinrich+Anna: m"}; !reflect.DeepEqual(got, want) {
+			t.Fatalf("couples %q, want %q", got, want)
+		}
+	})
+	t.Run("a marriage merged away is not sent", func(t *testing.T) {
+		w := newKinWorld(t)
+		johann, maria, stranger := w.person("Johann"), w.person("Maria"), w.person("Stranger")
+		keep, _ := w.k.Marriage(johann, maria)
+		gone, _ := w.k.Marriage(johann, maria)
+		other := w.k.Event(vocabkey.EventMarriage)
+		w.k.Merge(gone, other)
+		w.k.Commit(gone, other, stranger)
+		f, err := w.family(johann)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got, want := couples(w, f, map[string]string{string(keep): "keep", string(gone): "gone"}), []string{"Johann+Maria: keep"}; !reflect.DeepEqual(got, want) {
+			t.Fatalf("couples %q, want %q", got, want)
+		}
+		w.k.Merge(keep, other)
+		w.k.Commit(keep, other)
+		f, err = w.family(johann)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(f.Couples) != 0 {
+			t.Fatalf("a couple with no marriage left was sent: %+v", f.Couples)
+		}
+	})
+	t.Run("AC-2.8 the couples a group and a partner unit name", func(t *testing.T) {
+		w := newKinWorld(t)
+		johann, heinrich, anna, kath := w.person("Johann"), w.person("Heinrich"), w.person("Anna"), w.person("Katharina")
+		maria, sophie, kid := w.person("Maria"), w.person("Sophie"), w.person("Kid")
+		filedParents(w, johann, 1817, heinrich, anna, kath)
+		filedParents(w, w.person("Friedrich"), 1820, heinrich, anna)
+		filedParents(w, w.person("Christian"), 1823, heinrich, kath)
+		w.k.Marriage(heinrich, anna)
+		w.k.Marriage(heinrich, kath)
+		w.k.Marriage(johann, maria)
+		bornIn(w, kid, 1845, johann, sophie)
+		f, err := w.family(johann)
+		if err != nil {
+			t.Fatal(err)
+		}
+		pair := func(i int) string { return w.name(f.Couples[i].A) + "+" + w.name(f.Couples[i].B) }
+		names := func(ix []int) []string {
+			var out []string
+			for _, i := range ix {
+				out = append(out, pair(i))
+			}
+			return out
+		}
+		var haveGroups []string
+		for _, g := range f.Groups {
+			haveGroups = append(haveGroups, strings.Join(names(g.Couples), ";"))
+		}
+		if want := []string{"Heinrich+Anna;Heinrich+Katharina", "Heinrich+Anna", "Heinrich+Katharina"}; !reflect.DeepEqual(haveGroups, want) {
+			t.Fatalf("group couples %q, want %q", haveGroups, want)
+		}
+		if len(f.UnitCouples) != len(f.Units) {
+			t.Fatalf("%d unit couple lists for %d units", len(f.UnitCouples), len(f.Units))
+		}
+		partner := map[string][]string{}
+		for k, u := range f.Units {
+			if u.Kind == kinship.UnitPartner {
+				partner[w.name(u.Partners[0].ID)] = names(f.UnitCouples[k])
+			}
+		}
+		if want := map[string][]string{"Maria": {"Johann+Maria"}, "Sophie": nil}; !reflect.DeepEqual(partner, want) {
+			t.Fatalf("partner unit couples %v, want %v", partner, want)
+		}
+	})
+	t.Run("AC-2.7 a date edit reaches the read", func(t *testing.T) {
+		w := newKinWorld(t)
+		johann, maria := w.person("Johann"), w.person("Maria")
+		m, _ := w.k.Marriage(johann, maria)
+		w.k.Commit(m)
+		read := func() (conclusionsummaries.EventSummary, [][]byte) {
+			in := w.c.Graph().PageInputs()
+			f, _, summaries, err := persondetail.PersonFamily(w.c, johann, in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(f.Couples) != 1 || len(f.Couples[0].Marriages) != 1 {
+				t.Fatalf("couples %+v", f.Couples)
+			}
+			h, ok := summaries.Event(f.Couples[0].Marriages[0])
+			if !ok {
+				t.Fatal("no summary for the marriage")
+			}
+			handles, _, _ := in.Lists()
+			return h, handles
+		}
+		before, handles := read()
+		holdsIDs(t, "handles", handles, false, m)
+		w.k.Date(m, vocabkey.PropertyDate, *datevaluetest.YMD(1850, 1, 2))
+		w.k.Commit(m)
+		after, handles := read()
+		holdsIDs(t, "handles", handles, false, m)
+		if reflect.DeepEqual(before.Dating, after.Dating) {
+			t.Fatalf("the marriage kept its old date: %+v", after.Dating)
+		}
 	})
 }
