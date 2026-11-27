@@ -12,6 +12,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/databasetest" // registers graphcache.SetTruth for verify mode
 	"github.com/Jake-Robins-Studios/provenencia/core/database/datevalues"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/sourcecredibilitygradestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
@@ -21,8 +22,8 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
-// OpenCatalog creates a catalog in a temporary directory with one user and the
-// seeded subject vocabulary. It closes with the test.
+// OpenCatalog creates a catalog in a temporary directory with one user, the
+// seeded subject vocabulary and the credibility grades. It closes with the test.
 func OpenCatalog(t testing.TB) *database.Catalog {
 	t.Helper()
 	c, err := database.Create(t.TempDir(), "t.provenencia")
@@ -38,6 +39,9 @@ func OpenCatalog(t testing.TB) *database.Catalog {
 		t.Fatal(err)
 	}
 	if err := subjectvocabtest.Install(c); err != nil {
+		t.Fatal(err)
+	}
+	if err := sourcecredibilitygradestest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	return c
@@ -62,6 +66,8 @@ type Canon struct {
 	citation []byte
 	graph    []byte
 	source   []byte
+	// sourceType is the Source type every Source of this Canon has.
+	sourceType []byte
 }
 
 // NewCanon returns a builder over c, with one Source, Artifact, Citation and
@@ -77,6 +83,7 @@ func NewCanon(t testing.TB, c *database.Catalog) *Canon {
 	if err != nil {
 		t.Fatal(err)
 	}
+	k.sourceType = typeID
 	k.source, k.graph, k.citation = k.next(5), k.next(6), k.next(7)
 	artifact := k.next(8)
 	k.exec(`INSERT INTO sources (id, ref, source_type_id, title) VALUES (?, 'SRC-TST', ?, 'Canon')`, k.source, typeID)
@@ -84,6 +91,39 @@ func NewCanon(t testing.TB, c *database.Catalog) *Canon {
 	k.exec(`INSERT INTO evidence_graphs (id, ref, source_id, name) VALUES (?, 'EVG-TST', ?, 'Canon')`, k.graph, k.source)
 	k.exec(`INSERT INTO citations (id, ref, artifact_id, graph_id, locator_json) VALUES (?, 'CIT-TST', ?, ?, '{"version":1,"selectors":[{"type":"page","artifact_page":1}]}')`, k.citation, artifact, k.graph)
 	return k
+}
+
+// NewSource files another Source with its own Artifact, Evidence graph and
+// Citation, and makes it the one the entities and links made after it are
+// observed on; those made before keep theirs. A grade key (a provenencia
+// credibility grade, such as "low_trust") assesses the Source; empty leaves it
+// unassessed. uncertain marks its Citation's transcription uncertain. It
+// returns the Source's id.
+func (k *Canon) NewSource(grade string, uncertain bool) []byte {
+	k.t.Helper()
+	source, graph, citation, artifact := k.next(5), k.next(6), k.next(7), k.next(8)
+	n := k.n
+	k.exec(`INSERT INTO sources (id, ref, source_type_id, title) VALUES (?, ?, ?, 'Canon')`, source, fmt.Sprintf("SRC-TST-%d", n), k.sourceType)
+	k.exec(`INSERT INTO artifacts (id, ref, source_id, label) VALUES (?, ?, ?, 'Scan')`, artifact, fmt.Sprintf("ART-TST-%d", n), source)
+	k.exec(`INSERT INTO evidence_graphs (id, ref, source_id, name) VALUES (?, ?, ?, 'Canon')`, graph, fmt.Sprintf("EVG-TST-%d", n), source)
+	k.exec(`INSERT INTO citations (id, ref, artifact_id, graph_id, transcription_uncertain, locator_json) VALUES (?, ?, ?, ?, ?, '{"version":1,"selectors":[{"type":"page","artifact_page":1}]}')`,
+		citation, fmt.Sprintf("CIT-TST-%d", n), artifact, graph, uncertain)
+	if grade != "" {
+		var gradeID []byte
+		if err := k.db.QueryRow(`SELECT id FROM source_credibility_grades WHERE key = ? AND origin = 'provenencia'`, grade).Scan(&gradeID); err != nil {
+			k.t.Fatal(err)
+		}
+		k.exec(`INSERT INTO source_credibility_assessments (id, source_id, credibility_grade_id) VALUES (?, ?, ?)`, k.next(10), source, gradeID)
+	}
+	k.source, k.graph, k.citation = source, graph, citation
+	return source
+}
+
+// SetRef gives the canonical entity id the ref, so a test can order entities
+// by ref (refs are compared as strings). Commit id to tell the graph.
+func (k *Canon) SetRef(id []byte, ref string) {
+	k.t.Helper()
+	k.exec(`UPDATE canonical_entities SET ref = ? WHERE id = ?`, ref, id)
 }
 
 // next is the next id of one table family: {family, 1, 0, ..., counter} (a 24-bit counter, so one Canon mints 16,777,216 ids), with

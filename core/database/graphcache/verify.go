@@ -279,7 +279,7 @@ func sameMembers(got, want []Member) error {
 		return fmt.Errorf("count %d, catalog %d", len(got), len(want))
 	}
 	for i := range got {
-		if !sameID(got[i].SubjectID, want[i].SubjectID) || !sameID(got[i].SourceID, want[i].SourceID) || !sameID(got[i].GraphID, want[i].GraphID) || got[i].Accepted != want[i].Accepted {
+		if !sameID(got[i].SubjectID, want[i].SubjectID) || !sameID(got[i].SourceID, want[i].SourceID) || !sameID(got[i].GraphID, want[i].GraphID) || got[i].Accepted != want[i].Accepted || got[i].Credibility != want[i].Credibility {
 			return fmt.Errorf("claim %d differs", i)
 		}
 	}
@@ -300,7 +300,7 @@ func sameOutcomes(got, want map[string][]Outcome) error {
 		for i, o := range rows {
 			w := truth[i]
 			if !sameID(o.ObservationID, w.ObservationID) || !sameID(o.SubjectID, w.SubjectID) || o.Reason != w.Reason || o.ValueRank != w.ValueRank ||
-				!sameID(o.DeniedBy, w.DeniedBy) || o.VoteSupport != w.VoteSupport || o.VoteOf != w.VoteOf {
+				!sameID(o.DeniedBy, w.DeniedBy) || o.VoteSupport != w.VoteSupport || o.VoteOf != w.VoteOf || o.Uncertain != w.Uncertain {
 				return fmt.Errorf("property %x row %d differs", prop, i)
 			}
 		}

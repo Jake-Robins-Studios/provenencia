@@ -135,6 +135,8 @@ type Outcome struct {
 	DeniedBy      []byte
 	VoteSupport   int
 	VoteOf        int
+	// Uncertain is the Observation's Citation's transcription_uncertain.
+	Uncertain bool
 }
 
 // Member is one accepted or provisional identity claim. SourceID is the Source
@@ -145,6 +147,9 @@ type Member struct {
 	SourceID  []byte
 	GraphID   []byte
 	Accepted  bool
+	// Credibility is the Source's grade as an order relative to the default
+	// grade (gradeorder.Column): 0 standard, negative below it.
+	Credibility int
 }
 
 // AcceptedMembers returns the node's accepted identity claims in Members
