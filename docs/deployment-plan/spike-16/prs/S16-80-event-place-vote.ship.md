@@ -101,11 +101,11 @@ Head `45a9778bf`. F-8 done: `graphcache.RecordsKey` / `InputScope.Records`; `fin
 G-1 done (`b13d86032`, test-only: waits on `lastPromoteBatch != nil && claimBySubject["a"] != nil`; the other three `waitUntil` sites read only state written by the batch). Gate PASS on `b13d86032` (orchestrator run).
 
 ## Result
-Gate PASS · CI green (Go tests, macOS tests) · open: none · follow-ups: `TestListMergeMatchesReload` timing budget (promotealign), `bin/reseed-source-vocab` build broken on main · to user: —
+Gate PASS · CI green (Go tests, macOS tests) · open: none · follow-ups: none (both answered by the user, below) · to user: —
 
-Follow-ups (homes to be chosen by the user):
-- `core/database/promotealign` `TestListMergeMatchesReload` 20 ms wall-clock budget missed once (29 ms) under a parallel run; not touched by this PR.
-- `go build ./bin/...` fails on main: `bin/reseed-source-vocab` uses the removed `vocabkey.MetadataLevels`.
+Follow-ups, answered by the user (2026-11-27):
+- `TestListMergeMatchesReload` ceiling: raised on this PR to 30 ms (G-2, `a620718ee`); the comment records why. A whole compose at the bottom of its 28–73 ms range would now pass under it.
+- `bin/reseed-source-vocab`: gitignored local one-off, never tracked, so nothing on the PR; moved to the Trash by the orchestrator. `go build ./bin/...` no longer fails.
 
 ## Cost
 Plan: 6,717 words (check-plan-docs info line).
