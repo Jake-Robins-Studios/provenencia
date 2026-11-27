@@ -123,6 +123,15 @@ RULES = [
         exclude=("macos/App/Platform/L10n.swift",),
     ),
     Rule(
+        "swift-list-formatter",
+        ("macos/App/*.swift", "macos/ProvenenciaTests/*.swift"),
+        re.compile(r"\bListFormatter\b|\.formatted\(\s*\.list\b"),
+        "a list joined by hand; names a sentence lists go through `L10n.list(_:locale:)`",
+        "add-localized-string; MNT-1 (S16-81)",
+        exclude=("macos/App/Platform/L10n.swift",),
+        tests_too=True,
+    ),
+    Rule(
         "swift-debug-only-in-release",
         ("macos/App/*.swift",),
         None,  # built in main() from the names `macos/App` declares only under `#if DEBUG`

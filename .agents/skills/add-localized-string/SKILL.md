@@ -28,6 +28,7 @@ Copy and track:
 - [ ] Localizable.xcstrings still passes: python3 scripts/check-localizable-xcstrings.py
 - [ ] Copy needed as a `String` uses `L10n.string(…)` or an `L10n` format function — never `String(localized:)`
 - [ ] Tests that asserted old English compare via `L10n.string(L10n.…)` or the format function
+- [ ] Names a sentence lists are joined with `L10n.list(_:locale:)` — never a `ListFormatter` or `.formatted(.list(…))` of your own (`scripts/check-patterns.py` checks it)
 ```
 
 Do **not** edit only `L10n.swift` or only the catalog.
