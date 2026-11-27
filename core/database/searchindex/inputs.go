@@ -10,6 +10,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusionsummaries"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
+	"github.com/Jake-Robins-Studios/provenencia/core/hops"
 )
 
 // catalog_search_inputs records what each person, event and place summary was
@@ -102,9 +103,10 @@ type inputRow struct {
 //
 //   - every row composed from a gone or merged handle, whatever its key;
 //   - every row composed from a moved handle's own values;
-//   - every row composed from a written association's own values, moved or
-//     not, because an event's place vote reads the association as a record
-//     and a write can change the vote without changing what it displays;
+//   - every row composed from the own values of a written event place
+//     association, moved or not, because an event's place vote reads each
+//     one's records and a write can change the vote without changing what the
+//     association displays;
 //   - every row composed from a link at an end of an association that moved or
 //     went, by the ends the index recorded and the ends it has now.
 //
@@ -151,7 +153,7 @@ func ReprojectChanged(q database.Execer, written, moved [][]byte) ([][]byte, err
 		return nil, err
 	}
 	for _, id := range writtenLive {
-		if _, ok := voted[string(id)]; ok {
+		if ks := voted[string(id)]; len(ks) > 0 && ks[0].Bridge == hops.PlacesOfEvent.Bridge() {
 			keys = append(keys, graphcache.InputKey{ID: id})
 		}
 	}
