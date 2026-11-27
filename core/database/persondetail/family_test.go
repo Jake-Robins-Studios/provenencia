@@ -269,14 +269,6 @@ func TestPersonFamily(t *testing.T) {
 }
 
 func TestPersonFamilyOriginSiblings(t *testing.T) {
-	// born gives a person a birth event (with the parents named) and, when
-	// year is not 0, a birth date.
-	born := func(w *kinWorld, p []byte, y int, father, mother []byte) {
-		ev, _ := w.k.Birth(p, father, mother)
-		if y != 0 {
-			w.k.Date(ev, vocabkey.PropertyDate, *datevaluetest.YMD(y, 0, 0))
-		}
-	}
 	// origin reads the origin siblings as "name[parent sets]", each set as its
 	// parents' names joined with "+".
 	origin := func(w *kinWorld, id []byte) []string {
@@ -320,10 +312,10 @@ func TestPersonFamilyOriginSiblings(t *testing.T) {
 		w := newKinWorld(t)
 		johann, heinrich, anna := w.person("Johann"), w.person("Heinrich"), w.person("Anna")
 		marg, fried, wil := w.person("Margarethe"), w.person("Friedrich"), w.person("Wilhelm")
-		born(w, johann, 1817, heinrich, anna)
-		born(w, fried, 1820, heinrich, anna)
-		born(w, wil, 0, heinrich, anna)
-		born(w, marg, 1815, heinrich, anna)
+		bornIn(w, johann, 1817, heinrich, anna)
+		bornIn(w, fried, 1820, heinrich, anna)
+		bornIn(w, wil, 0, heinrich, anna)
+		bornIn(w, marg, 1815, heinrich, anna)
 		check(t, origin(w, johann), "Margarethe[Anna+Heinrich]", "Johann[Anna+Heinrich]", "Friedrich[Anna+Heinrich]", "Wilhelm[Anna+Heinrich]")
 		f, _, _, err := persondetail.PersonFamily(w.c, johann, w.c.Graph().PageInputs())
 		if err != nil {
@@ -347,11 +339,11 @@ func TestPersonFamilyOriginSiblings(t *testing.T) {
 		w := newKinWorld(t)
 		johann, heinrich, anna, kath := w.person("Johann"), w.person("Heinrich"), w.person("Anna"), w.person("Katharina")
 		marg, fried, wil, chris := w.person("Margarethe"), w.person("Friedrich"), w.person("Wilhelm"), w.person("Christian")
-		born(w, johann, 1817, heinrich, anna)
-		born(w, fried, 1820, heinrich, anna)
-		born(w, marg, 1815, heinrich, anna)
-		born(w, wil, 0, heinrich, anna)
-		born(w, chris, 1823, nil, nil)
+		bornIn(w, johann, 1817, heinrich, anna)
+		bornIn(w, fried, 1820, heinrich, anna)
+		bornIn(w, marg, 1815, heinrich, anna)
+		bornIn(w, wil, 0, heinrich, anna)
+		bornIn(w, chris, 1823, nil, nil)
 		for _, p := range [][]byte{johann, fried, chris} {
 			w.k.Parent(heinrich, p)
 			w.k.Parent(kath, p)
@@ -364,11 +356,11 @@ func TestPersonFamilyOriginSiblings(t *testing.T) {
 		w := newKinWorld(t)
 		johann, heinrich, anna, kath := w.person("Johann"), w.person("Heinrich"), w.person("Anna"), w.person("Katharina")
 		marg, fried, wil, chris := w.person("Margarethe"), w.person("Friedrich"), w.person("Wilhelm"), w.person("Christian")
-		born(w, johann, 1817, heinrich, anna)
-		born(w, fried, 1820, heinrich, anna)
-		born(w, marg, 1815, heinrich, anna)
-		born(w, wil, 0, heinrich, anna)
-		born(w, chris, 1823, nil, nil)
+		bornIn(w, johann, 1817, heinrich, anna)
+		bornIn(w, fried, 1820, heinrich, anna)
+		bornIn(w, marg, 1815, heinrich, anna)
+		bornIn(w, wil, 0, heinrich, anna)
+		bornIn(w, chris, 1823, nil, nil)
 		for _, p := range [][]byte{johann, fried, chris} {
 			w.k.Parent(heinrich, p)
 			w.k.Parent(kath, p)
@@ -381,17 +373,17 @@ func TestPersonFamilyOriginSiblings(t *testing.T) {
 	t.Run("recorded sibling after the set", func(t *testing.T) {
 		w := newKinWorld(t)
 		pat, john, mary, quin, rae := w.person("Pat"), w.person("John"), w.person("Mary"), w.person("Quin"), w.person("Rae")
-		born(w, pat, 1840, john, mary)
-		born(w, quin, 1842, john, mary)
+		bornIn(w, pat, 1840, john, mary)
+		bornIn(w, quin, 1842, john, mary)
 		w.k.Relationship(pat, rae, "sibling")
 		check(t, origin(w, pat), "Pat[John+Mary]", "Quin[John+Mary]", "Rae[]")
 	})
 	t.Run("recorded siblings only", func(t *testing.T) {
 		w := newKinWorld(t)
 		clara, ida, bernhard := w.person("Clara"), w.person("Ida"), w.person("Bernhard")
-		born(w, clara, 1841, nil, nil)
-		born(w, ida, 1838, nil, nil)
-		born(w, bernhard, 1844, nil, nil)
+		bornIn(w, clara, 1841, nil, nil)
+		bornIn(w, ida, 1838, nil, nil)
+		bornIn(w, bernhard, 1844, nil, nil)
 		w.k.Relationship(clara, ida, "sibling")
 		w.k.Relationship(clara, bernhard, "sibling")
 		check(t, origin(w, clara), "Ida[]", "Clara[]", "Bernhard[]")
@@ -594,7 +586,7 @@ func TestPersonFamilyGroups(t *testing.T) {
 			t.Fatal(err)
 		}
 		got := c.w.groupsOf(f)
-		if len(got) == 0 || !strings.HasSuffix(got[0], "Margarethe, Johann") || strings.Contains(got[0], "Heinrich") || !strings.Contains(got[0], "Anna") {
+		if len(got) == 0 || got[0] != "Anna: Margarethe, Johann" {
 			t.Fatalf("groups %q", got)
 		}
 	})
@@ -676,6 +668,7 @@ func TestPersonFamilyCouples(t *testing.T) {
 		maria, sophie, kid := w.person("Maria"), w.person("Sophie"), w.person("Kid")
 		filedParents(w, johann, 1817, heinrich, anna, kath)
 		filedParents(w, w.person("Friedrich"), 1820, heinrich, anna)
+		filedParents(w, w.person("Christian"), 1823, heinrich, kath)
 		w.k.Marriage(heinrich, anna)
 		w.k.Marriage(heinrich, kath)
 		w.k.Marriage(johann, maria)
@@ -696,7 +689,7 @@ func TestPersonFamilyCouples(t *testing.T) {
 		for _, g := range f.Groups {
 			haveGroups = append(haveGroups, strings.Join(names(g.Couples), ";"))
 		}
-		if want := []string{"Heinrich+Anna;Heinrich+Katharina", "Heinrich+Anna"}; !reflect.DeepEqual(haveGroups, want) {
+		if want := []string{"Heinrich+Anna;Heinrich+Katharina", "Heinrich+Anna", "Heinrich+Katharina"}; !reflect.DeepEqual(haveGroups, want) {
 			t.Fatalf("group couples %q, want %q", haveGroups, want)
 		}
 		if len(f.UnitCouples) != len(f.Units) {

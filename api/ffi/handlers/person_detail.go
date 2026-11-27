@@ -181,9 +181,7 @@ func GetPersonFamily(in []byte) ([]byte, error) {
 				return err
 			}
 			o := &engine.OriginSibling{Member: m}
-			for _, k := range s.ParentSets {
-				o.ParentSets = append(o.ParentSets, int32(k))
-			}
+			o.ParentSets = indexes(s.ParentSets)
 			out.OriginSiblings = append(out.OriginSiblings, o)
 		}
 		out.Inputs = pageInputsProto(inputs)

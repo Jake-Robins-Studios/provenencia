@@ -671,6 +671,15 @@ func TestSpousePatterns(t *testing.T) {
 }
 
 // linkTo is person's link to other, carrying shapes.
+// parentsOf is person 1's parent links to each id.
+func parentsOf(ids ...byte) []kinship.Link {
+	var ls []kinship.Link
+	for _, id := range ids {
+		ls = append(ls, linkTo(1, id))
+	}
+	return ls
+}
+
 func linkTo(person, other byte, shapes ...kinship.Shape) kinship.Link {
 	return kinship.Link{Edge: kinship.Edge{A: p(person), B: p(other)}, Recording: kinship.Recording{Shapes: shapes}}
 }
@@ -705,35 +714,28 @@ func showGroups(groups []kinship.SiblingGroup) []string {
 
 func TestSiblingGroups(t *testing.T) {
 	// Person 1; parents 2 (Heinrich), 3 (Anna), 4 (Katharina); siblings 5.. .
-	parents := func(ids ...byte) []kinship.Link {
-		var ls []kinship.Link
-		for _, id := range ids {
-			ls = append(ls, linkTo(1, id))
-		}
-		return ls
-	}
 	cases := []struct {
 		name string
 		kin  kinship.Kin
 		want []string
 	}{
 		{"AC-1.1", kinship.Kin{
-			kinship.RoleParent:  parents(2, 3),
+			kinship.RoleParent:  parentsOf(2, 3),
 			kinship.RoleSibling: {linkTo(1, 5, sharedVia(2), sharedVia(3)), linkTo(1, 6, sharedVia(2), sharedVia(3)), linkTo(1, 7, sharedVia(3))},
 		}, []string{"2,3:5,6,[1]", "3:7"}},
 		{"AC-1.2", kinship.Kin{
-			kinship.RoleParent: parents(2, 3, 4),
+			kinship.RoleParent: parentsOf(2, 3, 4),
 			kinship.RoleSibling: {
 				linkTo(1, 5, sharedVia(2), sharedVia(3)), linkTo(1, 6, sharedVia(2), sharedVia(3), sharedVia(4)),
 				linkTo(1, 7, sharedVia(2), sharedVia(4)), linkTo(1, 8, sharedVia(2), sharedVia(3)),
 			},
 		}, []string{"2,3,4:6,[1]", "2,3:5,8", "2,4:7"}},
 		{"AC-1.3", kinship.Kin{
-			kinship.RoleParent:  parents(2, 3),
+			kinship.RoleParent:  parentsOf(2, 3),
 			kinship.RoleSibling: {linkTo(1, 5, sharedVia(3)), linkTo(1, 6, sharedVia(2))},
 		}, []string{"2,3:[1]", "2:6", "3:5"}},
 		{"AC-1.4", kinship.Kin{
-			kinship.RoleParent: parents(2, 3, 4, 8),
+			kinship.RoleParent: parentsOf(2, 3, 4, 8),
 			kinship.RoleSibling: {
 				linkTo(1, 9), linkTo(1, 7, sharedVia(4), sharedVia(8)),
 				linkTo(1, 5, sharedVia(2), sharedVia(3)), linkTo(1, 6, sharedVia(2), sharedVia(3)),
@@ -742,7 +744,7 @@ func TestSiblingGroups(t *testing.T) {
 		{"AC-1.5", kinship.Kin{kinship.RoleSibling: {linkTo(1, 5), linkTo(1, 6)}}, []string{":5,6,[1]"}},
 		{"AC-1.6", kinship.Kin{}, []string{":[1]"}},
 		{"eleven parents", kinship.Kin{
-			kinship.RoleParent:  parents(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+			kinship.RoleParent:  parentsOf(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
 			kinship.RoleSibling: {linkTo(1, 13, sharedVia(12))},
 		}, []string{"2,3,4,5,6,7,8,9,10,11,12:[1]", "12:13"}},
 	}
@@ -773,13 +775,6 @@ func showCouples(cs []kinship.Couple) []string {
 func TestCouples(t *testing.T) {
 	birthShape := kinship.Shape{Pattern: kinship.PatternBirthParents, Pivot: e(9)}
 	// A married pair of parents 2 and 3 of person 1: only 3 files the spouse link.
-	parentsOf := func(ids ...byte) []kinship.Link {
-		var ls []kinship.Link
-		for _, id := range ids {
-			ls = append(ls, linkTo(1, id))
-		}
-		return ls
-	}
 	cases := []struct {
 		name  string
 		kin   kinship.Kin
