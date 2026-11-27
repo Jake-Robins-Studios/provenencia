@@ -1,8 +1,6 @@
 package conclusionsummaries
 
 import (
-	"bytes"
-
 	"github.com/Jake-Robins-Studios/provenencia/core/autoreconcile"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/valuerules"
@@ -32,14 +30,15 @@ type placeVote struct {
 	places []ChainedPlace
 	// links are the verdicts by association id, one per location link whose
 	// Place has a shell and that has a record: ID, Place, Reason and Vote are
-	// set; PropertyID is not.
+	// set; PropertyID is left for the caller (listOwner sets it).
 	links map[string]FieldOwner
 }
 
 // placePrep is the first half of an event's place vote.
 type placePrep struct {
-	// vote is the finished vote when nothing is left to read.
-	vote placeVote
+	// vote is the finished vote, non-nil when prepareVote already decided it
+	// and finishVote reads nothing.
+	vote *placeVote
 	// assocs are the associations finishVote reads, in link order; empty when
 	// the vote is finished.
 	assocs [][]byte
@@ -82,7 +81,7 @@ func prepareVote(pg *placeGraph, at *datevalue.Value, locations []graphcache.Lin
 		raw = append(raw, ChainedPlace{Entity: shell.Entity, Names: shell.Names})
 	}
 	if len(raw) == 0 {
-		return placePrep{}
+		return placePrep{vote: &placeVote{}}
 	}
 	var values map[string]valuecompare.Value
 	if len(raw) > 1 {
@@ -101,6 +100,10 @@ func prepareVote(pg *placeGraph, at *datevalue.Value, locations []graphcache.Lin
 				prep.assocs = append(prep.assocs, l.Association)
 			}
 		}
+		if len(prep.assocs) == 0 {
+			// No link has a record to vote with: the fold's places stand.
+			prep.vote = &placeVote{places: folded, links: map[string]FieldOwner{}}
+		}
 		return prep
 	}
 	// At most one place survives: every other place folds into it.
@@ -115,7 +118,7 @@ func prepareVote(pg *placeGraph, at *datevalue.Value, locations []graphcache.Lin
 		}
 		verdicts[string(l.Association)] = prep.owner(l, reason, autoreconcile.Vote{})
 	}
-	prep.vote = placeVote{places: folded, links: verdicts}
+	prep.vote = &placeVote{places: folded, links: verdicts}
 	return prep
 }
 
@@ -149,13 +152,14 @@ func (p placePrep) place(id []byte) (ChainedPlace, bool) {
 // in, which records them. A link whose node is gone or whose records are all
 // unusable gives no candidate, and its place is not shown.
 func finishVote(in *graphcache.InputScope, v vocab, prep placePrep) (placeVote, error) {
-	if len(prep.assocs) == 0 {
-		return prep.vote, nil
+	if prep.vote != nil {
+		return *prep.vote, nil
 	}
 	placeProp := string(v.prop(hops.PlacesOfEvent.To()))
 	var cands []autoreconcile.Candidate
-	linkOf := map[string]graphcache.Link{} // Observation id -> its link
-	candOf := map[string]int{}             // Observation id -> its index in cands
+	linkOf := map[string]graphcache.Link{}               // Observation id -> its link
+	candOf := map[string]int{}                           // Observation id -> its index in cands
+	members := map[string]map[string]graphcache.Member{} // association id -> Subject id -> member
 	for _, l := range prep.links {
 		if len(l.Association) == 0 {
 			continue
@@ -167,12 +171,22 @@ func finishVote(in *graphcache.InputScope, v vocab, prep placePrep) (placeVote, 
 		if n == nil {
 			continue
 		}
+		byMember, ok := members[string(l.Association)]
+		if !ok {
+			byMember = make(map[string]graphcache.Member, len(n.Members))
+			for _, m := range n.Members {
+				if _, dup := byMember[string(m.SubjectID)]; !dup {
+					byMember[string(m.SubjectID)] = m
+				}
+			}
+			members[string(l.Association)] = byMember
+		}
 		within := prep.values[string(l.Neighbor)].Within
 		for _, o := range n.Outcomes[placeProp] {
 			if o.ValueRank != 1 || len(o.SubjectID) == 0 || (o.Reason != string(autoreconcile.ReasonKept) && o.Reason != string(autoreconcile.ReasonFolded)) {
 				continue
 			}
-			m, ok := memberOf(n, o.SubjectID)
+			m, ok := byMember[string(o.SubjectID)]
 			if !ok {
 				continue
 			}
@@ -216,14 +230,4 @@ func finishVote(in *graphcache.InputScope, v vocab, prep placePrep) (placeVote, 
 		}
 	}
 	return vote, nil
-}
-
-// memberOf is the member of n whose Subject is subjectID.
-func memberOf(n *graphcache.Node, subjectID []byte) (graphcache.Member, bool) {
-	for _, m := range n.Members {
-		if bytes.Equal(m.SubjectID, subjectID) {
-			return m, true
-		}
-	}
-	return graphcache.Member{}, false
 }
