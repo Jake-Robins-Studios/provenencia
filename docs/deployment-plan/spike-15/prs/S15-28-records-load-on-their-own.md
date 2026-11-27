@@ -1,6 +1,6 @@
 # S15-28 — A value's records load on their own
 
-**Status:** Draft
+**Status:** Planned
 **Spike / slice:** Spike 15 · Slice 8 — Provenance loading
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Go and the wire only; the app's rows and sheet read what they read today until S15-29)
@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc`
 **Context:** [`provenance-loading.md`](../provenance-loading.md) "Load records when the sheet opens"; working rules: "Records load when the sheet opens", "Citations render on demand, from SQL", "Today's line stays the fallback, in Swift"; [`conclusion-reconciliation.md`](../../../conclusion-reconciliation.md) (the package table)
 **Planned:** 2026-11-27 against `main` @ `5704482`
-**Review:** — (not reviewed yet)
+**Review:** [`S15-28-records-load-on-their-own.review.md`](S15-28-records-load-on-their-own.review.md) — round 1: Fits with changes / Not ready; every finding Fixed; Planned
 
 ### Implementer — read this first
 
@@ -30,11 +30,11 @@
 
 ## 1. Objective
 
-The engine gains what the provenance sheet needs to load a row's records when it opens instead of with the page: each field's record and Source counts on the detail read, the two denial facts on every record, and one sheet read (`GetProvenanceRecords`) that takes a row's (owner, Property) pairs, or a Person life row, and returns those fields with their records and the records' rendered citations, reporting what it read. Nothing changes in the app yet: S15-29 switches the rows and the sheet to these reads and then stops the detail read sending records.
+The engine gains what the provenance sheet needs to load a row's records when it opens instead of with the page: each field's record and Source counts on the detail read, the two denial facts on every record, and one sheet read (`GetProvenanceRecords`) that takes a row's (owner, Property) pairs, or a Person and a life row kind, and returns its owners' fields with their records, the records' rendered citations, and what it read. Nothing changes in the app yet: S15-29 switches the rows and the sheet to these reads and then stops the detail read sending records.
 
 **Why now.** Working rule "Records load when the sheet opens". S15-21 put a load-on-open call under the sheet, S15-27 bounded what it draws, S15-31 made every detail row open it; the records are the last thing the sheet still takes from the page read.
 
-**What stays.** The detail read still sends every field's outcomes, its derived rows and its pictures as today (D-1). `PictureTile.Record` keeps its outcome. `RenderCitations` stays for the app's current key. No catalog change, no SQL query added to the detail read.
+**What stays.** The detail read still sends every field's outcomes, its derived rows and its pictures (D-1). `PictureTile.Record` keeps its outcome. `RenderCitations` stays for the app's current key. No catalog change, no SQL query added to the detail read.
 
 ## 2. User stories
 
@@ -44,9 +44,9 @@ The engine gains what the provenance sheet needs to load a row's records when it
 | --- | --- | --- |
 | AC-1.1 | A name field with two records from one Source (`namedPerson`: James Robins, Kenneth Robins) | `record_counts` = records 2, sources 1 |
 | AC-1.2 | A name field merged from two Sources, one record each | records 2, sources 2 |
-| AC-1.3 | A mixed field: Source A records two values, Source B records one of them | sources 2 (distinct Sources under the displayed values), not 3 |
-| AC-1.4 | A field with displayed values but no record counted under any of them | sources = the displayed values' summed Support |
-| AC-1.5 | A Person's birth date row's owner field (`derivedRowsFixture`) | the owner field carries `record_counts` with records 2 |
+| AC-1.3 | Two displayed values whose counted outcomes come from Sources A, A and B | sources 2 (distinct), not 3 |
+| AC-1.4 | Two displayed values with Support 3 and 1 and no outcome counted under either | sources 4 (summed Support) |
+| AC-1.5 | A Person's birth date row's owner field (`derivedRowsFixture`) | the owner field's `record_counts.records` = 2 |
 
 **US-2.** As the app, when I word a record, I read whether a negative record eliminated a value and who denied a denied record, so I never search the field's records.
 
@@ -54,38 +54,39 @@ The engine gains what the provenance sheet needs to load a row's records when it
 | --- | --- | --- |
 | AC-2.1 | A negative record that eliminates "James Robbins" (`TestForEntityEvidence`'s fixture) | the negative's `denied_a_value` is true; the denied record's `denied_by_source_title` is the negative's Source title |
 | AC-2.2 | A negative record that eliminates nothing | `denied_a_value` false |
-| AC-2.3 | Any record not denied | `denied_by_source_title` "" |
+| AC-2.3 | A denied record whose denier is not among the field's outcomes, and any record not denied | `denied_by_source_title` "" |
 
 **US-3.** As the app, when a provenance sheet opens, I ask one read for the row's records and their citations.
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-3.1 | `fields` = one pair (a Person, its name Property) | one group: that owner, the name field with its values, both outcomes, its counts; `citations` holds both records' Citations rendered |
-| AC-3.2 | `fields` = (an Event, `date`), (the Event, `as_of`), (the Event, `end_date`) where only `date` and `as_of` have records | two groups, in request order; `end_date` has none and is left out |
-| AC-3.3 | `derived` = (a Person, birth place) where three Sources name Swift Current and one names England (S16-80's fixture) | one group per owner in the row's order; the England link's records read `outvoted` with vote 3 of 4, as `PersonDerivedRows` gives them |
-| AC-3.4 | A pair repeated, or an unknown or merged owner, or a Person with no such row | repeated: one group, first place; unknown or merged: left out; no row: no groups. None is an error |
+| AC-3.1 | `fields` = one pair (`namedPersonID`'s Person, its name Property) | one owner: `entity` the Person, `event` and `place` empty, the name field with its value, both outcomes and counts {2,1}; `citations` holds the one Citation both records share |
+| AC-3.2 | `fields` = (an event Subject's handle, `as_of`), (the same handle, `date`), where only `as_of` has records | one owner, the `as_of` field; `date` is left out |
+| AC-3.3 | `derived` = (a Person, birth place), where three Sources name Swift Current and one names England (S16-80's fixture) | the owners `PersonDerivedRows` gives for that row, in its order, each with its `place`; the England link's records read `outvoted` with vote 3 of 4 |
+| AC-3.4 | A pair repeated; an unknown or merged owner; a Person with no such row; a kind of `DERIVED_ROW_KIND_UNSPECIFIED`; no `row` | repeated: one owner, first place; the rest: no owners. None is an error |
 | AC-3.5 | A malformed owner, Property or Person id | `request.invalid_id` |
-| AC-3.6 | Any answer | `inputs` names the owners read (and the Person, for `derived`), every Evidence graph and Source of the records, and what the citation render read |
-| AC-3.7 | A field with 2,001 distinct Citations | every Citation is rendered, in two render calls |
-| AC-3.8 | The read run twice warm | the second read issues no graph query and reads none of `warmReadTables` |
+| AC-3.6 | Any answer | `inputs` names the owners read (and the Person, for `derived`), every Evidence graph and Source of the records, and what the render read |
+| AC-3.7 | Citations past `citationrender.MaxCitations` | every Citation is rendered, a batch of at most 2,000 at a time, in one transaction |
+| AC-3.8 | The read run twice warm | the second answers the same bytes, issues no graph query, and prepares only the SELECTs `citationrender.Render` prepares for the same Citations |
 
 **US-4.** As a contributor, I know the size of the records the page read sends and how fast the sheet read is at Scale.
 
 | AC | Given / when | Then |
 | --- | --- | --- |
 | AC-4.1 | A Person with records from 30 Sources | the test logs the detail's payload with outcomes and with every outcome cleared; the second is smaller |
-| AC-4.2 | One name field with 1,200 records over 30 Sources | `GetProvenanceRecords` answers 1,200 outcomes and 1,200 citations, warm, within 600 ms |
+| AC-4.2 | One name field with 1,200 records, each its own Citation, over 30 Sources | `GetProvenanceRecords` answers 1,200 outcomes and 1,200 citations, warm, within 600 ms |
 
 ## 3. Scope
 
 | In | Covered by |
 | --- | --- |
-| `RecordCounts` on every field, on the wire as `FieldRecordCounts` | STEP-1, STEP-3, STEP-4; AC-1.x |
-| The two denial facts on every outcome | STEP-1, STEP-3, STEP-4; AC-2.x |
-| `FieldRecords` and `PersonDerivedRow` in `conclusiondetails` | STEP-2; AC-3.1 – AC-3.4 |
-| `GetProvenanceRecords` with chunked citation render and inputs | STEP-3, STEP-4; AC-3.x |
-| Payload measurement and the 1,200-record timing | STEP-5; AC-4.x |
-| The comments and the domain doc line the read makes false | STEP-6 |
+| `FieldRecordCounts` on every field, on the wire as `record_counts` | STEP-1, STEP-4, STEP-5; AC-1.x |
+| The two denial facts on every outcome | STEP-1, STEP-4, STEP-5; AC-2.x |
+| One pairs-to-fields step under `FieldRecords` and the life rows | STEP-2; AC-3.1 – AC-3.4 |
+| `citationrender.RenderAll` | STEP-3; AC-3.7 |
+| `conclusiondetails.ProvenanceSheet` and `GetProvenanceRecords` | STEP-3, STEP-4, STEP-5; AC-3.x |
+| Payload measurement and the 1,200-record timing | STEP-6; AC-4.x |
+| The comments and the domain doc line the read makes false | STEP-4, STEP-7 |
 
 | Out | Home |
 | --- | --- |
@@ -100,36 +101,36 @@ The engine gains what the provenance sheet needs to load a row's records when it
 | Area | Where | Today |
 | --- | --- | --- |
 | Detail composition | `core/database/conclusiondetails/conclusiondetails.go` `fieldsOf`, `finish`, `recordReader.outcome` | `fieldsOf` already composes named (owner, Property) pairs through `only`; `finish` orders outcomes and sets `GroupRank`; no counts or denial facts |
-| Field and outcome types | same file `Field`, `Outcome` | no counts; `DeniedBy` is the only denial fact |
-| Life rows | same file `PersonDerivedRows`, `ownerVerdict` | composes all four rows at once; the only way to a derived row's records, verdict included |
-| Package comment | same file, `package conclusiondetails` doc | says the outcomes are "the records a detail page's provenance sheet shows" |
-| Detail handler | `api/ffi/handlers/conclusion_detail.go` `GetConclusionDetail`, `conclusionFieldProto`, `reconcilerOutcomeProto`, `derivedRowsProto` | maps every field with its outcomes |
-| Render handler | `api/ffi/handlers/citation_render.go` `RenderCitations` | maps `citationrender.Render` results inline; one call, at most `citationrender.MaxCitations` (2,000) ids |
+| Field, outcome and owner types | same file `Field`, `Outcome`, `OwnerField`, `DerivedRow` | no counts; `DeniedBy` is the only denial fact |
+| Life rows | same file `PersonDerivedRows`, `ownerVerdict` | builds all four rows' owner lists, batch-loads with `g.Nodes`, builds `only`, calls `fieldsOf`, then picks each owner's field by Property: the pairs-to-fields step, inline |
+| Package comment | same file, `package conclusiondetails` doc | its first sentence ends "…joined to the record's Source: the records a detail page's provenance sheet shows." |
+| Render | `core/database/citationrender/render.go` `Render`, `render`, `MaxCitations`, `MaxBatchBytes` | `Render` refuses more than 2,000 ids; `render(tx, ids, in)` refuses a batch over 8 MiB with `citations.ErrInvalid` |
+| Detail handler | `api/ffi/handlers/conclusion_detail.go` `conclusionFieldProto`, `reconcilerOutcomeProto`, `derivedRowsProto` | `derivedRowsProto` holds its own `kinds` map and maps each owner inline |
+| Render handler | `api/ffi/handlers/citation_render.go` `RenderCitations` | maps results inline |
 | Dispatch | `api/ffi/dispatch.go` `MethodRenderCitations` and its `case` | last method is `METHOD_MOVE_TO_SOURCE = 128` |
-| Proto | `api/proto/engine.proto` `ConclusionField`, `ReconcilerOutcomeDetail` (last field 25), `PictureDetail` (comment "as the Why shows it"), `RenderedCitation`, `PageInputs`, `DerivedRowKind` | — |
-| Swift counts and denial rules (read only, not changed here) | `macos/App/Platform/ReconciledValueDisplay.swift` `sourceCount`, `distinctSourceCount`, `deniedSomething`, `outcomePhrase` `.denied`; `macos/App/Features/Conclusions/ReconciledValueRowModel.swift` `recordCount` | the rules Go now states: AC-1.x and AC-2.x must equal them |
+| Proto | `api/proto/engine.proto` `ConclusionField` (last field 7), `ReconcilerOutcomeDetail` (last field 25), `ConclusionOwnerField`, `PictureDetail` (comment "as the Why / shows it", wrapped across two lines), `RenderedCitation`, `PageInputs`, `DerivedRowKind` | — |
+| Swift counts and denial rules (read only) | `macos/App/Platform/ReconciledValueDisplay.swift` `sourceCount`, `distinctSourceCount`, `deniedSomething`, `outcomePhrase` `.denied`; `macos/App/Features/Conclusions/ReconciledValueRowModel.swift` `recordCount` | the rules Go now states: AC-1.x and AC-2.x equal them |
 | Domain doc | `docs/conclusion-reconciliation.md` package table, row "Detail read: each field's state, values, and outcomes with their evidence" | names no sheet read |
-| Tests | `core/database/conclusiondetails/conclusiondetails_test.go` `TestForEntityEvidence`, `TestForEntityRecordsInputs`, `TestFieldsOfOnly`; `placerecords_test.go` `TestPlaceOwnersCarryTheVote`; `api/ffi/handlers/conclusion_detail_test.go` `TestGetConclusionDetail`, `TestGetConclusionDetailWarmReadsNoRecordSQL` (`warmReadTables`), `TestGetConclusionDetailCarriesDerivedRows`, `derivedRowsFixture`; `api/ffi/handlers/conclusion_summaries_test.go` `namedPerson`; `api/ffi/handlers/person_detail_test.go` `wantInputs`; `core/database/citationrender/scale_test.go` `TestRenderScale` | — |
+| Tests and fixtures | `core/database/conclusiondetails/conclusiondetails_test.go` `TestForEntityEvidence`, `TestForEntityRecordsInputs`, `TestForEntityManyAsOfs`, `fixture.asOfIn`, `holdsIDs`; `placerecords_test.go` `TestPlaceOwnersCarryTheVote`, `TestPersonDerivedRowsRecordInputs`, `fixture.placedBirth`; `core/database/citationrender/scale_test.go` `seedScale`, `TestRenderScale`; `api/ffi/handlers/conclusion_detail_test.go` `TestGetConclusionDetail`, `TestGetConclusionDetailWarmReadsNoRecordSQL`, `TestGetConclusionDetailCarriesDerivedRows`, `derivedRowsFixture`; `conclusion_summaries_test.go` `namedPersonID`; `promote_align_test.go` `namedPersonOnNewSource`; `promote_test.go` `promoteInDir`; `subjects_test.go` `subjectFixture`; `person_detail_test.go` `wantInputs` | — |
 
-**Precedent.** S16-24 ([plan](../../spike-16/prs/S16-24-reads-report-inputs.md)) added `PageInputs` to the detail read: copy its handler shape (`in := c.Graph().PageInputs()`, pass it down, `out.Inputs = pageInputsProto(in)` last) and its `wantInputs` assertions. `GetConclusionDetail` composing `conclusiondetails` with `conclusionsummaries` and `files` in one handler is the shape for composing records with `citationrender`. `TestRenderScale` is the shape for the timing test (`databasetest.WithinBudget`, `databasetest.Warm`).
+**Precedent.** `persondetail` (`Claims`, `PersonFamily`, `PersonEvents`, `RecordLinks`, with `api/ffi/handlers/person_detail.go`) is the shape of a section read: one core function records its inputs, the handler only parses and maps. S16-24 ([plan](../../spike-16/prs/S16-24-reads-report-inputs.md)) is the inputs shape (`in := c.Graph().PageInputs()`, `out.Inputs = pageInputsProto(in)` last; `wantInputs`). `TestRenderScale` is the timing shape (`databasetest.WithinBudget`, `databasetest.Warm`).
 
 ## 5. Decisions
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
 | D-1 | The detail read keeps sending outcomes in this PR; S15-29 stops it once Swift reads the counts and the sheet read (user, 2026-11-27) | `check-pr.sh` builds the app, which reads `ConclusionField.outcomes`; an empty field hides every provenance button | Dropping them here — breaks the build or the app |
-| D-2 | One sheet read returns the fields with their records and the records' rendered citations, with one `inputs` (user, 2026-11-27) | One load, one error, one consistent read, as the detail read carries its summary; S15-29 makes one FFI call per sheet | A records-only RPC beside `RenderCitations` — two calls per open, chunking in Swift |
-| D-3 | Each group carries a whole `ConclusionField` (values, state, counts, outcomes), keyed by owner id | The sheet words a folded record's value from the same read's values, so a write between two reads cannot mismatch ranks; reuses the message | Records only, joined to the detail's values in Swift — two reads that refresh apart |
-| D-4 | Counts and denial facts are computed in `finish`, over the composed outcomes, for every field of every read | One rule for the detail read and the sheet read; a count equals the records the sheet lists, dropped rows included | A grouped count over the node's rows — skips `recordReader`'s drop rule, so it can differ from the list |
-| D-5 | `Sources`: no displayed value → 0; one → its `Support`; several → distinct `SourceID`s among outcomes with `GroupRank > 0`, or the summed `Support` when there are none | Swift's `sourceCount` exactly, so S15-29's rows read the same | Counting only for state mixed — Swift applies it to multiple too |
-| D-6 | `DeniedAValue`: some outcome in the same field has `DeniedBy` equal to this outcome's id. `DeniedBySource`: for reason `denied`, the `SourceTitle` of the field's outcome whose id is `DeniedBy`; "" when that outcome is not in the field | Swift's `deniedSomething` and `outcomePhrase` `.denied`, including its plain-phrase fallback | — |
-| D-7 | A derived row's records come from `PersonDerivedRow(person, kind)`, which shares `PersonDerivedRows`' code with one kind, so `ownerVerdict` applies; the request names the Person and the kind, not pairs | The vote's verdict lives on the Person's summary owners (S16-80) | Pairs for derived rows — loses the verdict |
-| D-8 | Pairs that repeat collapse to the first; an unknown or merged owner, or a Property with no record, is left out; no error. A malformed id is `request.invalid_id` | The sheet shows what exists; the page's own key reports a gone handle | `conclusiondetails.not_found` for a gone owner — a second error state in the sheet for a case the page already shows |
-| D-9 | Citations: the distinct Citation ids of the groups' outcomes, in outcome order, rendered in chunks of `citationrender.MaxCitations` into the same `in`; a chunk refused as `citations.ErrInvalid` (over `MaxBatchBytes`) is left out, and those records fall back to today's line | No cap on records per value; rule "Today's line stays the fallback, in Swift" | Failing the read — one huge citation would blank the sheet |
-| D-10 | `derived` adds the Person's handle to `in` | The row's owners come from the Person's summary; a write that moves them must refresh the sheet | — |
-| D-11 | The handler's render mapping moves into one helper both handlers call | One mapping of `RenderedCitation` | Copying the loop |
+| D-2 | One sheet read returns the owners with their records and the records' rendered citations, with one `inputs` (user, 2026-11-27) | One load, one error, one consistent read, as the detail read carries its summary | A records-only RPC beside `RenderCitations` — two calls per open, chunking in Swift |
+| D-3 | The sheet read answers `ConclusionOwnerField`s for both request cases: a pair's owner has `entity` and `field`; a life row's owner also has `event` or `place`, as `derivedRowsProto` maps it | S15-29 maps one message into the `CatalogOwnerField` it already has, and words a folded record from the same read's values | Owner ids joined to the page read in Swift — two reads that refresh apart |
+| D-4 | Counts and denial facts are set in `finish`, over the composed outcomes, for every field of every read | One rule for the detail read and the sheet read; a count equals the records the sheet lists | A grouped count over the node's rows — skips `recordReader.outcome`'s drop rule |
+| D-5 | `Records` = the field's composed outcomes. `Sources`: no displayed value → 0; one → its `Support`; several → distinct `SourceID`s among outcomes with `GroupRank > 0`, or the summed `Support` when there are none | Swift's `recordCount` and `sourceCount` exactly | Counting only for state mixed — Swift applies it to multiple too |
+| D-6 | `DeniedAValue`: some outcome in the same field has `DeniedBy` equal to this outcome's id. `DeniedBySourceTitle`: for reason `denied`, the `SourceTitle` of the field's outcome whose id is `DeniedBy`; "" when that outcome is not in the field or the reason is not `denied` | Swift's `deniedSomething` and `outcomePhrase` `.denied`, plain-phrase fallback included | — |
+| D-7 | One pairs-to-fields step serves `FieldRecords` and the life rows; the life rows call it with their owners' pairs and lay `ownerVerdict`, `Event` and `Place` on the result. A life row is asked for by Person and kind | The vote's verdict lives on the Person's summary owners (S16-80); one fetch and skip rule for both | Pairs for life rows — loses the verdict |
+| D-8 | `FieldRecords` collapses repeated pairs to the first; an unknown or merged owner, or a pair with no composed field, is left out. An unspecified kind, or a request with neither case, answers no owners. None is an error; a malformed id is `request.invalid_id` | The sheet shows what exists; the page's own key reports a gone handle | `conclusiondetails.not_found` — a second error state for a case the page already shows |
+| D-9 | `citationrender.RenderAll` renders any number of Citations in one read transaction, a batch of `MaxCitations` at a time; a batch `render` refuses for size is left out, so its records fall back to today's line | The package that owns both caps owns the rule; rule "Today's line stays the fallback, in Swift" | Chunking in the handler — domain policy in `api/ffi/handlers`; failing the read — one huge batch blanks the sheet |
+| D-10 | The life rows' read records the Person's handle on `in` | Its owners come from the Person's summary; a write that moves them refreshes the sheet | — |
 
-**Rules this plan bends.** None. The map's rule "Records load when the sheet opens" and S15-28 / S15-29 rows are updated with D-1 and D-2 in the planning commit.
+**Rules this plan bends.** None. The map's rule "Records load when the sheet opens" and the S15-28 / S15-29 rows carry D-1 and D-2.
 
 ## 6. Design
 
@@ -137,41 +138,44 @@ The engine gains what the provenance sheet needs to load a row's records when it
 
 | New *(this PR adds)* | Kind | Closest existing | Why not reuse or extend it |
 | --- | --- | --- | --- |
-| `conclusiondetails.RecordCounts` *(new)*, `Field.Counts` *(new)* | type, field | Swift `ReconciledValueDisplay.sourceCount` | Moves that rule into Go (D-5) |
-| `Outcome.DeniedAValue`, `Outcome.DeniedBySource` *(new)* | fields | `Outcome.DeniedBy`; Swift `deniedSomething` | Extends the outcome; moves the rule into Go |
-| `recordCounts(f *Field)`, `denialFacts(f *Field)` *(new, unexported)*, called from `finish` | func | `finish`, `state` | Beside `state`, same shape |
-| `conclusiondetails.Pair`, `OwnerRecords`, `FieldRecords(c, pairs, in)` *(new)* | type, func | `fieldsOf` with `only`; test-only `FieldsOf` in `export_test.go` | A public wrapper over `fieldsOf`: it builds `only` from the pairs and orders groups by request |
-| `conclusiondetails.PersonDerivedRow(c, personID, kind, in)` *(new)* | func | `PersonDerivedRows` | `PersonDerivedRows` becomes a call to an unexported `personDerivedRows(c, personID, kinds, in)` that both share |
+| `conclusiondetails.FieldRecordCounts` *(new)*, `Field.RecordCounts` *(new)* | type, field | Swift `ReconciledValueDisplay.sourceCount` | Moves that rule into Go (D-5); one name in both layers |
+| `Outcome.DeniedAValue`, `Outcome.DeniedBySourceTitle` *(new)* | fields | `Outcome.DeniedBy`, `Outcome.SourceTitle` | Extends the outcome |
+| `recordCounts(f *Field)`, `denialFacts(f *Field)` *(new, unexported)* | func | `state` | Beside `state`, called from `finish` |
+| `conclusiondetails.Pair` *(new)*, `fieldsByPair` *(new, unexported)* | type, func | the inline step in `PersonDerivedRows` | Pulled out of it (D-7) |
+| `conclusiondetails.FieldRecords` *(new)* | func | `ForEntity`; test-only `FieldsOf` in `export_test.go` | Public read of named pairs, returning `[]OwnerField` |
+| `conclusiondetails.PersonDerivedRow` *(new)*, `personDerivedRows` *(new, unexported)* | func | `PersonDerivedRows` | `PersonDerivedRows` becomes `personDerivedRows` with all four kinds |
+| `conclusiondetails.SheetRequest`, `Sheet`, `ProvenanceSheet` *(new)* | type, func | `persondetail.PersonFamily` | The sheet read's one core entry |
+| `citationrender.RenderAll` *(new)* | func | `citationrender.Render` | `Render` keeps its 2,000 cap for `RenderCitations` |
 | `engine.FieldRecordCounts` *(new)*, `ConclusionField.record_counts = 8` | proto | `ReconciledValueDetail.support` | A field-level count has no home today |
 | `ReconcilerOutcomeDetail.denied_a_value = 26`, `denied_by_source_title = 27` | proto | `denied_by_observation_id` | Beside it |
-| `GetProvenanceRecordsRequest`, `ProvenancePair`, `ProvenancePairs`, `ProvenanceDerivedRow`, `ProvenanceRecordGroup`, `GetProvenanceRecordsResponse`, `METHOD_GET_PROVENANCE_RECORDS = 129` *(new)* | proto, FFI | `GetConclusionDetailRequest`, `RenderCitationsResponse` | A new read; reuses `ConclusionField`, `RenderedCitation`, `PageInputs`, `DerivedRowKind` |
+| `GetProvenanceRecordsRequest`, `ProvenancePair`, `ProvenancePairs`, `ProvenanceDerivedRow`, `GetProvenanceRecordsResponse`, `METHOD_GET_PROVENANCE_RECORDS = 129` *(new)* | proto, FFI | `GetConclusionDetailRequest`, `RenderCitationsResponse` | Reuses `ConclusionOwnerField`, `RenderedCitation`, `PageInputs`, `DerivedRowKind` |
 | `api/ffi/handlers/provenance_records.go` `GetProvenanceRecords` *(new)* | handler | `GetConclusionDetail` | Own file, as each read has |
-| `renderedCitationsProto(got []citationrender.RenderedCitation)` *(new)* in `citation_render.go` | func | the loop in `RenderCitations` | D-11 |
-| `derivedRowKinds` *(new)* package map in `conclusion_detail.go`, both directions | var | the `kinds` map inside `derivedRowsProto` | The request needs proto → Go; one table serves both |
-| `researchedPerson(t, sources, perSource int) (dir, entityID string)` *(new)* test helper in `api/ffi/handlers/provenance_records_test.go` | helper | `namedPerson` | `namedPerson` makes one Subject; this files `sources` Sources, each one Person Subject with `perSource` name records, promoted onto one handle with `promoteInDir` |
+| `ownerFieldProto`, `derivedRowKinds` *(new)* in `conclusion_detail.go` | func, var | the owner loop and the `kinds` map inside `derivedRowsProto` | Pulled out so both handlers map owners and kinds one way |
+| `renderedCitationsProto` *(new)* in `citation_render.go` | func | the loop in `RenderCitations` | Pulled out so both handlers map renders one way |
+| `researchedPerson` *(new)* test helper in `api/ffi/handlers/provenance_records_test.go` *(new)* | helper | `namedPersonOnNewSource` | It builds one Subject on one Source; this composes many onto one handle |
 
-**Builds on.** `fieldsOf`'s `only` (S16-30), `PersonDerivedRows` and `ownerVerdict` (S16-80), `PageInputs` (S16-24), `citationrender.Render` (S15-16), `add-ffi-handler` (`runRPC` table tests).
-**Deletes.** The `kinds` map inside `derivedRowsProto` (replaced by `derivedRowKinds`); the inline mapping loop in `RenderCitations` (replaced by `renderedCitationsProto`). Nothing else becomes dead until S15-29.
-**Next adds.** S15-29 adds `GoStore.provenanceRecords` and the sheet key's loader over this read, then deletes `RenderCitations` and the detail's outcomes. A claim layer laid over values (package comment) goes through `finish`, so counts follow it.
+**Builds on.** `fieldsOf`'s `only` (S16-30), `ownerVerdict` (S16-80), `PageInputs` (S16-24), `render` (S15-16), `add-ffi-handler` (`runRPC` table tests).
+**Deletes.** The `kinds` map and the inline owner loop in `derivedRowsProto`; the inline loop in `RenderCitations`; the inline pairs-to-fields code in `PersonDerivedRows`. Nothing else becomes dead until S15-29.
+**Next adds.** S15-29 adds the store method and the sheet key's loader over this read, then deletes `RenderCitations` and the detail's outcomes. A claim layered over values goes through `finish`, so counts follow it.
 
 ### Reach
 
 | New path or state | Destination | Checked: resets on the new id · handles a missing referent · shows the state |
 | --- | --- | --- |
-| A read of named (owner, Property) pairs from outside the detail read | `fieldsOf` | `fieldsOf` skips nil, merged and repeated nodes; `in.Node` returns nil for an unknown id (D-8, T-5) |
-| A read of one life row | `personDerivedRows` | `PersonsByIDs` empty for a non-Person → no row (T-6) |
+| A read of named pairs from outside the detail read | `fieldsByPair` → `fieldsOf` | `fieldsOf` skips nil, merged and repeated nodes; `in.Node` answers nil for an unknown id (T-4) |
+| A read of one life row | `personDerivedRows` | `PersonsByIDs` is empty for a non-Person → no row (T-6) |
 
 ### Scale
 
-At the map's Scale (up to 1,200 records on one value; a Person page citing 30 Sources): the sheet read composes the named owners' outcome rows from the node and the records tier, as the detail read does, with no SQL for records; the citation render is `TestRenderScale`'s 14 SELECTs at 1,200. T-8 holds 600 ms warm (render's 400 ms budget plus composition). The detail read gains two ints per field and one bool and one string per outcome; T-7 logs the payload it will lose in S15-29. No write is added.
+At the map's Scale (up to 1,200 records on one value; a Person page citing 30 Sources): the sheet read composes the named owners' outcome rows from the node and the records tier, with no SQL for records, as the detail read does; the render is `TestRenderScale`'s 14 SELECTs at 1,200 Citations. T-8 holds 600 ms warm (render's 400 ms budget plus composition). The detail read gains two ints per field and a bool and a string per outcome; T-7 logs the payload S15-29 will remove. No write is added.
 
 ### Edges
 
-- **Assumptions.** `finish` sees every outcome of the field it finishes: true for `fieldsOf`, which composes all of a named Property's rows. `ownerVerdict` runs after `finish` and changes `Reason`, `Vote` and `ValueRank` only, so counts (which read `GroupRank` and `SourceID`) and denial facts (which read `DeniedBy` and ids) are unchanged by it (T-6 asserts counts on a verdict row). A field's outcome ids are distinct (one row per Observation).
-- **Neighbors.** A negative that eliminates nothing (AC-2.2); a denied record whose denier was dropped by `recordReader.outcome` (`DeniedBySource` "", T-2); a field with one displayed value supported by two Sources (Support, not distinct count, AC-1.2); several displayed values with no outcome under them (AC-1.4); a picture's record, which belongs to no field (`DeniedAValue` false, `DeniedBySource` "", as Swift words it with no field).
-- **Removed inputs.** An owner merged between page and sheet: left out (D-8); a Property whose records were all deleted: left out; a Citation deleted between the records and the render: `Render` leaves it out and the record falls back to today's line.
+- **Assumptions.** `finish` sees every outcome of the field it finishes: `fieldsOf` composes all of a named Property's rows. `ownerVerdict` runs after `finish` and changes only `Reason`, `Vote` and `ValueRank`; counts read `GroupRank` and `SourceID`, denial facts read ids and `DeniedBy`, so neither moves (T-6 asserts the counts on a verdict row). `ownerVerdict` only rewrites `kept` and `folded` outcomes, so no outcome becomes `denied` after `denialFacts`. One field holds one outcome per Observation. Pair keys are the two 16-byte ids concatenated: fixed width, so no separator can collide.
+- **Neighbors.** A negative that eliminates nothing (AC-2.2); a denied record whose denier `recordReader.outcome` dropped (AC-2.3); one displayed value backed by two Sources (Support, AC-1.2); several displayed values with nothing counted under them (AC-1.4); a picture's record, which no `finish` sees, so its denial facts stay zero, as Swift words a record with no field.
+- **Removed inputs.** An owner merged between page and sheet: left out; a Property whose records were deleted: left out; a Citation deleted between the records and the render: `render` leaves it out and the record falls back to today's line.
 - **Real data.** None — no table or seed drives these rules.
-- **Untrusted size.** Pairs come from the app: duplicates collapse and each pair costs the named owner's outcome rows, which the detail read already composes in full. Records per value are unbounded by data; the render is chunked at 2,000 ids and 8 MiB per chunk (D-9).
+- **Untrusted size.** Pairs come from the app: repeats collapse, and each pair costs the named owner's outcome rows, which the detail read already composes in full. Records per value are unbounded by data; `RenderAll` works in batches of 2,000 ids and 8 MiB (D-9).
 
 ### Schema
 
@@ -181,9 +185,12 @@ None — no catalog change.
 
 | Package | Change |
 | --- | --- |
-| `core/database/conclusiondetails` | `type RecordCounts struct { Records, Sources int }`; `Field.Counts RecordCounts`; `Outcome.DeniedAValue bool`, `Outcome.DeniedBySource string`; `finish` calls `recordCounts(f)` and `denialFacts(f)` after it orders the outcomes |
-| same | `type Pair struct { OwnerID, PropertyID []byte }`; `type OwnerRecords struct { OwnerID []byte; Field Field }`; `func FieldRecords(c *database.Catalog, pairs []Pair, in *graphcache.PageInputs) ([]OwnerRecords, error)` — nil catalog or graph, or no pairs, returns nil and reads nothing; a pair whose ids are not 16 bytes is skipped; nodes fetched through `in.Node` (which records them); one `fieldsOf(…, nil, only, in)`; groups in first-request order |
-| same | `func PersonDerivedRow(c *database.Catalog, personID []byte, kind DerivedRowKind, in *graphcache.PageInputs) (DerivedRow, bool, error)` — false when the Person has no such row; `PersonDerivedRows` and it call `personDerivedRows(c, personID, kinds []DerivedRowKind, in)`, which builds only the named kinds' lists |
+| `core/database/conclusiondetails` | `type FieldRecordCounts struct { Records, Sources int }`; `Field.RecordCounts`; `Outcome.DeniedAValue bool`, `Outcome.DeniedBySourceTitle string`; `finish` ends with `recordCounts(f)` and `denialFacts(f)` |
+| same | `type Pair struct { OwnerID, PropertyID []byte }`. `fieldsByPair(c *database.Catalog, pairs []Pair, in *graphcache.PageInputs) (map[string]Field, map[string]*graphcache.Node, error)`: skips a pair whose ids are not 16 bytes; `g.Nodes(ids)` over the distinct owners, then `in.Node` each (nil stays nil); builds `only`; `fieldsOf(g, v, nodes, nil, only, in)` with `v` from `g.Vocabulary()`; keys the fields by `string(owner)+string(property)` and the nodes by owner |
+| same | `func FieldRecords(c *database.Catalog, pairs []Pair, in *graphcache.PageInputs) ([]OwnerField, error)`: nil catalog or graph, or no pairs, is nil and reads nothing; one `OwnerField{Entity: canonicalentities.FromNode(n), Field: f}` per distinct pair with a field, in first-request order. Two pairs on one owner are two `OwnerField`s with the same entity |
+| same | `personDerivedRows(c, personID []byte, kinds []DerivedRowKind, in)` is today's `PersonDerivedRows` body with `lists` filtered to `kinds` before anything is read or recorded, `in.AddHandles(personID)` first, and the inline field step replaced by `fieldsByPair` over the kept lists' owners. `PersonDerivedRows` passes the four kinds. `func PersonDerivedRow(c *database.Catalog, personID []byte, kind DerivedRowKind, in *graphcache.PageInputs) (DerivedRow, bool, error)` passes one kind; false when no row comes back |
+| same | `type SheetRequest struct { Pairs []Pair; PersonID []byte; Kind DerivedRowKind }`; `type Sheet struct { Owners []OwnerField; Citations []citationrender.RenderedCitation }`; `func ProvenanceSheet(c *database.Catalog, req SheetRequest, in *graphcache.PageInputs) (Sheet, error)`: `Pairs` non-empty → `FieldRecords`; else `PersonID` set and `Kind` one of the four → `PersonDerivedRow`'s owners; else empty. Then `citationrender.RenderAll` over the owners' outcomes' `CitationID`s, distinct, in owner then outcome order |
+| `core/database/citationrender` | `render` gains a `limit int` parameter (the byte cap); `Render` passes `MaxBatchBytes`. `func RenderAll(c *database.Catalog, citationIDs [][]byte, in *graphcache.PageInputs) ([]RenderedCitation, error)`: an id not 16 bytes is `citations.ErrInvalid`; no ids is nil and reads nothing; one read transaction, as `Render` opens it; `renderAll(tx, ids, in, batch, limit)` *(new, unexported)* calls `render` on each batch of `batch` ids and leaves out a batch it refuses with `citations.ErrInvalid`; `RenderAll` passes `MaxCitations` and `MaxBatchBytes` |
 
 ### FFI
 
@@ -206,8 +213,8 @@ message ProvenancePair { string owner_id = 1; string property_id = 2; }
 message ProvenancePairs { repeated ProvenancePair pairs = 1; }
 message ProvenanceDerivedRow { string person_id = 1; DerivedRowKind kind = 2; }
 
-// GetProvenanceRecords reads one provenance sheet's records: the fields a row
-// names, each with its records, and those records' citations rendered.
+// GetProvenanceRecords reads one provenance sheet: the fields a row names,
+// each with its records, and those records' citations rendered.
 message GetProvenanceRecordsRequest {
   string project_dir = 1;
   oneof row {
@@ -215,18 +222,15 @@ message GetProvenanceRecordsRequest {
     ProvenanceDerivedRow derived = 3;
   }
 }
-message ProvenanceRecordGroup {
-  string owner_id = 1;
-  ConclusionField field = 2;
-}
 message GetProvenanceRecordsResponse {
-  repeated ProvenanceRecordGroup groups = 1;
-  repeated RenderedCitation citations = 2; // each Citation of the groups' records once
-  PageInputs inputs = 3;                   // inputs is what this value was built from.
+  repeated ConclusionOwnerField owners = 1;
+  repeated RenderedCitation citations = 2; // each Citation of the owners' records once
+  // inputs is what this value was built from.
+  PageInputs inputs = 3;
 }
 ```
 
-`Method`: `METHOD_GET_PROVENANCE_RECORDS = 129`. Dispatch: `MethodGetProvenanceRecords` and its `case` in `api/ffi/dispatch.go`, as `MethodRenderCitations`. Handler `api/ffi/handlers/provenance_records.go` *(new)* `GetProvenanceRecords`: unmarshal (`unmarshalErr("get_provenance_records", err)`), parse ids with `parseID`, then in `withProjectCatalog`: `in := c.Graph().PageInputs()`; `FieldRecords` or, for `derived`, `in.AddHandles(person)` and `PersonDerivedRow` (each owner → a group with `owner.Entity.ID`); render per D-9 into `in`; `out.Inputs = pageInputsProto(in)` last. A request with neither case answers an empty response. `conclusionFieldProto` sets `RecordCounts`; `reconcilerOutcomeProto` sets the two new fields. Regenerate with `./scripts/generate-proto.sh` (Go and Swift).
+`PictureDetail`'s comment's second sentence becomes "record is its earliest Observation, with its outcome; the tile opens that record's Citation." `Method`: `METHOD_GET_PROVENANCE_RECORDS = 129`; dispatch `MethodGetProvenanceRecords` and its `case`, as `MethodRenderCitations`. Handler `api/ffi/handlers/provenance_records.go` *(new)* `GetProvenanceRecords`: `unmarshalErr("get_provenance_records", err)`; ids through `parseID`; the kind through `derivedRowKinds` (unspecified or unknown → the zero `DerivedRowKind`); in `withProjectCatalog`: `in := c.Graph().PageInputs()`, `conclusiondetails.ProvenanceSheet`, owners through `ownerFieldProto`, citations through `renderedCitationsProto`, `out.Inputs = pageInputsProto(in)` last. `derivedRowKinds` is a `map[conclusiondetails.DerivedRowKind]engine.DerivedRowKind`; the proto-to-Go direction loops it. `conclusionFieldProto` sets `RecordCounts`; `reconcilerOutcomeProto` sets the two new fields. Regenerate with `./scripts/generate-proto.sh` (Go and Swift).
 
 ### macOS
 
@@ -240,35 +244,40 @@ None — no copy.
 
 **STEP-1 — Counts and denial facts**
 Files: `core/database/conclusiondetails/conclusiondetails.go`, `conclusiondetails_test.go`, `export_test.go`.
-Do: add `RecordCounts`, `Field.Counts`, the two `Outcome` fields, `recordCounts` and `denialFacts` per D-4 – D-6, called at the end of `finish`. Export both helpers for T-1 in `export_test.go` (`RecordCountsOf(f Field) RecordCounts`, `DenialFactsOf(f Field) []Outcome`).
+Do: the types, fields and `finish` calls per Go core, D-5 and D-6. Export `RecordCountsOf(f Field) FieldRecordCounts` and `DenialFactsOf(f Field) []Outcome` in `export_test.go` for T-1.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/conclusiondetails/` passes with T-1, T-2.
 
-**STEP-2 — The two record reads**
+**STEP-2 — One pairs-to-fields step**
 Files: `conclusiondetails.go`, `conclusiondetails_test.go`, `placerecords_test.go`.
-Do: add `Pair`, `OwnerRecords`, `FieldRecords`; split `PersonDerivedRows` into `personDerivedRows` and add `PersonDerivedRow`, per Go core.
-Check: the package tests pass with T-3 – T-6; `TestPlaceOwnersCarryTheVote` and `TestPersonDerivedRowsRecordInputs` pass unchanged.
+Do: `Pair`, `fieldsByPair`, `FieldRecords`, `personDerivedRows`, `PersonDerivedRow` per Go core.
+Check: the package tests pass with T-4 – T-6; `TestPlaceOwnersCarryTheVote` and `TestPersonDerivedRowsRecordInputs` pass unchanged.
 
-**STEP-3 — Proto**
-Files: `api/proto/engine.proto`, generated `api/proto/engine/engine.pb.go`, `macos/App/Platform/Generated/engine.pb.swift`. Skill: `add-ffi-handler`.
-Do: the messages and fields in FFI; rewrite `PictureDetail`'s comment to "record is its earliest Observation, with its outcome; the tile opens that record's Citation." Run `./scripts/generate-proto.sh`.
-Check: `go build ./...` passes; `git diff --stat` shows both generated files.
+**STEP-3 — Render in batches, and the sheet read**
+Files: `core/database/citationrender/render.go`, `render_test.go` (package `citationrender`, so it calls `renderAll` directly); `conclusiondetails.go`, `conclusiondetails_test.go`.
+Do: `render`'s `limit`, `RenderAll`, `renderAll`; `SheetRequest`, `Sheet`, `ProvenanceSheet`.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/citationrender/ ./core/database/conclusiondetails/` passes with T-3, T-13; `TestRenderScale` passes unchanged.
 
-**STEP-4 — Handlers**
+**STEP-4 — Proto**
+Files: `api/proto/engine.proto`, `api/proto/engine/engine.pb.go`, `macos/App/Platform/Generated/engine.pb.swift`. Skill: `add-ffi-handler`.
+Do: the FFI section's messages, fields and comment. Run `./scripts/generate-proto.sh` on a machine with `protoc`, `protoc-gen-go` and `protoc-gen-swift` (the Mac that runs `xcodebuild`).
+Check: `go build ./...` passes; `git diff --stat` lists both generated files; `rg -n -U "Why\n// shows" api macos/App/Platform/Generated` finds nothing.
+
+**STEP-5 — Handlers**
 Files: `api/ffi/handlers/conclusion_detail.go`, `citation_render.go`, `provenance_records.go` *(new)*, `api/ffi/dispatch.go`, `conclusion_detail_test.go`, `provenance_records_test.go` *(new)*. Skills: `add-ffi-handler`, `use-catalog-session`.
-Do: `derivedRowKinds`, `renderedCitationsProto`, the counts and denial mapping, `GetProvenanceRecords`, dispatch.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./api/...` passes with T-9 – T-12.
+Do: `derivedRowKinds`, `ownerFieldProto`, `renderedCitationsProto`, the counts and denial mapping, `GetProvenanceRecords`, dispatch.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./api/...` passes with T-9, T-11, T-12.
 
-**STEP-5 — Scale**
-Files: `api/ffi/handlers/provenance_records_test.go` *(new)*.
-Do: `researchedPerson`; T-7, T-8.
+**STEP-6 — Scale**
+Files: `api/ffi/handlers/provenance_records_test.go` *(new)*, which STEP-5 creates.
+Do: `researchedPerson(t *testing.T, sources, perSource int) (dir, entityID, namePropertyID string)`: `dir, userID, _, typeID := subjectFixture(t)`; for each Source, `namedPersonOnNewSource(t, dir, userID, typeID, "James Robins", "male", observations.PolarityPositive)` (one Citation with a name and a sex record); then in one `withProjectCatalog`, per Subject, read its `graph_id` as `namedPerson` does, create one Artifact with `artifactstest.Create`, and file `perSource - 1` more Citations with `observationstest.Cite`, each with one name Observation `namevaluetest.Western("James Robins")`; promote the first Subject with `promoteInDir(t, dir, userID, subject, "")` and the rest onto its handle; `namePropertyID` from `propertyIDByKey(t, dir, "name")`. Every name record holds the same value, so the field has one value and `sources × perSource` records, each its own Citation. Then T-7, T-8.
 Check: both pass; copy their logged payload sizes and timing into the PR description.
 
-**STEP-6 — Comments and domain doc**
+**STEP-7 — Comments and domain doc**
 Files: `conclusiondetails.go` (package comment), `docs/conclusion-reconciliation.md`.
-Do: the package comment's first sentence ends at "joined to the record's Source." (its trailing clause about the sheet goes) and a new sentence follows: "FieldRecords and PersonDerivedRow read one provenance sheet's fields with their records; each field carries its record and Source counts and each outcome its denial facts, so a page row needs no records." In the doc's package table, the `conclusiondetails` row reads "Detail read and provenance sheet read: each field's state, values, counts, and outcomes with their evidence".
-Check: `rg -n "as the Why shows it" api core docs` finds nothing.
+Do: the package comment's first sentence ends at "joined to the record's Source." (its clause about the sheet goes) and this sentence follows it: "FieldRecords, PersonDerivedRow and ProvenanceSheet read one provenance sheet's fields with their records; each field carries its record and Source counts and each outcome its denial facts, so a page row needs no records." In the doc's package table, the `conclusiondetails` row reads "Detail read and provenance sheet read: each field's state, values, counts, and outcomes with their evidence".
+Check: `rg -n "provenance sheet shows" core/database/conclusiondetails` finds nothing.
 
-**STEP-7 — Version and docs**
+**STEP-8 — Version and docs**
 Files: `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj`, `../completed.md`, `../deployment-plan.md`, this plan.
 Do: per the Definition of done.
 Check: `scripts/check-pr.sh` prints `check-pr: PASS`.
@@ -279,20 +288,21 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
-| T-1 | Go | `conclusiondetails_test.go` `TestRecordCounts` *(new)*, table over hand-built `Field`s through `RecordCountsOf` | empty → {0,0}; one displayed, Support 2, 2 outcomes → {2,2}; two displayed, outcomes under them from Sources A, A, B → Sources 2; two displayed with Support 3 and 1, no outcome under either → Sources 4 | AC-1.3, AC-1.4, D-5 |
-| T-2 | Go | `conclusiondetails_test.go` `TestForEntityEvidence` (extended) and `TestDenialFacts` *(new)* through `DenialFactsOf` | the fixture's negative: `DeniedAValue` true, the denied record's `DeniedBySource` = the negative's Source title; a negative that denies nothing → false; a denied outcome whose denier is not in the field → "" | AC-2.1, AC-2.2, AC-2.3, D-6 |
-| T-3 | Go | `conclusiondetails_test.go` `TestForEntityRecordCounts` *(new)* | one Source, two names → {2,1}; two Sources one name each → {2,2} | AC-1.1, AC-1.2 |
-| T-4 | Go | `conclusiondetails_test.go` `TestFieldRecords` *(new)*, table | one pair → the same `Field` `ForEntity` gives for that Property; three pairs, one with no records → two groups in order; a repeated pair → one; an unknown and a merged owner → left out; no pairs → nil; inputs hold the owner, graphs and Sources | AC-3.1, AC-3.2, AC-3.4, D-8 |
-| T-5 | Go | `conclusiondetails_test.go` `TestFieldRecordsMatchesTheDetail` *(new)* | for every field of `TestForEntityRecordsInputs`' Person, `FieldRecords` equals the detail's field, counts and denial facts included | D-3, D-4 |
-| T-6 | Go | `placerecords_test.go` `TestPersonDerivedRow` *(new)* | S16-80's "three Sources outvote the fourth" → equals `PersonDerivedRows`' birth place row, verdict and counts included; a Person with no death place → false; a non-Person id → false | AC-3.3, AC-3.4, D-7 |
-| T-7 | Go | `provenance_records_test.go` `TestDetailPayloadWithoutRecords` *(new)* | `researchedPerson(t, 30, 2)`: marshal `GetConclusionDetail`'s answer, clear every field's and derived owner's `Outcomes`, marshal again; log both byte counts; the second is smaller | AC-4.1 |
-| T-8 | Go | `provenance_records_test.go` `TestProvenanceRecordsScale` *(new)* | `researchedPerson(t, 30, 40)`: the name pair → 1,200 outcomes, 1,200 citations; `databasetest.WithinBudget(t, "1200 records", databasetest.Warm(read), 600*time.Millisecond)` | AC-4.2 |
-| T-9 | Go | `provenance_records_test.go` `TestGetProvenanceRecords` *(new)*, `runRPC` table | bad proto → error; `namedPerson`'s name pair → one group, 2 outcomes, counts {2,1}, 2 citations, `wantInputs` with the handle, graph and Source; `derivedRowsFixture` birth date → one group whose owner is the Event and whose field has 2 outcomes, inputs hold the Person and Event; malformed owner, Property or Person id → `request.invalid_id`; empty `row` → empty answer | AC-3.1, AC-3.3, AC-3.5, AC-3.6, D-10 |
-| T-10 | Go | `provenance_records_test.go` `TestProvenanceRecordsChunkRender` *(new)* | `researchedPerson(t, 1, 2001)` → 2,001 distinct citations rendered | AC-3.7, D-9 |
-| T-11 | Go | `provenance_records_test.go` `TestGetProvenanceRecordsWarmReadsNoRecordSQL` *(new)*, copying `TestGetConclusionDetailWarmReadsNoRecordSQL` | second read: no graph query, no `warmReadTables` read, same bytes | AC-3.8 |
-| T-12 | Go | `conclusion_detail_test.go` `TestGetConclusionDetail` and `TestGetConclusionDetailCarriesDerivedRows` (extended) | the name field's `record_counts` = {2,1}; the derived owner field's `record_counts.records` = 2 | AC-1.1, AC-1.5 |
+| T-1 | Go | `conclusiondetails_test.go` `TestRecordCounts` *(new)*, table over hand-built `Field`s through `RecordCountsOf` | no displayed value → {0,0}; one displayed, Support 2, 2 outcomes → {2,2}; two displayed, counted outcomes from Sources A, A, B → Sources 2; two displayed with Support 3 and 1, nothing counted → Sources 4 | AC-1.3, AC-1.4, D-5 |
+| T-2 | Go | `conclusiondetails_test.go` `TestForEntityEvidence` (extended), `TestDenialFacts` *(new)* through `DenialFactsOf` | the fixture's negative: `DeniedAValue` true and the denied record's `DeniedBySourceTitle` the negative's Source title; a negative that denies nothing → false; a `denied` outcome whose denier is not in the field → ""; a `kept` outcome → "" | AC-2.1, AC-2.2, AC-2.3, D-6 |
+| T-3 | Go | `citationrender/render_test.go` `TestRenderAll` *(new)*, table through `renderAll` | `seedScale`'s 300 Citations with batch 120 → 300 rendered, in input order; a repeated id → once; batch 100 with a limit one Citation's text exceeds → that batch left out, the others rendered; a 15-byte id → `citations.ErrInvalid`; no ids → nil | AC-3.7, D-9 |
+| T-4 | Go | `conclusiondetails_test.go` `TestFieldRecords` *(new)*, table | one pair → the `ForEntity` field for that Property, owner entity the handle; an event Subject with `asOfIn` records, pairs (`as_of`, `date`) → one owner, `as_of`; a repeated pair → one; an unknown owner and a merged owner → none; no pairs → nil; `holdsIDs` on the owner, graph and Source | AC-3.1, AC-3.2, AC-3.4, D-8 |
+| T-5 | Go | `conclusiondetails_test.go` `TestFieldRecordsMatchesTheDetail` *(new)* | for every field of `TestForEntityRecordsInputs`' Person, `FieldRecords` gives the detail's field, counts and denial facts included | D-3, D-4 |
+| T-6 | Go | `placerecords_test.go` `TestPersonDerivedRow` *(new)* | S16-80's "three Sources outvote the fourth" → the birth place row equals `PersonDerivedRows`' birth place row, the England owner's counts {1,0} and Swift Current's records 3; the inputs hold the Person; no death place → false; a non-Person id → false | AC-3.3, AC-3.4, D-7, D-10 |
+| T-7 | Go | `provenance_records_test.go` `TestDetailPayloadWithoutRecords` *(new)* | `researchedPerson(t, 30, 2)`: marshal `GetConclusionDetail`'s answer; clear every field's and derived owner's `Outcomes`; marshal again; log both byte counts; the second is smaller | AC-4.1 |
+| T-8 | Go | `provenance_records_test.go` `TestProvenanceRecordsScale` *(new)* | `researchedPerson(t, 30, 40)`: the name pair → 1,200 outcomes and 1,200 citations; `databasetest.WithinBudget(t, "1200 records", databasetest.Warm(read), 600*time.Millisecond)` | AC-4.2 |
+| T-9 | Go | `provenance_records_test.go` `TestGetProvenanceRecords` *(new)*, `runRPC` table | bad proto → error; `namedPersonID`'s name pair → one owner, `event` and `place` nil, 2 outcomes, counts {2,1}, 1 citation, `wantInputs` with the handle, graph and Source; `derivedRowsFixture` birth date → one owner whose `entity` and `event` are the Event, 2 outcomes, inputs hold the Person and the Event; unspecified kind → no owners; no `row` → no owners; malformed owner, Property or Person id → `request.invalid_id` | AC-3.1, AC-3.4, AC-3.5, AC-3.6 |
+| T-11 | Go | `provenance_records_test.go` `TestGetProvenanceRecordsWarmReadsNoRecordSQL` *(new)* | `namedPersonID`'s name pair read twice: same bytes; no graph query (`SetQueryCounterForTest`); the second read's `databasetest.CountSelects` equals a warm `citationrender.Render` of the same Citation ids | AC-3.8 |
+| T-12 | Go | `conclusion_detail_test.go` `TestGetConclusionDetail`, `TestGetConclusionDetailCarriesDerivedRows` (extended) | the name field's `record_counts` = {2,1}; the derived owner field's `record_counts.records` = 2 | AC-1.1, AC-1.5 |
+| T-13 | Go | `conclusiondetails_test.go` `TestProvenanceSheet` *(new)* | pairs → `FieldRecords`' owners with their Citations rendered once each; a Person and a kind → `PersonDerivedRow`'s owners; neither → empty and nothing recorded | AC-3.4, AC-3.6, D-2 |
+| T-14 | Go | `conclusiondetails_test.go` `TestForEntityRecordCounts` *(new)* | one Source with two names → {2,1}; two Sources with one name each → {2,2} | AC-1.1, AC-1.2 |
 
-Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `TestPlaceOwnersCarryTheVote`, `TestFieldsOfOnly`, `TestGetConclusionDetailWarmReadsNoRecordSQL` (the payload bytes change), the Xcode build after regeneration.
+Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `TestPlaceOwnersCarryTheVote`, `TestFieldsOfOnly`, `TestRenderScale`, `TestGetConclusionDetailWarmReadsNoRecordSQL`, any `runRPC` case with `exact: true` over a `ConclusionField` or `ReconcilerOutcomeDetail` (it now carries the new fields), and the Xcode build after regeneration.
 
 ## 9. Definition of done
 
@@ -301,31 +311,32 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 - [ ] Every T-# in §8 exists and passes
 - [ ] scripts/check-pr.sh prints check-pr: PASS (gofmt, go vet, go test, Xcode tests with no Swift warning, catalog and plan-doc checks)
 - [ ] No Out line was implemented; no code outside §4 / §6 was refactored
-- [ ] Sweep: `rg -n "as the Why shows it"` across `api/`, `core/`, `docs/` and `.agents/` finds nothing; `scripts/check-guidance-names.py` passes (check-pr runs it)
+- [ ] Sweep: `rg -n -U "Why\n// shows" api macos/App/Platform/Generated` and `rg -n "provenance sheet shows" core` find nothing; `scripts/check-guidance-names.py` passes (check-pr runs it)
 - [ ] Version bump as the header says (VERSION, core/version.go, MARKETING_VERSION together)
 - [ ] This plan: Status → Landed in #N (date); a Landed note lists every difference from the plan
 - [ ] deployment-plan.md: map row status; completed.md: one short paragraph of what shipped, with T-7's payload sizes and T-8's timing
-- [ ] Domain doc: docs/conclusion-reconciliation.md package table row (STEP-6)
+- [ ] Domain doc: docs/conclusion-reconciliation.md package table row (STEP-7)
 - [ ] PR description: what shipped, AC evidence, deviations, T-7 and T-8 numbers
 ```
 
 ## 10. Manual check
 
-None — the app does not call the new read until S15-29; the handler tests are the check. The reviewer opens a Person, an Event and a Place page in the app and sees each row and its provenance sheet as before.
+The app does not call the new read until S15-29; the tests are the check of the new read. In the app, open a Person, an Event and a Place page and open a provenance sheet on each: every row and sheet reads as before.
 
 ## 11. Risks and stop conditions
 
 | Risk | Mitigation |
 | --- | --- |
-| Counts drift from what Swift shows today | T-1 and T-3 state Swift's rules; T-5 holds the sheet read equal to the detail |
-| `generate-proto.sh` cannot run where the implementer works | Stop condition |
-| 600 ms is missed on a slow runner | The budget sits above `TestRenderScale`'s 400 ms for the same 1,200 citations; Verify mode skips budgets |
+| Counts drift from what Swift shows today | T-1 and T-14 state Swift's rules; T-5 holds the sheet read equal to the detail |
+| 600 ms is missed on a slow runner | The budget sits above `TestRenderScale`'s 400 ms for the same 1,200 Citations; Verify mode skips budgets |
+| `researchedPerson(t, 30, 40)` is slow to seed (1,200 writes) | It seeds once per test; if the package's test time grows past 60 s, stop and report |
 
 **Stop and report if:**
 
-- `fieldsOf`, `finish`, `PersonDerivedRows` or `ownerVerdict` no longer have the signatures or behavior §4 gives.
-- `ownerVerdict` changes `GroupRank`, `SourceID` or `DeniedBy`, so counts or denial facts differ before and after it.
+- `fieldsOf`, `finish`, `PersonDerivedRows`, `ownerVerdict` or `render` no longer have the signatures or behavior §4 gives.
+- `ownerVerdict` changes `GroupRank`, `SourceID` or `DeniedBy`, or rewrites an outcome to `denied`.
 - T-5 finds a field where `FieldRecords` and `ForEntity` disagree.
+- Two owners of one life row share a pair, so `fieldsByPair`'s map would fold them.
 - `./scripts/generate-proto.sh` fails or leaves the Swift file unchanged.
 - T-8 is over budget warm outside Verify mode.
 
