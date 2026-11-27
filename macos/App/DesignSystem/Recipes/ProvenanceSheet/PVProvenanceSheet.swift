@@ -129,29 +129,21 @@ struct PVProvenanceSheet: View {
 }
 
 #Preview("Thirty records") {
-    let records = (1...30).map {
-        PVProvenancePreviewData.record(
-            "r\($0)", readAs: "14 May 1817", title: "Parish register \($0)", detail: "p. \($0)", counted: $0 % 5 != 0
-        )
-    }
     PVProvenanceSheet(
         content: PVProvenancePreviewData.content(
-            groups: [PVProvenanceSheetContent.Group(owner: nil, records: records)], summary: "30 records"
+            groups: [PVProvenanceSheetContent.Group(owner: nil, records: PVProvenancePreviewData.records(30))],
+            summary: "30 records"
         ),
         idPrefix: "preview",
         open: { _, _ in }
     )
 }
 
-#Preview("Folded, 120 runs") {
-    let records = (1...120).map {
-        PVProvenancePreviewData.record(
-            "r\($0)", readAs: "14 May 1817", title: "Parish register \($0)", detail: "p. \($0)", counted: $0 % 5 != 0
-        )
-    }
+#Preview("Folded, 120 records") {
     PVProvenanceSheet(
         content: PVProvenancePreviewData.content(
-            groups: [PVProvenanceSheetContent.Group(owner: nil, records: records)], summary: "120 records"
+            groups: [PVProvenanceSheetContent.Group(owner: nil, records: PVProvenancePreviewData.records(120))],
+            summary: "120 records"
         ),
         idPrefix: "preview",
         open: { _, _ in }
