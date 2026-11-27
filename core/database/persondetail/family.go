@@ -43,9 +43,10 @@ type Group struct {
 }
 
 // FamilyCouple is two people the page shows together and the marriage events
-// both are subjects of. Families holds every pivot of the spouse link in shape
-// order; PersonFamily holds the events it read, earliest first, at most
-// maxMarriagesPerCouple.
+// both are subjects of. Marriages is, as Families returns it, every pivot of
+// the spouse link in shape order, uncapped; as PersonFamily returns it, the
+// marriage events read, earliest first, among the first maxMarriagesPerCouple
+// pivots.
 type FamilyCouple struct {
 	A, B      []byte
 	Marriages [][]byte
@@ -166,7 +167,7 @@ func indexCouples(f *Family) {
 		}
 		partner := u.Partners[0].ID
 		for i, c := range f.Couples {
-			if bytes.Equal(c.A, f.Person) && bytes.Equal(c.B, partner) || bytes.Equal(c.B, f.Person) && bytes.Equal(c.A, partner) {
+			if bytes.Equal(c.A, f.Person) && bytes.Equal(c.B, partner) {
 				f.UnitCouples[k] = append(f.UnitCouples[k], i)
 			}
 		}
@@ -246,20 +247,20 @@ func PersonFamily(c *database.Catalog, entityID []byte, in *graphcache.PageInput
 	if err != nil {
 		return Family{}, nil, conclusionsummaries.Summaries{}, err
 	}
-	events, err := marriageEvents(c, &family, in)
+	events, err := marriageEvents(c, family, in)
 	if err != nil {
 		return Family{}, nil, conclusionsummaries.Summaries{}, err
 	}
 	summaries := conclusionsummaries.NewSummaries(persons, events, nil)
-	rank := make(map[string]int, len(events))
-	for i, h := range events {
-		rank[string(h.Entity.ID)] = i
-	}
 	for i := range family.Couples {
-		m := family.Couples[i].Marriages
-		slices.SortStableFunc(m, func(a, b []byte) int {
-			return rankOf(rank, a) - rankOf(rank, b)
-		})
+		pivots := cappedPivots(family.Couples[i])
+		var marriages [][]byte
+		for _, h := range events {
+			if slices.ContainsFunc(pivots, func(p []byte) bool { return bytes.Equal(p, h.Entity.ID) }) {
+				marriages = append(marriages, h.Entity.ID)
+			}
+		}
+		family.Couples[i].Marriages = marriages
 	}
 	family = dropUnread(family, summaries)
 	byBirth := func(rs []kinship.Relative) {
@@ -278,27 +279,19 @@ func PersonFamily(c *database.Catalog, entityID []byte, in *graphcache.PageInput
 	return family, originSiblings(family, byBirth, summaries), summaries, nil
 }
 
-// rankOf is an event's place in the event list, or past it when it was not read.
-func rankOf(rank map[string]int, id []byte) int {
-	if r, ok := rank[string(id)]; ok {
-		return r
-	}
-	return len(rank)
+// cappedPivots is the first maxMarriagesPerCouple pivots of a couple as
+// Families returns it.
+func cappedPivots(c FamilyCouple) [][]byte {
+	return c.Marriages[:min(len(c.Marriages), maxMarriagesPerCouple)]
 }
 
-// marriageEvents caps each of family's couples to its first
-// maxMarriagesPerCouple marriages (in place, on copies), loads the event nodes
-// in one call, and reads the summaries of the canonical ones in the event list's
-// order. The couples keep every capped pivot: dropUnread drops those not read.
-func marriageEvents(c *database.Catalog, family *Family, in *graphcache.PageInputs) ([]conclusionsummaries.EventSummary, error) {
+// marriageEvents loads the event nodes of each of family's couples' first
+// maxMarriagesPerCouple pivots in one call, and reads the summaries of the
+// canonical ones in the event list's order. It leaves family as it is.
+func marriageEvents(c *database.Catalog, family Family, in *graphcache.PageInputs) ([]conclusionsummaries.EventSummary, error) {
 	var ids [][]byte
 	for i := range family.Couples {
-		m := family.Couples[i].Marriages
-		if len(m) > maxMarriagesPerCouple {
-			m = m[:maxMarriagesPerCouple]
-		}
-		family.Couples[i].Marriages = slices.Clone(m)
-		ids = append(ids, m...)
+		ids = append(ids, cappedPivots(family.Couples[i])...)
 	}
 	ids = database.UniqueBlobIDs(ids)
 	if len(ids) == 0 {
