@@ -1575,9 +1575,6 @@ struct GoStore: GenealogyStore {
         return CatalogPersonFamily(
             units: resp.units.compactMap(Self.mapFamilyUnit),
             person: resp.hasPerson ? Self.mapPersonSummary(resp.person) : nil,
-            originSiblings: resp.originSiblings.map {
-                CatalogOriginSibling(member: Self.mapFamilyMember($0.member), parentSets: $0.parentSets.map(Int.init))
-            },
             siblingGroups: resp.siblingGroups.map {
                 CatalogSiblingGroup(
                     parents: $0.parents.map(Self.mapFamilyMember),
@@ -1680,11 +1677,9 @@ struct GoStore: GenealogyStore {
     private static func mapFamilyUnit(_ u: Provenencia_Engine_V1_FamilyUnit) -> CatalogFamilyUnit? {
         let kind: CatalogFamilyUnit.Kind
         switch u.kind {
-        case .parents: kind = .parents
         case .partner: kind = .partner
         case .oneParent: kind = .oneParent
-        case .siblings: kind = .siblings
-        case .unspecified, .UNRECOGNIZED: return nil
+        case .parents, .siblings, .unspecified, .UNRECOGNIZED: return nil
         }
         return CatalogFamilyUnit(
             kind: kind,
