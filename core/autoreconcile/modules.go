@@ -58,8 +58,12 @@ func moduleFor(rules valuecompare.Rules, valueType string) module {
 		return keyModule{keyOf: termKey}
 	case propertymeta.ValueTypeSubject:
 		// The accepted handle. The loader fills EntityID; an unpromoted or
-		// missing end has none and is no evidence.
-		return keyModule{keyOf: func(v Value) (string, bool) { return idKey(v.EntityID) }}
+		// missing end has none and is no evidence. A value that carries Within
+		// folds into a narrower one it contains, as a date does.
+		return keyModule{
+			keyOf: func(v Value) (string, bool) { return idKey(v.EntityID) },
+			folds: true, valueType: valueType, rules: rules,
+		}
 	case propertymeta.ValueTypeName:
 		return nameModule{rules: rules}
 	case propertymeta.ValueTypeDate:
@@ -68,17 +72,30 @@ func moduleFor(rules valuecompare.Rules, valueType string) module {
 	return nil
 }
 
-// compareValue is v in the shape value compare reads: the text, integer, boolean, date
-// or depiction of a value of valueType. Names go through nameUnit.compareValue.
+// compareValue is v in the shape value compare reads: the text, integer, boolean, date,
+// depiction or subject of a value of valueType. Names go through nameUnit.compareValue.
 func (v Value) compareValue(valueType string) valuecompare.Value {
-	return valuecompare.Value{Type: valueType, Text: v.Text, Integer: v.Integer, Boolean: v.Boolean, Date: v.Date, Depiction: v.Depiction}
+	return valuecompare.Value{Type: valueType, Text: v.Text, Integer: v.Integer, Boolean: v.Boolean, Date: v.Date, Depiction: v.Depiction,
+		Entity: v.EntityID, Within: v.Within}
+}
+
+// foldsOnContains is the one "fold on Contains" check (S11-06): from, a less
+// specific value, folds into into when value compare reads from as the broader
+// side of a Contains. Both units carry their value compare value as data.
+func foldsOnContains(rules valuecompare.Rules, from, into unit) bool {
+	res, det := valuecompare.Compare(from.data.(valuecompare.Value), into.data.(valuecompare.Value), rules)
+	return res.Relation == valuecompare.Contains && det.Broader == valuecompare.SideA
 }
 
 // keyModule is a value type whose values are the same exactly when their
-// keys are equal: one unit, no folding, and the best-ranked member's value
-// displayed.
+// keys are equal: one unit, and the best-ranked member's value displayed. It
+// folds on Contains only when folds is set (subjects); the unit then keeps the
+// value compare value of valueType as data.
 type keyModule struct {
-	keyOf func(Value) (key string, ok bool)
+	keyOf     func(Value) (key string, ok bool)
+	folds     bool
+	valueType string
+	rules     valuecompare.Rules
 }
 
 func (m keyModule) split(v Value) (map[string]unit, bool) {
@@ -86,10 +103,16 @@ func (m keyModule) split(v Value) (map[string]unit, bool) {
 	if !ok {
 		return nil, false
 	}
-	return map[string]unit{wholeValue: {key: k}}, true
+	u := unit{key: k}
+	if m.folds {
+		u.data = v.compareValue(m.valueType)
+	}
+	return map[string]unit{wholeValue: u}, true
 }
 
-func (keyModule) fold(string, unit, unit) (bool, bool) { return false, false }
+func (m keyModule) fold(_ string, from, into unit) (bool, bool) {
+	return m.folds && foldsOnContains(m.rules, from, into), false
+}
 
 func (keyModule) outvotes(string, unit, unit) bool { return true }
 

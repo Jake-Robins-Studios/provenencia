@@ -79,8 +79,11 @@ type Value struct {
 	Neutral   bool   // the term is no evidence either way (its catalog flag)
 	SubjectID []byte // the cited subject
 	EntityID  []byte // that subject's accepted handle, when the loader resolved one
-	Date      *datevalue.Value
-	Name      *namevalue.Value
+	// Within is the entities that contain EntityID at the value's date, filled
+	// by a caller that has them (an event's places); empty folds nothing.
+	Within [][]byte
+	Date   *datevalue.Value
+	Name   *namevalue.Value
 	// Depiction is the depiction_values row, read through
 	// depictionvalue.Readable; its ImageFileID is empty when the image is refused.
 	Depiction *depictionvalue.Value

@@ -39,9 +39,7 @@ func (m dateModule) split(v Value) (map[string]unit, bool) {
 
 // fold: from is the wider date and into is the narrower one it contains.
 func (m dateModule) fold(_ string, from, into unit) (bool, bool) {
-	res, det := valuecompare.Compare(from.data.(valuecompare.Value), into.data.(valuecompare.Value), m.rules)
-	folds := res.Relation == valuecompare.Contains && det.Broader == valuecompare.SideA
-	return folds, false
+	return foldsOnContains(m.rules, from, into), false
 }
 
 // outvotes is false: a majority never crowds out a disjoint date.

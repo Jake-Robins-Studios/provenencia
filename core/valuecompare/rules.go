@@ -11,6 +11,7 @@ type Rules struct {
 	Text     TextRules
 	Integers IntegerRules
 	Dates    DateRules
+	Subjects SubjectRules
 }
 
 // WordRules are how two words compare.
@@ -91,6 +92,13 @@ type TextRules struct {
 	// to run. Beyond it, texts that are not Same or Equivalent are Unknown
 	// (too_long), so the alignment's cost stays bounded.
 	MaxWords int
+}
+
+// SubjectRules are how two subject values compare.
+type SubjectRules struct {
+	// Partial is the similarity of a subject that lies within the other (a
+	// Place inside a broader Place).
+	Partial float64
 }
 
 // IntegerRules are how two integers compare.

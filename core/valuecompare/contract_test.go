@@ -44,6 +44,21 @@ func pic(id byte) valuecompare.Value {
 	return v
 }
 
+// subj is a subject value of entity (one byte; 0 is none) lying within the
+// entities of within.
+func subj(entity byte, within ...byte) valuecompare.Value {
+	v := valuecompare.Value{Type: propertymeta.ValueTypeSubject}
+	if entity != 0 {
+		v.Entity = []byte{entity}
+	}
+	for _, w := range within {
+		v.Within = append(v.Within, []byte{w})
+	}
+	return v
+}
+
+func ofSubj(a, b valuecompare.Value) samplePair { return samplePair{a, b} }
+
 func ofPic(a, b byte) samplePair { return samplePair{pic(a), pic(b)} }
 
 // samples are hand-picked pairs per value type, read before the generated ones.
@@ -102,6 +117,10 @@ var samples = map[string][]samplePair{
 	},
 	propertymeta.ValueTypeDepiction: {
 		ofPic(1, 1), ofPic(1, 2), ofPic(0, 1), ofPic(0, 0),
+	},
+	propertymeta.ValueTypeSubject: {
+		ofSubj(subj(1), subj(1)), ofSubj(subj(1, 3), subj(3)), ofSubj(subj(1, 2, 3), subj(3)), ofSubj(subj(1, 2), subj(2, 1)),
+		ofSubj(subj(1, 3), subj(2, 3)), ofSubj(subj(1), subj(2)), ofSubj(subj(0), subj(1)), ofSubj(subj(0), subj(0)),
 	},
 	propertymeta.ValueTypeBoolean: {
 		ofBool(true, true), ofBool(true, false), ofBool(false, true), ofBool(false, false),
@@ -254,6 +273,18 @@ var generators = map[string]func(rng *rand.Rand) samplePair{
 	},
 	propertymeta.ValueTypeDepiction: func(rng *rand.Rand) samplePair {
 		return ofPic(byte(rng.Intn(4)), byte(rng.Intn(4)))
+	},
+	propertymeta.ValueTypeSubject: func(rng *rand.Rand) samplePair {
+		draw := func() valuecompare.Value {
+			var within []byte
+			for e := byte(1); e <= 4; e++ {
+				if rng.Intn(3) == 0 {
+					within = append(within, e)
+				}
+			}
+			return subj(byte(rng.Intn(5)), within...)
+		}
+		return ofSubj(draw(), draw())
 	},
 	propertymeta.ValueTypeBoolean: func(rng *rand.Rand) samplePair {
 		return ofBool(rng.Intn(2) == 0, rng.Intn(2) == 0)

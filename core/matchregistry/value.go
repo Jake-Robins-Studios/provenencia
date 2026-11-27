@@ -88,6 +88,8 @@ func defaultValue() valuecompare.Rules {
 		Text: valuecompare.TextRules{Partial: 0.7, MaxWords: 64},
 		// carried from match.DefaultIntegers.Tolerance: any difference disagrees.
 		Integers: valuecompare.IntegerRules{Tolerance: 0},
+		// estimate: as value.Text.Partial
+		Subjects: valuecompare.SubjectRules{Partial: 0.7},
 		Dates: valuecompare.DateRules{
 			// carried from DefaultDates.Tolerance: civil years apart that still resemble.
 			Tolerance: 2,
