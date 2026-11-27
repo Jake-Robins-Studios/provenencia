@@ -1,7 +1,7 @@
 # Ship log — S16-82 The Family read sends sibling groups and each couple's marriages
 
 **Plan:** [`S16-82-family-groups-and-marriages-read.md`](S16-82-family-groups-and-marriages-read.md) · **Branch:** `s16-82-family-groups-and-marriages-read` · **PR:** #1009
-**State:** ready
+**State:** fixing 2
 
 ## Round 0 — implement
 Head `eb4e6987e`. Gate PASS (orchestrator run against `47935695b`). Report deviations: T-9 is a new test `TestDropUnreadGroupsAndCouples` rather than an extension of `TestDropUnread`; `spouseLink` split into `spouseLink` + `filedSpouseLink` so `core/kinship` holds no literal number (layer test); AC-1.2/AC-1.4 catalog tests file parents via a `filedParents` helper for deterministic order; AC-2.7 date-edit test adds a date to an undated marriage (a second date on an already-dated event did not change its dating). Implementer's first gate also tripped `promotealign` `TestLargeSourceBudgets/after_a_handle_commit` on timing under load; passed alone and on rerun; unrelated.
@@ -74,6 +74,27 @@ Below blocker, noted by the round-2 reviewer (no Fix plan 2: round 2 only fixes 
 - `families_test.go:674-675`: `parentsOf` sits between `linkTo`'s doc comment and `func linkTo`.
 - `FamilyCouple.Marriages` still has two meanings in its doc (MNT-3 remainder).
 - `Couples` doc line at `families.go:442` runs long (cosmetic).
+
+### Fix plan 2 (user, 2026-11-27: "Yes, fix them" — the four open minors; no review round 3)
+
+**F-7 — Drop the dead per-event marriage filter in `dropUnread`** (round-2 note)
+Files: `core/database/persondetail/family.go`, `core/database/persondetail/family_drop_test.go`.
+Do: `PersonFamily` now builds each couple's `Marriages` only from events it read, so `dropUnread`'s loop keeping marriages with a summary drops nothing. Delete that loop. Keep dropping a couple with an unread person, and a couple left with no marriages, if `PersonFamily` can still hand `dropUnread` one (confirm from the code; if `PersonFamily` already skips it, the check goes too). Update `TestDropUnreadGroupsAndCouples` and `dropUnread`'s doc to match: remove the case of a marriage with no summary; do not add a test for a state the production path cannot reach.
+Check: `TestDropUnreadGroupsAndCouples`, `TestPersonFamilyCouples` (merged-marriage case) pass; scripts/check-pr.sh PASS.
+
+**F-8 — One meaning for `FamilyCouple.Marriages`** (MNT-3 remainder)
+Files: `core/database/persondetail/family.go` (and `TestPersonFamily*` only if a literal must change).
+Do: the field means one thing: the couple's marriage events, at most `maxMarriagesPerCouple`. `Families` applies the cap (the first pivots in shape order), the one place it is applied; `PersonFamily` keeps those it read, earliest first. The doc states that single meaning and the two orders in one sentence. `marriageEvents` stops capping (it loads what `Families` kept). Proto and what is sent do not change; D-12's `FamilyCouple{A, B, Marriages}` shape stays.
+Check: `TestCraftedMarriages` (first 10 pivots in shape order, sent in date order), `TestPersonFamilyCouples`, `TestPersonFamilyQueryCount` pass; scripts/check-pr.sh PASS.
+
+**F-9 — `linkTo`'s doc comment back on `linkTo`**
+Files: `core/kinship/families_test.go`.
+Do: move `// linkTo is person's link to other, carrying shapes.` to sit directly above `func linkTo`, with `parentsOf`'s comment above `parentsOf`.
+
+**F-10 — Rewrap the `Couples` doc comment**
+Files: `core/kinship/families.go`.
+Do: rewrap the `Couples` doc to the file's line width; no wording change.
+Check (F-9, F-10): gofmt and scripts/check-pr.sh PASS.
 
 ## Result
 `origin/main` unchanged since `47935695b`; no merge needed. Gate PASS at `7f4a75fcd` · CI green (Go tests, macOS tests, localizable at `62ceac63e`) · open blockers/majors: none · later PR: MNT-4 (S16-81 scope entry) · open minors: the four above · follow-ups: `promotealign` `TestLargeSourceBudgets` wall-clock budget trips under gate load · to user: —
