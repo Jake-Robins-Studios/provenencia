@@ -2,6 +2,23 @@
 
 **Rewrite (user, 2026-11-27).** The parents half was rewritten around sibling groups before the board: each sibling once, grouped by the person's parents they share; a parent drawn in each group. The FP-* requirements and frames below are superseded by FG-*; findings on blocks, the missing-parent mark, the per-set rails and the person-tile note no longer apply. The marriage half (FM-*) carries over, with its parents option reworded for groups. Round 3 reviews the rewrite.
 
+## Round 3 (the rewrite)
+
+**Verdict:** Fits with changes — Ready with changes; every finding fixed by the writer. Reviewer: both lenses (opus).
+
+- **X-30 · blocker · No group for a person with no parents.** Fixed: domain rows for a person with no parents (one group, captioned Siblings, as 11d) and a group with no parents (one line among its members); frame 6; 11d and 11h in the Previews row; S16-82's scope entry says it.
+- **X-31 · major · The bracket sentence contradicted FG-7.** Fixed: no bracket; the Other siblings group stands on its own.
+- **X-32 · major · FM-2 A for a non-adjacent couple.** Fixed: the line sits under the lower parent and names the other spouse; frames M4-A and M4-C (restores round-1 X-2's fix).
+- **X-33 · major · Nothing draws the other spouse.** Fixed: `PVDatePlaceLine` Extend, a trailing part, the place cut first.
+- **X-34 · major · The parity test is Go.** Fixed: S16-82 adds `kinship.SpouseEventTypes()`; S16-81's map row allows the one test row.
+- **X-35 · major · The person's-group label for frames 4 and 6.** Fixed: FG-4 lists the variants.
+- **M-20 · major · A hand-made couple format.** Fixed: the list formatter, one "Children of %@".
+- **M-21 · major · Spoken order multiplies formats.** Fixed: drawn and spoken in one order, one "with %@" clause.
+- **M-22 · minor · The empty slot redraws a kit outline.** Fixed: `PVCard(border: .dashed)`.
+- **M-23 · minor · Three life-line loops.** Fixed for option C (one life-line view); `PVPersonCardTests` named.
+- **X-36 · minor · "No parent on file".** Fixed: none of the person's parents.
+- **X-37 · minor · Frame details.** Fixed: M5 drawn as if folded, M1-Word, frame 0's order.
+
 **Verdict:** Fits with changes — Ready with changes (round 2's findings fixed by the writer; no round 3, per the two-round cap). The remaining calls are the board's options, To user.
 **Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
