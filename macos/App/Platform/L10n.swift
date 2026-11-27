@@ -70,6 +70,15 @@ extension L10n {
         String(format: string(resource, in: bundle), locale: locale, arguments: arguments)
     }
 
+    /// `parts` joined as the locale's list reads ("A, B and C"); `parts.joined(separator: ", ")`
+    /// when the formatter has none. Names a sentence lists go through here, so no feature
+    /// hand-rolls the join.
+    static func list(_ parts: [String], locale: Locale = .autoupdatingCurrent) -> String {
+        let formatter = ListFormatter()
+        formatter.locale = locale
+        return formatter.string(from: parts) ?? parts.joined(separator: ", ")
+    }
+
     /// `Locale.current`, with its language replaced by the bundle's resolved
     /// localization when the two differ (for example, a per-app language set in
     /// System Settings). Region formatting preferences are kept.

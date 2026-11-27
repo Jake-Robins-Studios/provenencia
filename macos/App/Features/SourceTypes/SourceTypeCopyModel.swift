@@ -95,7 +95,7 @@ final class SourceTypeCopyModel {
 
     /// "Full note, Short note and Source-list entry".
     var formatsHint: String {
-        ListFormatter.localizedString(byJoining: formsPresent.map { L10n.string(L10n.CitationForms.name($0)) })
+        L10n.list(formsPresent.map { L10n.string(L10n.CitationForms.name($0)) })
     }
 
     /// How many fields the original suggests: the engine's count, as the types list shows it.

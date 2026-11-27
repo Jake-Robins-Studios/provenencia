@@ -111,20 +111,17 @@ enum PersonTimelinePreviewData {
         CatalogEventParticipant(person: person, roles: roles.map { role($0) })
     }
 
-    /// One event of a timeline. `subjects` are the names the title reads; the
-    /// rule is chosen by their count (one: "Birth of X", two: "Marriage of X and
-    /// Y", none and a place: "Census at Bremen", else the bare type).
-    static func event(
+    /// One Event as a catalog summary, as `event` builds it before `when` dates it. `subjects` are the names
+    /// the title reads; the rule is chosen by their count (one: "Birth of X", two: "Marriage of X and
+    /// Y", none and a place: "Census at Bremen", else the bare type). `dating` is Go's choice, `nil` for none.
+    static func eventSummary(
         _ id: String,
         type: String,
         subjects: [String] = [],
-        when: When? = nil,
+        dating: CatalogEventDating? = nil,
         place: String? = nil,
-        picture: Bool = false,
-        roles: [String] = ["subject"],
-        participants: [CatalogEventParticipant] = [],
-        age: CatalogAgeRange? = nil
-    ) -> CatalogPersonEvent {
+        picture: Bool = false
+    ) -> CatalogEventSummary {
         var title = CatalogEventTitle(
             rule: .type,
             typeKey: type,
@@ -143,7 +140,7 @@ enum PersonTimelinePreviewData {
             eventTypeOrigin: CatalogOrigin.provenencia,
             title: title
         )
-        when?.apply(to: &summary)
+        if let dating { summary.dating = dating }
         if let place {
             summary.places = [CatalogChainedPlace(
                 entity: CatalogCanonicalEntity(id: "pl-\(place)", ref: "PLC-\(place)", subjectTypeID: "t", label: ""),
@@ -151,6 +148,23 @@ enum PersonTimelinePreviewData {
             )]
         }
         if picture { summary.pictureImageRelPath = "objects/\(id).jpg" }
+        return summary
+    }
+
+    /// One event of a timeline: `eventSummary` dated by `when`, with its roles, participants and age.
+    static func event(
+        _ id: String,
+        type: String,
+        subjects: [String] = [],
+        when: When? = nil,
+        place: String? = nil,
+        picture: Bool = false,
+        roles: [String] = ["subject"],
+        participants: [CatalogEventParticipant] = [],
+        age: CatalogAgeRange? = nil
+    ) -> CatalogPersonEvent {
+        var summary = eventSummary(id, type: type, subjects: subjects, place: place, picture: picture)
+        when?.apply(to: &summary)
         return CatalogPersonEvent(
             event: summary,
             roles: roles.map { role($0) },

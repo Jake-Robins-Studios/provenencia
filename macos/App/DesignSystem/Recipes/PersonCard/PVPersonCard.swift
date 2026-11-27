@@ -143,13 +143,7 @@ struct PVPersonCard: View {
             }
         } else {
             ForEach(content.lines, id: \.abbreviation) { line in
-                PVDatePlaceLine(
-                    leading: line.abbreviation,
-                    date: line.date,
-                    place: line.place,
-                    accessibilityLabel: line.accessibilityLabel,
-                    missing: .omitted
-                )
+                PVDatePlaceLine(line)
             }
         }
     }

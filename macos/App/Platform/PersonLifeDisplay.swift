@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 /// A Person's birth and death as one secondary line: dates, then places.
 /// A birth with no death keeps the dash after it; a death with no birth gets
@@ -120,6 +121,29 @@ enum PersonLifeDisplay {
         )
     }
 
+    /// A couple's marriage (or any event type with life-line copy) as one line, always `.omitted`: the
+    /// halves it has, or the bare phrase when it has neither. Nil for an event type with no copy, or one
+    /// the product does not seed. `partner` is the other spouse, named when the line stands where the
+    /// tile before it does not say so.
+    static func eventLine(
+        _ event: CatalogEventSummary,
+        partner: PVTitleSource? = nil,
+        locale: Locale = .autoupdatingCurrent
+    ) -> LifeLine? {
+        guard let copy = L10n.LifeLine.copy(eventTypeKey: event.eventTypeKey, origin: event.eventTypeOrigin) else {
+            return nil
+        }
+        let content = EventSecondaryDisplay.content(event, locale: locale)
+        return lifeLine(
+            copy,
+            date: content.date,
+            place: content.place,
+            extraPlaces: content.extraPlaces,
+            missing: .omitted,
+            partner: partner
+        )
+    }
+
     /// The date a life row shows. Empty when none is recorded.
     static func dateText(
         _ date: CatalogDateValueInput?,
@@ -163,5 +187,22 @@ enum PersonLifeDisplay {
         case (false, false):
             return L10n.Conclusions.lifePlaces(born: born, died: died)
         }
+    }
+}
+
+extension PVDatePlaceLine {
+    /// A life line drawn as it was built: its abbreviation, date, place and `trailing`, with the
+    /// `missing` it was built with. `showsExtraPlaces` adds the list's "+N" for its other places.
+    init(_ line: PersonLifeDisplay.LifeLine, dateTone: Color = PVColor.textPrimary, showsExtraPlaces: Bool = false) {
+        self.init(
+            leading: line.abbreviation,
+            date: line.date,
+            place: line.place,
+            accessibilityLabel: line.accessibilityLabel,
+            missing: line.missing,
+            dateTone: dateTone,
+            extraCount: showsExtraPlaces ? line.extraPlaces : 0,
+            trailing: line.trailing
+        )
     }
 }
