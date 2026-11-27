@@ -254,8 +254,24 @@ func TestGetPersonFamily(t *testing.T) {
 		!slices.Contains(umaMember.GetLink().GetAssociationIds(), database.UUIDString(patUma)) {
 		t.Fatalf("Uma's member %+v", umaMember)
 	}
+	if len(samUnit.CoupleIndexes) != 1 {
+		t.Fatalf("Sam's unit names couples %v, want one", samUnit.CoupleIndexes)
+	}
+	couple := got.Couples[samUnit.CoupleIndexes[0]]
+	if couple.GetAEntityId() != database.UUIDString(pat) || couple.GetBEntityId() != database.UUIDString(sam) ||
+		len(couple.Marriages) != 1 || couple.Marriages[0].GetEntity().GetId() != database.UUIDString(m1) {
+		t.Fatalf("Pat and Sam's couple %+v", couple)
+	}
+	if len(got.Couples) != 2 {
+		t.Fatalf("%d couples, want Pat's two", len(got.Couples))
+	}
+	if len(got.SiblingGroups) != 1 || len(got.SiblingGroups[0].Children) != 1 ||
+		got.SiblingGroups[0].Children[0].GetPerson().GetEntity().GetId() != database.UUIDString(pat) ||
+		got.SiblingGroups[0].Children[0].GetLink() != nil {
+		t.Fatalf("sibling groups %+v, want Pat's group alone", got.SiblingGroups)
+	}
 	xanUnit := byPartner[database.UUIDString(xan)]
-	if xanUnit == nil || xanUnit.Partners[0].GetLink() != nil || len(xanUnit.Children) != 1 {
+	if xanUnit == nil || len(xanUnit.CoupleIndexes) != 0 || xanUnit.Partners[0].GetLink() != nil || len(xanUnit.Children) != 1 {
 		t.Fatalf("Xan's unit %+v", xanUnit)
 	}
 	var family []string
