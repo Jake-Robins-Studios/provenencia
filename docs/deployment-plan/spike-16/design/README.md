@@ -12,6 +12,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | S16-D15 | Add Source sheet: the shared Source fields (Title, Type, Published date, Description, Private) | — | **S16-73** |
 | S16-D16 | Copy Source sheet: the shared Source fields filled from the original, above the credibility tick and the Artifact checklist | — | **S16-74** |
 | S16-D17 | Copy Source sheet: the original's metadata as an editable board, and a type change | — | **S16-75** |
+| [S16-D18](S16-D18-family-groups-and-marriages.md) | Person page Family: the siblings grouped by their parents, each group its parents then its children, and each couple's marriage date and place | [agreed 2026-11-27](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ), page "Person Detail - Family", turn "S16-D18 · Sibling groups and marriages": Shared parent(s); "m." between a group's parents and over a partner's group; tiles keep 92 pt | **S16-81** |
 
 ## Archived
 
