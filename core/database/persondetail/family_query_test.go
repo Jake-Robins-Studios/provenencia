@@ -58,6 +58,9 @@ func TestPersonFamilyQueryCount(t *testing.T) {
 		if len(first.Units) == 0 {
 			t.Fatal("the family is empty")
 		}
+		if len(first.Couples) == 0 {
+			t.Fatal("the family sent no couple, though its fixture holds marriages")
+		}
 	})
 	t.Run("AC-2.2", func(t *testing.T) {
 		count := func(siblings, children int, more bool) int {

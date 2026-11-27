@@ -1,6 +1,9 @@
 package persondetail
 
 import (
+	"bytes"
+	"slices"
+
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/canonlinks"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusiondetails"
@@ -11,10 +14,41 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
-// Family is one person's family units.
+// maxMarriagesPerCouple is the most marriage events PersonFamily reads for one
+// couple: the first of its pivots in shape order. Real couples have one to
+// three, so only a crafted catalog reaches it.
+// decided: user, 2026-11-08 (rule "Crafted fan-out is capped, not engineered")
+const maxMarriagesPerCouple = 10
+
+// Family is one person's family units, sibling groups and couples.
+//
+// Groups hold the person and every sibling by the parents they share with the
+// person (kinship.SiblingGroups), the person's group first. Couples hold the
+// person with each spouse and each two of the person's parents who share a
+// marriage event, each with its marriages; Groups[i].Couples and
+// UnitCouples[i] index into it. UnitCouples is parallel to Units.
 type Family struct {
-	Person []byte
-	Units  []kinship.Unit
+	Person      []byte
+	Units       []kinship.Unit
+	Groups      []Group
+	Couples     []FamilyCouple
+	UnitCouples [][]int
+}
+
+// Group is one sibling group and the indexes, in Family.Couples, of the couples
+// among its parents.
+type Group struct {
+	kinship.SiblingGroup
+	Couples []int
+}
+
+// FamilyCouple is two people the page shows together and the marriage events
+// both are subjects of. Families holds every pivot of the spouse link in shape
+// order; PersonFamily holds the events it read, earliest first, at most
+// maxMarriagesPerCouple.
+type FamilyCouple struct {
+	A, B      []byte
+	Marriages [][]byte
 }
 
 // Families reads the family of each id that is an unmerged Person, in ids
@@ -95,9 +129,48 @@ func Families(c *database.Catalog, ids [][]byte, in *graphcache.PageInputs) ([]F
 
 	out := make([]Family, 0, len(people))
 	for _, id := range people {
-		out = append(out, Family{Person: id, Units: kinship.FamilyUnits(id, shown[string(id)], aroundKin, rules)})
+		f := Family{Person: id, Units: kinship.FamilyUnits(id, shown[string(id)], aroundKin, rules)}
+		for _, g := range kinship.SiblingGroups(id, shown[string(id)]) {
+			f.Groups = append(f.Groups, Group{SiblingGroup: g})
+		}
+		for _, c := range kinship.Couples(id, shown[string(id)], aroundKin, rules) {
+			f.Couples = append(f.Couples, FamilyCouple{A: c.A, B: c.B, Marriages: c.Pivots})
+		}
+		indexCouples(&f)
+		out = append(out, f)
 	}
 	return out, nil
+}
+
+// indexCouples sets each group's Couples to the indexes of the couples whose
+// two people are both its parents, in Couples order, and UnitCouples to, for
+// each partner unit, the index of the couple of the person and its partner (nil
+// for any other unit).
+func indexCouples(f *Family) {
+	for k := range f.Groups {
+		g := &f.Groups[k]
+		g.Couples = nil
+		has := func(id []byte) bool {
+			return slices.ContainsFunc(g.Parents, func(r kinship.Relative) bool { return bytes.Equal(r.ID, id) })
+		}
+		for i, c := range f.Couples {
+			if has(c.A) && has(c.B) {
+				g.Couples = append(g.Couples, i)
+			}
+		}
+	}
+	f.UnitCouples = make([][]int, len(f.Units))
+	for k, u := range f.Units {
+		if u.Kind != kinship.UnitPartner || len(u.Partners) != 1 {
+			continue
+		}
+		partner := u.Partners[0].ID
+		for i, c := range f.Couples {
+			if bytes.Equal(c.A, f.Person) && bytes.Equal(c.B, partner) || bytes.Equal(c.B, f.Person) && bytes.Equal(c.A, partner) {
+				f.UnitCouples[k] = append(f.UnitCouples[k], i)
+			}
+		}
+	}
 }
 
 // shownKin is kin without the links to people who are not shown: a relative
@@ -128,15 +201,19 @@ type OriginSibling struct {
 }
 
 // PersonFamily is the page read: one handle's family, the summary of every
-// person its units name and of the person, and the origin siblings. An unknown
-// or merged handle, or one that is no Person, is conclusiondetails.ErrNotFound.
+// person its units, groups and couples name and of the person, and the origin
+// siblings. An unknown or merged handle, or one that is no Person, is
+// conclusiondetails.ErrNotFound.
 // The family and the summaries agree: a relative with no summary is dropped,
-// and a unit left empty with it. Each unit's children are in birth order,
-// undated last. The origin siblings are every child of the parents and siblings
-// units once, with the person among them, in the order the page draws them
-// (see originSiblings); the person is left out only when its summary was not
-// read. It records on in what Families does, the person, and every id it reads
-// a summary of.
+// and a unit left empty with it. Each unit's and group's children are in birth
+// order, undated last. The origin siblings are every child of the parents and
+// siblings units once, with the person among them, in the order the page draws
+// them (see originSiblings); the person is left out only when its summary was
+// not read. Each couple's marriages are the canonical events among its first
+// maxMarriagesPerCouple pivots, in the event list's order, with their
+// summaries; a couple left with none is dropped. It records on in what Families
+// does, the person, every id it reads a summary of, and every marriage event it
+// loads.
 func PersonFamily(c *database.Catalog, entityID []byte, in *graphcache.PageInputs) (Family, []OriginSibling, conclusionsummaries.Summaries, error) {
 	if _, err := personNode(c, entityID, in); err != nil {
 		return Family{}, nil, conclusionsummaries.Summaries{}, err
@@ -151,19 +228,38 @@ func PersonFamily(c *database.Catalog, entityID []byte, in *graphcache.PageInput
 	family := families[0]
 	var want conclusionsummaries.Want
 	want.Add(vocabkey.Person, entityID)
-	for _, u := range family.Units {
-		for _, r := range u.Partners {
-			want.Add(vocabkey.Person, r.ID)
-			in.AddHandles(r.ID)
-		}
-		for _, r := range u.Children {
+	add := func(rs []kinship.Relative) {
+		for _, r := range rs {
 			want.Add(vocabkey.Person, r.ID)
 			in.AddHandles(r.ID)
 		}
 	}
-	summaries, err := conclusionsummaries.ByIDs(c, want)
+	for _, u := range family.Units {
+		add(u.Partners)
+		add(u.Children)
+	}
+	for _, g := range family.Groups {
+		add(g.Parents)
+		add(g.Children)
+	}
+	persons, err := conclusionsummaries.PersonsByIDs(c, want.Persons)
 	if err != nil {
 		return Family{}, nil, conclusionsummaries.Summaries{}, err
+	}
+	events, err := marriageEvents(c, &family, in)
+	if err != nil {
+		return Family{}, nil, conclusionsummaries.Summaries{}, err
+	}
+	summaries := conclusionsummaries.NewSummaries(persons, events, nil)
+	rank := make(map[string]int, len(events))
+	for i, h := range events {
+		rank[string(h.Entity.ID)] = i
+	}
+	for i := range family.Couples {
+		m := family.Couples[i].Marriages
+		slices.SortStableFunc(m, func(a, b []byte) int {
+			return rankOf(rank, a) - rankOf(rank, b)
+		})
 	}
 	family = dropUnread(family, summaries)
 	byBirth := func(rs []kinship.Relative) {
@@ -175,7 +271,54 @@ func PersonFamily(c *database.Catalog, entityID []byte, in *graphcache.PageInput
 	for _, u := range family.Units {
 		byBirth(u.Children)
 	}
+	for _, g := range family.Groups {
+		byBirth(g.Children)
+	}
+	indexCouples(&family)
 	return family, originSiblings(family, byBirth, summaries), summaries, nil
+}
+
+// rankOf is an event's place in the event list, or past it when it was not read.
+func rankOf(rank map[string]int, id []byte) int {
+	if r, ok := rank[string(id)]; ok {
+		return r
+	}
+	return len(rank)
+}
+
+// marriageEvents caps each of family's couples to its first
+// maxMarriagesPerCouple marriages (in place, on copies), loads the event nodes
+// in one call, and reads the summaries of the canonical ones in the event list's
+// order. The couples keep every capped pivot: dropUnread drops those not read.
+func marriageEvents(c *database.Catalog, family *Family, in *graphcache.PageInputs) ([]conclusionsummaries.EventSummary, error) {
+	var ids [][]byte
+	for i := range family.Couples {
+		m := family.Couples[i].Marriages
+		if len(m) > maxMarriagesPerCouple {
+			m = m[:maxMarriagesPerCouple]
+		}
+		family.Couples[i].Marriages = slices.Clone(m)
+		ids = append(ids, m...)
+	}
+	ids = database.UniqueBlobIDs(ids)
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	v, err := c.Graph().Vocabulary()
+	if err != nil {
+		return nil, err
+	}
+	eventType := v.TypeIDsByKey()[vocabkey.Event]
+	if err := in.Nodes(ids); err != nil {
+		return nil, err
+	}
+	var canonical [][]byte
+	for _, id := range ids {
+		if e, _ := in.Cached(id); e.Canonical(eventType) {
+			canonical = append(canonical, id)
+		}
+	}
+	return conclusionsummaries.EventsByIDs(c, canonical)
 }
 
 // originSiblings lists every child of the person's parents units and siblings
@@ -251,7 +394,11 @@ func originSiblings(family Family, byBirth func([]kinship.Relative), summaries c
 // dropUnread drops each relative whose summary was not read (a node dropped
 // mid-read: the next read is right, as the claims read skips) and then each unit
 // that is left empty: a parents or partner unit with no partner, and a one
-// parent or siblings unit with no child.
+// parent or siblings unit with no child. It drops the same members from the
+// sibling groups: the first group stays whatever is left of it, and another
+// group with no child left goes. A marriage whose event summary was not read
+// goes, and a couple left with none or with a person not read goes. It does not
+// reindex couples: indexCouples does, once the couples are final.
 func dropUnread(family Family, summaries conclusionsummaries.Summaries) Family {
 	read := func(rs []kinship.Relative) []kinship.Relative {
 		var kept []kinship.Relative
@@ -271,5 +418,31 @@ func dropUnread(family Family, summaries conclusionsummaries.Summaries) Family {
 		units = append(units, u)
 	}
 	family.Units = units
+	var groups []Group
+	for k, g := range family.Groups {
+		g.Parents, g.Children = read(g.Parents), read(g.Children)
+		if k > 0 && len(g.Children) == 0 {
+			continue
+		}
+		groups = append(groups, g)
+	}
+	family.Groups = groups
+	var couples []FamilyCouple
+	for _, c := range family.Couples {
+		_, a := summaries.Person(c.A)
+		_, b := summaries.Person(c.B)
+		var marriages [][]byte
+		for _, m := range c.Marriages {
+			if _, ok := summaries.Event(m); ok {
+				marriages = append(marriages, m)
+			}
+		}
+		if !a || !b || len(marriages) == 0 {
+			continue
+		}
+		c.Marriages = marriages
+		couples = append(couples, c)
+	}
+	family.Couples = couples
 	return family
 }
