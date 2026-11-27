@@ -275,9 +275,7 @@ struct PersonFamilyLayout: Equatable {
                 vertical(x: childRail, first, last)
                 for center in childCenters { horizontal(childRail, childX, y: center) }
             }
-            var bottom = top - Self.tileGap
-            // A group with lines and no children ends at its last line.
-            if group.children.isEmpty, let last = items.last?.frame.maxY { bottom = max(bottom, last) }
+            var bottom = items.map { $0.frame.maxY }.max() ?? top - Self.tileGap
             if group.childrenHidden > 0 {
                 items.append(.more(PlacedMore(
                     fold: .children(index), count: group.childrenHidden,

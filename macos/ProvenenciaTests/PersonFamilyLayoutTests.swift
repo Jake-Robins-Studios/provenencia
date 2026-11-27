@@ -181,8 +181,20 @@ struct PersonFamilyLayoutTests {
         #expect(two.frame(of: "r-0-m0-m-jm1") == CGRect(x: 643, y: 124, width: 395, height: 21))
         #expect(two.frame(of: "r-0-m0-m-jm2") == CGRect(x: 643, y: 145, width: 395, height: 21))
         #expect(try #require(two.frame(of: "r-0-maria")).minY == 26)
-        // A group with lines and no children ends at or below its last line.
-        #expect(two.groups.first { $0.items.contains { $0.id == "r-0-m0-m-jm2" } }.map { $0.frame.maxY } ?? 0 >= 166)
+        // The children start under the line, the left column's rule.
+        #expect(try #require(married.frame(of: "r-0-karl")).minY == 151)
+
+        // A partner group with lines and no children ends at its last line, and the next group
+        // starts a gap below it; the last group sets the height.
+        var childless = Data.married
+        childless.units[0].children = []
+        let (_, bare) = layout(childless)
+        let line = try #require(bare.frame(of: "r-0-m1-m-jm"))
+        #expect(try #require(bare.frame(of: "r-1-sophie")).minY == line.maxY + PersonFamilyLayout.partnerGroupGap)
+        var last = childless
+        last.units = [last.units[0]]
+        let (_, only) = layout(last)
+        #expect(only.height >= (only.frame(of: "r-0-m1-m-jm")?.maxY ?? .infinity))
 
         let (three, l) = layout(Data.threeParentMarriages)
         #expect(l.frame(of: "l-g0-m0-m-ha") == CGRect(x: 110, y: 124, width: 395, height: 21))
