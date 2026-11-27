@@ -1,6 +1,7 @@
 # S16-82 — The Family read sends sibling groups and each couple's marriages
 
-**Status:** Planned
+**Status:** Landed in [#1009](https://github.com/Jake-Robins-Studios/provenencia/pull/1009) (2026-11-27)
+**Landed:** As planned, except: T-9 is a new test, `TestDropUnreadGroupsAndCouples`, beside `TestDropUnread` rather than an extension of its literal; `spouseLink` calls a small `filedSpouseLink` (one spouse link a person files to another), since `core/kinship` may hold no literal number (`TestLayerPackages`).
 **Spike / slice:** Spike 16 · Slice 6l — Family parents
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the engine sends new fields that nothing draws until S16-81)

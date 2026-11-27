@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-82 — The Family read sends sibling groups and each couple's marriages
+
+**Landed 2026-11-27** in [#1009](https://github.com/Jake-Robins-Studios/provenencia/pull/1009). The Family read now sends the person's siblings in groups by the parents they share with the person (the person among them, the person's group first) and each couple's marriage events as event summaries, earliest first, at most 10 a couple, with each group and partner unit naming its couples by index. `kinship.SiblingGroups` and `kinship.Couples` do the grouping, reading marriages through `Pattern.ImpliesSpouse`; `GoStore` maps the new fields. Nothing draws them yet and nothing was removed: S16-81 draws them and deletes the fields they replace.
+
 ## S16-80 — An event's places reconcile by their records
 
 **Landed 2026-11-27** in [#1007](https://github.com/Jake-Robins-Studios/provenencia/pull/1007). An event shows the place its records support: a place that contains another linked place at the event's date folds into it, the Sources vote, and weak evidence drops, so a birth three Sources place in Swift Current and one in England reads Swift Current, merged. The Birth and Death place sheets list every location link's record with what the vote did to it. Version 0.48.3.
