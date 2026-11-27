@@ -111,9 +111,9 @@ On the Place page, a researcher sees where a name or the period came from the sa
 
 | ID | Requirement |
 | --- | --- |
-| PP-1 | **The control.** A Details row with records ends with the provenance control in a 28pt slot after the row's other controls, as on the Person page's Vitals: small icon-only button, info glyph, tooltip "Provenance of Names" or "Provenance of Period". |
-| PP-2 | **No records, empty slot.** A row with no records ("No period recorded") keeps the 28pt slot empty, so the values of both rows line up. |
-| PP-3 | **The Why goes.** No "Why" button on any row, and nothing opens under a row except the Names row's Show more. |
+| PP-1 | **The control.** A Details row with records ends with the provenance control in a 28pt slot after the row's other controls, as on the Person page's Vitals: small icon-only button, info glyph, tooltip "Provenance of Names" or "Provenance of Period". It is centered vertically on the row, so on a Names row of many names it sits beside the middle of the list. |
+| PP-2 | **No records, empty slot.** A row with no records ("No period recorded") keeps the 28pt slot empty, so the values of both rows line up. A row whose value is empty but which holds records (every record denied) ends with the control. |
+| PP-3 | **The Why goes.** No "Why" button on any row, and nothing opens under a row except the Names row's Show more, and a field's other values when it has them. |
 | PP-4 | **The sheet over the Place page.** Pressing the control opens the provenance sheet for that row over the dimmed Place page. Names: title "Names", the kept names in the value header, one value heading per kept name over its records, then the records under no shown name (the weak "Torento"). Period: title "Period", the span in the value header, the start and end dates' records in one table. |
 | PP-5 | **Long tables fold.** A Names row with more than 50 records opens on 50 records and the sheet's "Show 50 more", as the Person page's sheet does. |
 | PP-6 | **Leaving the sheet.** Done closes the sheet. A record's link closes the sheet and opens its place; Back returns to the Place page. |
@@ -145,13 +145,13 @@ Each frame is the pane only (no sidebar): 1102 × 900 at Regular, 2296 × 1440 a
 
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
-| Details row | Snowflake | Extend | `macos/App/Features/Conclusions/ReconciledValueRow.swift` `ReconciledValueRow` | Ends with the 28pt provenance slot on every page; the Why button goes |
+| Details row | Snowflake | Ship | `macos/App/Features/Conclusions/ReconciledValueRow.swift` `ReconciledValueRow` | As the Person page draws it, now on every page: ends with the 28pt provenance slot; the Why button goes |
 | Provenance control | Component | Ship | `macos/App/DesignSystem/Components/IconButton/PVIconButton.swift` (`.info`, `.sm`) | The Person page's control, as it is. Not a text button, a disclosure or a new glyph |
 | Why disclosure | Component | Remove | `PVDisclosureButton` "Why" on the row | The disclosure itself stays in the kit |
 | Why card and its table | Snowflake | Remove | `Features/Conclusions/ReconciliationReasoningView.swift`, `ReconciliationRecordRows.swift` | Gone; the sheet's table replaces them |
 | Reserved column | Recipe part | Remove | `PVProvenanceReservedCell` | The Why's empty fourth column; nothing else draws it |
 | Provenance sheet | Recipe | Ship | `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceSheet.swift` | As the Person page board draws it; opened from the Place page |
-| Sheet presenter | Snowflake | Ship | `Features/Conclusions/ProvenanceSheetHost.swift` | The Person page's presenter, now on every Details section |
+| Sheet presenter | Snowflake | Ship | `Features/Conclusions/ReconciledValueRow.swift` `ConclusionDetailRowsSection` (its sheet), with `ProvenanceSheetHost.swift` as the sheet's content | The Person page's presenter, now on every Details section |
 | Relationship rows | Snowflake | Ship | `Features/Conclusions/PlaceRelationshipRow.swift` | Unchanged; no control |
 
 **Non-goals.** No new kit primitive, no new string, no change to the sheet or to `PVIconButton`. No control on the relationship rows. No inline record table on the page.

@@ -14,7 +14,7 @@
 **Context:** map scope entry S15-31 ([`../deployment-plan.md`](../deployment-plan.md)); working rules "The Why accordion goes" and "The provenance table folds a page at a time"; [`docs/macos-client-patterns.md`](../../../macos-client-patterns.md) "Detail pages share their rows"; [`../provenance-loading.md`](../provenance-loading.md)
 **Host:** macOS with Xcode. Tests: `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS'`, narrowed with `-only-testing:ProvenenciaTests/<Suite>` where a Step says so. The implementer runs the manual check in §10.
 **Planned:** 2026-11-27 against `main` @ `9d83091`
-**Review:** — (not reviewed yet)
+**Review:** [`S15-31-event-and-place-provenance-sheet.review.md`](S15-31-event-and-place-provenance-sheet.review.md) — Fits with changes · Ready with changes, two rounds, every finding answered
 
 ### Implementer — read this first
 
@@ -46,7 +46,7 @@ On the Event and Place pages, each Details row with records ends with the proven
 | AC-1.1 | An Event dated by two as-ofs (3 records on `as_of`), Details | The Date row ends with the ⓘ control "Provenance of Date"; there is no "Why" button |
 | AC-1.2 | Press the Date row's control | The sheet opens, title "Date", value header with the two as-of lines, summary "3 records", 3 records in the table |
 | AC-1.3 | The same Event's Place row | Empty 28pt slot, no control; the open arrow stays and opens the Place |
-| AC-1.4 | An Event with nothing recorded on its dating | "No date recorded", empty slot |
+| AC-1.4 | An Event with no records on any dating property | "No date recorded", empty slot. A Date row that reads "No date recorded" but holds records (every record denied or unshown) ends with the control (D-10) |
 | AC-1.5 | A Date row with 1,200 records | The sheet opens on 50 records and "Show 50 more" |
 
 **US-2.** As a researcher on a Place page, when I press the Names or Period row's control, I see its records in the provenance sheet.
@@ -70,13 +70,13 @@ On the Event and Place pages, each Details row with records ends with the proven
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-4.1 | `rg -n "ReconciliationReasoningView\|ReconciliationRecordRows\|PVProvenanceReservedCell\|actionWidth\|whyTitle\|whyButton\|whySource\|whyThese\|whyRecords\|showsWhy\|Provenance\.why\|conclusions\.why" macos .agents .cursor docs/*.md` | No hit |
+| AC-4.1 | The sweep command in §9, run from the repo root | No hit |
 
 ## 3. Scope
 
 | In | Covered by |
 | --- | --- |
-| Every Details row ends with the provenance slot on Person, Event and Place (EP-1, EP-2, PP-1, PP-2) | STEP-1, AC-1.1, AC-1.3, AC-1.4, AC-2.1, AC-2.3 |
+| Every Details row ends with the provenance slot on Person, Event and Place (EP-1, EP-2, EP-2a, PP-1, PP-2) | STEP-1, AC-1.1, AC-1.3, AC-1.4, AC-2.1, AC-2.3 |
 | The Why button, card and table go (EP-3, PP-3) | STEP-1, STEP-2, AC-4.1 |
 | The sheet opens over Event and Place pages with the row's records, folded (EP-4, EP-5, PP-4, PP-5) | STEP-1, AC-1.2, AC-1.5, AC-2.2, AC-2.4 |
 | Leaving the sheet and Back (EP-6, PP-6) | STEP-1 (presenter unchanged), AC-3.3 |
@@ -85,12 +85,12 @@ On the Event and Place pages, each Details row with records ends with the proven
 | `whyTitle` leaves the row model | STEP-2 |
 | The reserved column leaves the recipe | STEP-3 |
 | The Why strings leave L10n and the String Catalog | STEP-4 |
-| Doc comments, `docs/macos-client-patterns.md` and `docs/conclusion-reconciliation.md` that name the Why | STEP-5, STEP-7 |
+| Doc comments (Swift, L10n, the `conclusiondetails` Go package), `docs/macos-client-patterns.md` and `docs/conclusion-reconciliation.md` that name the Why | STEP-4, STEP-5, STEP-6 |
 
 | Out | Home |
 | --- | --- |
 | Records loading when the sheet opens; the row counts from `FieldRecordCounts` | S15-29 |
-| The `conclusiondetails` package comment ("the Why a detail page shows") and `api/proto/engine.proto`'s `PictureDetail` comment ("as the Why shows it"), and `api/ffi/handlers/conclusion_detail_test.go`'s comment | S15-28, which rewrites that package comment and regenerates the proto |
+| `api/proto/engine.proto`'s `PictureDetail` comment ("as the Why shows it") | S15-28, which edits and regenerates the proto; STEP-6 names it in S15-28's scope entry |
 | A control on the Place relationship rows or on the Event's Place row | not planned (their records live on the Place the row opens; the briefs' non-goals) |
 | The `"Why"` sample label in `PVDisclosureButton`'s `#Preview` | not planned (a preview word, not a reference to the removed control) |
 
@@ -108,10 +108,11 @@ On the Event and Place pages, each Details row with records ends with the proven
 | Place names | `macos/App/Features/Conclusions/PlaceDetailContent.swift` `namesRow` | Overrides `whyTitle` with `L10n.Conclusions.whyThese` |
 | Reserved column | `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceParts.swift` `PVProvenanceReservedCell`; `PVProvenanceColumns.swift` `actionWidth` | Drawn only by `ReconciliationRecordRows` (S15-21 D-14 kept them for the Why) |
 | Strings | `macos/App/Platform/L10n.swift` `L10n.Conclusions.whySource`, `whyButton`, `whyTitle(_:)`, `whyTitleName(_:)`, `whyThese(_:label:)`, `whyRecords(_:)`; `macos/App/Resources/Localizable.xcstrings` keys `conclusions.why.source`, `conclusions.why.button`, `conclusions.why.title`, `conclusions.why.title.name`, `conclusions.why.these`, `conclusions.why.records` | Read only by the Why code above |
-| String comments | `L10n.swift` `readAsNone`, `readAsNot(_:)` and their xcstrings entries `conclusions.readAs.none`, `conclusions.readAs.not` | Comments say "Why table, Read as column"; the sheet's Read as column uses them (`ReconciledValueDisplay.swift`) |
-| Doc comments | `EventDetailContent.swift` (type comment, `dateRow`, `placeRow`), `PlaceDetailView.swift` (type comment), `ReconciledValueRow.swift` (type comment), `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceSheetContent.swift` `PVProvenanceFace`, `macos/App/Platform/DerivedPlace.swift` `shown`, `macos/App/Platform/ReconciledValueDisplay.swift` `outcomeMark` | Name the Why |
-| Tests | `macos/ProvenenciaTests/EventDetailTests.swift` (lines asserting `whyTitle`), `PlaceDetailTests.swift` `keptNamesAreAllListedAndAWeakSpellingStaysInTheWhy`, `PersonDetailTests.swift` `aMergedNameRowCarriesItsStateAndWhy` and the derived-row test asserting `whyTitle`, `PVProvenanceColumnsTests.swift` (`actionWidth == 88`), `ProvenanceSheetTests.swift` `theSheetFollowsItsRowAcrossARefresh` | `whyTitle` and `actionWidth` assertions break when those go |
-| Docs | `docs/macos-client-patterns.md` "Detail pages share their rows (S9-16)"; `docs/conclusion-reconciliation.md` (the two-birth-Events paragraph) | Describe the Why and the `.sheet` mode |
+| String comments | `L10n.swift` `readAsNone`, `readAsNot(_:)` and their xcstrings entries `conclusions.readAs.none`, `conclusions.readAs.not`; the doc comments on `enum ProvenanceSheet` ("the Why's table") and `enum Conclusions` ("the Why table") | Name the Why table; the sheet's Read as column uses the two keys (`ReconciledValueDisplay.swift`) |
+| Go comments | `core/database/conclusiondetails/conclusiondetails.go` package comment (`the "Why" a detail page shows`, `the Why's reconciler half`); `api/ffi/handlers/conclusion_detail_test.go` comment above the warm-open test ("composes the Why") | Name the Why |
+| Doc comments | `EventDetailContent.swift` (type comment, `dateRow`, `placeRow`), `PlaceDetailView.swift` (type comment), `ReconciledValueRow.swift` (type comment, `firstStop`, `openProvenance`), `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceSheetContent.swift` `PVProvenanceFace`, `macos/App/Platform/DerivedPlace.swift` `shown`, `macos/App/Platform/ReconciledValueDisplay.swift` `outcomeMark` | Name the Why |
+| Tests | `EventDetailTests.swift` lines 268 (the as-of row test) and 382, 386 (`undatedRowShowsTheFieldWithRecords`); `PlaceDetailTests.swift` `keptNamesAreAllListedAndAWeakSpellingStaysInTheWhy` (line 69); `PersonDetailTests.swift` `aMergedNameRowCarriesItsStateAndWhy` (lines 414, 422) and `lifeRowsCarryTheirOwnersRecords` (lines 688, 690, 698); `PVProvenanceColumnsTests.swift` line 10 (`actionWidth == 88`) | Assert `whyTitle` and `actionWidth`. The rules this PR relies on are already tested: `ProvenanceSheetTests.theSheetFollowsItsRowAcrossARefresh` (`ProvenanceSheetItem.row(in:)`), `ProvenanceSheetTests.aRowBuildsItsContentOnCall` (sheet title is the row label), `EventDetailTests.swift:267` (as-of Date row has 3 records), `:499`, `:511` (Event Place row has none), `PlaceDetailTests.swift:71–73` (Names holds the weak record). `PlaceDetailTests.periodAndRelationshipsAreStatedEmpty` checks the empty Period's text, not its record count |
+| Docs | `docs/macos-client-patterns.md` "Detail pages share their rows (S9-16)"; `docs/conclusion-reconciliation.md` line 175 ("the *Why* view") and the two-birth-Events paragraph ("A derived value's Why lists") | Describe the Why and the `.sheet` mode |
 
 **Precedent.** S13-11 put the Person page's Vitals on `.sheet` mode: the 28pt `provenanceSlot`, one `.pvSheet(item:)` presenter per section holding `ProvenanceSheetItem`, and `ProvenanceSheetHost`. This PR makes that the only mode; copy nothing new, delete the other branch.
 
@@ -119,15 +120,17 @@ On the Event and Place pages, each Details row with records ends with the proven
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
-| D-1 | `ReconciledValueRow.Provenance` goes. Every row draws `provenanceSlot`; `ConclusionDetailRowsSection` loses its `provenance` parameter; `PersonDetailSections` stops passing it | One owner of the row's ending, so every page gains the sheet with no mode (feedback: rules over branches) | Passing `.sheet` from `ConclusionDetailDefaultPageSections` — leaves an enum with one live case |
-| D-2 | `whyTitle` goes from `ReconciledValueRowModel` (stored property, every assignment, the private `init`'s parameter), with `namesRow`'s override. The sheet's title stays the row's label, as on the Person page | Its only reader is the Why card | Moving the "Why “1851”" wording into the sheet title — a sheet change no board draws |
-| D-3 | `PVProvenanceReservedCell` and `PVProvenanceColumns.actionWidth` go | Their last caller is `ReconciliationRecordRows` (S15-21 D-14) | — |
-| D-4 | The six `L10n.Conclusions.why*` members and their six String Catalog entries go. `readAsNone` and `readAsNot` keep their keys; their comments read "Provenance table, Read as column: the record states nothing for this field" and "Provenance table, Read as column: a negative record saying the value is not this; argument is the value" in both `L10n.swift` and the xcstrings `comment` | Nothing reads the six; the two remaining comments name a table that is gone | Keeping unused keys for translators — the catalog would flag them stale |
-| D-5 | `firstStop` returns `.provenance` when the row has records, else `.others` when it has other values, else nil; `Stop` loses `.why` | The Show more `revealed` stop already follows `firstStop` | — |
+| D-1 | `ReconciledValueRow.Provenance` goes with the mode's branches (Deletes). Every row draws `provenanceSlot`; `ConclusionDetailRowsSection` and `PersonDetailSections` stop passing a mode. `openProvenance` becomes `let openProvenance: () -> Void`, no default | One owner of the row's ending, so every page gains the sheet with no mode (feedback: rules over branches); with no default, a row host cannot draw a dead control | Passing `.sheet` from `ConclusionDetailDefaultPageSections` — leaves an enum with one live case |
+| D-2 | `whyTitle` goes from the row model, with `namesRow`'s override. The sheet's title stays the row's label, as on the Person page | Its only reader is the Why card | Moving the "Why “1851”" wording into the sheet title — a sheet change no board draws |
+| D-3 | The reserved column goes (Deletes) | Its last caller is `ReconciliationRecordRows` (S15-21 D-14) | — |
+| D-4 | The six Why strings go (Strings). `readAsNone` and `readAsNot` keep their keys; their comments read "Provenance table, Read as column: the record states nothing for this field" and "Provenance table, Read as column: a negative record saying the value is not this; argument is the value" in `L10n.swift` and the xcstrings `comment`. `enum ProvenanceSheet`'s doc comment ends "read by the sheet and its record rows"; `enum Conclusions`'s reads "field states, auto-reconciler outcomes and the Person page" | Nothing reads the six; the remaining comments name a table that is gone | Keeping unused keys for translators — the catalog would flag them stale |
+| D-5 | `ReconciledValueRowModel.hasRecords` *(new)*, `recordCount > 0`, is the one test of "this row offers the sheet": `provenanceSlot`, `firstStop` and `ProvenanceSheetItem.row(in:)` read it. `firstStop` returns `.provenance` when `hasRecords`, else `.others` when the row has other values, else nil; `Stop` loses `.why` | One place changes when S15-29 moves the counts to `FieldRecordCounts` | Three spellings of `recordCount` against 0 |
 | D-6 | Accessibility identifiers: `conclusion.detail.row.<id>.provenance` on every page; `conclusion.detail.row.<id>.why` and `conclusion.detail.why.<record>.source` go | No UI test target reads them; one name per control | — |
-| D-7 | Tests stay at the model layer: each removed `whyTitle` assertion becomes an assertion on `provenanceContent().title`, and a new `ProvenanceSheetTests` case checks which Event and Place rows a `ProvenanceSheetItem` resolves (§ 8). The visual and keyboard ACs are the manual check | The repo does not test view trees; `ProvenanceSheetItem.row(in:)` is the rule that decides whether a sheet can open | A hosting-view test for the control's presence — no precedent in `ProvenenciaTests` |
-| D-8 | The two test functions named for the Why are renamed: `aMergedNameRowCarriesItsStateAndWhy` → `aMergedNameRowCarriesItsStateAndProvenance`, `keptNamesAreAllListedAndAWeakSpellingStaysInTheWhy` → `keptNamesAreAllListedAndAWeakSpellingStaysInTheSheet` (and its doc comment) | The sweep in the DoD finds no name of a removed control | — |
-| D-9 | One PR for both pages | Both pages draw through `ConclusionDetailDefaultPageSections`, so D-1 changes them together; splitting would ship one page with the Why still on the other | Two PRs — the map row is one PR, and the shared fill cannot change for one page |
+| D-7 | No new test. Each `whyTitle` assertion in §4 Tests is deleted, keeping the records half of its line; the title rule stays `aRowBuildsItsContentOnCall`'s. One expectation is added for the empty Period (T-1). The visual and keyboard ACs are the manual check | The rules the rows rely on are already tested (§4 Tests); a new case would copy private Event and Place fixtures | A `ProvenanceSheetTests` case over `EventDetailContent` and `PlaceDetailContent` — a second copy of fixtures S15-29 must keep in step; a hosting-view test — no precedent in `ProvenenciaTests` |
+| D-8 | The two test functions named for the Why are renamed: `aMergedNameRowCarriesItsStateAndWhy` → `aMergedNameRowCarriesItsStateAndProvenance`, `keptNamesAreAllListedAndAWeakSpellingStaysInTheWhy` → `keptNamesAreAllListedAndAWeakSpellingStaysInTheSheet` (its doc comment: "A weak spelling stays in the sheet's records and is not a displayed name") | The sweep finds no name of a removed control | — |
+| D-9 | One PR for both pages | Both pages draw through `ConclusionDetailDefaultPageSections`, so D-1 changes them together | Two PRs — the shared fill cannot change for one page |
+| D-10 | The control shows whenever the row has records, whatever its value line says: a Date or Birth date that reads "No date recorded" because every record was denied still opens the sheet (`EventDetailTests.undatedRowShowsTheFieldWithRecords`, `PersonDetailTests.lifeRowsCarryTheirOwnersRecords`) | The sheet is where the researcher sees why nothing shows | Hiding it on an empty value — the denied records would have no view |
+| D-11 | The control centers vertically on the row, as `ReconciledValueRow.body`'s `HStack(alignment: .center)` does today; a row of 20 as-of lines or names has it at the middle of the lines | The code needs no change; the briefs (EP-1, PP-1) ask the board to draw it so | Moving it to the first line — a layout change in the shared row, for the Person page too |
 
 **Rules this plan bends.** None.
 
@@ -137,13 +140,13 @@ On the Event and Place pages, each Details row with records ends with the proven
 
 | New *(this PR adds)* | Kind | Closest existing | Why not reuse or extend it |
 | --- | --- | --- | --- |
-| `ProvenanceSheetTests.eventAndPlaceRowsOpenTheSheetWhenTheyHaveRecords` *(new)* | test | `ProvenanceSheetTests.theSheetFollowsItsRowAcrossARefresh` | A new case beside it in the same suite, built with `EventDetailContent` and `PlaceDetailContent` |
+| `ReconciledValueRowModel.hasRecords` *(new)* | property | `ReconciledValueRowModel.recordCount` | It reads `recordCount`; it names the one rule three call sites spell today (D-5) |
 
-Searched: `ProvenanceSheetItem`, `provenanceSlot`, `Provenance\.`, `ReconciliationRecordRows`, `PVProvenanceReservedCell`, `whyTitle` across `macos/`. The PR adds no type, view, key or helper.
+Searched: `ProvenanceSheetItem`, `provenanceSlot`, `recordCount > 0`, `recordCount == 0`, `Provenance\.`, `ReconciliationRecordRows`, `PVProvenanceReservedCell`, `whyTitle` across `macos/`. The PR adds no type, view, key or test helper.
 
 **Builds on.** S13-11's `.sheet` mode (`provenanceSlot`, `ProvenanceSheetItem`, `ProvenanceSheetHost`, `.pvSheet(item:)`), S15-27's fold in `PVProvenanceRecordTable`, `ReconciledValueRowModel.provenanceContent()`.
-**Deletes.** `ReconciledValueRow.Provenance`, `ReconciledValueRow.provenance`, `showsWhy`, `Stop.why`, the `.why` branches in `body` and `disclosures`; `ConclusionDetailRowsSection.provenance`; `ReconciliationReasoningView.swift` and `ReconciliationRecordRows.swift` (whole files; the project uses synchronized folders, so `project.pbxproj` lists neither); `ReconciledValueRowModel.whyTitle` and its parameter; `PVProvenanceReservedCell`; `PVProvenanceColumns.actionWidth`; the six strings in Strings; the `whyTitle` and `actionWidth` test assertions.
-**Next adds.** S15-29 changes one presentation: every row's sheet takes its records from the on-open read; nothing on the page still reads `provenanceContent()` outside the sheet.
+**Deletes.** `ReconciledValueRow.Provenance`, `ReconciledValueRow.provenance`, `showsWhy`, `Stop.why`, the `.why` branches in `body` and `disclosures`; `ConclusionDetailRowsSection.provenance`; `ReconciliationReasoningView.swift` and `ReconciliationRecordRows.swift` (whole files; the project uses synchronized folders, so `project.pbxproj` lists neither); `ReconciledValueRowModel.whyTitle` and its parameter; `PVProvenanceReservedCell`; `PVProvenanceColumns.actionWidth`; the six strings in Strings; the `whyTitle` and `actionWidth` test assertions; `openProvenance`'s `{}` default.
+**Next adds.** S15-29 changes one presentation: every row's sheet takes its records from the on-open read, and `hasRecords` reads `FieldRecordCounts` in one place; nothing on the page still reads `provenanceContent()` outside the sheet.
 
 ### Reach
 
@@ -168,7 +171,7 @@ None — no catalog change.
 
 ### Go core
 
-None — Swift only.
+Comments only (STEP-5): the `conclusiondetails` package comment and one test comment. No code.
 
 ### FFI
 
@@ -185,7 +188,7 @@ None —
 
 **Frames in words** (until the boards are agreed). Event page, Regular (1102pt pane): header; "Details"; Date row: label column 132pt, the as-of lines with their Source counts, then the ⓘ at the row's right end; Place row: the place name, its open arrow, then an empty 28pt slot so the arrow sits where Date's controls end. Wide: the same column centered at the Regular measure. Place page: the same for Names (the kept names, ⓘ) and Period (the span, ⓘ, or "No period recorded" with an empty slot); the relationship sections below unchanged. The sheet over either page is the Person page's sheet. If an agreed board places anything differently, stop (§ 11).
 
-States: a row with no records shows its empty text and an empty slot; a refresh that removes a row's records closes its open sheet. Accessibility: the control's label and tooltip are `L10n.Conclusions.provenanceOpen(label)`; Tab order follows the row's `HStack` (other values, open arrow, provenance), then the list's Show more below.
+States: a row with no records shows its empty text and an empty slot; a row whose value is empty but which holds records shows the control (D-10); the control centers on a tall row (D-11); a refresh that removes a row's records closes its open sheet. Accessibility: the control's label and tooltip are `L10n.Conclusions.provenanceOpen(label)`; Tab order follows the row's `HStack` (other values, open arrow, provenance), then the list's Show more below.
 
 ### Strings
 
@@ -194,39 +197,51 @@ L10n keys *(new)*: none. Removed: `conclusions.why.source`, `conclusions.why.but
 ## 7. Steps
 
 **STEP-1 — One row ending on every page**
-Files: `macos/App/Features/Conclusions/ReconciledValueRow.swift`, `PersonDetailView.swift`. Skill: `add-ui-component`.
-Do: D-1, D-5, D-6. Remove the enum, the property, `showsWhy`, `Stop.why`, the `.why` branches; draw `provenanceSlot` unconditionally in the row's `HStack`; drop `ConclusionDetailRowsSection.provenance` and the `provenance:` argument at both call sites (`ReconciledValueRow(model:provenance:…)` in the section, `PersonDetailSections`). Rewrite the row's and the enum-free type's doc comments to name the provenance control and sheet. `ReconciliationReasoningView` is still compiled but unreferenced after this step.
-Check: the app builds (`xcodebuild build -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS'`); `rg -n "provenance: \.sheet|Provenance\.why|showsWhy" macos/App` finds nothing.
+Files: `macos/App/Features/Conclusions/ReconciledValueRow.swift`, `ReconciledValueRowModel.swift`, `ProvenanceSheetItem.swift`, `PersonDetailView.swift`. Skill: `add-ui-component`.
+Do: D-1, D-5, D-6. Remove the enum, the property, `showsWhy`, `Stop.why`, the `.why` branches; draw `provenanceSlot` unconditionally in the row's `HStack`; drop `ConclusionDetailRowsSection.provenance` and the `provenance:` argument at both call sites (`ReconciledValueRow(model:provenance:…)` in the section, `PersonDetailSections`). Add `hasRecords` to `ReconciledValueRowModel.swift` and read it in `provenanceSlot`, `firstStop` and `ProvenanceSheetItem.row(in:)` (`ProvenanceSheetItem.swift`). Doc comments: the type's last clause reads "· disclosures for a mixed field's other values · the provenance control"; `firstStop`: "The row's first disclosure stop: the provenance control when the row has records, else the other values. Nil when the row has neither."; `openProvenance`: "Opens the provenance sheet on this row." `ReconciliationReasoningView` is still compiled but unreferenced after this step.
+Check: the app builds (`xcodebuild build -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS'`); `rg -n "provenance: \.sheet|Provenance\.why|enum Provenance|case why" macos/App/Features/Conclusions` finds nothing. (`showsWhy` is not checked by name: `SourceMoveModel.showsWhy` is unrelated and stays.)
 
 **STEP-2 — The Why card, table and title go**
 Files: `ReconciliationReasoningView.swift`, `ReconciliationRecordRows.swift` (delete), `ReconciledValueRowModel.swift`, `PlaceDetailContent.swift`, `macos/ProvenenciaTests/EventDetailTests.swift`, `PlaceDetailTests.swift`, `PersonDetailTests.swift`. Skill: `add-swift-test`.
-Do: delete both files; D-2 in the model and `namesRow`; reword the model's doc comments that say "Why" to "sheet". In the tests, replace each `whyTitle` assertion as § 8 T-1 – T-3 say, and rename per D-8.
+Do: delete both files; D-2 in the model and `namesRow` (the model's comments are STEP-5's). In the tests, delete each `whyTitle` assertion in §4 Tests, keeping the other conditions on its line: `EventDetailTests.swift:386` keeps `none.shown.emptyText == "No date recorded" && none.provenanceContent().records.isEmpty`; `PersonDetailTests.swift:688` keeps `birth.shown.lead != nil`; `:690` keeps `page.rows[3].provenanceContent().records.isEmpty`; lines 268, 382, 414, 422, 698 and `PlaceDetailTests.swift:69` assert only `whyTitle` and are deleted whole; add T-1; rename per D-8.
 Check: `xcodebuild test … -only-testing:ProvenenciaTests/EventDetailTests -only-testing:ProvenenciaTests/PlaceDetailTests -only-testing:ProvenenciaTests/PersonDetailTests` passes.
 
 **STEP-3 — The reserved column goes**
 Files: `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceParts.swift`, `PVProvenanceColumns.swift`, `macos/ProvenenciaTests/PVProvenanceColumnsTests.swift`.
-Do: D-3; drop `actionWidth` from the columns test's expectation (T-5).
+Do: D-3; the columns test's line 10 becomes `#expect(PVProvenanceColumns.recordWidth == 72)` (T-2).
 Check: `-only-testing:ProvenenciaTests/PVProvenanceColumnsTests` passes; `rg -n "PVProvenanceReservedCell|actionWidth" macos` finds nothing.
 
 **STEP-4 — The Why strings go**
 Files: `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`. Skill: `add-localized-string`.
 Do: D-4.
-Check: the app builds with no Swift warning; `rg -n "conclusions\.why|whyButton|whySource|whyTitle|whyThese|whyRecords" macos` finds nothing; `python3 -c "import json;json.load(open('macos/App/Resources/Localizable.xcstrings'))"` succeeds.
+Check: the app builds with no Swift warning; `rg -n "conclusions\.why|whyButton|whySource|whyTitle|whyThese|whyRecords|Why table|Why's table" macos` finds nothing; `python3 -c "import json;json.load(open('macos/App/Resources/Localizable.xcstrings'))"` succeeds.
 
-**STEP-5 — Doc comments that name the Why**
-Files: `EventDetailContent.swift`, `PlaceDetailView.swift`, `PVProvenanceSheetContent.swift` (`PVProvenanceFace`), `macos/App/Platform/DerivedPlace.swift`, `macos/App/Platform/ReconciledValueDisplay.swift`.
-Do: reword each comment listed in § 4 "Doc comments" to the provenance sheet (for example `EventDetailContent.placeRow`: "No provenance control: its records stay on the Place, which the row opens"). Comments only.
-Check: `rg -n "\bWhy\b|the Why" macos/App/Features/Conclusions macos/App/DesignSystem/Recipes/ProvenanceSheet macos/App/Platform/DerivedPlace.swift macos/App/Platform/ReconciledValueDisplay.swift` returns only sentences where "why" is an ordinary word, not the control.
+**STEP-5 — Comments that name the Why**
+Files: as in the table. Comments only; no code changes, and `gofmt` leaves the Go files as they are otherwise.
+Do: each comment reads as the table says (the line numbers are the planning base's).
 
-**STEP-6 — The sheet test for Event and Place rows**
-Files: `macos/ProvenenciaTests/ProvenanceSheetTests.swift`. Skill: `add-swift-test`.
-Do: add T-4.
-Check: `-only-testing:ProvenenciaTests/ProvenanceSheetTests` passes.
+| File · line | Becomes |
+| --- | --- |
+| `EventDetailContent.swift:5` | "kept date or span (the band) and the places. The date's records open in the provenance sheet from this page's date row." |
+| `EventDetailContent.swift:46`, `:48` | "its provenance sheet holds every record behind them"; "whose provenance sheet holds their records" |
+| `EventDetailContent.swift:100` | "No provenance control: its records stay on the Place, which the row opens." |
+| `PlaceDetailView.swift:4` | "`ConclusionDetailPage`: names, period, parent chain, and" |
+| `ReconciledValueRowModel.swift:13–14` | "What the row's records are built from, not the records: the sheet builds them when it opens (`provenanceContent()`)." |
+| `ReconciledValueRowModel.swift:120` | "The sheet content of the row, built from its records now." |
+| `ReconciledValueRowModel.swift:138`, `:168` | "Its sheet lists every record on those"; "Its sheet lists the owning handles' fields" |
+| `PVProvenanceSheetContent.swift:4–5` (`PVProvenanceFace`) | "places in italic. One type for the Details rows and the provenance sheet (S13-36 D-6)." |
+| `DerivedPlace.swift:8` | "the open arrow and the sheet's ink all read this one Place." |
+| `ReconciledValueDisplay.swift:202` | "so the provenance table reads without" |
+| `conclusiondetails.go:5` | "considered, joined to the record's Source: the records a detail page's provenance sheet shows." |
+| `conclusiondetails.go:7` | "and the sheet's reconciler half" |
+| `conclusion_detail_test.go:316` | "A warm open composes the records and the gallery from the canonical node" |
 
-**STEP-7 — Docs, version and the PR's records**
-Files: `docs/macos-client-patterns.md` ("Detail pages share their rows"), `docs/conclusion-reconciliation.md` (the two-birth-Events paragraph), `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj` (`MARKETING_VERSION`), `../completed.md`, `../deployment-plan.md` (map row), this plan (status, Landed note), `../design/` (both briefs → `design/archive/`, `design/README.md`).
-Do: in `macos-client-patterns.md`, the row bullet reads: every Details row (Person, Event, Place) ends with the provenance `PVIconButton` and `ConclusionDetailRowsSection` presents one `PVProvenanceSheet` for all rows; remove the Why's names and the "`.sheet` mode" wording and the sentence about `ReconciliationRecordRows`. In `conclusion-reconciliation.md`, "A derived value's Why lists" becomes "A derived value's provenance sheet lists". Version per the header. Then the DoD's docs lines.
-Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-31-event-and-place-provenance-sheet.md` reports no errors; `scripts/check-pr.sh` prints `check-pr: PASS`.
+Check: `rg -nw "Why" macos/App/Features/Conclusions macos/App/DesignSystem/Recipes/ProvenanceSheet macos/App/Platform/DerivedPlace.swift macos/App/Platform/ReconciledValueDisplay.swift core/database/conclusiondetails/conclusiondetails.go api/ffi/handlers/conclusion_detail_test.go` prints exactly two lines, both ordinary words: `PersonRecordLinksContent.swift:10` ("Why the drawing is not the whole read") and `ReconciledValueDisplay.swift:217` ("Why a record's evidence is weak"). Any other line is a comment this step missed.
+
+**STEP-6 — Docs, version and the PR's records**
+Files: `docs/macos-client-patterns.md` ("Detail pages share their rows"), `docs/conclusion-reconciliation.md` (line 175 and the two-birth-Events paragraph), `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj` (`MARKETING_VERSION`), `../completed.md`, `../deployment-plan.md` (map row), this plan (status, Landed note), `../design/` (both briefs → `design/archive/`, `design/README.md`).
+Do: in `macos-client-patterns.md`, the row bullet reads: every Details row (Person, Event, Place) ends with the provenance `PVIconButton` and `ConclusionDetailRowsSection` presents one `PVProvenanceSheet` for all rows; remove the Why's names and the "`.sheet` mode" wording and the sentence about `ReconciliationRecordRows`. In `conclusion-reconciliation.md`, "the *Why* view do that work" becomes "the provenance sheet do that work" and "A derived value's Why lists" becomes "A derived value's provenance sheet lists". In `../deployment-plan.md`, S15-28's scope entry **Context** names the `PictureDetail` comment in `api/proto/engine.proto` ("as the Why shows it") among what it updates, and its quoted phrase "The Why stays a SQL read" is dropped from that Context (no comment in the code holds it; STEP-5 rewords the package comment). Version per the header. Then the DoD's docs lines, copying the S15-27 precedent: its `completed.md` paragraph, its map-row status "Landed #1006", and S15-D17's `design/README.md` Archived row (brief link, view and date, board link and agreed frames, "S15-31 (#N)").
+Check: `rg -n "\bWhy\b" docs/*.md` shows no line about the removed control; `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-31-event-and-place-provenance-sheet.md` reports no errors; `scripts/check-pr.sh` prints `check-pr: PASS`.
 
 Commits: one per behavior. The subject is one full imperative sentence that says what changed for the researcher, ending in a period, like the rest of `git log` ("Open the provenance sheet from Event and Place rows."). No WIP commits.
 
@@ -234,15 +249,12 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
-| T-1 | Swift | `EventDetailTests.swift`, the as-of Date row test and the dating-fields test (the ones asserting `whyTitle`) | `row.whyTitle == "Why “as of …”"` → `row.provenanceContent().title == "Date"`; `both.whyTitle == "Why “Date”"` → `both.provenanceContent().title == "Date"`; `none.whyTitle == ""` dropped (the records-empty half stays) | AC-1.2, AC-1.4, D-2 |
-| T-2 | Swift | `PlaceDetailTests.swift` `keptNamesAreAllListedAndAWeakSpellingStaysInTheSheet` (renamed) | `names.whyTitle == "Why these 2 names"` → `names.provenanceContent().title == "Names"`; the `letter` record assertion stays | AC-2.2, D-2, D-8 |
-| T-3 | Swift | `PersonDetailTests.swift` `aMergedNameRowCarriesItsStateAndProvenance` (renamed) and the derived birth-date test | each `whyTitle` assertion → `provenanceContent().title` equals the row's label ("Name" row: its `label`; `birth`, `empty`: "Birth date"); `page.rows[3].whyTitle == ""` dropped (its records-empty half stays) | D-2, D-8 |
-| T-4 | Swift | `ProvenanceSheetTests.swift` `eventAndPlaceRowsOpenTheSheetWhenTheyHaveRecords` *(new)* | `EventDetailContent` with an as-of dating (3 records): `ProvenanceSheetItem(id: "date").row(in:)` is the Date row with `recordCount == 3`; `ProvenanceSheetItem(id: "place").row(in:)` is nil. `PlaceDetailContent` with York's toponyms: `"names"` resolves with the weak record among its records; a Place with no start or end: `"period"` is nil | AC-1.2, AC-1.3, AC-2.2, AC-2.3 |
-| T-5 | Swift | `PVProvenanceColumnsTests.swift` (the test at line 10) | `recordWidth == 72` alone; `actionWidth` gone | D-3 |
+| T-1 | Swift | `PlaceDetailTests.swift` `periodAndRelationshipsAreStatedEmpty` (one added expectation) | York with no start or end → `page.rows[1].recordCount == 0` | AC-2.3 |
+| T-2 | Swift | `PVProvenanceColumnsTests.swift` (the test at line 10) | `recordWidth == 72` alone; `actionWidth` gone | D-3 |
 
-Build T-4's fixtures with the helpers the Event and Place suites already use (`ReconciledValueDisplayTests` `D.field`, `D.outcome`; `EventDetailTests`' dating fixture; `PlaceDetailTests`' `content(detail(...))`); if those are `private` to their suites, copy the smallest fixture into T-4 rather than widening their access.
+Every other AC rests on a test that exists today (§4 Tests): AC-1.2 on `EventDetailTests.swift:267` and `ProvenanceSheetTests.aRowBuildsItsContentOnCall`; AC-1.3 on `EventDetailTests.swift:499`, `:511`; AC-1.4 on `undatedRowShowsTheFieldWithRecords`; AC-2.2 on `PlaceDetailTests.swift:71–73`; the sheet opening for a row with records on `theSheetFollowsItsRowAcrossARefresh`.
 
-Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `ConclusionAnchorRestoreTests` (constructs `ConclusionDetailRowsSection(rows:refreshing:)`; it compiles unchanged once the parameter goes because it never passed it), `ProvenanceSheetTests`, `WorkspaceSessionTests` (`ProvenanceSheetHost`).
+Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `ConclusionAnchorRestoreTests` (constructs `ConclusionDetailRowsSection(rows:refreshing:)`; it never passed the mode, so it compiles unchanged), `ProvenanceSheetTests` (`ProvenanceSheetItem` now reads `hasRecords`), `WorkspaceSessionTests` (`ProvenanceSheetHost`).
 
 ## 9. Definition of done
 
@@ -265,6 +277,12 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `C
 
 Both briefs, S15-D11 and S15-D12, move to `design/archive/`.
 
+The sweep command (AC-4.1), from the repo root, prints nothing:
+
+```bash
+rg -n 'ReconciliationReasoningView|ReconciliationRecordRows|PVProvenanceReservedCell|actionWidth|whyTitle|whyButton|whySource|whyThese|whyRecords|showsWhy|Provenance\.why|conclusions\.why' macos .agents .cursor docs/*.md
+```
+
 ## 10. Manual check
 
 Use a project with an Event dated by as-ofs from several Sources, a Place cited under two kept names and a weak spelling, and a Place with no period.
@@ -276,7 +294,7 @@ Use a project with an Event dated by as-ofs from several Sources, a Place cited 
 5. On a Place or Event with more than 50 records on one row, the sheet opens on 50 and "Show 50 more". (AC-1.5)
 6. Widen the window past 1600pt pane width on both pages: the pages stay centered, the sheet is 1280pt. (EP-W1, PP-W1)
 7. Open a Person page: Vitals look and behave as before.
-8. Run AC-4.1's `rg` from the repo root: no hit. (AC-4.1)
+8. Run §9's sweep command: no output. (AC-4.1)
 
 ## 11. Risks and stop conditions
 
@@ -284,13 +302,14 @@ Use a project with an Event dated by as-ofs from several Sources, a Place cited 
 | --- | --- |
 | A test or preview elsewhere passes `provenance:` | STEP-1's build fails at once; remove the argument (it can only have been `.sheet` or `.why`) |
 | A board moves the control or adds chrome | Stop (below) |
+| A future row host forgets `openProvenance` | D-1 removes the default, so it does not compile |
 
 **Stop and report if:**
 
-- An agreed board (S15-D11 or S15-D12) draws the control anywhere but the row's end, draws one on the Event's Place row or a relationship row, or changes the sheet.
+- An agreed board (S15-D11 or S15-D12) draws the control anywhere but the row's end centered on the row, draws one on the Event's Place row or a relationship row, or changes the sheet.
 - `ConclusionDetailDefaultPageSections` is no longer how Event and Place fill their page, or a third page uses `ConclusionDetailRowsSection` with `.why`.
 - A sheet opened from an Event or Place row lists different records than `provenanceContent()` returns for that row.
-- `rg` finds a reader of a removed name outside the files in § 4.
+- The sweep in §9 finds a reader of a removed name outside the files in § 4.
 
 ## 12. Open questions
 

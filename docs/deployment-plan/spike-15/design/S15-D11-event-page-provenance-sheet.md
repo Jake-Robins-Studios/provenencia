@@ -3,7 +3,7 @@
 **Kind:** Claude Design board (**enhancement** of the Event page frames: draw on the [Event Detail board](https://claude.ai/artifact/5ciAxv86fYtrUvuCHPuuJ5), page *Event Detail*, as a new turn after "S16-D6 · As-of dates", starting from frames 8a and 8b. Keep every earlier frame as agreed)
 **Spike:** Provenencia Spike 15, slice 8
 **View:** the Event page's Details rows (Date, Place), and the provenance sheet over the Event page
-**Implements later as:** PR **S15-31** (EP-1 – EP-7, EP-W1)
+**Implements later as:** PR **S15-31** (EP-1 – EP-7, EP-2a, EP-W1)
 **Board:** — (not drawn yet)
 **Depends on:** S15-27 (landed [#1006](https://github.com/Jake-Robins-Studios/provenencia/pull/1006)): the provenance sheet as it is today, with its fold ([S15-D9](archive/S15-D9-provenance-sheet-citations.md), [S15-D17](archive/S15-D17-provenance-table-fold.md)); [S16-D6](../../spike-16/design/archive/S16-D6-event-date-row.md): the Date row of an event dated by as-ofs
 **Related:** working rule "The Why accordion goes" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); the sibling brief for the Place page, [S15-D12](S15-D12-place-page-provenance-sheet.md), which S15-31 also implements; plan [`../prs/S15-31-event-and-place-provenance-sheet.md`](../prs/S15-31-event-and-place-provenance-sheet.md). The next brief on this sheet: S15-D18 (records loading on open)
@@ -111,8 +111,9 @@ On the Event page, a researcher sees where a value came from the same way as on 
 
 | ID | Requirement |
 | --- | --- |
-| EP-1 | **The control.** A Details row with records ends with the provenance control in a 28pt slot after the row's other controls, as on the Person page's Vitals: small icon-only button, info glyph, tooltip "Provenance of Date". |
-| EP-2 | **No records, empty slot.** A row with no records (the Place row; a Date with nothing recorded) keeps the 28pt slot empty, so the values and state columns of both rows line up. The Place row keeps its open arrow before the empty slot. |
+| EP-1 | **The control.** A Details row with records ends with the provenance control in a 28pt slot after the row's other controls, as on the Person page's Vitals: small icon-only button, info glyph, tooltip "Provenance of Date". It is centered vertically on the row, so on a Date row of several as-of lines it sits beside the middle of the lines. |
+| EP-2 | **No records, empty slot.** A row with no records (the Place row; a Date with no record on any dating property) keeps the 28pt slot empty, so the values and state columns of both rows line up. The Place row keeps its open arrow before the empty slot. |
+| EP-2a | **Empty value, records behind it.** A Date that reads "No date recorded" because every record was denied or not shown still has records: its row ends with the control, and the sheet lists those records. |
 | EP-3 | **The Why goes.** No "Why" button on any row, and nothing opens under a row except a mixed field's other values and the as-of lines' Show more. |
 | EP-4 | **The sheet over the Event page.** Pressing the control opens the provenance sheet for that row over the dimmed Event page: title "Date", the row's shown value in the value header (the span, or the as-of lines as the row lists them), the summary, and the records of every property behind the dating in one table. |
 | EP-5 | **Long tables fold.** A Date row with more than 50 records opens on 50 records and the sheet's "Show 50 more", as the Person page's sheet does. |
@@ -136,7 +137,8 @@ Each frame is the pane only (no sidebar): 1102 × 900 at Regular, 2296 × 1440 a
 | 1a — Regular | Frame 8a's as-of event with the Why gone: the Date row's lines with their Sources and the provenance control at the row's end; the Place row with its open arrow and an empty slot; values aligned |
 | 1b — Wide | Frame 1a at Wide, centered |
 | 2 — A dated event | An event with one date ("12 Mar 1851", 2 Sources): the Date row ends with the control; the Place row's slot empty |
-| 3 — Nothing recorded | A Date with no records: "No date recorded" and an empty slot |
+| 3a — Nothing recorded | A Date with no records: "No date recorded" and an empty slot |
+| 3b — Nothing shown, records behind it | A Date whose two records were both denied: "No date recorded" and the control |
 | 4a — The sheet, Regular | Frame 1a with the sheet open on the Date row: title "Date", the as-of lines in the value header, "3 records", the table |
 | 4b — The sheet, Wide | Frame 4a at Wide: the 1280pt panel |
 | 5 — Folded | The sheet on a Date row with 1,200 records: 50 records and "Show 50 more" at the table's foot |
@@ -146,13 +148,13 @@ Each frame is the pane only (no sidebar): 1102 × 900 at Regular, 2296 × 1440 a
 
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
-| Details row | Snowflake | Extend | `macos/App/Features/Conclusions/ReconciledValueRow.swift` `ReconciledValueRow` | Ends with the 28pt provenance slot on every page; the Why button goes |
+| Details row | Snowflake | Ship | `macos/App/Features/Conclusions/ReconciledValueRow.swift` `ReconciledValueRow` | As the Person page draws it, now on every page: ends with the 28pt provenance slot; the Why button goes |
 | Provenance control | Component | Ship | `macos/App/DesignSystem/Components/IconButton/PVIconButton.swift` (`.info`, `.sm`) | The Person page's control, as it is. Not a text button, a disclosure or a new glyph |
 | Why disclosure | Component | Remove | `PVDisclosureButton` "Why" on the row | The disclosure itself stays in the kit for other values |
 | Why card and its table | Snowflake | Remove | `Features/Conclusions/ReconciliationReasoningView.swift`, `ReconciliationRecordRows.swift` | Gone; the sheet's table replaces them |
 | Reserved column | Recipe part | Remove | `PVProvenanceReservedCell` | The Why's empty fourth column; nothing else draws it |
 | Provenance sheet | Recipe | Ship | `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceSheet.swift` | As the Person page board draws it; opened from the Event page |
-| Sheet presenter | Snowflake | Ship | `Features/Conclusions/ProvenanceSheetHost.swift` | The Person page's presenter, now on every Details section |
+| Sheet presenter | Snowflake | Ship | `Features/Conclusions/ReconciledValueRow.swift` `ConclusionDetailRowsSection` (its sheet), with `ProvenanceSheetHost.swift` as the sheet's content | The Person page's presenter, now on every Details section |
 
 **Non-goals.** No new kit primitive, no new string, no change to the sheet or to `PVIconButton`. No control on the Place row. No inline record table on the page.
 
