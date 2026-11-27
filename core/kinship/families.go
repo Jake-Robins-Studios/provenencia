@@ -284,11 +284,17 @@ func sharedParents(l Link, parentIDs [][]byte) []int {
 // spouseLink is the spouse link joining a and b: a's link to b if a files one,
 // else b's link to a.
 func spouseLink(kinOf map[string]Kin, a, b []byte) (Link, bool) {
-	for _, pair := range [2][2][]byte{{a, b}, {b, a}} {
-		for _, s := range kinOf[string(pair[0])][RoleSpouse] {
-			if other, _, ok := s.From(pair[0]); ok && bytes.Equal(other, pair[1]) {
-				return s, true
-			}
+	if l, ok := filedSpouseLink(kinOf, a, b); ok {
+		return l, true
+	}
+	return filedSpouseLink(kinOf, b, a)
+}
+
+// filedSpouseLink is the spouse link a files to c.
+func filedSpouseLink(kinOf map[string]Kin, a, c []byte) (Link, bool) {
+	for _, s := range kinOf[string(a)][RoleSpouse] {
+		if other, _, ok := s.From(a); ok && bytes.Equal(other, c) {
+			return s, true
 		}
 	}
 	return Link{}, false
