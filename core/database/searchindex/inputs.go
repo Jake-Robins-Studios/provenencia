@@ -102,6 +102,9 @@ type inputRow struct {
 //
 //   - every row composed from a gone or merged handle, whatever its key;
 //   - every row composed from a moved handle's own values;
+//   - every row composed from a written association's own values, moved or
+//     not, because an event's place vote reads the association as a record
+//     and a write can change the vote without changing what it displays;
 //   - every row composed from a link at an end of an association that moved or
 //     went, by the ends the index recorded and the ends it has now.
 //
@@ -135,6 +138,21 @@ func ReprojectChanged(q database.Execer, written, moved [][]byte) ([][]byte, err
 		if !isGone[string(id)] {
 			keys = append(keys, graphcache.InputKey{ID: id})
 			movedLive = append(movedLive, id)
+		}
+	}
+	var writtenLive [][]byte
+	for _, id := range written {
+		if !isGone[string(id)] {
+			writtenLive = append(writtenLive, id)
+		}
+	}
+	voted, err := g.AssociationInputs(writtenLive)
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range writtenLive {
+		if _, ok := voted[string(id)]; ok {
+			keys = append(keys, graphcache.InputKey{ID: id})
 		}
 	}
 	changed := append(append([][]byte(nil), gone...), movedLive...)

@@ -9,6 +9,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusiondetails"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/databasetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs/evidencegraphstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/observations"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties"
@@ -325,5 +326,32 @@ func TestPlaceOwnersCarryTheVote(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestOutvotedPlaceLeavesSearchOnWrite: a write that changes the event's place
+// vote but not the association's displayed rows still drops the outvoted
+// place from the Person's and Event's search documents, as a rebuild does.
+func TestOutvotedPlaceLeavesSearchOnWrite(t *testing.T) {
+	f := newFixture(t)
+	englandDocs := func() []string {
+		rows, err := dbtest.MustDB(t, f.C).Query(`SELECT kind, entity_id FROM catalog_search_docs
+			WHERE kind IN ('person', 'event') AND (title LIKE '%England%' OR secondary LIKE '%England%')`)
+		must(t, err)
+		defer rows.Close()
+		var out []string
+		for rows.Next() {
+			var kind, id string
+			must(t, rows.Scan(&kind, &id))
+			out = append(out, kind+" "+id)
+		}
+		must(t, rows.Err())
+		return out
+	}
+	person, birth, swift := f.placedBirth(f.source("Register 1"), "Swift Current", nil, nil, nil)
+	f.placedBirth(f.source("Gazette"), "England", person, birth, nil)
+	f.placedBirth(f.source("Register 2"), "Swift Current", person, birth, swift)
+	if got := englandDocs(); len(got) != 0 {
+		t.Fatalf("outvoted England still matches search documents %v", got)
 	}
 }
