@@ -1953,16 +1953,15 @@ message GetPersonFamilyRequest {
   string entity_id = 2;
 }
 
-// GetPersonFamilyResponse is the person's family units, parent sets first,
-// then partners, then children with no other known parent, then siblings
-// whose parents are not shown. Canonical people only. Children in each unit
-// are in birth order, undated last. person is the person's own summary.
-// origin_siblings is every sibling once with the person among them, in the
-// order the page draws them.
+// GetPersonFamilyResponse is the person's family units, partners first, then
+// the children with no other known parent. Canonical people only. Children in
+// each unit are in birth order, undated last. person is the person's own
+// summary. The person's origin is sibling_groups.
 message GetPersonFamilyResponse {
   repeated FamilyUnit units = 1;
   PersonSummary person = 2;
-  repeated OriginSibling origin_siblings = 3;
+  reserved 3;
+  reserved "origin_siblings";
   // inputs is what this value was built from.
   PageInputs inputs = 4;
   // sibling_groups is the person's siblings by the parents they share with the
@@ -2122,22 +2121,13 @@ message EventParticipant {
   repeated ConclusionTerm roles = 2;
 }
 
-// OriginSibling is one child of the person's parents, or a sibling recorded
-// with no shared parent. The person's own member has no link. parent_sets are
-// the indexes, among the response's PARENTS units, of the parent sets the
-// member is a child of; empty for a sibling recorded only.
-message OriginSibling {
-  FamilyMember member = 1;
-  repeated int32 parent_sets = 2;
-}
-
 // FamilyUnitKind is what a unit is to the person.
 enum FamilyUnitKind {
   FAMILY_UNIT_KIND_UNSPECIFIED = 0;
-  FAMILY_UNIT_KIND_PARENTS = 1;     // partners: a set of the person's parents; children: siblings through each
+  reserved 1, 4;
+  reserved "FAMILY_UNIT_KIND_PARENTS", "FAMILY_UNIT_KIND_SIBLINGS";
   FAMILY_UNIT_KIND_PARTNER = 2;     // partners: one partner; children: the person's children with them
   FAMILY_UNIT_KIND_ONE_PARENT = 3;  // children: the person's children with no other known parent
-  FAMILY_UNIT_KIND_SIBLINGS = 4;    // children: siblings with no shown shared parent
 }
 
 message FamilyUnit {

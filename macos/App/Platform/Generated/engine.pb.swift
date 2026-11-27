@@ -748,17 +748,11 @@ public nonisolated enum Provenencia_Engine_V1_FamilyUnitKind: SwiftProtobuf.Enum
   public typealias RawValue = Int
   case unspecified // = 0
 
-  /// partners: a set of the person's parents; children: siblings through each
-  case parents // = 1
-
   /// partners: one partner; children: the person's children with them
   case partner // = 2
 
   /// children: the person's children with no other known parent
   case oneParent // = 3
-
-  /// children: siblings with no shown shared parent
-  case siblings // = 4
   case UNRECOGNIZED(Int)
 
   public init() {
@@ -768,10 +762,8 @@ public nonisolated enum Provenencia_Engine_V1_FamilyUnitKind: SwiftProtobuf.Enum
   public init?(rawValue: Int) {
     switch rawValue {
     case 0: self = .unspecified
-    case 1: self = .parents
     case 2: self = .partner
     case 3: self = .oneParent
-    case 4: self = .siblings
     default: self = .UNRECOGNIZED(rawValue)
     }
   }
@@ -779,10 +771,8 @@ public nonisolated enum Provenencia_Engine_V1_FamilyUnitKind: SwiftProtobuf.Enum
   public var rawValue: Int {
     switch self {
     case .unspecified: return 0
-    case .parents: return 1
     case .partner: return 2
     case .oneParent: return 3
-    case .siblings: return 4
     case .UNRECOGNIZED(let i): return i
     }
   }
@@ -790,10 +780,8 @@ public nonisolated enum Provenencia_Engine_V1_FamilyUnitKind: SwiftProtobuf.Enum
   // The compiler won't synthesize support with the UNRECOGNIZED case.
   public static let allCases: [Provenencia_Engine_V1_FamilyUnitKind] = [
     .unspecified,
-    .parents,
     .partner,
     .oneParent,
-    .siblings,
   ]
 
 }
@@ -6594,12 +6582,10 @@ public nonisolated struct Provenencia_Engine_V1_GetPersonFamilyRequest: Sendable
   public init() {}
 }
 
-/// GetPersonFamilyResponse is the person's family units, parent sets first,
-/// then partners, then children with no other known parent, then siblings
-/// whose parents are not shown. Canonical people only. Children in each unit
-/// are in birth order, undated last. person is the person's own summary.
-/// origin_siblings is every sibling once with the person among them, in the
-/// order the page draws them.
+/// GetPersonFamilyResponse is the person's family units, partners first, then
+/// the children with no other known parent. Canonical people only. Children in
+/// each unit are in birth order, undated last. person is the person's own
+/// summary. The person's origin is sibling_groups.
 public nonisolated struct Provenencia_Engine_V1_GetPersonFamilyResponse: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -6615,8 +6601,6 @@ public nonisolated struct Provenencia_Engine_V1_GetPersonFamilyResponse: Sendabl
   public var hasPerson: Bool {self._person != nil}
   /// Clears the value of `person`. Subsequent reads from it will return its default value.
   public mutating func clearPerson() {self._person = nil}
-
-  public var originSiblings: [Provenencia_Engine_V1_OriginSibling] = []
 
   /// inputs is what this value was built from.
   public var inputs: Provenencia_Engine_V1_PageInputs {
@@ -6989,33 +6973,6 @@ public nonisolated struct Provenencia_Engine_V1_EventParticipant: Sendable {
   public init() {}
 
   fileprivate var _person: Provenencia_Engine_V1_PersonSummary? = nil
-}
-
-/// OriginSibling is one child of the person's parents, or a sibling recorded
-/// with no shared parent. The person's own member has no link. parent_sets are
-/// the indexes, among the response's PARENTS units, of the parent sets the
-/// member is a child of; empty for a sibling recorded only.
-public nonisolated struct Provenencia_Engine_V1_OriginSibling: Sendable {
-  // SwiftProtobuf.Message conformance is added in an extension below. See the
-  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
-  // methods supported on all messages.
-
-  public var member: Provenencia_Engine_V1_FamilyMember {
-    get {_member ?? Provenencia_Engine_V1_FamilyMember()}
-    set {_member = newValue}
-  }
-  /// Returns true if `member` has been explicitly set.
-  public var hasMember: Bool {self._member != nil}
-  /// Clears the value of `member`. Subsequent reads from it will return its default value.
-  public mutating func clearMember() {self._member = nil}
-
-  public var parentSets: [Int32] = []
-
-  public var unknownFields = SwiftProtobuf.UnknownStorage()
-
-  public init() {}
-
-  fileprivate var _member: Provenencia_Engine_V1_FamilyMember? = nil
 }
 
 public nonisolated struct Provenencia_Engine_V1_FamilyUnit: Sendable {
@@ -9690,7 +9647,7 @@ nonisolated extension Provenencia_Engine_V1_RecordLinkStrength: SwiftProtobuf._P
 }
 
 nonisolated extension Provenencia_Engine_V1_FamilyUnitKind: SwiftProtobuf._ProtoNameProviding {
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0FAMILY_UNIT_KIND_UNSPECIFIED\0\u{1}FAMILY_UNIT_KIND_PARENTS\0\u{1}FAMILY_UNIT_KIND_PARTNER\0\u{1}FAMILY_UNIT_KIND_ONE_PARENT\0\u{1}FAMILY_UNIT_KIND_SIBLINGS\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0FAMILY_UNIT_KIND_UNSPECIFIED\0\u{2}\u{2}FAMILY_UNIT_KIND_PARTNER\0\u{1}FAMILY_UNIT_KIND_ONE_PARENT\0")
 }
 
 nonisolated extension Provenencia_Engine_V1_KinshipPattern: SwiftProtobuf._ProtoNameProviding {
@@ -20063,7 +20020,7 @@ nonisolated extension Provenencia_Engine_V1_GetPersonFamilyRequest: SwiftProtobu
 
 nonisolated extension Provenencia_Engine_V1_GetPersonFamilyResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".GetPersonFamilyResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}units\0\u{1}person\0\u{3}origin_siblings\0\u{1}inputs\0\u{3}sibling_groups\0\u{1}couples\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}units\0\u{1}person\0\u{2}\u{2}inputs\0\u{3}sibling_groups\0\u{1}couples\0\u{b}origin_siblings\0\u{c}\u{3}\u{1}")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -20073,7 +20030,6 @@ nonisolated extension Provenencia_Engine_V1_GetPersonFamilyResponse: SwiftProtob
       switch fieldNumber {
       case 1: try { try decoder.decodeRepeatedMessageField(value: &self.units) }()
       case 2: try { try decoder.decodeSingularMessageField(value: &self._person) }()
-      case 3: try { try decoder.decodeRepeatedMessageField(value: &self.originSiblings) }()
       case 4: try { try decoder.decodeSingularMessageField(value: &self._inputs) }()
       case 5: try { try decoder.decodeRepeatedMessageField(value: &self.siblingGroups) }()
       case 6: try { try decoder.decodeRepeatedMessageField(value: &self.couples) }()
@@ -20093,9 +20049,6 @@ nonisolated extension Provenencia_Engine_V1_GetPersonFamilyResponse: SwiftProtob
     try { if let v = self._person {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
     } }()
-    if !self.originSiblings.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.originSiblings, fieldNumber: 3)
-    }
     try { if let v = self._inputs {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
     } }()
@@ -20111,7 +20064,6 @@ nonisolated extension Provenencia_Engine_V1_GetPersonFamilyResponse: SwiftProtob
   public static func ==(lhs: Provenencia_Engine_V1_GetPersonFamilyResponse, rhs: Provenencia_Engine_V1_GetPersonFamilyResponse) -> Bool {
     if lhs.units != rhs.units {return false}
     if lhs._person != rhs._person {return false}
-    if lhs.originSiblings != rhs.originSiblings {return false}
     if lhs._inputs != rhs._inputs {return false}
     if lhs.siblingGroups != rhs.siblingGroups {return false}
     if lhs.couples != rhs.couples {return false}
@@ -20658,45 +20610,6 @@ nonisolated extension Provenencia_Engine_V1_EventParticipant: SwiftProtobuf.Mess
   public static func ==(lhs: Provenencia_Engine_V1_EventParticipant, rhs: Provenencia_Engine_V1_EventParticipant) -> Bool {
     if lhs._person != rhs._person {return false}
     if lhs.roles != rhs.roles {return false}
-    if lhs.unknownFields != rhs.unknownFields {return false}
-    return true
-  }
-}
-
-nonisolated extension Provenencia_Engine_V1_OriginSibling: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".OriginSibling"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}member\0\u{3}parent_sets\0")
-
-  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularMessageField(value: &self._member) }()
-      case 2: try { try decoder.decodeRepeatedInt32Field(value: &self.parentSets) }()
-      default: break
-      }
-    }
-  }
-
-  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._member {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-    } }()
-    if !self.parentSets.isEmpty {
-      try visitor.visitPackedInt32Field(value: self.parentSets, fieldNumber: 2)
-    }
-    try unknownFields.traverse(visitor: &visitor)
-  }
-
-  public static func ==(lhs: Provenencia_Engine_V1_OriginSibling, rhs: Provenencia_Engine_V1_OriginSibling) -> Bool {
-    if lhs._member != rhs._member {return false}
-    if lhs.parentSets != rhs.parentSets {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

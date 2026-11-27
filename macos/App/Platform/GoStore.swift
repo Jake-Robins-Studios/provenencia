@@ -1679,7 +1679,7 @@ struct GoStore: GenealogyStore {
         switch u.kind {
         case .partner: kind = .partner
         case .oneParent: kind = .oneParent
-        case .parents, .siblings, .unspecified, .UNRECOGNIZED: return nil
+        case .unspecified, .UNRECOGNIZED: return nil
         }
         return CatalogFamilyUnit(
             kind: kind,
