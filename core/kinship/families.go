@@ -147,6 +147,29 @@ func relativeOf(person []byte, l Link) Relative {
 	return Relative{ID: other, Link: &l}
 }
 
+// parentIDs is the id of each of person's parent links, in link order.
+func parentIDs(person []byte, kin Kin) [][]byte {
+	ids := make([][]byte, len(kin[RoleParent]))
+	for i, l := range kin[RoleParent] {
+		ids[i], _, _ = l.From(person)
+	}
+	return ids
+}
+
+// spouseLinks is person's spouse links, one per spouse, the first link winning.
+func spouseLinks(person []byte, kin Kin) []Link {
+	var out []Link
+	seen := map[string]bool{}
+	for _, l := range kin[RoleSpouse] {
+		other, _, _ := l.From(person)
+		if !seen[string(other)] {
+			seen[string(other)] = true
+			out = append(out, l)
+		}
+	}
+	return out
+}
+
 // FamilyUnits groups person's kin into units: the parent sets with the
 // siblings through them, each partner with the children they share, the
 // children with no other known parent, and the siblings with no shown shared
@@ -176,10 +199,7 @@ func FamilyUnits(person []byte, kin Kin, kinOf map[string]Kin, rules Rules) []Un
 // that carries shared-parent shapes from elsewhere.
 func parentUnits(person []byte, kin Kin, kinOf map[string]Kin, rules Rules) ([]Unit, Unit) {
 	parents := kin[RoleParent]
-	ids := make([][]byte, len(parents))
-	for i, l := range parents {
-		ids[i], _, _ = l.From(person)
-	}
+	ids := parentIDs(person, kin)
 	// paired: two parents are one set when either files a spouse link to the
 	// other, or the person's links to both carry a birth_parents shape with the
 	// same pivot.
@@ -319,13 +339,10 @@ func subset(set, of []int) bool {
 func partnerUnits(person []byte, kin Kin, kinOf map[string]Kin) (partners []Unit, oneParent Unit) {
 	oneParent.Kind = UnitOneParent
 	at := map[string]int{}
-	for _, l := range kin[RoleSpouse] {
-		r := relativeOf(person, l)
-		if _, dup := at[string(r.ID)]; dup {
-			continue
-		}
-		at[string(r.ID)] = len(partners)
-		partners = append(partners, Unit{Kind: UnitPartner, Partners: []Relative{r}})
+	for _, l := range spouseLinks(person, kin) {
+		p := relativeOf(person, l)
+		at[string(p.ID)] = len(partners)
+		partners = append(partners, Unit{Kind: UnitPartner, Partners: []Relative{p}})
 	}
 	for _, l := range kin[RoleChild] {
 		child := relativeOf(person, l)
@@ -372,10 +389,9 @@ type SiblingGroup struct {
 // last when it is not the person's. Children are in link order.
 func SiblingGroups(person []byte, kin Kin) []SiblingGroup {
 	parents := kin[RoleParent]
-	ids := make([][]byte, len(parents))
+	ids := parentIDs(person, kin)
 	own := make([]int, len(parents))
-	for i, l := range parents {
-		ids[i], _, _ = l.From(person)
+	for i := range parents {
 		own[i] = i
 	}
 	type group struct {
@@ -423,19 +439,13 @@ type Couple struct {
 // event pivot: first the person with each spouse in kin[RoleSpouse] (once per
 // spouse, the first link winning), then each two of the person's parents, in
 // parent order, joined by a spouse link (spouseLink), only where pairsParents
-// allows for the parent count. A pair with the person at either end is skipped.
-// A partner's marriages come from the person's own link; a pair of parents' from
+// allows for the parent count. A partner's marriages come from the person's own link; a pair of parents' from
 // the link spouseLink returns, since kinOf holds neither the person nor a
 // partner. A spouse link with no spouse-implying shape makes no couple.
 func Couples(person []byte, kin Kin, kinOf map[string]Kin, rules Rules) []Couple {
 	var out []Couple
-	seen := map[string]bool{}
-	for _, l := range kin[RoleSpouse] {
+	for _, l := range spouseLinks(person, kin) {
 		other, _, _ := l.From(person)
-		if bytes.Equal(other, person) || seen[string(other)] {
-			continue
-		}
-		seen[string(other)] = true
 		if pivots := marriagePivots(l); len(pivots) > 0 {
 			out = append(out, Couple{A: person, B: other, Pivots: pivots})
 		}
@@ -444,15 +454,9 @@ func Couples(person []byte, kin Kin, kinOf map[string]Kin, rules Rules) []Couple
 	if !pairsParents(len(parents), rules) {
 		return out
 	}
-	ids := make([][]byte, len(parents))
-	for i, l := range parents {
-		ids[i], _, _ = l.From(person)
-	}
+	ids := parentIDs(person, kin)
 	for i := range ids {
 		for j := i + 1; j < len(ids); j++ {
-			if bytes.Equal(ids[i], person) || bytes.Equal(ids[j], person) {
-				continue
-			}
 			l, ok := spouseLink(kinOf, ids[i], ids[j])
 			if !ok {
 				continue
