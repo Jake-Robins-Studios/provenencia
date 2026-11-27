@@ -84,7 +84,51 @@ MNT-1 **Resolved** (skill line at `add-localized-string/SKILL.md:31`, rule `swif
 Merged `origin/main` `c7f4ba907` (S15-28 plan docs only). Gate PASS against `c7f4ba907`.
 
 ## Result
-Gate PASS · CI green (test ×2, localizable) · open: none · follow-ups: none · to user: UX-3 (VoiceOver order, manual check 3 and 5); CON-1 and UX-2 answered 2026-11-27
+Gate PASS · CI green on `415051462`; user round CI below · open: none · follow-ups: none · to user: UX-3 (VoiceOver order, manual check 3 and 5); CON-1 and UX-2 answered 2026-11-27
+
+## User round — dogfood visual changes (2026-11-27)
+The user asked for two layout changes after seeing the PR in the dogfood project. There is no design brief, and these changes supersede D-10's x for marriage lines and the partner-group placement in D-9 and D-10.
+
+### Fix plan U
+**U-1 — Marriage lines start where a tile's text starts**
+Files: `macos/App/DesignSystem/Components/TileCard/PVTileCard.swift`, `macos/App/Features/Conclusions/PersonFamilyLayout.swift`, `macos/ProvenenciaTests/PersonFamilyLayoutTests.swift`.
+Failing test first: `PersonFamilyLayoutTests/marriageLinesSitBetweenTheCouple`. A left-column line's frame x is the parent tile's x + `PVTileCardSize.regular.textLeading` (20 + 90 = 110), and its width is the tile's width less that.
+Do: add `nonisolated var textLeading: CGFloat { padding.leading + thumbnail + contentSpacing }` to `PVTileCardSize`, a measure taken from the kit rather than a literal. Left-column line rects use `x: m + textLeading` and `width: tp - textLeading`. Line y values are unchanged.
+Check: the test passes.
+
+**U-2 — A partner's marriages sit below the partner, indented the same**
+Files: `PersonFamilyLayout.swift`, `PersonFamilyContent.swift` (doc comment), `PersonFamilyLayoutTests.swift`.
+Failing test first: `marriageLinesSitBetweenTheCouple` (right column).
+- With one line: the partner tile is at y 26, and the line is at `x: c2 + textLeading`, `y: partner.maxY + marriageLineInset`.
+- With two lines: they stack 21 pt apart.
+- The first child starts at `partner.maxY + tileGap + n × marriageLineHeight`, the same rule as a parent's gap on the left.
+- A partner group with lines and no children ends at or below its last line's maxY.
+Do: in the right-column loop, place the partner first, then its lines, using the left column's gap rule. Drop `partnerMarriageGap`. Items go in the order partner, then lines, so VoiceOver reads the partner and then the marriage, as the left column reads a line after its parent. Fix the comments at Layout line 244 and Content line 77. The partner's horizontal join to the bus stays at the partner's centre. The child rail at `c2 - 12` passes left of the lines.
+Check: the test passes, and the item order check `["r-0-maria", "r-0-m…"]` holds.
+
+**U-3 — Previews and docs**
+Do: the plan's Landed note records U-1 and U-2 as user changes of 2026-11-27, superseding D-10's line x and the partner-group placement. No new strings.
+Check: scripts/check-pr.sh PASS.
+
+### User round — implement
+Head `c60542a65` (`a6abbf0fb`, `c60542a65`). Orchestrator gate PASS. Lines at x 110 (left) and x 643 (right), width 395; the partner's first line is at y 124.
+
+### User round — review (quick lens, one reviewer)
+| ID | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- |
+| QCK-1 | major | The "lines and no children" assertion runs on a group that has children and reads the union frame, so it cannot fail | Fix now → U-4 | verified: `twoMarriages` gives Maria three children; `container` frames are the union of items |
+| QCK-2 | nit | Right column bottom as a special case | Fix now → U-4 (one rule with the left column) | Layout:205 is the left column's rule |
+| QCK-3 | nit | `PVTileCardSize` doc omits `textLeading` | Fix now → U-5 | file changed here |
+| QCK-4 | nit | Codebase-fit row still names `partnerMarriageGap` | Logged | the Landed note supersedes it; plan tables are not edited |
+
+**U-4 — One bottom rule, tested** (from QCK-1, QCK-2)
+Failing test first: a fixture where Maria has a marriage and no children, followed by another partner group. Assert the next right group's `frame.minY` equals the last line's `maxY + partnerGroupGap`. When it is the last right group, assert `height >= ` the line's maxY. In `married`, assert Karl's minY is 151. To show the test is red, drop the `max` line on a scratch run, then restore it.
+Do: set the right column's `bottom` from the items' max frame maxY, as the left column does at Layout:205, and drop the no-children special case.
+**U-5** — add `textLeading` to the measures in `PVTileCard.swift`'s type doc.
+Check: scripts/check-pr.sh PASS.
+
+### User round — fix
+Head `e3429ebc8`. Orchestrator gate PASS. U-4 done: red first (dropping `max` failed at the Sophie-minY expectation), then one rule, `bottom = items.map { $0.frame.maxY }.max()`. U-5 done. QCK-1 **Resolved** (read by the orchestrator: the childless-Maria case and Karl at 151 are now asserted).
 
 ## Cost
 Plan: 9,085 words (check-plan-docs info line).
@@ -98,4 +142,7 @@ Plan: 9,085 words (check-plan-docs info line).
 | 1 | SEC+PRF | opus | 90k |
 | 1 | implementer (fix 1) | default | 146k |
 | 2 | MNT | opus | 53k |
-| | **Total** | | **1,089k** |
+| U | implementer (U-1–U-3) | default | 93k |
+| U | quick reviewer | opus | 45k |
+| U | implementer (U-4, U-5) | default | 88k |
+| | **Total** | | **1,315k** |
