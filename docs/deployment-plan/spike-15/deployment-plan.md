@@ -145,7 +145,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-28 | A value's records load on their own | 8 | Go: `FieldRecordCounts` from the node; one records read by (owner, Property) pairs with denial facts; reports its inputs; a derived row's read takes the Person and the row kind and lays the event place vote's verdict over its place records (`ownerVerdict`, S16-80) | — | S16-11, S16-19, S16-24, S16-30, S16-80 | — | Scoped |
 | S15-29 | The provenance sheet loads its records when it opens | 8 | Swift: rows from the counts; the sheet's key carries records; Swift's count and denial rules go | S15-D18 | S15-28, S15-21, S15-31, S16-09, S15-D18 | — | Scoped |
 | S15-30 | The paged fold moves to the kit | 8 | Preparatory, Swift: S16-07's fold rule and state to `Platform/`, `PVShowMoreRow` in the kit; the Conclusion sections unchanged | — | S16-07 | [plan](prs/S15-30-show-more-row-kit.md) | Landed #996 |
-| S15-31 | Event and Place rows open the provenance sheet | 8 | Swift: `.sheet` provenance on Event and Place pages; the Why accordion and its code go | S15-D11, S15-D12 | S15-D11, S15-D12 | — | Scoped |
+| S15-31 | Event and Place rows open the provenance sheet | 8 | Swift: `.sheet` provenance on Event and Place pages; the Why accordion and its code go | [S15-D11](design/S15-D11-event-page-provenance-sheet.md), [S15-D12](design/S15-D12-place-page-provenance-sheet.md) | S15-27, S15-D11, S15-D12 | [plan](prs/S15-31-event-and-place-provenance-sheet.md) | Planned |
 | S15-32 | Copy Source can carry the date | 1 | Go and Swift: a `copy_date` choice on `CopySourceRequest` and `sourcecopy`; a Published date tick on the Copy form | [S15-D13](design/archive/S15-D13-copy-source-dialog.md) | S15-02, S15-D13 | [plan](prs/S15-32-copy-source-date.md) | Landed #778 |
 | S15-33 | Editing an Artifact can save its metadata | 2 | Go: a `MetadataDraft` on `UpdateArtifactRequest`; both Artifact write replies return its saved rows; a refused draft value names its field | — | S15-08 | [plan](prs/S15-33-artifact-update-saves-metadata.md) | Landed #806 |
 | S15-34 | Artifacts are edited in a sheet | 2 | Swift: the Artifact sheet (label, description, graphs, copy details on the draft board, one Save); read-only copy details on each card; the inline Add field row on every board; card edit goes; the Metadata header's tooltip and no count; Wide | S15-D14 | S15-09, S15-33, S15-36, S15-D14 | [plan](prs/S15-34-artifact-edit-sheet.md) | Landed [#819](https://github.com/Jake-Robins-Studios/provenencia/pull/819) |
@@ -202,8 +202,8 @@ These are the calls for this spike. PR plans treat them as binding.
 | [S15-D8](design/archive/S15-D8-citation-composer-printed-page.md) | Citation composer | **S15-13** | The printed page next to Label on image and PDF Citations; the composer's split moves onto Regular and Wide (user, 2026-11-16) |
 | [S15-D9](design/archive/S15-D9-provenance-sheet-citations.md) | Provenance sheet | **S15-21** | The formatted citation, grouped Citations, Copy citation; the loading and failed states of the on-open call. Split under "One brief, one PR": the fold is S15-D17, records on open S15-D18 |
 | [S15-D10](design/archive/S15-D10-move-confirm.md) | Move confirm | **S15-25** | The Move buttons on Artifact rows and graph cards, the bundle, the target picker, the credibility and left-behind notes, landing on the target page |
-| S15-D11 | Event page | **S15-31** | Value rows open the provenance sheet; the Why accordion is removed |
-| S15-D12 | Place page | **S15-31** | Value rows open the provenance sheet; the Why accordion is removed |
+| [S15-D11](design/S15-D11-event-page-provenance-sheet.md) | Event page | **S15-31** | Value rows open the provenance sheet; the Why accordion is removed (written 2026-11-27) |
+| [S15-D12](design/S15-D12-place-page-provenance-sheet.md) | Place page | **S15-31** | Value rows open the provenance sheet; the Why accordion is removed (written 2026-11-27) |
 | S15-D13 | Copy Source dialog | **S15-32** | A Published date tick beside Description, Metadata and Credibility ([brief](design/archive/S15-D13-copy-source-dialog.md)) |
 | S15-D14 | Source page Artifacts | **S15-34**, S15-35, S15-10, S15-25 | The Artifact list with each Artifact's copy details shown read-only and a thumbnail of at most 80pt (rows or compact cards: the board decides); the Artifact sheet in edit and add mode: label, description, graphs, copy details with suggestions, one Save; where Move sits on the new list. Replaces S15-D1 SD-9, SD-10 and S15-D4. Written before "One brief, one PR"; stays as written |
 | S15-D15 | Person page Sources section | — | **Descoped (2026-11-21)** with S15-22 |
@@ -375,6 +375,7 @@ S15-56 ──▶ S15-39, S15-41
 S15-21 ──▶ S15-27, S15-29
 S15-30 ──▶ S15-27
 S15-28 ──▶ S15-29
+S15-27 ──▶ S15-31
 S15-31 ──▶ S15-29
 S15-51: none
 S15-73: S15-D40 only (same rows as S15-39, S15-41, S15-51, S15-66; whichever lands second rebases)
@@ -817,7 +818,7 @@ Runs after slice 7, before slice 8 (user, 2026-11-22). Re-cut later the same day
 
 #### S15-31 — Event and Place rows open the provenance sheet
 
-**Ships.** Event and Place pages use `ReconciledValueRow`'s sheet provenance, as `PersonDetailView` does, as S15-D11 and S15-D12 draw it; `ReconciledValueRow.Provenance` and its Why case, `ReconciliationReasoningView`, `ReconciliationRecordRows` and the Why strings are deleted.
+**Ships.** Event and Place pages use `ReconciledValueRow`'s sheet provenance, as `PersonDetailView` does, as S15-D11 and S15-D12 draw it; `ReconciledValueRow.Provenance` and its Why case, `ReconciliationReasoningView`, `ReconciliationRecordRows`, the row model's `whyTitle`, the reserved column (`PVProvenanceReservedCell`, `PVProvenanceColumns.actionWidth`) and the Why strings are deleted; the Person page keeps its rows as they are.
 **Not this PR.** Loading records on open (S15-29).
 **Check.** On an Event and a Place, a value row opens the provenance sheet with the same records the Why showed; `rg` finds no Why type or string.
 **Context.** Rule "The Why accordion goes"; `ReconciledValueRow.swift`, `ReconciliationReasoningView.swift`, `EventDetailContent.swift`, `PlaceDetailView.swift`, `PersonDetailView.swift`; [`add-localized-string`](../../../.agents/skills/add-localized-string/SKILL.md) (removed strings). Updates [`macos-client-patterns.md`](../../macos-client-patterns.md) (the sheet-or-Why line).
