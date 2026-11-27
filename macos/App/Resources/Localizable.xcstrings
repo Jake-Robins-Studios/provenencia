@@ -25949,6 +25949,30 @@
         }
       }
     },
+    "conclusions.family.group.thisPersonSiblingsAndParent": {
+      "comment": "VoiceOver label of the group holding the person, their one parent and their siblings in the Family section",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This person, siblings and parent"
+          }
+        }
+      }
+    },
+    "conclusions.family.group.thisPersonAndParent": {
+      "comment": "VoiceOver label of the group holding the person and their one parent, with no sibling, in the Family section",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This person and parent"
+          }
+        }
+      }
+    },
     "conclusions.family.group.childrenOf": {
       "comment": "VoiceOver label of a group of siblings under parents they share with the person in the Family section; argument is the parents' names",
       "extractionState": "manual",

@@ -10496,6 +10496,18 @@ enum L10n {
             comment: "VoiceOver label of the group holding the person and their parents, with no sibling, in the Family section"
         )
 
+        static let familyGroupThisPersonSiblingsAndParent = LocalizedStringResource(
+            "conclusions.family.group.thisPersonSiblingsAndParent",
+            defaultValue: "This person, siblings and parent",
+            comment: "VoiceOver label of the group holding the person, their one parent and their siblings in the Family section"
+        )
+
+        static let familyGroupThisPersonAndParent = LocalizedStringResource(
+            "conclusions.family.group.thisPersonAndParent",
+            defaultValue: "This person and parent",
+            comment: "VoiceOver label of the group holding the person and their one parent, with no sibling, in the Family section"
+        )
+
         static func familyGroupChildrenOf(_ parents: String) -> String {
             L10n.format(LocalizedStringResource(
                 "conclusions.family.group.childrenOf",

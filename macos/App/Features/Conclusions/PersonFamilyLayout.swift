@@ -33,7 +33,8 @@ struct PersonFamilyLayout: Equatable {
         var frame: CGRect
     }
 
-    /// One thing in a group, in the order VoiceOver reads it.
+    /// One thing in a group, in the order VoiceOver reads it. Its frame is relative to its group
+    /// once the group is built, and absolute while the layout places it.
     enum Placed: Equatable, Identifiable {
         case tile(PlacedTile)
         case line(PlacedLine)
@@ -44,6 +45,28 @@ struct PersonFamilyLayout: Equatable {
             case .tile(let tile): tile.id
             case .line(let line): line.id
             case .more(let more): PersonFamilyContent.moreID(more.fold)
+            }
+        }
+
+        var frame: CGRect {
+            switch self {
+            case .tile(let tile): tile.frame
+            case .line(let line): line.frame
+            case .more(let more): more.frame
+            }
+        }
+
+        func offsetBy(dx: CGFloat, dy: CGFloat) -> Placed {
+            switch self {
+            case .tile(var tile):
+                tile.frame = tile.frame.offsetBy(dx: dx, dy: dy)
+                return .tile(tile)
+            case .line(var line):
+                line.frame = line.frame.offsetBy(dx: dx, dy: dy)
+                return .line(line)
+            case .more(var more):
+                more.frame = more.frame.offsetBy(dx: dx, dy: dy)
+                return .more(more)
             }
         }
     }
@@ -97,21 +120,11 @@ struct PersonFamilyLayout: Equatable {
     var rightX: CGFloat = 0
     var busX: CGFloat = 0
 
-    /// The absolute frame of the tile with `id`.
-    func frame(ofTile id: String) -> CGRect? {
+    /// The absolute frame of the tile, marriage line or Show more row with `id`.
+    func frame(of id: String) -> CGRect? {
         for group in groups {
-            if let tile = group.tiles.first(where: { $0.id == id }) {
-                return tile.frame.offsetBy(dx: group.frame.minX, dy: group.frame.minY)
-            }
-        }
-        return nil
-    }
-
-    /// The absolute frame of the marriage line with `id`.
-    func frame(ofLine id: String) -> CGRect? {
-        for group in groups {
-            if let line = group.lines.first(where: { $0.id == id }) {
-                return line.frame.offsetBy(dx: group.frame.minX, dy: group.frame.minY)
+            if let item = group.items.first(where: { $0.id == id }) {
+                return item.frame.offsetBy(dx: group.frame.minX, dy: group.frame.minY)
             }
         }
         return nil
@@ -129,35 +142,10 @@ struct PersonFamilyLayout: Equatable {
         rightX = c2
         busX = c2 - Self.indent
 
-        /// An item with its absolute frame, in reading order.
-        enum Item {
-            case tile(String, CGRect)
-            case line(String, CGRect)
-            case more(PersonFamilyContent.Fold, Int, CGRect)
-
-            var rect: CGRect {
-                switch self {
-                case .tile(_, let rect), .line(_, let rect), .more(_, _, let rect): rect
-                }
-            }
-        }
         // Absolute frames collected per container, then made relative.
-        func container(_ label: String, _ items: [Item]) -> Group {
-            let union = items.dropFirst().reduce(items[0].rect) { $0.union($1.rect) }
-            return Group(
-                label: label,
-                frame: union,
-                items: items.map { item in
-                    switch item {
-                    case .tile(let id, let rect):
-                        .tile(PlacedTile(id: id, frame: rect.offsetBy(dx: -union.minX, dy: -union.minY)))
-                    case .line(let id, let rect):
-                        .line(PlacedLine(id: id, frame: rect.offsetBy(dx: -union.minX, dy: -union.minY)))
-                    case .more(let fold, let count, let rect):
-                        .more(PlacedMore(fold: fold, count: count, frame: rect.offsetBy(dx: -union.minX, dy: -union.minY)))
-                    }
-                }
-            )
+        func container(_ label: String, _ items: [Placed]) -> Group {
+            let union = items.dropFirst().reduce(items[0].frame) { $0.union($1.frame) }
+            return Group(label: label, frame: union, items: items.map { $0.offsetBy(dx: -union.minX, dy: -union.minY) })
         }
         /// The row under a list that ends at `bottom`.
         func moreRow(x: CGFloat, width: CGFloat, below bottom: CGFloat) -> CGRect {
@@ -198,11 +186,11 @@ struct PersonFamilyLayout: Equatable {
                 }
                 top = rect.maxY + Self.tileGap + inGap * lineHeight
             }
-            var items: [Item] = []
+            var items: [Placed] = []
             for (i, parent) in group.parents.enumerated() {
-                items.append(.tile(parent.id, parentRects[i]))
+                items.append(.tile(PlacedTile(id: parent.id, frame: parentRects[i])))
                 for (index, marriage) in group.marriages.enumerated() where marriage.spokenAfter == i {
-                    if let rect = lineRectOf[index] { items.append(.line(marriage.marriage.id, rect)) }
+                    if let rect = lineRectOf[index] { items.append(.line(PlacedLine(id: marriage.marriage.id, frame: rect))) }
                 }
             }
             let childX = hasParents ? m + Self.indent : m
@@ -211,7 +199,7 @@ struct PersonFamilyLayout: Equatable {
             var lastChild: CGRect?
             for child in group.children {
                 let rect = CGRect(x: childX, y: top, width: childWidth, height: th)
-                items.append(.tile(child.id, rect))
+                items.append(.tile(PlacedTile(id: child.id, frame: rect)))
                 childCenters.append(rect.midY)
                 if child.content.isFocus {
                     focusCenter = rect.midY
@@ -220,10 +208,10 @@ struct PersonFamilyLayout: Equatable {
                 lastChild = rect
                 top += step
             }
-            var bottom = items.map { $0.rect.maxY }.max() ?? top
+            var bottom = items.map { $0.frame.maxY }.max() ?? top
             if content.siblingsHidden > 0, k == content.siblingGroups.count - 1, let lastChild {
                 let row = moreRow(x: childX, width: childWidth, below: lastChild.maxY)
-                items.append(.more(.siblings, content.siblingsHidden, row))
+                items.append(.more(PlacedMore(fold: .siblings, count: content.siblingsHidden, frame: row)))
                 bottom = row.maxY
             }
             // One line per group, inside it: a lone child with no parents has none.
@@ -250,23 +238,23 @@ struct PersonFamilyLayout: Equatable {
         let childX = c2 + Self.indent
         let childRail = c2 - 12
         for (index, group) in content.groups.enumerated() {
-            var items: [Item] = []
+            var items: [Placed] = []
             var top = gy
             var partnerCenter: CGFloat?
             // The marriages come first: drawn at the top of the group, read before the partner.
             for line in group.marriages {
-                items.append(.line(line.id, CGRect(x: c2, y: top, width: tp, height: lineHeight)))
+                items.append(.line(PlacedLine(id: line.id, frame: CGRect(x: c2, y: top, width: tp, height: lineHeight))))
                 top += lineHeight
             }
             if !group.marriages.isEmpty { top += Self.partnerMarriageGap }
             if let partner = group.partner {
-                items.append(.tile(partner.id, CGRect(x: c2, y: top, width: tp, height: th)))
+                items.append(.tile(PlacedTile(id: partner.id, frame: CGRect(x: c2, y: top, width: tp, height: th))))
                 partnerCenter = top + th / 2
                 top += step
             }
             var childCenters: [CGFloat] = []
             for child in group.children {
-                items.append(.tile(child.id, CGRect(x: childX, y: top, width: tp - Self.indent, height: th)))
+                items.append(.tile(PlacedTile(id: child.id, frame: CGRect(x: childX, y: top, width: tp - Self.indent, height: th))))
                 childCenters.append(top + th / 2)
                 top += step
             }
@@ -287,11 +275,16 @@ struct PersonFamilyLayout: Equatable {
             }
             var bottom = top - Self.tileGap
             if group.childrenHidden > 0 {
-                items.append(.more(.children(index), group.childrenHidden, moreRow(x: childX, width: tp - Self.indent, below: bottom)))
+                items.append(.more(PlacedMore(
+                    fold: .children(index), count: group.childrenHidden,
+                    frame: moreRow(x: childX, width: tp - Self.indent, below: bottom)
+                )))
                 bottom += moreBand
             }
             if index == content.groups.count - 1, content.groupsHidden > 0 {
-                items.append(.more(.partners, content.groupsHidden, moreRow(x: c2, width: tp, below: bottom)))
+                items.append(.more(PlacedMore(
+                    fold: .partners, count: content.groupsHidden, frame: moreRow(x: c2, width: tp, below: bottom)
+                )))
                 bottom += moreBand
             }
             if !items.isEmpty {

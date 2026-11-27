@@ -37,20 +37,11 @@ struct PersonFamilyContent: Equatable {
     }
 
     /// One marriage a couple on the page has, as a life line: drawn "m. 3 May 1812 · Altona",
-    /// spoken `accessibilityLabel`.
+    /// spoken as `line.accessibilityLabel`: the couple's names, then the line; a line that names the
+    /// other spouse is read as it is drawn.
     struct MarriageLine: Equatable {
         var id: String
         var line: PersonLifeDisplay.LifeLine
-        /// What VoiceOver reads: the couple's names, then the line; a line that names the other
-        /// spouse is read as it is drawn.
-        var accessibilityLabel: String
-
-        /// The line as drawn, labelled as the content speaks it.
-        var spokenLine: PersonLifeDisplay.LifeLine {
-            var spoken = line
-            spoken.accessibilityLabel = accessibilityLabel
-            return spoken
-        }
     }
 
     /// A marriage of two of a sibling group's parents (indexes into its `parents`): drawn in
@@ -110,9 +101,10 @@ struct PersonFamilyContent: Equatable {
         "\(column)-\(group)-\(personID)"
     }
 
-    /// A marriage line's id: the column, the group in it and the marriage Event.
-    static func marriageID(column: String, group: String, eventID: String) -> String {
-        "\(column)-\(group)-m-\(eventID)"
+    /// A marriage line's id: the column, the group in it, the couple (its index in
+    /// `CatalogPersonFamily.couples`) and the marriage Event, which several couples can share.
+    static func marriageID(column: String, group: String, couple: Int, eventID: String) -> String {
+        "\(column)-\(group)-m\(couple)-\(eventID)"
     }
 
     /// The id of a fold's "Show more" row: the stop and scroll target Back restores when the
@@ -191,15 +183,16 @@ struct PersonFamilyContent: Equatable {
         }
         /// A marriage line of `couple`, nil for a marriage whose event type draws no line.
         func marriageLines(
-            _ couple: CatalogFamilyCouple, column: String, group: String, partner: PVTitleSource?, names: [String]?
+            _ coupleIndex: Int, column: String, group: String, partner: PVTitleSource?, names: [String]?
         ) -> [MarriageLine] {
-            couple.marriages.compactMap { event in
-                guard let line = PersonLifeDisplay.eventLine(event, partner: partner, locale: locale) else { return nil }
-                let spoken = names.flatMap { L10n.DesignSystem.spokenJoin([L10n.list($0, locale: locale), line.accessibilityLabel]) }
+            family.couples[coupleIndex].marriages.compactMap { event in
+                guard var line = PersonLifeDisplay.eventLine(event, partner: partner, locale: locale) else { return nil }
+                if let spoken = names.flatMap({ L10n.DesignSystem.spokenJoin([L10n.list($0, locale: locale), line.accessibilityLabel]) }) {
+                    line.accessibilityLabel = spoken
+                }
                 return MarriageLine(
-                    id: Self.marriageID(column: column, group: group, eventID: event.entity.id),
-                    line: line,
-                    accessibilityLabel: spoken ?? line.accessibilityLabel
+                    id: Self.marriageID(column: column, group: group, couple: coupleIndex, eventID: event.entity.id),
+                    line: line
                 )
             }
         }
@@ -262,8 +255,8 @@ struct PersonFamilyContent: Equatable {
                 case (1, _):
                     caption = L10n.string(L10n.Conclusions.familyCaptionParent)
                     label = L10n.string(hasOthers
-                        ? L10n.Conclusions.familyGroupThisPersonSiblingsAndParents
-                        : L10n.Conclusions.familyGroupThisPersonAndParents)
+                        ? L10n.Conclusions.familyGroupThisPersonSiblingsAndParent
+                        : L10n.Conclusions.familyGroupThisPersonAndParent)
                 default:
                     caption = L10n.string(L10n.Conclusions.familyCaptionParents)
                     label = L10n.string(hasOthers
@@ -294,7 +287,7 @@ struct PersonFamilyContent: Equatable {
                 let (i, j) = (min(a, b), max(a, b))
                 let named = parents.count > 2
                 let lines = marriageLines(
-                    couple, column: "l", group: name,
+                    index, column: "l", group: name,
                     partner: named ? parents[i].content.title : nil,
                     names: named ? nil : [parents[i].content.title.spokenText, parents[j].content.title.spokenText]
                 )
@@ -338,7 +331,7 @@ struct PersonFamilyContent: Equatable {
                 var marriages: [MarriageLine] = []
                 for coupleIndex in unit.coupleIndexes where family.couples.indices.contains(coupleIndex) {
                     marriages += marriageLines(
-                        family.couples[coupleIndex], column: "r", group: "\(index)", partner: nil,
+                        coupleIndex, column: "r", group: "\(index)", partner: nil,
                         names: focusTitle.map { [$0.spokenText, name] }
                     )
                 }

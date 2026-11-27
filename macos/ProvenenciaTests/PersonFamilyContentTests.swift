@@ -120,6 +120,9 @@ struct PersonFamilyContentTests {
         var oneParent = Data.alone
         oneParent.siblingGroups = [Data.group([Data.member("dorothea", "Dorothea Weber")], [Data.member("heinrich", "Heinrich Weber"), Data.johannMember])]
         #expect(captions(oneParent) == ["Parent"])
+        #expect(labels(oneParent) == ["This person, siblings and parent"])
+        oneParent.siblingGroups[0].children = [Data.johannMember]
+        #expect(labels(oneParent) == ["This person and parent"])
 
         var partnerAlone = Data.annaOnly
         partnerAlone.units[0].children = []
@@ -337,20 +340,20 @@ struct PersonFamilyContentTests {
         let married = content(Data.married)
         let first = try #require(married.siblingGroups[0].marriages.first)
         #expect(married.siblingGroups[0].marriages.count == 1)
-        #expect(first.marriage.accessibilityLabel == "Heinrich Weber and Anna Weber, married 3 May 1812, Altona")
+        #expect(first.marriage.line.accessibilityLabel == "Heinrich Weber and Anna Weber, married 3 May 1812, Altona")
         #expect(first.marriage.line.text == "m. 3 May 1812 · Altona")
         #expect(first.drawnAfter == 0 && first.spokenAfter == 1)
         #expect(married.siblingGroups[1].marriages.isEmpty)
-        #expect(married.groups[0].marriages.map(\.accessibilityLabel) == ["Johann Weber and Maria Schulz, married 12 Jun 1841, Hamburg"])
+        #expect(married.groups[0].marriages.map(\.line.accessibilityLabel) == ["Johann Weber and Maria Schulz, married 12 Jun 1841, Hamburg"])
         #expect(married.groups[0].marriages.map(\.line.text) == ["m. 12 Jun 1841 · Hamburg"])
         #expect(married.groups[1].marriages.isEmpty && married.groups[2].marriages.isEmpty)
         #expect(married.allMarriageLines.count == 2)
         #expect(Set(married.allMarriageLines.map(\.id)).count == 2)
 
         let halves = content(Data.marriageHalves)
-        #expect(halves.siblingGroups[0].marriages.map(\.marriage.accessibilityLabel) == ["Heinrich Weber and Anna Weber, married in Altona"])
-        #expect(halves.groups[0].marriages.map(\.accessibilityLabel) == ["Johann Weber and Maria Schulz, married 12 Jun 1841"])
-        #expect(halves.groups[1].marriages.map(\.accessibilityLabel) == ["Johann Weber and Sophie Brandt, married"])
+        #expect(halves.siblingGroups[0].marriages.map(\.marriage.line.accessibilityLabel) == ["Heinrich Weber and Anna Weber, married in Altona"])
+        #expect(halves.groups[0].marriages.map(\.line.accessibilityLabel) == ["Johann Weber and Maria Schulz, married 12 Jun 1841"])
+        #expect(halves.groups[1].marriages.map(\.line.accessibilityLabel) == ["Johann Weber and Sophie Brandt, married"])
         #expect(halves.groups.prefix(2).flatMap { $0.marriages.map(\.line.text) } == ["m. 12 Jun 1841", "m."])
         #expect(halves.siblingGroups[0].marriages.map(\.marriage.line.text) == ["m. Altona"])
 
@@ -359,23 +362,45 @@ struct PersonFamilyContentTests {
 
         let three = content(Data.threeParentMarriages)
         let lines = three.siblingGroups[0].marriages
-        #expect(lines.map(\.marriage.accessibilityLabel) == [
+        #expect(lines.map(\.marriage.line.accessibilityLabel) == [
             "married 3 May 1812, Altona, with Heinrich Weber", "married abt 1816, Kiel, with Heinrich Weber",
         ])
         #expect(lines.map(\.marriage.line.text) == [
             "m. 3 May 1812 · Altona, with Heinrich Weber", "m. abt 1816 · Kiel, with Heinrich Weber",
         ])
         #expect(lines.map(\.drawnAfter) == [0, 2] && lines.map(\.spokenAfter) == [1, 2])
-        #expect(three.siblingGroups[1].marriages.map(\.marriage.accessibilityLabel)
+        #expect(three.siblingGroups[1].marriages.map(\.marriage.line.accessibilityLabel)
             == ["Heinrich Weber and Anna Weber, married 3 May 1812, Altona"])
-        #expect(three.siblingGroups[2].marriages.map(\.marriage.accessibilityLabel)
+        #expect(three.siblingGroups[2].marriages.map(\.marriage.line.accessibilityLabel)
             == ["Heinrich Weber and Katharina Weber, married abt 1816, Kiel"])
         #expect(three.siblingGroups[2].marriages.map(\.marriage.line.text) == ["m. abt 1816 · Kiel"])
 
         // Without the person, a partner's line is spoken by its own label.
         var nobody = Data.married
         nobody.person = nil
-        #expect(content(nobody).groups[0].marriages.map(\.accessibilityLabel) == ["married 12 Jun 1841, Hamburg"])
+        #expect(content(nobody).groups[0].marriages.map(\.line.accessibilityLabel) == ["married 12 Jun 1841, Hamburg"])
+    }
+
+    /// F-1: one marriage Event shared by three couples of a group's parents has one id per line, each
+    /// naming its own partner.
+    @Test func aMarriageOfThreeParentsHasOneIDPerLine() {
+        var family = Data.threeParentMarriages
+        let shared = Data.marriage("m-all", Data.day(1812, 5, 3), place: "Altona")
+        family.couples = [
+            Data.couple("heinrich", "anna", shared),
+            Data.couple("heinrich", "katharina", shared),
+            Data.couple("anna", "katharina", shared),
+        ]
+        family.siblingGroups[0].coupleIndexes = [0, 1, 2]
+        let lines = content(family).siblingGroups[0].marriages.map(\.marriage)
+        #expect(lines.count == 3)
+        #expect(Set(lines.map(\.id)).count == 3)
+        #expect(lines.map(\.line.accessibilityLabel) == [
+            "married 3 May 1812, Altona, with Heinrich Weber",
+            "married 3 May 1812, Altona, with Heinrich Weber",
+            "married 3 May 1812, Altona, with Anna Weber",
+        ])
+        #expect(lines.map(\.id) == ["l-g0-m0-m-all", "l-g0-m1-m-all", "l-g0-m2-m-all"])
     }
 
     /// T-11 (AC-2.6, AC-2.7): a line hides with its group, and a type with no copy draws none.

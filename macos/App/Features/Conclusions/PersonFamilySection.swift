@@ -132,8 +132,9 @@ extension PersonFamilyDiagram {
         case .line(let placed):
             if let marriage = lines[placed.id] {
                 // Spoken as the content words it (the couple's names, then the line), never a Tab stop.
-                PVDatePlaceLine(marriage.spokenLine)
+                PVDatePlaceLine(marriage.line)
                     .frame(width: placed.frame.width, height: placed.frame.height, alignment: .leading)
+                    .help(marriage.line.text)
                     .id(placed.id)
                     .offset(x: placed.frame.minX, y: placed.frame.minY)
                     .accessibilityIdentifier("\(accessibilityIdentifierRoot).marriage.\(placed.id)")

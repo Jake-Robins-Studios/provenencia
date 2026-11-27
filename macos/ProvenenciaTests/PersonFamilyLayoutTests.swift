@@ -22,7 +22,7 @@ struct PersonFamilyLayoutTests {
     /// The frame of the first tile titled `name`.
     private func frame(_ layout: PersonFamilyLayout, _ content: PersonFamilyContent, _ name: String) -> CGRect? {
         guard let tile = content.allTiles.first(where: { $0.content.title.text == name }) else { return nil }
-        return layout.frame(ofTile: tile.id)
+        return layout.frame(of: tile.id)
     }
 
     private func verticals(_ layout: PersonFamilyLayout, at x: CGFloat) -> [CGRect] {
@@ -37,17 +37,17 @@ struct PersonFamilyLayoutTests {
     @Test func regularAndWideMeasures() throws {
         let (content, l) = layout(Data.full)
         #expect(l.columnWidth == 485 && l.rightX == 553 && l.busX == 521)
-        let heinrich = try #require(l.frame(ofTile: "l-g0-heinrich"))
+        let heinrich = try #require(l.frame(of: "l-g0-heinrich"))
         #expect(heinrich.origin == CGPoint(x: 20, y: 26) && heinrich.width == 485)
-        #expect(try #require(l.frame(ofTile: "l-g0-anna")).minY == 130)
+        #expect(try #require(l.frame(of: "l-g0-anna")).minY == 130)
         let margarethe = try #require(frame(l, content, "Margarethe Weber"))
         #expect(margarethe.minX == 52 && margarethe.width == 453 && margarethe.minY == 234)
         #expect(try #require(frame(l, content, "Wilhelm Weber")).minY == 546)
         // Group 1 sits 20 below group 0, under its own caption.
         #expect(l.captions.map(\.text) == ["Parents", "Shared parent", "Partners and children"])
         #expect(l.captions.map(\.origin) == [CGPoint(x: 20, y: 0), CGPoint(x: 20, y: 658), CGPoint(x: 553, y: 0)])
-        #expect(try #require(l.frame(ofTile: "l-g1-anna")).minY == 684)
-        #expect(try #require(l.frame(ofTile: "l-g1-christian")).minY == 788)
+        #expect(try #require(l.frame(of: "l-g1-anna")).minY == 684)
+        #expect(try #require(l.frame(of: "l-g1-christian")).minY == 788)
         // One line per group at x 10, from its first tile's centre to its last child's.
         let lines = verticals(l, at: 10).sorted { $0.minY < $1.minY }
         #expect(lines.map(\.minY) == [72, 730] && lines.map(\.maxY) == [593, 835])
@@ -75,7 +75,7 @@ struct PersonFamilyLayoutTests {
         #expect(wide.columnWidth == 532 && PersonFamilyLayout.gutter(.wide) == 96 && wide.rightX == 20 + 532 + 96)
         // Nothing moves down between widths.
         for id in content.allTiles.map(\.id) {
-            #expect(regular.frame(ofTile: id)?.minY == wide.frame(ofTile: id)?.minY)
+            #expect(regular.frame(of: id)?.minY == wide.frame(of: id)?.minY)
         }
     }
 
@@ -126,7 +126,7 @@ struct PersonFamilyLayoutTests {
 
     @Test func fiftySiblingsStack() {
         let (content, l) = layout(crowd, revealed: [.siblings])
-        let frames = content.allTiles.compactMap { l.frame(ofTile: $0.id) }
+        let frames = content.allTiles.compactMap { l.frame(of: $0.id) }
         #expect(frames.count == 52)
         let expected: CGFloat = 26 + 52 * 104 - 12
         #expect(l.height == expected)
@@ -167,37 +167,37 @@ struct PersonFamilyLayoutTests {
     /// T-10 (AC-2.1, AC-2.4, AC-2.5, D-10, D-11)
     @Test func marriageLinesSitBetweenTheCouple() throws {
         let (_, married) = layout(Data.married)
-        #expect(married.frame(ofLine: "l-g0-m-m-ha") == CGRect(x: 20, y: 124, width: 485, height: 21))
-        #expect(try #require(married.frame(ofTile: "l-g0-anna")).minY == 151)
-        #expect(try #require(married.frame(ofTile: "l-g0-margarethe")).minY == 255)
-        #expect(married.frame(ofLine: "r-0-m-m-jm") == CGRect(x: 553, y: 26, width: 485, height: 21))
-        #expect(try #require(married.frame(ofTile: "r-0-maria")).minY == 51)
+        #expect(married.frame(of: "l-g0-m0-m-ha") == CGRect(x: 20, y: 124, width: 485, height: 21))
+        #expect(try #require(married.frame(of: "l-g0-anna")).minY == 151)
+        #expect(try #require(married.frame(of: "l-g0-margarethe")).minY == 255)
+        #expect(married.frame(of: "r-0-m1-m-jm") == CGRect(x: 553, y: 26, width: 485, height: 21))
+        #expect(try #require(married.frame(of: "r-0-maria")).minY == 51)
         // Sophie has no line.
-        #expect(try #require(married.frame(ofTile: "r-1-sophie")).minY == married.groups[3].frame.minY)
+        #expect(try #require(married.frame(of: "r-1-sophie")).minY == married.groups[3].frame.minY)
 
         let (_, two) = layout(Data.twoMarriages)
-        #expect(two.frame(ofLine: "r-0-m-m-jm1") == CGRect(x: 553, y: 26, width: 485, height: 21))
-        #expect(two.frame(ofLine: "r-0-m-m-jm2") == CGRect(x: 553, y: 47, width: 485, height: 21))
-        #expect(try #require(two.frame(ofTile: "r-0-maria")).minY == 72)
+        #expect(two.frame(of: "r-0-m0-m-jm1") == CGRect(x: 553, y: 26, width: 485, height: 21))
+        #expect(two.frame(of: "r-0-m0-m-jm2") == CGRect(x: 553, y: 47, width: 485, height: 21))
+        #expect(try #require(two.frame(of: "r-0-maria")).minY == 72)
 
         let (three, l) = layout(Data.threeParentMarriages)
-        #expect(l.frame(ofLine: "l-g0-m-m-ha") == CGRect(x: 20, y: 124, width: 485, height: 21))
-        #expect(try #require(l.frame(ofTile: "l-g0-anna")).minY == 151)
-        #expect(try #require(l.frame(ofTile: "l-g0-katharina")).minY == 255)
-        #expect(l.frame(ofLine: "l-g0-m-m-hk") == CGRect(x: 20, y: 353, width: 485, height: 21))
+        #expect(l.frame(of: "l-g0-m0-m-ha") == CGRect(x: 20, y: 124, width: 485, height: 21))
+        #expect(try #require(l.frame(of: "l-g0-anna")).minY == 151)
+        #expect(try #require(l.frame(of: "l-g0-katharina")).minY == 255)
+        #expect(l.frame(of: "l-g0-m1-m-hk") == CGRect(x: 20, y: 353, width: 485, height: 21))
         // The children start under the line that follows the last parent.
         #expect(try #require(frame(l, three, "Friedrich Weber")).minY == 380 + 104)
         // Each line is read just after its second parent.
-        #expect(l.groups[0].items.prefix(5).map(\.id) == ["l-g0-heinrich", "l-g0-anna", "l-g0-m-m-ha", "l-g0-katharina", "l-g0-m-m-hk"])
+        #expect(l.groups[0].items.prefix(5).map(\.id) == ["l-g0-heinrich", "l-g0-anna", "l-g0-m0-m-ha", "l-g0-katharina", "l-g0-m1-m-hk"])
         // The other two groups draw the same marriages with no name.
-        #expect(l.frame(ofLine: "l-g1-m-m-ha")?.minY == (l.frame(ofTile: "l-g1-heinrich")?.maxY ?? 0) + 6)
-        #expect(l.frame(ofLine: "l-g2-m-m-hk")?.minY == (l.frame(ofTile: "l-g2-heinrich")?.maxY ?? 0) + 6)
+        #expect(l.frame(of: "l-g1-m0-m-ha")?.minY == (l.frame(of: "l-g1-heinrich")?.maxY ?? 0) + 6)
+        #expect(l.frame(of: "l-g2-m1-m-hk")?.minY == (l.frame(of: "l-g2-heinrich")?.maxY ?? 0) + 6)
 
         // At a wide pane nothing moves down.
         let (_, wide) = layout(Data.threeParentMarriages, width: 1180, .wide)
         let (_, regular) = layout(Data.threeParentMarriages, width: 1180, .regular)
-        for id in ["l-g0-m-m-ha", "l-g0-m-m-hk", "l-g1-m-m-ha", "l-g2-m-m-hk"] {
-            #expect(wide.frame(ofLine: id)?.minY == regular.frame(ofLine: id)?.minY)
+        for id in ["l-g0-m0-m-ha", "l-g0-m1-m-hk", "l-g1-m0-m-ha", "l-g2-m1-m-hk"] {
+            #expect(wide.frame(of: id)?.minY == regular.frame(of: id)?.minY)
         }
     }
 }
