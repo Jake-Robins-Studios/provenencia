@@ -1,7 +1,7 @@
 # Ship log — S15-27 The provenance table folds a page at a time
 
 **Plan:** [`S15-27-provenance-table-fold.md`](S15-27-provenance-table-fold.md) · **Branch:** `s15-27-provenance-table-fold` · **PR:** #1006
-**State:** implementing (reshape)
+**State:** reshape fixing 1
 
 ## Round 0 — implement
 Not committed or pushed. **Stopped on** §11 "The Release test build fails". STEP-1 done in Debug (uncommitted on the local branch): `Timing.swift`, `CatalogListMergeTests` re-pointed, `PVProvenanceSheetLayoutTests`, `PVProvenancePreviewData.content(groups:summary:)` takes `String?`.
@@ -80,6 +80,38 @@ Gate PASS · CI pending at ready · open: none in code; CON-2 (§10 manual check
 After the PR was ready, the user dropped citation runs entirely: every record is its own row, owner lines and value headings stay, and the fold counts records across the sheet; the engine's group key goes too. Replanned through plan-pr on the branch (`0459f185b`, review answered in `058bd8308`; review log "Reshape"). The loop restarts: round 0 implements the reshaped plan on top of the branch.
 
 ## Reshape round 0 — implement
+Head `19750e919`. Gate PASS (orchestrator). Report: no deviations. Debug T-7 after: 266 ms at 300 and 1,200 records (4,185 pt both). AC-1.6, AC-3.1–3.4 manual (not run).
+
+## Reshape round 1 — review
+Reviewers: CON, MNT, UX, SEC+PRF (route-reviewers), full PR `c1035450b...19750e919`.
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| MNT-1 | MNT | blocker | A second "child takes Return from the sheet's default button" mechanism beside `pvSheetInnerEdit` | Fix now → F-1 (same-pass cleanup; supersedes D-7) | `PVProvenanceRecordTable.swift:80-90` / `PVProvenanceSheet.swift:25-31,74,78` copy `PVSheet.swift:183-207` + `PVFormDialogControls.confirmShortcut` (same `||` reduce, same `nil : .defaultAction` body). No researcher-visible change, so not To user |
+| UX-1 | UX | major | After a keyboard Show more, focus is on a citation link and the next Return fires Done | Fix now → F-1 (supersedes the Out line) | This PR moves focus onto the link (AC-3.2) and adds the claim that reports only `.showMore`; `PVInkLink.swift:33` handles Return; precedent `PVConfirm`/`PVFormDialog` |
+| CON-1 | CON | major | Plan marked Landed with no Landed note | Fix now → F-3 | DoD §9; `8d3290ee4` had one |
+| CON-2, MNT-2 | CON, MNT | minor | Stale "(S15-27 D-9)" on the layout suite; duplicate T-4 / T-8 labels | Fix now → F-2 | `PVProvenanceSheetLayoutTests.swift:6`; `ProvenanceSheetTests.swift:38,60,74,440` |
+
+SEC+PRF: clean, no findings.
+
+Nits (logged): `MNT-3 · render_test.go:423 · rename dropsGroup` · `MNT-4 · ProvenanceSheetTests.swift:1097 · records(_:prefix:) only forwards` · `CON-3 · S15-21's T-8 label (rides with F-2)` · `UX-2 · PVProvenanceRecordRow.swift:93 · repeated record ids can repeat an accessibility id (pre-existing)`
+
+### Fix plan 1 (reshape)
+
+**F-1 — One sheet-level Return claim; the provenance table claims Return while it holds focus** (from MNT-1, UX-1; supersedes D-7 and the Out line "Return on a focused citation link firing Done")
+Files: `macos/App/DesignSystem/Components/Panel/PVSheet.swift`, `macos/App/DesignSystem/Components/FormDialog/PVFormDialog.swift`, `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceSheet.swift`, `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceRecordTable.swift`, `macos/ProvenenciaTests/PVPanelFormDialogTests.swift`, `macos/ProvenenciaTests/ProvenanceSheetTests.swift`, `macos/App/DesignSystem/README.md` (Panel row), `docs/macos-client-patterns.md` if it names the inner-edit Return rule. Skills: `add-ui-component`, `add-swift-test`.
+Failing test first: `PVPanelFormDialogTests/defaultActionYieldsWhenReturnIsTaken` on *(new)* `PVSheetDefaultAction.shortcut(returnTaken:) -> KeyboardShortcut?` (`true` → `nil`, `false` → `.defaultAction`), in `PVSheet.swift`.
+Do: in `PVSheet.swift`, split a Return-only claim out of the inner-edit claim: a `||`-reduced preference *(new)* raised by `func pvSheetTakesReturn(_ taken: Bool) -> some View` *(new)*, read by the sheet chrome into an environment value `\.pvSheetReturnTaken` *(new)*. `pvSheetInnerEdit(_ open:)` also raises `pvSheetTakesReturn(open)`, and keeps claiming Escape and the outside click as today. `PVFormDialog`'s Confirm and `PVProvenanceSheet`'s Done both use `.keyboardShortcut(PVSheetDefaultAction.shortcut(returnTaken: returnTaken))` with `@Environment(\.pvSheetReturnTaken)`. `PVProvenanceRecordTable` raises `.pvSheetTakesReturn(focus != nil)`, so Return goes to Show more or to the focused citation link (`PVInkLink`'s own handler). Delete `PVFormDialogControls.confirmShortcut(innerEditOpen:)` and its test, `PVProvenanceSheet.doneShortcut(showMoreFocused:)` and `doneGivesUpReturnToShowMore`, `PVProvenanceShowMoreFocusKey`, the sheet's `showMoreFocused` and `.onPreferenceChange`; delete `\.pvSheetInnerEditOpen` too if nothing reads it after. First confirm the provenance sheet is presented through `.pvSheet` (`macos/App/Features/Conclusions/ReconciledValueRow.swift`); if it is not, stop and report. Update the README Panel row to name `pvSheetTakesReturn`.
+Check: the new test passes; `rg -n "confirmShortcut|doneShortcut|ShowMoreFocus" macos` prints nothing; scripts/check-pr.sh PASS. §10 gets: Return on Show more reveals the next page; a second Return opens the focused Citation; Escape still closes the sheet.
+
+**F-2 — Test labels name the right plan and IDs** (from CON-2, MNT-2, CON-3)
+Files: `macos/ProvenenciaTests/PVProvenanceSheetLayoutTests.swift` (line 6 → "(S15-27 D-14, T-7)"), `macos/ProvenenciaTests/ProvenanceSheetTests.swift` (this PR's fold tests' labels prefixed "S15-27 T-…"; S15-21's prefixed "S15-21 T-…").
+Check: `rg -n "/// T-[0-9]" macos/ProvenenciaTests/ProvenanceSheetTests.swift` prints nothing.
+
+**F-3 — The plan's Landed note** (from CON-1)
+Files: `docs/deployment-plan/spike-15/prs/S15-27-provenance-table-fold.md`.
+Do: add `## Landed` listing every difference from the plan: F-1 (one sheet-level Return claim, `pvSheetTakesReturn`; the table claims Return while any of its stops has focus; supersedes D-7 and the Out line on citation-link Return), the T-7 figures (266 / 266 ms), and the STEP-1 temporary `groupKey` in the preview that STEP-2 removed. Update `completed.md`'s S15-27 paragraph if F-1 changes what it says about Done and Return.
+Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-27-provenance-table-fold.md` 0 errors.
 
 ## Cost
 Plan: 5,424 words (check-plan-docs info line).
@@ -100,3 +132,8 @@ Plan: 5,424 words (check-plan-docs info line).
 | reshape | planner | opus | 257k+ |
 | reshape | plan maintainability | opus | 174k |
 | reshape | plan executability | opus | 173k |
+| reshape 0 | implementer | sonnet | 162k |
+| reshape 1 | CON | opus | 105k |
+| reshape 1 | MNT | opus | 109k |
+| reshape 1 | UX | opus | 71k |
+| reshape 1 | SEC+PRF | opus | 78k |
