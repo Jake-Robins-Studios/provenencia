@@ -670,7 +670,6 @@ func TestSpousePatterns(t *testing.T) {
 	}
 }
 
-// linkTo is person's link to other, carrying shapes.
 // parentsOf is person 1's parent links to each id.
 func parentsOf(ids ...byte) []kinship.Link {
 	var ls []kinship.Link
@@ -680,6 +679,7 @@ func parentsOf(ids ...byte) []kinship.Link {
 	return ls
 }
 
+// linkTo is person's link to other, carrying shapes.
 func linkTo(person, other byte, shapes ...kinship.Shape) kinship.Link {
 	return kinship.Link{Edge: kinship.Edge{A: p(person), B: p(other)}, Recording: kinship.Recording{Shapes: shapes}}
 }

@@ -439,9 +439,10 @@ type Couple struct {
 // event pivot: first the person with each spouse in kin[RoleSpouse] (once per
 // spouse, the first link winning), then each two of the person's parents, in
 // parent order, joined by a spouse link (spouseLink), only where pairsParents
-// allows for the parent count. A partner's marriages come from the person's own link; a pair of parents' from
-// the link spouseLink returns, since kinOf holds neither the person nor a
-// partner. A spouse link with no spouse-implying shape makes no couple.
+// allows for the parent count. A partner's marriages come from the person's
+// own link; a pair of parents' from the link spouseLink returns, since kinOf
+// holds neither the person nor a partner. A spouse link with no spouse-implying
+// shape makes no couple.
 func Couples(person []byte, kin Kin, kinOf map[string]Kin, rules Rules) []Couple {
 	var out []Couple
 	for _, l := range spouseLinks(person, kin) {

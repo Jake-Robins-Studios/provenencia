@@ -41,7 +41,7 @@ func TestDropUnread(t *testing.T) {
 
 // TestDropUnreadGroupsAndCouples covers D-8: unread members leave a sibling
 // group, the first group stays whatever is left, another group with no child
-// goes, and a couple with an unread person or no read marriage goes.
+// goes, and a couple with an unread person goes.
 func TestDropUnreadGroupsAndCouples(t *testing.T) {
 	id := func(n byte) []byte { return []byte{n} }
 	rel := func(n byte) kinship.Relative { return kinship.Relative{ID: id(n)} }
@@ -66,12 +66,12 @@ func TestDropUnreadGroupsAndCouples(t *testing.T) {
 			{SiblingGroup: kinship.SiblingGroup{Parents: rels(3), Children: rels(6)}},
 		},
 		Couples: []FamilyCouple{
-			{A: id(2), B: id(3), Marriages: [][]byte{id(20), id(21)}},
+			{A: id(2), B: id(3), Marriages: [][]byte{id(20)}},
 			{A: id(1), B: id(7), Marriages: [][]byte{id(22)}},
 			{A: id(1), B: id(8), Marriages: [][]byte{id(23)}},
 		},
 	}
-	// 3, 4, 6 and 7 are read; the person 1, 2, 5 and 8 are not; event 21 is not.
+	// 3, 4, 6 and 7 are read; the person 1, 2, 5 and 8 are not.
 	read := conclusionsummaries.NewSummaries(
 		[]conclusionsummaries.PersonSummary{person(3), person(6), person(7), person(4)},
 		[]conclusionsummaries.EventSummary{event(20), event(22), event(23)}, nil)
@@ -90,12 +90,12 @@ func TestDropUnreadGroupsAndCouples(t *testing.T) {
 	if len(got.Couples) != 0 {
 		t.Fatalf("couples %+v, want none", got.Couples)
 	}
-	// With the person and the partner read, the couple stays with its read marriage only.
+	// With the person and the partner read, the couples stay.
 	read = conclusionsummaries.NewSummaries(
 		[]conclusionsummaries.PersonSummary{person(1), person(2), person(3), person(7)},
 		[]conclusionsummaries.EventSummary{event(20), event(22)}, nil)
 	got = dropUnread(family, read)
-	if len(got.Couples) != 2 || len(got.Couples[0].Marriages) != 1 || got.Couples[0].Marriages[0][0] != 20 || got.Couples[1].B[0] != 7 {
+	if len(got.Couples) != 2 || len(got.Couples[0].Marriages) != 1 || got.Couples[1].B[0] != 7 {
 		t.Fatalf("couples %+v", got.Couples)
 	}
 	// An unread person leaves the first group even when no one else is left.

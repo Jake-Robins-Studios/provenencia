@@ -14,7 +14,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
-// maxMarriagesPerCouple is the most marriage events PersonFamily reads for one
+// maxMarriagesPerCouple is the most marriage events Families keeps for one
 // couple: the first of its pivots in shape order. Real couples have one to
 // three, so only a crafted catalog reaches it.
 // decided: user, 2026-11-08 (rule "Crafted fan-out is capped, not engineered")
@@ -43,10 +43,9 @@ type Group struct {
 }
 
 // FamilyCouple is two people the page shows together and the marriage events
-// both are subjects of. Marriages is, as Families returns it, every pivot of
-// the spouse link in shape order, uncapped; as PersonFamily returns it, the
-// marriage events read, earliest first, among the first maxMarriagesPerCouple
-// pivots.
+// both are subjects of. Marriages is at most maxMarriagesPerCouple events:
+// the first pivots in shape order as Families returns it, those PersonFamily
+// read, earliest first, as it returns it.
 type FamilyCouple struct {
 	A, B      []byte
 	Marriages [][]byte
@@ -135,7 +134,7 @@ func Families(c *database.Catalog, ids [][]byte, in *graphcache.PageInputs) ([]F
 			f.Groups = append(f.Groups, Group{SiblingGroup: g})
 		}
 		for _, c := range kinship.Couples(id, shown[string(id)], aroundKin, rules) {
-			f.Couples = append(f.Couples, FamilyCouple{A: c.A, B: c.B, Marriages: c.Pivots})
+			f.Couples = append(f.Couples, FamilyCouple{A: c.A, B: c.B, Marriages: c.Pivots[:min(len(c.Pivots), maxMarriagesPerCouple)]})
 		}
 		indexCouples(&f)
 		out = append(out, f)
@@ -210,8 +209,8 @@ type OriginSibling struct {
 // order, undated last. The origin siblings are every child of the parents and
 // siblings units once, with the person among them, in the order the page draws
 // them (see originSiblings); the person is left out only when its summary was
-// not read. Each couple's marriages are the canonical events among its first
-// maxMarriagesPerCouple pivots, in the event list's order, with their
+// not read. Each couple's marriages are the canonical events among the pivots
+// Families kept, in the event list's order, with their
 // summaries; a couple left with none is dropped. It records on in what Families
 // does, the person, every id it reads a summary of, and every marriage event it
 // loads.
@@ -253,7 +252,7 @@ func PersonFamily(c *database.Catalog, entityID []byte, in *graphcache.PageInput
 	}
 	summaries := conclusionsummaries.NewSummaries(persons, events, nil)
 	for i := range family.Couples {
-		pivots := cappedPivots(family.Couples[i])
+		pivots := family.Couples[i].Marriages
 		var marriages [][]byte
 		for _, h := range events {
 			if slices.ContainsFunc(pivots, func(p []byte) bool { return bytes.Equal(p, h.Entity.ID) }) {
@@ -279,19 +278,13 @@ func PersonFamily(c *database.Catalog, entityID []byte, in *graphcache.PageInput
 	return family, originSiblings(family, byBirth, summaries), summaries, nil
 }
 
-// cappedPivots is the first maxMarriagesPerCouple pivots of a couple as
-// Families returns it.
-func cappedPivots(c FamilyCouple) [][]byte {
-	return c.Marriages[:min(len(c.Marriages), maxMarriagesPerCouple)]
-}
-
-// marriageEvents loads the event nodes of each of family's couples' first
-// maxMarriagesPerCouple pivots in one call, and reads the summaries of the
+// marriageEvents loads the event nodes of each of family's couples' marriages
+// in one call, and reads the summaries of the
 // canonical ones in the event list's order. It leaves family as it is.
 func marriageEvents(c *database.Catalog, family Family, in *graphcache.PageInputs) ([]conclusionsummaries.EventSummary, error) {
 	var ids [][]byte
 	for i := range family.Couples {
-		ids = append(ids, cappedPivots(family.Couples[i])...)
+		ids = append(ids, family.Couples[i].Marriages...)
 	}
 	ids = database.UniqueBlobIDs(ids)
 	if len(ids) == 0 {
@@ -389,8 +382,8 @@ func originSiblings(family Family, byBirth func([]kinship.Relative), summaries c
 // that is left empty: a parents or partner unit with no partner, and a one
 // parent or siblings unit with no child. It drops the same members from the
 // sibling groups: the first group stays whatever is left of it, and another
-// group with no child left goes. A marriage whose event summary was not read
-// goes, and a couple left with none or with a person not read goes. It does not
+// group with no child left goes. A couple with a person not read, or with no
+// marriage, goes. It does not
 // reindex couples: indexCouples does, once the couples are final.
 func dropUnread(family Family, summaries conclusionsummaries.Summaries) Family {
 	read := func(rs []kinship.Relative) []kinship.Relative {
@@ -424,16 +417,9 @@ func dropUnread(family Family, summaries conclusionsummaries.Summaries) Family {
 	for _, c := range family.Couples {
 		_, a := summaries.Person(c.A)
 		_, b := summaries.Person(c.B)
-		var marriages [][]byte
-		for _, m := range c.Marriages {
-			if _, ok := summaries.Event(m); ok {
-				marriages = append(marriages, m)
-			}
-		}
-		if !a || !b || len(marriages) == 0 {
+		if !a || !b || len(c.Marriages) == 0 {
 			continue
 		}
-		c.Marriages = marriages
 		couples = append(couples, c)
 	}
 	family.Couples = couples
