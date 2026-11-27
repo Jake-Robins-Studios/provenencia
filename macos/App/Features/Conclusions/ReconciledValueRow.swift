@@ -60,7 +60,8 @@ struct ReconciledValueRow: View {
         .onChange(of: model.shown.listedValues.map(\.id)) { folds = PagedFoldState<String>() }
     }
 
-    /// The row's first disclosure stop: the provenance control when the row has records, else the other values.
+    /// The row's first disclosure stop: the provenance control when the row has
+    /// records, else the other values.
     /// Nil when the row has neither.
     private var firstStop: Stop? {
         if model.hasRecords { return .provenance }

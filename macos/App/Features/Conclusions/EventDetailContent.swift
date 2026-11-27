@@ -2,7 +2,8 @@ import Foundation
 
 /// The Event page, worded from one `CatalogConclusionDetail` and the Event
 /// summary it carries (S9-24, board S9-D6). The summary supplies the title, the
-/// kept date or span (the band) and the places. The date's records open in the provenance sheet from this page's date row.
+/// kept date or span (the band) and the places. The date's records open in
+/// the provenance sheet from this page's date row.
 struct EventDetailContent: ConclusionDetailBody {
     var title: PVTitleSource
     var ref: String
@@ -97,7 +98,8 @@ struct EventDetailContent: ConclusionDetailBody {
         return PVProvenanceSheetContent.listed(shown, propertyKey: field.propertyKey, role: words, locale: locale)
     }
 
-    /// The Place row. The first kept name, mixed when more survived. No provenance control: its records stay on the Place, which the row opens.
+    /// The Place row. The first kept name, mixed when more survived. No
+    /// provenance control: its records stay on the Place, which the row opens.
     static func placeRow(_ summary: CatalogEventSummary?) -> ReconciledValueRowModel {
         let label = L10n.string(L10n.Conclusions.eventPlace)
         let empty = L10n.string(L10n.Conclusions.emptyEventPlace)

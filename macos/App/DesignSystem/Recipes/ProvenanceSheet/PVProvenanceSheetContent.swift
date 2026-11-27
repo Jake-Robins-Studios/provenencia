@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// How a value reads: names, text and terms in the body face, dates in mono,
-/// places in italic. One type for the Details rows and the provenance sheet (S13-36 D-6).
+/// places in italic. One type for the Details rows and the provenance sheet
+/// (S13-36 D-6).
 enum PVProvenanceFace: Equatable {
     /// Names, text, terms, integers.
     case text
