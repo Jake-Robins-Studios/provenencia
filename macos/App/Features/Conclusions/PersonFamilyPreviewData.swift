@@ -45,11 +45,14 @@ enum PersonFamilyPreviewData {
         CatalogFamilyCouple(aEntityId: a, bEntityId: b, marriages: marriages)
     }
 
-    /// A marriage Event of a couple: dated by `date` as an occurrence, at `place`.
-    static func marriage(_ id: String, _ date: CatalogDateValueInput?, place: String?) -> CatalogEventSummary {
+    /// A marriage Event of a couple: dated by `date` as an occurrence, at `place`; `type` is another
+    /// Event type's, for a test of what a marriage line leaves out.
+    static func marriage(
+        _ id: String, _ date: CatalogDateValueInput?, place: String?, type: String = SeededEventTypeTerm.marriage
+    ) -> CatalogEventSummary {
         PersonTimelinePreviewData.eventSummary(
             id,
-            type: SeededEventTypeTerm.marriage,
+            type: type,
             dating: date.map { CatalogEventDating(kind: .occurrence, low: $0) },
             place: place
         )
