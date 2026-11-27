@@ -156,7 +156,7 @@ At the map's Scale (a value of up to 1,200 records; the Check measures 300 and 1
 - **Neighbors.** 50 runs: no row (T-4). 51 runs: "Show 1 more" (T-1). A 50th run of 6 records: all 6 show (T-2). The cut on a value boundary: the next value's heading waits for the press (T-3).
 - **Removed inputs.** A refresh while the sheet is open that removes runs: the shown count clamps and `hidden` shrinks; a refresh that changes the Citation ids is a new key, and the table starts over (D-4). Focus on a run that the refresh removed falls to the system, as it does today. A revealed run that opens a new value or owner scrolls into view with no anchor, so its heading can sit just above the visible area; accepted, as the Person page sections scroll the same way.
 - **Real data.** None — no table, seed or configuration drives the fold.
-- **Untrusted size.** Runs are bounded at 50 per page. A single run is not bounded: a catalog whose 1,200 Citations render the same full citation draws 1,200 rows in one run. Accepted (user, 2026-11-26), §11.
+- **Untrusted size.** Runs are bounded at 50 per page. A single run is not bounded: a catalog whose 1,200 Citations render the same full citation draws 1,200 rows in one run. Accepted (user, 2026-11-26), §11. Several records repeating one citation under a value (a run of more than one record) are a data-entry case: they draw slowly and do not crash, with no cap (user, 2026-11-27).
 
 ### Schema
 
@@ -278,7 +278,7 @@ No fixture holds a value of more than 50 records, so the press, focus and Tab ch
 
 | Risk | Mitigation |
 | --- | --- |
-| One citation run holds most of the records (crafted catalog, or many Citations rendering one full citation), so the first page still draws them all | Accepted (user, 2026-11-26): a run is never split. The sheet opens on a click, never on page load |
+| One citation run holds most of the records (crafted catalog, or many Citations rendering one full citation), so the first page still draws them all | Accepted (user, 2026-11-26): a run is never split. The sheet opens on a click, never on page load. Several records repeating one citation under a value are a data-entry case: they draw slowly and do not crash, with no cap (user, 2026-11-27) |
 | A table that loads again (Read again, a key change) forgets the pages revealed | Accepted by D-4: a reload is a new read |
 
 **Stop and report if:**
@@ -301,3 +301,5 @@ None.
 
 - The manual check (section 10) was not run by the implementer: the press, focus and Tab ACs (AC-1.4's presses, AC-3.1 – AC-3.4) and AC-1.6 are unchecked by hand.
 - First layout, Debug, best of 3: 300 records 1558 ms and a 24,900 pt document before, 271 ms and 4,185 pt after; 1,200 records 6691 ms and 99,600 pt before, 268 ms and 4,185 pt after.
+- Done gives up Return while Show more has focus (`PVProvenanceSheet.doneShortcut(showMoreFocused:)`, fed by a recipe-private preference from the table), so Return on Show more reveals the next page and the sheet stays open. Escape still closes the sheet. This was not in the plan (review round 1, F-1).
+- The best-of loops were merged into `Timing.swift`: `bestOfMilliseconds(runs:prepare:_:check:)` serves `CatalogListMergeTests` and the layout test, and `CatalogListMergeTests`'s private loop is deleted. This supersedes the Codebase fit row for `Timing.swift`, which kept the private loop (F-2).

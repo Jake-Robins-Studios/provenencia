@@ -1,0 +1,72 @@
+# Ship log — S15-27 The provenance table folds a page at a time
+
+**Plan:** [`S15-27-provenance-table-fold.md`](S15-27-provenance-table-fold.md) · **Branch:** `s15-27-provenance-table-fold` · **PR:** #1006
+**State:** fixing 1
+
+## Round 0 — implement
+Not committed or pushed. **Stopped on** §11 "The Release test build fails". STEP-1 done in Debug (uncommitted on the local branch): `Timing.swift`, `CatalogListMergeTests` re-pointed, `PVProvenanceSheetLayoutTests`, `PVProvenancePreviewData.content(groups:summary:)` takes `String?`.
+D-9's Release command fails to compile: `cannot find 'FakeStore' in scope` in `#Preview` blocks at `ConclusionPictureViewer.swift:405`, `SourcesListPreviews.swift:12,13,56`, `WorkspaceToolbar.swift:504,508`. Orchestrator confirmed `macos/App/Platform/FakeStore.swift` is wrapped in `#if DEBUG` while those previews are not. A gap on `main`, not caused by this PR.
+Debug "before" figures (best of 3): 300 records 1515 ms (doc height 24,900 pt); 1,200 records 6357 ms (doc height 99,600 pt).
+Deviations so far: summary param made optional; `CatalogListMergeTests` keeps its own copy-per-run loop, calls shared `milliseconds(_:)`; version bump will be 0.48.1 (main is 0.48.0).
+Taken to user. User: fix the Release app build first (quick PR #1003, merged, which also adds check-patterns rule `swift-debug-only-in-release`), delete the flaky hosted reveal test (#1005, merged), then replan. The test target cannot compile in Release by design (FakeStore is `#if DEBUG`), so the plan was refreshed through plan-pr to Debug-only figures (review log "Refresh"; main @ `c1035450b`). Round-0 WIP restored on the branch, rebased onto that main.
+
+**Resumed.** Head `64d40aff4`. Gate PASS (orchestrator, against `c1035450b`). Report: no code deviations. Debug figures, best of 3: before 300 → 1558 ms (24,900 pt), 1,200 → 6691 ms (99,600 pt); after 271 ms / 268 ms (both 4,185 pt). AC-3.x press/focus/Tab manual checks not run (need a person). Notes: the "Cap" rewrite dropped its "Assembly is O(n²)" bullet; `fold` landed in the STEP-2/3 commit.
+
+## Round 1 — review
+Reviewers: CON, MNT, UX, SEC+PRF (route-reviewers; SEC+PRF on `CatalogListMergeTests.swift`, and the fold bounds an unbounded record list).
+
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| CON-1, UX-1 | CON, UX | blocker | Return on Show more may fire Done's `.defaultAction` | Fix now → F-1 | Verified by precedent: `PVConfirm.swift:168,185` and `PVFormDialogControls.confirmShortcut` (`PVFormDialog.swift:64-67`) already drop `.defaultAction` because it beats a focused Return owner. `PVShowMoreRow` takes Return via `onKeyPress` (`PVReturnActivation.swift`). No unit seam (no key synthesis); the §10 check confirms |
+| SEC-1 | SEC | major | The fold bounds runs, not the records inside them | To user → Rejected (user, 2026-11-27) | A run of more than one record needs two records behind one value from the same property and Source: a data-entry error the user calls super rare. It draws slowly, it does not crash; no cap. Recorded in the plan's Edges and §11 (F-5) |
+| CON-2 | CON | major | §10 manual checks not run; AC-1.4 presses, AC-1.6, AC-3.1–3.4 have no evidence | To user (manual check) | The implementer cannot drive the preview canvas; no key synthesis in tests. Goes to the user's manual check before merge |
+| MNT-1 | MNT | minor | Two `bestOfMilliseconds` loops in the test target | Fix now → F-2 (same-pass cleanup) | Supersedes the plan's Codebase fit row for `Timing.swift`, which kept the private loop |
+| MNT-2 | MNT | minor | The layout test holds its own window | Fix now → F-3 | `add-swift-test` line 17; `HostedWindow.swift:69-76` registers it |
+| CON-3 | CON | minor | Review log links the brief's old path | Fix now → F-4 | `S15-27-provenance-table-fold.review.md:3` |
+| UX-2 | UX | minor | "Show 50 more" counts runs; the sheet counts records | Rejected | Runs are one record in real data (user, 2026-11-27), so runs counted ≈ records; D-8 is the user's wording |
+
+Nits (logged): `MNT-3 · ProvenanceSheetTests.swift:423 · runCount repeats folded's reduce` · `MNT-4 · PVProvenanceSheetContent.swift:223-236 · comment the empty-group rule (AC-2.3)` · `CON-4 · ProvenanceSheetTests.swift · split chained #expect(a && b && c)` · `UX-3 · PVProvenanceSheet.swift:138 · one multi-record run in the 120-run preview`
+
+
+Follow-up (ask the user at finish): Return on a focused citation link in this sheet may also fire Done's `.defaultAction`. That code predates this PR; F-1 frees Return only for Show more.
+
+### Fix plan 1
+
+**F-1 — Return on Show more does not fire Done** (from CON-1, UX-1)
+Files: `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceSheet.swift`, `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceRecordTable.swift`, `macos/ProvenenciaTests/ProvenanceSheetTests.swift`. Skills: `add-ui-component`, `add-swift-test`.
+Failing test first: `ProvenanceSheetTests/doneGivesUpReturnToShowMore`, a pure test of *(new)* `nonisolated static func doneShortcut(showMoreFocused: Bool) -> KeyboardShortcut?` on `PVProvenanceSheet`: `true` → `nil`, `false` → `.defaultAction`. Same shape as `PVFormDialogControls.confirmShortcut(innerEditOpen:)` (`PVFormDialog.swift:64-67`) and its test.
+Do: the table keeps its own `@FocusState` (D-4). It reports `focus == .showMore` up through a recipe-private `PreferenceKey` *(new, in `PVProvenanceRecordTable.swift`)*, reduced with `||`, the way `PVSheet.swift`'s `PVSheetInnerEditKey` reports an inner edit. `PVProvenanceSheet` reads it with `.onPreferenceChange` into `@State private var showMoreFocused = false`, and Done uses `.keyboardShortcut(Self.doneShortcut(showMoreFocused: showMoreFocused))`. Do not use `.pvSheetInnerEdit`: it also takes Escape. Escape still closes the sheet.
+Check: the test passes; scripts/check-pr.sh PASS. Note for §10: Return on Show more reveals the next page and the sheet stays open.
+
+**F-2 — One best-of timing helper** (from MNT-1; same-pass cleanup, supersedes the plan's Codebase fit row for `Timing.swift`, which kept the private loop)
+Files: `macos/ProvenenciaTests/Timing.swift`, `macos/ProvenenciaTests/CatalogListMergeTests.swift`, `macos/ProvenenciaTests/PVProvenanceSheetLayoutTests.swift` if its call changes.
+Do: in `Timing.swift`, add `func bestOfMilliseconds<S>(runs: Int, prepare: () -> S, _ run: (inout S) -> Void, check: (S) -> Void = { _ in }) -> Double`. Each run calls `prepare()` outside the timed span, times `run(&state)`, then calls `check(state)` outside it. Keep `bestOfMilliseconds(runs:_:)` as a one-line wrapper over it. Point `CatalogListMergeTests`'s callers at the shared helper (`prepare: { list.rows }` or `{ list }`, `check: { #expect($0.count == expected) }`) and delete its private `bestOfMilliseconds(_:runs:expected:_:)`.
+Check: `grep -rn "func bestOfMilliseconds" macos/ProvenenciaTests` prints only the two lines in `Timing.swift`; `-only-testing:ProvenenciaTests/CatalogListMergeTests` passes; scripts/check-pr.sh PASS.
+
+**F-3 — The layout test does not hold its window** (from MNT-2)
+Files: `macos/ProvenenciaTests/PVProvenanceSheetLayoutTests.swift`.
+Do: bind `let (_, host) = hostInBorderlessWindow(...)`; delete the `window` var and `withExtendedLifetime`. Keep the last run's host for the height read (D-9).
+Check: `-only-testing:ProvenenciaTests/PVProvenanceSheetLayoutTests` passes.
+
+**F-4 — Review log links the archived brief** (from CON-3)
+Files: `docs/deployment-plan/spike-15/prs/S15-27-provenance-table-fold.review.md` line 3 → `../design/archive/S15-D17-provenance-table-fold.md`.
+Check: `rg -n "\.\./design/S15-D17" docs` prints only the plan's STEP-7 prose that names the move source.
+
+**F-5 — Record the user's answer and the fix round in the plan**
+Files: `docs/deployment-plan/spike-15/prs/S15-27-provenance-table-fold.md`.
+Do: in Edges "Untrusted size" and the §11 risk row, add that several records repeating one citation under a value (runs of more than one record) are accepted as a data-entry case: they draw slowly and do not crash, with no cap (user, 2026-11-27). In the Landed note, add that Done gives up Return while Show more has focus (F-1), and that the best-of loops were merged into `Timing.swift` (F-2, superseding the Codebase fit row).
+Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-27-provenance-table-fold.md` 0 errors.
+
+## Cost
+Plan: 5,424 words (check-plan-docs info line).
+
+| Round | Agent | Model | Tokens |
+| --- | --- | --- | --- |
+| 0 | implementer | sonnet | 122k |
+| 0 (resume) | implementer | sonnet | 146k |
+| refresh | plan executability | opus | 121k |
+| 1 | CON | opus | 111k |
+| 1 | MNT | opus | 77k |
+| 1 | UX | opus | 96k |
+| 1 | SEC+PRF | opus | 76k |
