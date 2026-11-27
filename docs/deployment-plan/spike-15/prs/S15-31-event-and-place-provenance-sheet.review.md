@@ -4,7 +4,12 @@
 **Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet). Both read the plan and the briefs S15-D11 and S15-D12.
 
 ## To user
-- How do the agreed boards reach the implementer? Recommendation: the Board line of each brief and of the plan names the turn and frames on the Event Detail and Places Detail boards. The implementer cannot open them, so the plan keeps § 6 "Frames in words" and the Stop condition.
+- How the boards reach the implementer: answered 2026-11-27. The user gave the two board links, and the plan's Board line names the turns and frames. § 6 keeps the frames in words.
+- The board draws a Merged Badge and count on the Place Period row: answered, keep the app's row (user, 2026-11-27).
+- The board draws a 28pt end cell on relationship rows: answered, leave them as they are (user, 2026-11-27).
+- The board says Done returns focus to the control: answered, behave as the Person page does (user, 2026-11-27).
+
+The boards were agreed 2026-11-27; the plan is Planned.
 
 ## Writer's own calls
 - D-1: one row mode. `ReconciledValueRow.Provenance` goes, and `openProvenance` loses its no-op default.

@@ -1,10 +1,10 @@
 # S15-31 — Event and Place rows open the provenance sheet
 
-**Status:** Blocked — on boards S15-D11 and S15-D12
+**Status:** Planned
 **Spike / slice:** Spike 15 · Slice 8 — Provenance loading
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D11](../design/S15-D11-event-page-provenance-sheet.md) (Event page) and [S15-D12](../design/S15-D12-place-page-provenance-sheet.md) (Place page), boards not agreed yet
-**Board:** — (not drawn yet). Event: the [Event Detail board](https://claude.ai/artifact/5ciAxv86fYtrUvuCHPuuJ5), page *Event Detail*, a new turn after "S16-D6 · As-of dates". Place: the [Places Detail board](https://claude.ai/artifact/WTfDyrGRH2PEtXyhY2KJtt), page *Place Detail*. Until a board is agreed, **§ 6 macOS** describes each frame in words
+**Brief:** [S15-D11](../design/S15-D11-event-page-provenance-sheet.md) (Event page) and [S15-D12](../design/S15-D12-place-page-provenance-sheet.md) (Place page), boards agreed 2026-11-27
+**Board:** Event: agreed 2026-11-27 (user) — [Event Detail board](https://claude.ai/artifact/5ciAxv86fYtrUvuCHPuuJ5), page *Event Detail*, turn "S15-D11 · Value rows open the provenance sheet": frames 1a, 1b, 2, 3a, 3b, 4a, 4b, 5, 6 and the notes EP-1, EP-2, EP-4. Place: agreed 2026-11-27 (user) — [Places Detail board](https://claude.ai/artifact/WTfDyrGRH2PEtXyhY2KJtt), page *Place Detail*, turn "S15-D12 · Place page — value rows open the provenance sheet": frames 1a, 1b, 2a, 2b, 3a, 3b, 3c, 4, 5 and the notes PP-1, PP-3, PP-4. The implementer cannot open the boards: **§ 6 macOS** describes each frame in words and lists where the app departs from a board note
 **Depends on:** S15-27 (landed [#1006](https://github.com/Jake-Robins-Studios/provenencia/pull/1006)), S15-D11, S15-D12
 **Blocks:** S15-29
 **Branch:** `s15-31-event-and-place-provenance-sheet`
@@ -92,6 +92,8 @@ On the Event and Place pages, each Details row with records ends with the proven
 | Records loading when the sheet opens; the row counts from `FieldRecordCounts` | S15-29 |
 | `api/proto/engine.proto`'s `PictureDetail` comment ("as the Why shows it") | S15-28, which edits and regenerates the proto; STEP-6 names it in S15-28's scope entry |
 | A control on the Place relationship rows or on the Event's Place row | not planned (their records live on the Place the row opens; the briefs' non-goals) |
+| A Merged Badge and Source count on span rows (Place Period, Event start–end), and the 28pt end cell on relationship rows, as the Places Detail board draws them | not planned (user, 2026-11-27) |
+| Focus returning to the control after Done | not planned here: it behaves as on the Person page (user, 2026-11-27) |
 | The `"Why"` sample label in `PVDisclosureButton`'s `#Preview` | not planned (a preview word, not a reference to the removed control) |
 
 ## 4. Current state
@@ -186,7 +188,15 @@ None —
 | Sheet | `PVProvenanceSheet` via `ProvenanceSheetHost` | `ConclusionDetailRowsSection` | Unchanged; `PVProvenanceColumns(widthClass:)` gives 880 / 1280pt |
 | Why disclosure, card, table, reserved column | — | removed | EP-3, PP-3 |
 
-**Frames in words** (until the boards are agreed). Event page, Regular (1102pt pane): header; "Details"; Date row: label column 132pt, the as-of lines with their Source counts, then the ⓘ at the row's right end; Place row: the place name, its open arrow, then an empty 28pt slot so the arrow sits where Date's controls end. Wide: the same column centered at the Regular measure. Place page: the same for Names (the kept names, ⓘ) and Period (the span, ⓘ, or "No period recorded" with an empty slot); the relationship sections below unchanged. The sheet over either page is the Person page's sheet. If an agreed board places anything differently, stop (§ 11).
+**Frames in words** (as the boards draw them). Event page, Regular (1102pt pane): header; "Details"; Date row: label column 132pt, the as-of lines with their Source counts, then the ⓘ at the row's right end; Place row: the place name, its open arrow, then an empty 28pt slot so the arrow sits where Date's controls end. Wide: the same column centered at the Regular measure. Place page: the same for Names (the kept names, ⓘ) and Period (the span, ⓘ, or "No period recorded" with an empty slot); the relationship sections below unchanged. The sheet over either page is the Person page's sheet. The sheet sits over the page with no scrim, as on the Person page (board notes EP-4, PP-4). On a tall row the label and the lines keep their top alignment and only the slot centers (EP-1; the row's `summary` keeps its `.firstTextBaseline` alignment and the outer `HStack` centers the slot, as today).
+
+**Where the app departs from the boards** (user, 2026-11-27):
+
+| Board | Draws | The app | Why |
+| --- | --- | --- | --- |
+| Places Detail, frames 1a, 3c | The Period row with a Merged Badge and "2 Sources"; its sheet summary "merged from 2 Sources · 2 records" | Unchanged: a span row has no badge and no count, and its sheet summary reads "2 records" (`ReconciledValueRowModel.spanning`, `PVProvenanceSheetContent.spanning`) | This PR only replaces the Why with the sheet; a badge for span rows is not planned |
+| Places Detail, note PP-3 | An empty 28pt cell at the end of each relationship row | Unchanged: `PlaceRelationshipRow` ends with its chevron | The relationship rows stay as they are |
+| Both boards, notes EP-4, PP-4 | Done returns focus to the row's control | Whatever the Person page does today; §10 step 3 notes where focus lands | A focus fix belongs to all three pages and is not this PR |
 
 States: a row with no records shows its empty text and an empty slot; a row whose value is empty but which holds records shows the control (D-10); the control centers on a tall row (D-11); a refresh that removes a row's records closes its open sheet. Accessibility: the control's label and tooltip are `L10n.Conclusions.provenanceOpen(label)`; Tab order follows the row's `HStack` (other values, open arrow, provenance), then the list's Show more below.
 
@@ -289,7 +299,7 @@ Use a project with an Event dated by as-ofs from several Sources, a Place cited 
 
 1. Open the Event. Details: the Date row ends with ⓘ; no "Why" anywhere; the Place row shows its open arrow and an empty slot, aligned with Date. Hover ⓘ: "Provenance of Date". (AC-1.1, AC-1.3)
 2. Click ⓘ. The sheet: title "Date", the as-of lines, the summary, the records; Done closes it. (AC-1.2)
-3. Tab to ⓘ, press Space: the sheet opens. Click a record's Citation: the composer opens; Back returns to the Event page. (AC-3.1, AC-3.2, AC-3.3; with VoiceOver on, the control reads "Provenance of Date")
+3. Tab to ⓘ, press Space: the sheet opens; press Done and note where focus lands, then compare with the Person page (a difference is a finding). Click a record's Citation: the composer opens; Back returns to the Event page. (AC-3.1, AC-3.2, AC-3.3; with VoiceOver on, the control reads "Provenance of Date")
 4. Open the Place. Names ends with ⓘ; the sheet's title is "Names" and lists the weak spelling's record. Open the Place with no period: "No period recorded", empty slot. (AC-2.1 – AC-2.4)
 5. On a Place or Event with more than 50 records on one row, the sheet opens on 50 and "Show 50 more". (AC-1.5)
 6. Widen the window past 1600pt pane width on both pages: the pages stay centered, the sheet is 1280pt. (EP-W1, PP-W1)
@@ -301,12 +311,11 @@ Use a project with an Event dated by as-ofs from several Sources, a Place cited 
 | Risk | Mitigation |
 | --- | --- |
 | A test or preview elsewhere passes `provenance:` | STEP-1's build fails at once; remove the argument (it can only have been `.sheet` or `.why`) |
-| A board moves the control or adds chrome | Stop (below) |
 | A future row host forgets `openProvenance` | D-1 removes the default, so it does not compile |
 
 **Stop and report if:**
 
-- An agreed board (S15-D11 or S15-D12) draws the control anywhere but the row's end centered on the row, draws one on the Event's Place row or a relationship row, or changes the sheet.
+- The row's `summary` loses its top alignment when the slot is drawn on every row (a tall row's lines no longer start at the top).
 - `ConclusionDetailDefaultPageSections` is no longer how Event and Place fill their page, or a third page uses `ConclusionDetailRowsSection` with `.why`.
 - A sheet opened from an Event or Place row lists different records than `provenanceContent()` returns for that row.
 - The sweep in §9 finds a reader of a removed name outside the files in § 4.

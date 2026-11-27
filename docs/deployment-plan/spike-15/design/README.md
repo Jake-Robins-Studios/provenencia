@@ -9,8 +9,8 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | Brief | View | Board | Gates |
 | --- | --- | --- | --- |
 | S15-D4 | Adding an Artifact: the copy fields | Descoped 2026-11-12: folded into S15-D14 | — |
-| [S15-D11](S15-D11-event-page-provenance-sheet.md) | Event page: value rows open the provenance sheet; the Why accordion removed; written 2026-11-27 | — (to draw on the [Event Detail board](https://claude.ai/artifact/5ciAxv86fYtrUvuCHPuuJ5)) | S15-31 |
-| [S15-D12](S15-D12-place-page-provenance-sheet.md) | Place page: value rows open the provenance sheet; the Why accordion removed; written 2026-11-27 | — (to draw on the [Places Detail board](https://claude.ai/artifact/WTfDyrGRH2PEtXyhY2KJtt)) | S15-31 |
+| [S15-D11](S15-D11-event-page-provenance-sheet.md) | Event page: value rows open the provenance sheet; the Why accordion removed; written 2026-11-27 | [agreed 2026-11-27](https://claude.ai/artifact/5ciAxv86fYtrUvuCHPuuJ5): turn "S15-D11 · Value rows open the provenance sheet", frames 1a – 6 | S15-31 |
+| [S15-D12](S15-D12-place-page-provenance-sheet.md) | Place page: value rows open the provenance sheet; the Why accordion removed; written 2026-11-27 | [agreed 2026-11-27](https://claude.ai/artifact/WTfDyrGRH2PEtXyhY2KJtt): turn "S15-D12 · Place page", frames 1a – 5 | S15-31 |
 | S15-D15 | Person page Sources section: Citations grouped under one citation | Descoped 2026-11-21 with S15-22 | — |
 | S15-D18 | Provenance sheet: records loading on open, and their failure | — | S15-29 |
 | S15-D19 | Source page: Copy source-list entry | — | S15-23 |

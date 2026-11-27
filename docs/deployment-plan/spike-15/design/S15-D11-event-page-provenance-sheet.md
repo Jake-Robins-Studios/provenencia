@@ -4,7 +4,7 @@
 **Spike:** Provenencia Spike 15, slice 8
 **View:** the Event page's Details rows (Date, Place), and the provenance sheet over the Event page
 **Implements later as:** PR **S15-31** (EP-1 – EP-7, EP-2a, EP-W1)
-**Board:** — (not drawn yet)
+**Board:** agreed 2026-11-27 (user) — [Event Detail board](https://claude.ai/artifact/5ciAxv86fYtrUvuCHPuuJ5), page *Event Detail*, turn "S15-D11 · Value rows open the provenance sheet": frames 1a, 1b, 2, 3a, 3b, 4a, 4b, 5, 6 and the notes EP-1, EP-2, EP-4. Not built (user, 2026-11-27): the Period row's Merged Badge and count, the relationship rows' 28pt end cell, and focus returning to the control after Done; plan § 6
 **Depends on:** S15-27 (landed [#1006](https://github.com/Jake-Robins-Studios/provenencia/pull/1006)): the provenance sheet as it is today, with its fold ([S15-D9](archive/S15-D9-provenance-sheet-citations.md), [S15-D17](archive/S15-D17-provenance-table-fold.md)); [S16-D6](../../spike-16/design/archive/S16-D6-event-date-row.md): the Date row of an event dated by as-ofs
 **Related:** working rule "The Why accordion goes" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); the sibling brief for the Place page, [S15-D12](S15-D12-place-page-provenance-sheet.md), which S15-31 also implements; plan [`../prs/S15-31-event-and-place-provenance-sheet.md`](../prs/S15-31-event-and-place-provenance-sheet.md). The next brief on this sheet: S15-D18 (records loading on open)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
