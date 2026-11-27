@@ -1,9 +1,9 @@
 # S15-31 — Event and Place rows open the provenance sheet
 
-**Status:** Planned
+**Status:** Landed in [#1010](https://github.com/Jake-Robins-Studios/provenencia/pull/1010) (2026-11-27)
 **Spike / slice:** Spike 15 · Slice 8 — Provenance loading
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D11](../design/S15-D11-event-page-provenance-sheet.md) (Event page) and [S15-D12](../design/S15-D12-place-page-provenance-sheet.md) (Place page), boards agreed 2026-11-27
+**Brief:** [S15-D11](../design/archive/S15-D11-event-page-provenance-sheet.md) (Event page) and [S15-D12](../design/archive/S15-D12-place-page-provenance-sheet.md) (Place page), boards agreed 2026-11-27
 **Board:** Event: agreed 2026-11-27 (user) — [Event Detail board](https://claude.ai/artifact/5ciAxv86fYtrUvuCHPuuJ5), page *Event Detail*, turn "S15-D11 · Value rows open the provenance sheet": frames 1a, 1b, 2, 3a, 3b, 4a, 4b, 5, 6 and the notes EP-1, EP-2, EP-4. Place: agreed 2026-11-27 (user) — [Places Detail board](https://claude.ai/artifact/WTfDyrGRH2PEtXyhY2KJtt), page *Place Detail*, turn "S15-D12 · Place page — value rows open the provenance sheet": frames 1a, 1b, 2a, 2b, 3a, 3b, 3c, 4, 5 and the notes PP-1, PP-3, PP-4. The implementer cannot open the boards: **§ 6 macOS** describes each frame in words and lists where the app departs from a board note
 **Depends on:** S15-27 (landed [#1006](https://github.com/Jake-Robins-Studios/provenencia/pull/1006)), S15-D11, S15-D12
 **Blocks:** S15-29
@@ -28,6 +28,12 @@
 8. **Docs-only lines in the DoD are part of the PR.** Do not skip them.
 
 ---
+
+## Landed
+
+- `PersonDetailTests.aMergedNameRowCarriesItsStateAndProvenance`: the nickname fixture (`nick`, `nicked`) went with its only assertion, the deleted `whyTitle` line, since an unused value is a Swift warning.
+- STEP-5/6: `main` gained a second Why sentence after the planning base (`docs/conclusion-reconciliation.md`, the derived-place paragraph, "The Why lists every location link's records"); it now reads "The provenance sheet lists".
+- The §10 manual check was not run by the implementer; the visual, keyboard and VoiceOver steps are left to the user.
 
 ## 1. Objective
 

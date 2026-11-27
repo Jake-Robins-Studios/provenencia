@@ -5,10 +5,10 @@
 **View:** the Place page's Details rows (Names, Period), and the provenance sheet over the Place page
 **Implements later as:** PR **S15-31** (PP-1 – PP-7, PP-W1)
 **Board:** agreed 2026-11-27 (user) — [Places Detail board](https://claude.ai/artifact/WTfDyrGRH2PEtXyhY2KJtt), page *Place Detail*, turn "S15-D12 · Place page — value rows open the provenance sheet": frames 1a, 1b, 2a, 2b, 3a, 3b, 3c, 4, 5 and the notes PP-1, PP-3, PP-4. Not built (user, 2026-11-27): the Period row's Merged Badge and count, the relationship rows' 28pt end cell, and focus returning to the control after Done; plan § 6
-**Depends on:** S15-27 (landed [#1006](https://github.com/Jake-Robins-Studios/provenencia/pull/1006)): the provenance sheet as it is today, with its fold ([S15-D9](archive/S15-D9-provenance-sheet-citations.md), [S15-D17](archive/S15-D17-provenance-table-fold.md))
-**Related:** working rule "The Why accordion goes" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); the sibling brief for the Event page, [S15-D11](S15-D11-event-page-provenance-sheet.md), which S15-31 also implements; plan [`../prs/S15-31-event-and-place-provenance-sheet.md`](../prs/S15-31-event-and-place-provenance-sheet.md); [`../provenance-loading.md`](../provenance-loading.md) (a Place's name row grows with the catalog). The next brief on this sheet: S15-D18 (records loading on open)
-**Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
-**Skill:** [`add-design-brief`](../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md)
+**Depends on:** S15-27 (landed [#1006](https://github.com/Jake-Robins-Studios/provenencia/pull/1006)): the provenance sheet as it is today, with its fold ([S15-D9](S15-D9-provenance-sheet-citations.md), [S15-D17](S15-D17-provenance-table-fold.md))
+**Related:** working rule "The Why accordion goes" in [`../deployment-plan.md`](../../deployment-plan.md#working-rules); the sibling brief for the Event page, [S15-D11](S15-D11-event-page-provenance-sheet.md), which S15-31 also implements; plan [`../prs/S15-31-event-and-place-provenance-sheet.md`](../../prs/S15-31-event-and-place-provenance-sheet.md); [`../provenance-loading.md`](../../provenance-loading.md) (a Place's name row grows with the catalog). The next brief on this sheet: S15-D18 (records loading on open)
+**Design system layers:** [`docs/design-system-layers.md`](../../../../design-system-layers.md)
+**Skill:** [`add-design-brief`](../../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../../.agents/skills/add-ui-component/SKILL.md)
 
 Paste this entire document into Claude Design as the requirements for one board. This file is the whole prompt.
 
@@ -158,4 +158,4 @@ Each frame is the pane only (no sidebar): 1102 × 900 at Regular, 2296 × 1440 a
 
 ## 7. Handoff
 
-When the board is agreed: record the board link, its turn and agreed frames on the **Board** line above and in [`README.md`](README.md); the plan [`../prs/S15-31-event-and-place-provenance-sheet.md`](../prs/S15-31-event-and-place-provenance-sheet.md) copies any board decision into its Design and moves from `Blocked — on board S15-D11, S15-D12` to `Planned` once S15-D11 is agreed too. When S15-31 lands, move this brief to `design/archive/` and note it in `completed.md`.
+When the board is agreed: record the board link, its turn and agreed frames on the **Board** line above and in [`README.md`](../README.md); the plan [`../prs/S15-31-event-and-place-provenance-sheet.md`](../../prs/S15-31-event-and-place-provenance-sheet.md) copies any board decision into its Design and moves from `Blocked — on board S15-D11, S15-D12` to `Planned` once S15-D11 is agreed too. When S15-31 lands, move this brief to `design/archive/` and note it in `completed.md`.
