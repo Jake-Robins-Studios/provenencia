@@ -32,16 +32,13 @@ struct PVProvenanceSheetLayoutTests {
         let content = PVProvenancePreviewData.content(
             groups: [PVProvenanceSheetContent.Group(owner: nil, records: records(count))], summary: nil)
         var last: NSHostingView<PVProvenanceSheet>?
-        var window: NSWindow?
         let best = bestOfMilliseconds(runs: 3) {
-            let (hostWindow, host) = hostInBorderlessWindow(
+            let (_, host) = hostInBorderlessWindow(
                 PVProvenanceSheet(content: content, idPrefix: "timing", open: { _, _ in }),
                 windowSize: CGSize(width: 880, height: 900))
             host.layoutSubtreeIfNeeded()
-            window = hostWindow
             last = host
         }
-        withExtendedLifetime(window) {}
         let height = last.flatMap { descendant(NSScrollView.self, in: $0)?.documentView?.frame.height } ?? -1
         return (best, height)
     }
