@@ -1,6 +1,6 @@
 # S15-27 — review log
 
-Plan: [`S15-27-provenance-table-fold.md`](S15-27-provenance-table-fold.md). Brief: [S15-D17](../design/S15-D17-provenance-table-fold.md), reviewed with the plan.
+Plan: [`S15-27-provenance-table-fold.md`](S15-27-provenance-table-fold.md). Brief: [S15-D17](../design/archive/S15-D17-provenance-table-fold.md), reviewed with the plan.
 
 **Verdict:** Fits with changes (maintainability) · Ready with changes (executability). One round: the one blocker (M-1) was Fixed with no change to the plan's shape, so no second round ran. Nothing is open. Board S15-D17 agreed 2026-11-26 (user, turn 21); the plan is `Planned`.
 
@@ -58,3 +58,45 @@ Fresh maintainability and executability reviewers each read the plan and the bri
 
 ### X-8 · minor · Small unstated choices
 **Answer:** Fixed. D-5: no horizontal padding. D-6: the modifier goes after the trailing padding. Codebase fit: `fold` and `folded` are `nonisolated static`, as `followsLine` is. Edges: a revealed run's heading may sit just above the visible area, accepted as the Person page sections behave.
+
+## Refresh (2026-11-26)
+
+Round 0 of ship-pr stopped on §11 "The Release test build fails": the test target cannot compile in Release, because `FakeStore` is `#if DEBUG` by design. The user chose to make the figures Debug-only. Meanwhile #1003 fixed the Release app build, and #1005 deleted `PVShowMoreRowHostedTests` and `pvScrollsShowMoreReveals(animated:)`. Refreshed against `main` @ `c1035450b`: D-9, STEP-1, STEP-5, T-7, the DoD figures line and §11 are now Debug-only; the Kit fold and Tests rows and the layout test's model row are retargeted; the version goes to 0.48.2; the round-0 deviations are settled (`summary: String?`, `CatalogListMergeTests` keeps its own best-of loop). One executability dry run of the refreshed parts (opus): **Ready with changes**, no blocker.
+
+| ID | Severity | Finding | Answer |
+| --- | --- | --- | --- |
+| X-1 | major | STEP-1 stated `content(groups:summary:)` already took `String?` | Fixed. STEP-1 says to change it; the Previews row records the non-optional parameter |
+| X-2 | minor | Equal heights could pass at 0; which host is read was unstated | Fixed. D-9, STEP-5 and T-7 add height > 0; STEP-1 reads the last run's host and prints the heights |
+| X-3 | minor | D-9 called the preview fixtures `#if DEBUG` | Fixed. D-9 names `FakeStore` only |
+| X-4 | minor | §10 step 4 named a "Release scheme" that does not exist | Fixed. Run, Debug |
+| X-5 | nit | `Self.milliseconds` call site | Fixed. Named in STEP-1 |
+| X-6 | nit | The Cap rewrite should name the build | Fixed. "the Debug before and after figures" |
+| X-7 | nit | Draft history on the Planned line | Fixed. Removed |
+
+| Round | Reviewer | Model | Tokens |
+| --- | --- | --- | --- |
+| Refresh | executability | opus | 121k |
+
+## Reshape (2026-11-27)
+
+The user reshaped the PR on 2026-11-27: no citation runs (every record is its own row), the fold counts records, and the grouping goes end to end, engine group key and proto field included; owner lines and value headings stay; no new brief. The plan was rewritten on the branch head `8d3290ee4`. Fresh maintainability and executability reviewers read it: **Fits with changes** · **Ready with changes**, one round, no blocker.
+
+| ID | Severity | Finding | Answer |
+| --- | --- | --- | --- |
+| M-1 | major | Three copies of the numbered-record fixture | Fixed. D-16: `PVProvenancePreviewData.records(_:prefix:formatted:)`, `rendered(_:)` made non-private; previews, layout test and fold tests call it; Codebase fit, Deletes, STEP-1, STEP-2 |
+| M-2 | minor | `CatalogRenderedCitation`'s doc and the map's S15-D17 row unnamed | Fixed. Deletes and STEP-3 name them; STEP-3's rg covers `design/README.md` and `deployment-plan.md` |
+| M-3 | minor | T-2 and T-8's two-values case add no coverage | Fixed. T-2 dropped, AC-1.3 points at T-1; T-8 keeps order and nil-render cases |
+| M-4 | minor | Doc list in three places; D-7 repeats §4; history in §1 and Codebase fit | Fixed. The list lives in STEP-3; D-12 and the DoD point there; D-7 trimmed; "Why now" and the *(new)* marks cleaned |
+| M-5 | minor | `ValueGroup`'s explicit initializer survives | Fixed. Both explicit initializers go; the memberwise init serves |
+| X-1 | minor | STEP-2's vet command | Fixed. `CGO_ENABLED=1 go vet -tags fts5 ./api/... ./core/...` |
+| X-2 | minor | STEP-1's rg check matched too much | Fixed. Narrowed pattern; stale exclusion sentence dropped |
+| X-3 | minor | §11 stop condition 2 too narrow | Fixed. "Anything outside the files in §4 reads …" |
+| X-4 | minor | Missed doc rows | Fixed with M-2 |
+| X-5 | minor | Which figures the docs use | Fixed. Before 1,558 / 6,691 ms; after, STEP-2's T-7 on the record fold; STEP-3, DoD |
+| X-6 | minor | Doc comments naming runs, the key or old D-IDs | Fixed. One line before the Steps' count lists them |
+| X-7 | nit | T-9 and T-8 overlap | Fixed. T-9 asserts `drawsRule` and `followsLine` only; order is T-8's |
+
+| Round | Reviewer | Model | Tokens |
+| --- | --- | --- | --- |
+| Reshape | maintainability | opus | 174k |
+| Reshape | executability | opus | — |

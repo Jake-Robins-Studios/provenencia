@@ -12,7 +12,6 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | S15-D11 | Event page: value rows open the provenance sheet; the Why accordion removed | — | S15-31 |
 | S15-D12 | Place page: value rows open the provenance sheet; the Why accordion removed | — | S15-31 |
 | S15-D15 | Person page Sources section: Citations grouped under one citation | Descoped 2026-11-21 with S15-22 | — |
-| [S15-D17](S15-D17-provenance-table-fold.md) | Provenance sheet: the record table's fold (50 citation runs, the kit's Show more row); written 2026-11-26 | [agreed 2026-11-26](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ): page *Vitals*, turn 21, frames 21a – 21g, 21i, 21j | S15-27 |
 | S15-D18 | Provenance sheet: records loading on open, and their failure | — | S15-29 |
 | S15-D19 | Source page: Copy source-list entry | — | S15-23 |
 | S15-D20 | Metadata board row: a needed and a used entry on every board, no dismiss; the composer's Citation board included | — | S15-39 |
@@ -35,6 +34,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 
 | Brief | View | Board | Built by |
 | --- | --- | --- | --- |
+| [S15-D17](archive/S15-D17-provenance-table-fold.md) | Provenance sheet: the record table's fold (50 records, the kit's Show more row); written 2026-11-26 | [agreed 2026-11-26](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ): page *Vitals*, turn 21, frames 21a – 21g, 21i, 21j | S15-27 (#1006) |
 | [S15-D29](archive/S15-D29-citation-composer-metadata.md) | Citation composer: a Metadata line under Label (Edit metadata…, a count) in place of the Printed page input, opening a 600pt Citation metadata sheet that saves on its own; the Citation menu row reads the own Page; written 2026-11-25 | [agreed 2026-11-26](https://claude.ai/artifact/3GSFQZjqdQjL8v2rpgMiDc): section "S15-D29 · The Citation's metadata", frames 1a – 10; the metadata moved from the form to a sheet | S15-56 (#982) |
 | [S15-D33](archive/S15-D33-inherited-values.md) | Metadata board row: an inherited value, where it comes from, override and fall back (Artifact sheet, graph form); written 2026-11-23 | [drawn 2026-11-23](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK): pages *Artifacts* (`d33-*` in Artifact sheet) and *Evidence graphs* (`d33-gf`) | S15-64 (#959) |
 | [S15-D32](archive/S15-D32-one-suggestion-list.md) | Source type page and Copy type sheet: one Suggested fields list in place of three; one suggestions tick | [agreed 2026-11-23](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG): the Suggested fields and Copy type frames; count on the section header, no list header | S15-63 (#955) |

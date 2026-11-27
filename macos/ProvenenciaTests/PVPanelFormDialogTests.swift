@@ -73,9 +73,9 @@ struct PVFormDialogCopyTests {
 
 @Suite
 struct PVFormDialogControlsTests {
-    @Test func confirmShortcutYieldsToAnInnerEdit() {
-        #expect(PVFormDialogControls.confirmShortcut(innerEditOpen: true) == nil)
-        #expect(PVFormDialogControls.confirmShortcut(innerEditOpen: false) == .defaultAction)
+    @Test func defaultActionYieldsWhenReturnIsTaken() {
+        #expect(PVSheetDefaultAction.shortcut(returnTaken: true) == nil)
+        #expect(PVSheetDefaultAction.shortcut(returnTaken: false) == .defaultAction)
     }
 
     @Test func cancelIsOnlyDisabledWhileRunning() {

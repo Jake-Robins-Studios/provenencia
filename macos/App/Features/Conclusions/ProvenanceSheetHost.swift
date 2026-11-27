@@ -1,9 +1,9 @@
 import SwiftUI
 
 /// A provenance sheet with its citations: it holds the sheet's one cached read (the renders of the
-/// records' Citations) while the sheet is shown, groups the records by the engine's key when the
-/// renders arrive, and releases the read when the sheet goes (`WorkspaceSession.release`). The
-/// `PVProvenanceSheet` recipe names no session, so this snowflake maps the read to its load state.
+/// records' Citations) while the sheet is shown, sets each record's render when they arrive, and
+/// releases the read when the sheet goes (`WorkspaceSession.release`). The `PVProvenanceSheet`
+/// recipe names no session, so this snowflake maps the read to its load state.
 struct ProvenanceSheetHost: View {
     let content: PVProvenanceSheetContent
     let columns: PVProvenanceColumns
@@ -21,7 +21,7 @@ struct ProvenanceSheetHost: View {
         // A new key reads nil (loading) at once, with no stale frame.
         let handle: QueryHandle<CatalogProvenanceSheetRead>? = session.queryHandle(key)
         PVProvenanceSheet(
-            content: grouped(key, handle: handle),
+            content: withRenders(key, handle: handle),
             columns: columns,
             idPrefix: idPrefix,
             open: open,
@@ -33,14 +33,14 @@ struct ProvenanceSheetHost: View {
         .onDisappear { session.release(key) }
     }
 
-    /// The content with the renders set and the records gathered, built once per change of the key's
+    /// The content with each record's render set, built once per change of the key's
     /// revision or the row's content (`conclusionContent`); the content itself until the read has a value.
-    private func grouped(
+    private func withRenders(
         _ key: CatalogQueryKey, handle: QueryHandle<CatalogProvenanceSheetRead>?
     ) -> PVProvenanceSheetContent {
         guard let value = handle?.value else { return content }
         return session.conclusionContent(key, inputs: [key], extra: content, value: value) { value, content in
-            content.grouped(by: value.citations)
+            content.withRenders(value.citations)
         }
     }
 }

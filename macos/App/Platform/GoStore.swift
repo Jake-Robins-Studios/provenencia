@@ -828,8 +828,7 @@ struct GoStore: GenealogyStore {
                 CatalogRenderedCitation(
                     citationID: $0.citationID,
                     full: Self.mapCitationRender($0.full),
-                    short: Self.mapCitationRender($0.short),
-                    groupKey: $0.groupKey
+                    short: Self.mapCitationRender($0.short)
                 )
             },
             inputs: Self.mapPageInputs(resp.inputs)

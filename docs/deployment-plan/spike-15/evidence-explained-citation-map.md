@@ -1159,7 +1159,7 @@ A census row is one EE citation (the household, its dwelling, family and line), 
 **What follows:**
 
 1. **Entering the item:** once, on the graph's metadata board, where its name and description are edited. A census Source's type suggests dwelling, family and line there.
-2. **Showing the item once:** wherever Citations are listed for a reader (the provenance sheet, an export), Citations whose rendered full citation is the same are one EE citation; in practice, the same graph, Artifact and printed page. The full note shows once, with its Citations (the highlighted cells) beneath it. The same key gives the short note on second mention; a source list groups one level up, by Source. The key is computed when read; nothing new is stored.
+2. **Showing the item once:** wherever Citations are listed for a reader (the provenance sheet, an export), Citations whose rendered full citation is the same are one EE citation; in practice, the same graph, Artifact and printed page. The full note shows once, with its Citations (the highlighted cells) beneath it. The same key gives the short note on second mention; a source list groups one level up, by Source. The key is computed when read; nothing new is stored. Withdrawn (user, 2026-11-27): the provenance sheet lists each record on its own row.
 3. **Editing the item:** once, on the graph.
 
 **When one graph covers several items.** A researcher who keeps the Default graph for a page with two households of interest gets one set of item fields for both. The answer is the one Spike 12 intended: one graph per household. The Citation label stays the escape hatch ("line 14"), and the provenance sheet shows the result.

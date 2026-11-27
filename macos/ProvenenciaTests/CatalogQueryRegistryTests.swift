@@ -2056,9 +2056,9 @@ struct ProvenanceSheetKeyTests {
         #expect(key.ids == ["a", "b"])
 
         let reply = CatalogRenderedCitations(
-            citations: [renderedCitation("a"), renderedCitation("a", key: "other")], inputs: .init())
+            citations: [renderedCitation("a"), renderedCitation("a", full: "other")], inputs: .init())
         #expect(CatalogProvenanceSheetRead(reply).citations.count == 1)
-        #expect(CatalogProvenanceSheetRead(reply).citations["a"]?.groupKey == "full:a")
+        #expect(CatalogProvenanceSheetRead(reply).citations["a"]?.full.plain == "a")
 
         let store = FakeStore()
         store.renderCitationsReplies = ["a": renderedCitation("a"), "b": renderedCitation("b")]

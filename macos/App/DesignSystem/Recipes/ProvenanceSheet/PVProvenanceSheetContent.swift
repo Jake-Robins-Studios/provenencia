@@ -128,27 +128,8 @@ struct PVProvenanceSheetContent: Equatable {
                 case otherRecords
             }
 
-            /// Records whose full citations read the same, adjacent in a value run. `key` is the
-            /// engine's group key, else `record:<id>` for a record with no render.
-            struct CitationRun: Equatable {
-                var key: String
-                var records: [Record]
-            }
-
             var heading: Heading?
-            var citations: [CitationRun]
-            /// Every record of the run, in order.
-            var records: [Record] { citations.flatMap(\.records) }
-
-            init(heading: Heading?, citations: [CitationRun]) {
-                self.heading = heading
-                self.citations = citations
-            }
-
-            /// A run whose records each stand alone, until `grouped(by:)` gathers them.
-            init(heading: Heading?, records: [Record]) {
-                self.init(heading: heading, citations: records.map { .init(key: "record:\($0.id)", records: [$0]) })
-            }
+            var records: [Record]
         }
 
         var owner: OwnerLine?
@@ -194,26 +175,65 @@ struct PVProvenanceSheetContent: Equatable {
     /// Every record, in order.
     var records: [Record] { groups.flatMap(\.records) }
 
-    /// The content with each record's render set and, inside each value run, the records whose
-    /// Citations share the engine's group key gathered together in first-appearance order. A
-    /// run never crosses a value heading or owner group. A record with no render is its own run.
-    func grouped(by renders: [String: CatalogRenderedCitation]) -> PVProvenanceSheetContent {
+    /// A record's place in the whole table: its owner group, value run and record indices.
+    struct RecordPosition: Hashable {
+        var group: Int
+        var value: Int
+        var record: Int
+    }
+
+    /// The groups a fold keeps, how many records it hides, and the first hidden record.
+    struct Folded: Equatable {
+        var groups: [Group]
+        var hidden: Int
+        /// The first record the next page adds; nil when nothing is hidden.
+        var firstRevealed: RecordPosition?
+    }
+
+    /// The first records of `groups` in table order (groups, then value runs, then records), as
+    /// many as `fold` shows after `pages` pages. A group or value run is kept when it holds a kept
+    /// record, or holds no records and no record before it is hidden; a kept value run keeps its
+    /// heading and a kept group its owner line. Positions are those of the whole table, so a kept
+    /// record has the same indices as in `groups`.
+    nonisolated static func folded(_ groups: [Group], by fold: PagedFold, pages: Int) -> Folded {
+        let total = groups.reduce(0) { $0 + $1.values.reduce(0) { $0 + $1.records.count } }
+        let shown = fold.shownCount(count: total, pages: pages)
+        var seen = 0
+        var firstRevealed: RecordPosition?
+        var kept: [Group] = []
+        for (groupIndex, group) in groups.enumerated() {
+            var values: [Group.ValueGroup] = []
+            for (valueIndex, value) in group.values.enumerated() {
+                let before = seen
+                if firstRevealed == nil, shown < before + value.records.count {
+                    firstRevealed = RecordPosition(group: groupIndex, value: valueIndex, record: max(shown - before, 0))
+                }
+                seen += value.records.count
+                if value.records.isEmpty ? before <= shown : before < shown {
+                    var keptValue = value
+                    keptValue.records = Array(value.records.prefix(max(shown - before, 0)))
+                    values.append(keptValue)
+                }
+            }
+            if group.values.isEmpty ? seen <= shown : !values.isEmpty {
+                var keptGroup = group
+                keptGroup.values = values
+                kept.append(keptGroup)
+            }
+        }
+        return Folded(groups: kept, hidden: total - shown, firstRevealed: firstRevealed)
+    }
+
+    /// The content with each record's render set from `renders` by its Citation; a record whose
+    /// Citation is missing from them keeps no render. Nothing else changes.
+    func withRenders(_ renders: [String: CatalogRenderedCitation]) -> PVProvenanceSheetContent {
         var content = self
         for g in content.groups.indices {
             for v in content.groups[g].values.indices {
-                var runs: [Group.ValueGroup.CitationRun] = []
-                var position: [String: Int] = [:]
-                for var record in content.groups[g].values[v].records {
-                    record.rendered = renders[record.outcome.citationID]
-                    let key = record.rendered?.groupKey ?? "record:\(record.id)"
-                    if let at = position[key] {
-                        runs[at].records.append(record)
-                    } else {
-                        position[key] = runs.count
-                        runs.append(.init(key: key, records: [record]))
-                    }
+                for r in content.groups[g].values[v].records.indices {
+                    let id = content.groups[g].values[v].records[r].outcome.citationID
+                    content.groups[g].values[v].records[r].rendered = renders[id]
                 }
-                content.groups[g].values[v].citations = runs
             }
         }
         return content

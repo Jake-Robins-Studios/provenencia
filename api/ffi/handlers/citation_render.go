@@ -10,7 +10,7 @@ import (
 )
 
 // RenderCitations renders the full and short citation of each Citation named,
-// with a group key each and the Evidence graphs and Sources the read used.
+// and the Evidence graphs and Sources the read used.
 func RenderCitations(in []byte) ([]byte, error) {
 	var req engine.RenderCitationsRequest
 	if err := proto.Unmarshal(in, &req); err != nil {
@@ -33,7 +33,6 @@ func RenderCitations(in []byte) ([]byte, error) {
 				CitationId: database.UUIDString(r.CitationID),
 				Full:       citationRenderProto(r.Full),
 				Short:      citationRenderProto(r.Short),
-				GroupKey:   r.GroupKey,
 			})
 		}
 		return nil

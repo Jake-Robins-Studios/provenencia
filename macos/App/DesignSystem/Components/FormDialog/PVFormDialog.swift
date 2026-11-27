@@ -60,12 +60,6 @@ enum PVFormDialogControls {
     static func isConfirmDisabled(isRunning: Bool, confirmDisabled: Bool) -> Bool {
         isRunning || confirmDisabled
     }
-
-    /// Return confirms the form, unless an inner edit (a row in edit, an add
-    /// row) is open: then Return belongs to that edit.
-    static func confirmShortcut(innerEditOpen: Bool) -> KeyboardShortcut? {
-        innerEditOpen ? nil : .defaultAction
-    }
 }
 
 /// Accessibility ids for form-dialog chrome buttons.
@@ -105,7 +99,7 @@ struct PVFormDialogContent<Form: View>: View {
 
     @FocusState private var cancelFocused: Bool
     @State private var bodyHeight: CGFloat = 0
-    @Environment(\.pvSheetInnerEditOpen) private var innerEditOpen
+    @Environment(\.pvSheetReturnTaken) private var returnTaken
 
     init(
         copy: PVFormDialogCopy,
@@ -154,7 +148,7 @@ struct PVFormDialogContent<Form: View>: View {
                     ))
                 Button(L10n.string(copy.confirm)) { onConfirm() }
                     .buttonStyle(.pv(.primary, size: .lg))
-                    .keyboardShortcut(PVFormDialogControls.confirmShortcut(innerEditOpen: innerEditOpen))
+                    .keyboardShortcut(PVSheetDefaultAction.shortcut(returnTaken: returnTaken))
                     .disabled(PVFormDialogControls.isConfirmDisabled(
                         isRunning: isRunning,
                         confirmDisabled: confirmDisabled

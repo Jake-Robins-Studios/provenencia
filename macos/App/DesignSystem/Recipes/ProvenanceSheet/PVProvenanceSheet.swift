@@ -21,6 +21,7 @@ struct PVProvenanceSheet: View {
     var onReadAgain: () -> Void = {}
 
     @Environment(\.pvSheetClose) private var sheetClose
+    @Environment(\.pvSheetReturnTaken) private var returnTaken
 
     static let recordsMaxHeight: CGFloat = 560
 
@@ -53,6 +54,7 @@ struct PVProvenanceSheet: View {
                                 idPrefix: idPrefix, open: close
                             )
                             .padding(.trailing, PVProvenanceColumns.scrollBarInset)
+                            .pvScrollsShowMoreReveals()
                         }
                         .frame(maxHeight: Self.recordsMaxHeight)
                     }
@@ -63,7 +65,7 @@ struct PVProvenanceSheet: View {
             HStack {
                 Spacer(minLength: 0)
                 PVButton(L10n.ProvenanceSheet.done, variant: .primary) { sheetClose() }
-                    .keyboardShortcut(.defaultAction)
+                    .keyboardShortcut(PVSheetDefaultAction.shortcut(returnTaken: returnTaken))
                     .accessibilityIdentifier("\(idPrefix).done")
             }
         }
@@ -120,14 +122,21 @@ struct PVProvenanceSheet: View {
 }
 
 #Preview("Thirty records") {
-    let records = (1...30).map {
-        PVProvenancePreviewData.record(
-            "r\($0)", readAs: "14 May 1817", title: "Parish register \($0)", detail: "p. \($0)", counted: $0 % 5 != 0
-        )
-    }
     PVProvenanceSheet(
         content: PVProvenancePreviewData.content(
-            groups: [PVProvenanceSheetContent.Group(owner: nil, records: records)], summary: "30 records"
+            groups: [PVProvenanceSheetContent.Group(owner: nil, records: PVProvenancePreviewData.records(30))],
+            summary: "30 records"
+        ),
+        idPrefix: "preview",
+        open: { _, _ in }
+    )
+}
+
+#Preview("Folded, 120 records") {
+    PVProvenanceSheet(
+        content: PVProvenancePreviewData.content(
+            groups: [PVProvenanceSheetContent.Group(owner: nil, records: PVProvenancePreviewData.records(120))],
+            summary: "120 records"
         ),
         idPrefix: "preview",
         open: { _, _ in }

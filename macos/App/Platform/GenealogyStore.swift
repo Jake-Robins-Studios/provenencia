@@ -1376,14 +1376,11 @@ struct CatalogCitationRender: Sendable, Equatable {
     var plain: String = ""
 }
 
-/// One Citation rendered by `renderCitations`: its full and short forms and the
-/// engine's key for grouping (`full:<hash>` for a rendered full citation,
-/// `citation:<id>` when its type has no full format).
+/// One Citation rendered by `renderCitations`: its full and short forms.
 struct CatalogRenderedCitation: Sendable, Equatable {
     var citationID: String
     var full: CatalogCitationRender
     var short: CatalogCitationRender
-    var groupKey: String
 }
 
 /// A batch of rendered Citations in the engine's reply order, and what they read.

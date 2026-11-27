@@ -17,6 +17,9 @@ struct PVProvenanceRecordRow: View {
     /// The prefix of the row's accessibility ids: `<prefix>.<record id>.citation`, `.copy`, `.copyFull`, `.copyShort`, `.source`, `.observation`.
     let idPrefix: String
     let open: (PVProvenanceSheetContent.Record, PVProvenanceLink) -> Void
+    /// The host's focus handle for the citation link, when something moves the keyboard to it (a
+    /// table's Show more). Nil leaves the link as any link.
+    var citationFocus: PVFieldFocus? = nil
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: columns.spacing) {
@@ -80,14 +83,25 @@ struct PVProvenanceRecordRow: View {
         return [full, Copy(kind: .short, text: rendered.short.plain, rich: rendered.short.styled)]
     }
 
+    /// The citation link, with the host's focus handle when it has one.
+    @ViewBuilder
+    private var citationLink: some View {
+        let link = PVInkLink(ink: record.counted ? .primary : .secondary, action: { open(record, .citation) }) {
+            citationText
+        }
+        .accessibilityLabel(Text(verbatim: record.citationText))
+        .accessibilityIdentifier("\(idPrefix).\(record.id).citation")
+        if let citationFocus {
+            citationFocus.apply(AnyView(link))
+        } else {
+            link
+        }
+    }
+
     private var citation: some View {
         VStack(alignment: .leading, spacing: PVSpacing.space2) {
             HStack(alignment: .citationFirstLineCenter, spacing: PVProvenanceColumns.copyTrackSpacing) {
-                PVInkLink(ink: record.counted ? .primary : .secondary, action: { open(record, .citation) }) {
-                    citationText
-                }
-                    .accessibilityLabel(Text(verbatim: record.citationText))
-                    .accessibilityIdentifier("\(idPrefix).\(record.id).citation")
+                citationLink
                     // The first line's centre sits about a third of the type size above its baseline.
                     .alignmentGuide(.citationFirstLineCenter) { $0[.firstTextBaseline] - PVTypeScale.bodySmall / 3 }
                 VStack(alignment: .leading, spacing: PVSpacing.space1) {
