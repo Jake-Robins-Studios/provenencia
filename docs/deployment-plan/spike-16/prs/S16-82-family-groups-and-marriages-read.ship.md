@@ -1,7 +1,7 @@
 # Ship log — S16-82 The Family read sends sibling groups and each couple's marriages
 
 **Plan:** [`S16-82-family-groups-and-marriages-read.md`](S16-82-family-groups-and-marriages-read.md) · **Branch:** `s16-82-family-groups-and-marriages-read` · **PR:** #1009
-**State:** fixing 2
+**State:** ready
 
 ## Round 0 — implement
 Head `eb4e6987e`. Gate PASS (orchestrator run against `47935695b`). Report deviations: T-9 is a new test `TestDropUnreadGroupsAndCouples` rather than an extension of `TestDropUnread`; `spouseLink` split into `spouseLink` + `filedSpouseLink` so `core/kinship` holds no literal number (layer test); AC-1.2/AC-1.4 catalog tests file parents via a `filedParents` helper for deterministic order; AC-2.7 date-edit test adds a date to an undated marriage (a second date on an already-dated event did not change its dating). Implementer's first gate also tripped `promotealign` `TestLargeSourceBudgets/after_a_handle_commit` on timing under load; passed alone and on rerun; unrelated.
@@ -96,8 +96,11 @@ Files: `core/kinship/families.go`.
 Do: rewrap the `Couples` doc to the file's line width; no wording change.
 Check (F-9, F-10): gofmt and scripts/check-pr.sh PASS.
 
+## Round 2 — fix
+Head `f594952af`. Gate PASS (orchestrator run). F-7 to F-10 done in one commit. Read by the orchestrator: **Resolved** each. F-7: the per-event filter is gone; the drop of a couple with an unread person or no marriages stays (`PersonFamily` can still produce one). F-8: `Families` caps at `maxMarriagesPerCouple` (`c.Pivots[:min(…)]`), `cappedPivots` deleted, `FamilyCouple` doc states one meaning. F-9, F-10: doc comments placed and rewrapped. Orchestrator follow-on: the caps bullet in `deployment-plan.md` now says the cap is applied in `persondetail.Families`. No review round 3 (user asked for the four minors only).
+
 ## Result
-`origin/main` unchanged since `47935695b`; no merge needed. Gate PASS at `7f4a75fcd` · CI green (Go tests, macOS tests, localizable at `62ceac63e`) · open blockers/majors: none · later PR: MNT-4 (S16-81 scope entry) · open minors: the four above · follow-ups: `promotealign` `TestLargeSourceBudgets` wall-clock budget trips under gate load · to user: —
+`origin/main` unchanged since `47935695b`; no merge needed. Gate PASS at `7f4a75fcd` · CI green at `62ceac63e`; rerun after Fix plan 2 pending · open blockers/majors: none · later PR: MNT-4 (S16-81 scope entry) · open minors: none (Fix plan 2) · follow-ups: `promotealign` `TestLargeSourceBudgets` wall-clock budget trips under gate load · to user: —
 
 ## Cost
 Plan: 5,700 words (check-plan-docs info line).
@@ -111,4 +114,5 @@ Plan: 5,700 words (check-plan-docs info line).
 | 1 | SEC+PRF | opus | 66k |
 | 1 | implementer fix | sonnet | 98k |
 | 2 | MNT | opus | 42k |
-| | **Total** | | **647k** |
+| 2 | implementer fix | sonnet | 85k |
+| | **Total** | | **732k** |
