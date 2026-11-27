@@ -265,7 +265,6 @@ struct EventDetailTests {
         #expect(row.shown.lead == "as of 10 Jan 1990–10 Feb 2015")
         #expect(row.shown.badge == nil && row.count == nil)
         #expect(row.provenanceContent().records.count == 3)
-        #expect(row.whyTitle == "Why “as of 10 Jan 1990–10 Feb 2015”")
         #expect(row.accessibilityLabel == "Date, as of 10 Jan 1990; as of 10 Feb 2015")
         #expect(row.label == "Date")
     }
@@ -379,11 +378,10 @@ struct EventDetailTests {
 
         let both = page([unshown("date", "d"), unshown("start_date", "s")])
         #expect(both.shown.lead == nil && both.shown.emptyText == "No date recorded")
-        #expect(both.whyTitle == "Why “Date”")
         #expect(both.provenanceContent().records.map(\.id) == ["d", "s"])
 
         let none = page([])
-        #expect(none.shown.emptyText == "No date recorded" && none.provenanceContent().records.isEmpty && none.whyTitle == "")
+        #expect(none.shown.emptyText == "No date recorded" && none.provenanceContent().records.isEmpty)
     }
 
     @Test func aLongListFoldsTwentyThenFifty() {
@@ -497,6 +495,7 @@ struct EventDetailTests {
         #expect(page.title == .name(L10n.EventTitle.ofOne(type: "Birth", subject: "James Robins", locale: en)))
         #expect(page.secondaryPlace == "York")
         #expect(page.rows[1].shown.lead == "York" && page.rows[1].shown.badge == .mixed && page.rows[1].provenanceContent().records.isEmpty)
+        #expect(!page.rows[1].hasRecords && page.rows[1].recordCount == 0)
         #expect(!page.rows[1].shown.lead!.contains(","))
         #expect(page.rows[1].opens?.location == .placeDetail(entityId: "pl1", ref: "PLC-1", title: "York"))
     }
@@ -509,6 +508,7 @@ struct EventDetailTests {
         #expect(place.label == "Place" && place.shown.face == .place && place.shown.lead == nil)
         #expect(place.shown.emptyText == "No place recorded")
         #expect(place.provenanceContent().records.isEmpty)
+        #expect(!place.hasRecords && place.recordCount == 0)
     }
 
     @Test func noPictureLeavesTheMarkAndNoGallery() {

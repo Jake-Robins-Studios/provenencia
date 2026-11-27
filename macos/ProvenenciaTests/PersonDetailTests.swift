@@ -99,7 +99,7 @@ struct PersonDetailTests {
             "No birth date recorded", "No birth place recorded", "No death date recorded", "No death place recorded",
         ])
         #expect(content.rows[1...4].allSatisfy { $0.shown.lead == nil && $0.recordCount == 0 && $0.count == nil })
-        // A recorded field with nothing to show says so, and keeps its Why.
+        // A recorded field with nothing to show says so, and keeps its records in the sheet.
         #expect(content.rows[5].shown.lead == nil && content.rows[5].shown.emptyText == "Nothing recorded" && content.rows[5].provenanceContent().records.count == 1)
     }
 
@@ -406,20 +406,11 @@ struct PersonDetailTests {
         #expect(session.toasts.cards.isEmpty)
     }
 
-    @Test func aMergedNameRowCarriesItsStateAndWhy() {
+    @Test func aMergedNameRowCarriesItsStateAndProvenance() {
         let row = PersonDetailContent(detail: detail()).rows[0]
         #expect(row.shown.lead == "James Robins" && row.shown.face == .text)
         #expect(row.shown.badge == .merged && row.count == "2 Sources" && row.against == nil)
         #expect(row.otherValuesLabel == nil && row.otherValues.isEmpty)
-        #expect(row.whyTitle == "Why James Robins")
-        let nick = CatalogNameValue(form: "unused", parts: [
-            CatalogNameValuePart(value: "James", type: "given"),
-            CatalogNameValuePart(value: "Jake", type: "nick"),
-            CatalogNameValuePart(value: "Robins", type: "surname"),
-        ])
-        let nicked = PersonDetailContent(detail: detail(name: D.field("single", [D.value(1, "kept", .name(nick))],
-            outcomes: [D.outcome("c", "kept", recorded: .name(nick))]))).rows[0]
-        #expect(nicked.whyTitle == "Why James “Jake” Robins")
         #expect(row.provenanceContent().records.map(\.phrase) == [
             "kept", "folded into James Robins", "outvoted (2 of 3 Sources)", "weak · low-trust Source",
         ])
@@ -483,7 +474,7 @@ struct PersonDetailTests {
         #expect(page.rows[1].shown.lead == "1817" && page.rows[1].shown.badge == nil && page.rows[1].provenanceContent().records.isEmpty)
         #expect(page.rows[2].shown.lead == "York" && page.rows[2].shown.face == .place)
         #expect(page.rows[4].shown.lead == "Toronto")
-        // Derived rows open the Event or Place that owns their Why.
+        // Derived rows open the Event or Place that owns their records.
         #expect(page.rows[1].opens?.location == .eventDetail(entityId: "ev1", ref: "EVT-1", title: nil))
         #expect(page.rows[2].opens?.location == .placeDetail(entityId: "pl1", ref: "PLC-1", title: "York"))
         #expect(page.rows[2].opens?.label == L10n.Conclusions.openPlace("York"))
@@ -507,7 +498,7 @@ struct PersonDetailTests {
         let oneplace = PersonDetailContent(detail: detail(summary: renamed), locale: en)
         #expect(oneplace.rows[2].shown.lead == "York" && oneplace.rows[2].shown.badge == nil)
 
-        // Two Places disagree: +1 and mixed, with no Why on this row.
+        // Two Places disagree: +1 and mixed, with no records on this row.
         var twoPlaces = james
         let upper = CatalogCanonicalEntity(id: "pl3", ref: "PLC-3", subjectTypeID: "t", label: "")
         twoPlaces.birth.places = [
@@ -685,17 +676,16 @@ struct PersonDetailTests {
         let birth = page.rows[1]
         #expect(birth.provenanceContent().groups.count == 1 && birth.provenanceContent().groups[0].owner == nil)
         #expect(birth.provenanceContent().records.count == 2 && birth.provenanceContent().records.allSatisfy { $0.counted })
-        #expect(birth.whyTitle == "Why “\(birth.shown.lead ?? "")”" && birth.shown.lead != nil)
-        // No death event: no Why.
-        #expect(page.rows[3].provenanceContent().records.isEmpty && page.rows[3].whyTitle == "")
+        #expect(birth.shown.lead != nil)
+        // No death event: no records.
+        #expect(page.rows[3].provenanceContent().records.isEmpty)
 
-        // A date whose only record is denied: stated empty, with its Why.
+        // A date whose only record is denied: stated empty, with its records in the sheet.
         let denied = [CatalogDerivedRow(kind: .birthDate, owners: [
             owner(event, key: "date", outcomes: [D.outcome("den", "denied", rank: nil)]),
         ])]
         let empty = PersonDetailContent(detail: detail(summary: lifeSummary(), derivedRows: denied), locale: en).rows[1]
         #expect(empty.shown.lead == nil && empty.provenanceContent().records.count == 1)
-        #expect(empty.whyTitle == "Why “Birth date”")
     }
 
     @Test func anOwnerThatIsNotTheShownOneIsNamed() {
@@ -763,7 +753,7 @@ struct PersonDetailTests {
         #expect(row.provenanceContent().groups.compactMap { $0.owner?.title } == ["Toronto", "Yorkville"])
         #expect(row.provenanceContent().groups[1].records.allSatisfy { !$0.counted })
 
-        // A nameless first Place is not the shown one: the second leads the Why.
+        // A nameless first Place is not the shown one: the second leads the records.
         let nameless = CatalogChainedPlace(entity: toronto, names: [])
         let paris = CatalogChainedPlace(entity: yorkville, names: ["Paris"])
         let lopsided = lifeSummary(death: CatalogLifeFacts(places: [nameless, paris]))

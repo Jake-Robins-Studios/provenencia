@@ -42,8 +42,8 @@ struct PlaceDetailTests {
     }
 
     /// Two kept toponyms are both listed, each with its Source count. A weak
-    /// spelling stays in the Why and is not a displayed name.
-    @Test func keptNamesAreAllListedAndAWeakSpellingStaysInTheWhy() {
+    /// spelling stays in the sheet's records and is not a displayed name.
+    @Test func keptNamesAreAllListedAndAWeakSpellingStaysInTheSheet() {
         let field = D.field(
             "multiple", key: "toponym", label: "Toponym", valueType: "text",
             [
@@ -66,7 +66,6 @@ struct PlaceDetailTests {
         #expect(names.shown.listedValues.map(\.support) == ["3 Sources", "1 Source"])
         #expect(names.shown.badge == nil)
         #expect(names.otherValuesLabel == nil)
-        #expect(names.whyTitle == "Why these 2 names")
         #expect(names.accessibilityLabel == "Names, Toronto; Tkaronto, 2 values from 2 Sources")
         #expect(names.provenanceContent().records.map(\.id).contains("letter"))
         #expect(!names.shown.listedValues.map(\.text).contains("Torento"))
@@ -80,6 +79,7 @@ struct PlaceDetailTests {
         #expect(page.rows[0].shown.emptyText == "No names recorded")
         #expect(page.rows[1].shown.lead == nil)
         #expect(page.rows[1].shown.emptyText == "No period recorded")
+        #expect(page.rows[1].recordCount == 0)
         #expect(page.chain == "No parent place recorded")
         #expect(!page.chainIsRecorded)
         #expect(page.sections.map { L10n.string($0.title) } == ["Part of", "Contains", "Succession"])

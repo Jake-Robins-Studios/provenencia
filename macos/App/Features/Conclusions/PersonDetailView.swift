@@ -38,8 +38,7 @@ private struct PersonDetailSections: View {
             ConclusionDetailRowsSection(
                 rows: content.rows,
                 refreshing: context.refreshing,
-                title: nil,
-                provenance: .sheet
+                title: nil
             )
         case .gallery:
             if content.gallery.tiles.isEmpty {

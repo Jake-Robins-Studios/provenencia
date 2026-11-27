@@ -199,7 +199,7 @@ enum ReconciledValueDisplay {
         }
     }
 
-    /// The outcome's mark: one glyph per phrase, so the Why reads without
+    /// The outcome's mark: one glyph per phrase, so the provenance table reads without
     /// colour. Decorative beside the phrase.
     static func outcomeMark(_ outcome: CatalogReconcilerOutcome, in field: CatalogConclusionField?) -> PVSymbol {
         switch outcome.reason {

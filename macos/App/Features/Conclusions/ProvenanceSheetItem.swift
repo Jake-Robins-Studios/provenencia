@@ -7,6 +7,6 @@ struct ProvenanceSheetItem: Identifiable, Equatable {
 
     /// The row with this id, or nil when it is gone or has no records.
     func row(in rows: [ReconciledValueRowModel]) -> ReconciledValueRowModel? {
-        rows.first { $0.id == id && $0.recordCount > 0 }
+        rows.first { $0.id == id && $0.hasRecords }
     }
 }

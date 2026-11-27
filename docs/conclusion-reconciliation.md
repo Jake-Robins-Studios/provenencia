@@ -172,7 +172,7 @@ From [`structured-name-model.md`](structured-name-model.md). Built in S9-13b (se
 - **Weak evidence still drops** within a type, and denial still applies.
 - **One name, never mixed.** Every displayed candidate contributes to a single NameValue. Each type keeps every surviving value, best supported first, a recorded part skipped when all its words are already there: *given Jake* + *given James* → `given: [Jake, James]`; a maiden *Smith* folds into a married *Smith-Jones*; *nick Jake* + *given James* → `given: [James], nick: [Jake]`; *given Bill* + *given William* → `given: [William], nick: [Bill]`. The state is single or merged. The name is assembled in the type order of the member with the most types, or is a member's own value when one carries exactly those parts. Outvoted, weak, denied and provisional names keep their own cached rows.
 - **Single-valued at the structure level.** A Person has one concluded NameValue, and the auto-reconciler produces one too. Multiple given names, surnames and so on live inside it as multiple parts. There is no second independent name structure.
-- **The form reads the parts in order** (*Jake James Robins*). There is no separate middle-name type, so the form doesn't distinguish alternatives from middle names; name display styles and the *Why* view do that work.
+- **The form reads the parts in order** (*Jake James Robins*). There is no separate middle-name type, so the form doesn't distinguish alternatives from middle names; name display styles and the provenance sheet do that work.
 
 ---
 
@@ -201,9 +201,9 @@ Many displayed values come from another entity. A Person's birth date is their b
 1. Each entity reconciles its own Properties, association ends included (the `subject` module).
 2. Derived values read the reconciled values of the entities they point at.
 
-The model allows a Person with two birth Events, and the reconciler must handle it: the derived value reconciles across the Events' reconciled values. The **UI should push the researcher toward a cleaner state**, merging duplicate Events into one canonical Event so reconciliation happens inside it. A derived value's Why lists each owning entity's field records, judged on that entity.
+The model allows a Person with two birth Events, and the reconciler must handle it: the derived value reconciles across the Events' reconciled values. The **UI should push the researcher toward a cleaner state**, merging duplicate Events into one canonical Event so reconciliation happens inside it. A derived value's provenance sheet lists each owning entity's field records, judged on that entity.
 
-A derived **place** is the exception that reconciles across entities: an event's places are the records of all its location links, voted together (§11.1), so the Sources that name one place outvote the one that names another. The Why lists every location link's records, each with what the vote did to it.
+A derived **place** is the exception that reconciles across entities: an event's places are the records of all its location links, voted together (§11.1), so the Sources that name one place outvote the one that names another. The provenance sheet lists every location link's records, each with what the vote did to it.
 
 ---
 

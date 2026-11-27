@@ -205,13 +205,3 @@ struct PVProvenanceColumnHeadings: View {
         .accessibilityHidden(true)
     }
 }
-
-/// The reserved column beside the Outcome: no content yet, but a fixed width so
-/// a future "conclude this value" action won't relayout the table (PD-8).
-struct PVProvenanceReservedCell: View {
-    var body: some View {
-        Color.clear
-            .frame(width: PVProvenanceColumns.actionWidth, height: 1)
-            .accessibilityHidden(true)
-    }
-}

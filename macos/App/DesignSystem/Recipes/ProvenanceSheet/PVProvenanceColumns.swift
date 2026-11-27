@@ -21,8 +21,6 @@ struct PVProvenanceColumns: Equatable {
     static let spacing: CGFloat = 14
     /// Two nine-character refs in mono at caption size.
     static let recordWidth: CGFloat = 72
-    /// The reserved column the Why's rows still draw (`PVProvenanceReservedCell`); the sheet no longer does.
-    static let actionWidth: CGFloat = 88
     /// The labelled copy buttons' track's least width beside the citation text (a button
     /// wider than it, or the check glyph, widens the track), and the gap before it. 84 holds "Short" with its icon in Spectral 500 at `.sm` (70.7pt) with room.
     static let copyTrackWidth: CGFloat = 84

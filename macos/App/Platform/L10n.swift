@@ -8916,7 +8916,7 @@ enum L10n {
     }
 
     /// The provenance sheet's words (S13-36): the recipe's own copy, read by the
-    /// sheet, its record rows and the Why's table.
+    /// sheet and its record rows.
     enum ProvenanceSheet {
         static let otherRecords = LocalizedStringResource(
             "provenanceSheet.otherRecords",
@@ -9790,7 +9790,7 @@ enum L10n {
     }
 
     /// Conclusion detail copy (S9-15, S9-16): field states, auto-reconciler
-    /// outcomes, the Why table and the Person page. `ReconciledValueDisplay`
+    /// outcomes and the Person page. `ReconciledValueDisplay`
     /// and `PersonDetailContent` compose them.
     enum Conclusions {
         static let stateEmpty = LocalizedStringResource(
@@ -9874,19 +9874,7 @@ enum L10n {
         static let readAsNone = LocalizedStringResource(
             "conclusions.readAs.none",
             defaultValue: "—",
-            comment: "Why table, Read as column: the record states nothing for this field"
-        )
-
-        static let whySource = LocalizedStringResource(
-            "conclusions.why.source",
-            defaultValue: "Source",
-            comment: "Why table column heading: the Source the record is cited under"
-        )
-
-        static let whyButton = LocalizedStringResource(
-            "conclusions.why.button",
-            defaultValue: "Why",
-            comment: "Button on a Conclusion field that shows the records behind its value"
+            comment: "Provenance table, Read as column: the record states nothing for this field"
         )
 
         static func provenanceOpen(_ label: String) -> String {
@@ -11127,40 +11115,8 @@ enum L10n {
             L10n.format(LocalizedStringResource(
                 "conclusions.readAs.not",
                 defaultValue: "not %@",
-                comment: "Why table, Read as column: a negative record saying the value is not this; argument is the value"
+                comment: "Provenance table, Read as column: a negative record saying the value is not this; argument is the value"
             ), value)
-        }
-
-        static func whyTitle(_ value: String) -> String {
-            L10n.format(LocalizedStringResource(
-                "conclusions.why.title",
-                defaultValue: "Why “%@”",
-                comment: "Heading of the records behind a value; argument is the value"
-            ), value)
-        }
-
-        static func whyTitleName(_ value: String) -> String {
-            L10n.format(LocalizedStringResource(
-                "conclusions.why.title.name",
-                defaultValue: "Why %@",
-                comment: "Heading of the records behind a name value; the argument is the displayed name, which may carry its own quotes"
-            ), value)
-        }
-
-        static func whyThese(_ count: Int, label: String) -> String {
-            L10n.format(LocalizedStringResource(
-                "conclusions.why.these",
-                defaultValue: "Why these %1$lld %2$@",
-                comment: "Heading of the records behind several kept values; arguments are the count and the lowercased field label"
-            ), count, label.localizedLowercase)
-        }
-
-        static func whyRecords(_ label: String) -> String {
-            L10n.format(LocalizedStringResource(
-                "conclusions.why.records",
-                defaultValue: "Records considered for %@",
-                comment: "VoiceOver label of the records behind a field; argument is the field label"
-            ), label)
         }
 
         static func otherValuesList(_ label: String) -> String {
