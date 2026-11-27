@@ -495,6 +495,7 @@ struct EventDetailTests {
         #expect(page.title == .name(L10n.EventTitle.ofOne(type: "Birth", subject: "James Robins", locale: en)))
         #expect(page.secondaryPlace == "York")
         #expect(page.rows[1].shown.lead == "York" && page.rows[1].shown.badge == .mixed && page.rows[1].provenanceContent().records.isEmpty)
+        #expect(!page.rows[1].hasRecords && page.rows[1].recordCount == 0)
         #expect(!page.rows[1].shown.lead!.contains(","))
         #expect(page.rows[1].opens?.location == .placeDetail(entityId: "pl1", ref: "PLC-1", title: "York"))
     }
@@ -507,6 +508,7 @@ struct EventDetailTests {
         #expect(place.label == "Place" && place.shown.face == .place && place.shown.lead == nil)
         #expect(place.shown.emptyText == "No place recorded")
         #expect(place.provenanceContent().records.isEmpty)
+        #expect(!place.hasRecords && place.recordCount == 0)
     }
 
     @Test func noPictureLeavesTheMarkAndNoGallery() {
