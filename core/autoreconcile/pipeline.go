@@ -99,12 +99,7 @@ func reconcile(m module, candidates []Candidate, concluded *Value, cardinality s
 	for i := range order {
 		order[i] = i
 	}
-	sort.SliceStable(order, func(a, b int) bool {
-		return bytes.Compare(candidates[order[a]].ObservationID, candidates[order[b]].ObservationID) < 0
-	})
-	sort.SliceStable(order, func(a, b int) bool {
-		return candidates[order[a]].Provenance.Stronger(candidates[order[b]].Provenance)
-	})
+	sort.SliceStable(order, func(a, b int) bool { return RanksBefore(candidates[order[a]], candidates[order[b]]) })
 
 	// 1. Admit.
 	var pos, neg []*entry

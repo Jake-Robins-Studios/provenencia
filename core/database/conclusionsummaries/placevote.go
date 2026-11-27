@@ -155,7 +155,7 @@ func finishVote(in *graphcache.InputScope, v vocab, prep placePrep) (placeVote, 
 	placeProp := string(v.prop(hops.PlacesOfEvent.To()))
 	var cands []autoreconcile.Candidate
 	linkOf := map[string]graphcache.Link{} // Observation id -> its link
-	weigh := map[string]autoreconcile.Provenance{}
+	candOf := map[string]int{}             // Observation id -> its index in cands
 	for _, l := range prep.links {
 		if len(l.Association) == 0 {
 			continue
@@ -184,7 +184,7 @@ func finishVote(in *graphcache.InputScope, v vocab, prep placePrep) (placeVote, 
 				Provenance:    p,
 			})
 			linkOf[string(o.ObservationID)] = l
-			weigh[string(o.ObservationID)] = p
+			candOf[string(o.ObservationID)] = len(cands) - 1
 		}
 	}
 	res, err := autoreconcile.Reconcile(valuerules.Product(), propertymeta.ValueTypeSubject, cands, nil, placeCardinality)
@@ -200,14 +200,13 @@ func finishVote(in *graphcache.InputScope, v vocab, prep placePrep) (placeVote, 
 			vote.places = append(vote.places, c)
 		}
 	}
-	// A link's verdict is the outcome of its best-ranked record: the stronger
-	// evidence, then the earlier Observation.
+	// A link's verdict is the outcome of its best-ranked record, by the rank the
+	// pipeline itself uses.
 	best := map[string]autoreconcile.Outcome{}
 	for _, o := range res.Outcomes {
 		l := linkOf[string(o.ObservationID)]
 		cur, ok := best[string(l.Association)]
-		if !ok || weigh[string(o.ObservationID)].Stronger(weigh[string(cur.ObservationID)]) ||
-			(!weigh[string(cur.ObservationID)].Stronger(weigh[string(o.ObservationID)]) && bytes.Compare(o.ObservationID, cur.ObservationID) < 0) {
+		if !ok || autoreconcile.RanksBefore(cands[candOf[string(o.ObservationID)]], cands[candOf[string(cur.ObservationID)]]) {
 			best[string(l.Association)] = o
 		}
 	}

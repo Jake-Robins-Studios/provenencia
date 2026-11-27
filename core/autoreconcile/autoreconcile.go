@@ -23,6 +23,7 @@
 package autoreconcile
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -103,6 +104,18 @@ type Candidate struct {
 	// Provisional is a candidate from a provisional member: never displayed.
 	Provisional bool
 	Provenance  Provenance
+}
+
+// RanksBefore is the order a reconcile ranks its candidates in: stronger
+// Provenance first, then the smaller ObservationID.
+func RanksBefore(a, b Candidate) bool {
+	if a.Provenance.Stronger(b.Provenance) {
+		return true
+	}
+	if b.Provenance.Stronger(a.Provenance) {
+		return false
+	}
+	return bytes.Compare(a.ObservationID, b.ObservationID) < 0
 }
 
 // Provenance is how strong a candidate's evidence is, each part relative to
