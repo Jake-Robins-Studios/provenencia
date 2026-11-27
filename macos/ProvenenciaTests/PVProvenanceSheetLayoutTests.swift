@@ -7,30 +7,11 @@ import Testing
 @Suite(.serialized, .hostedWindows)
 @MainActor
 struct PVProvenanceSheetLayoutTests {
-    /// One record in a run of its own, with an italic run in its full citation, all rows alike.
-    private func records(_ count: Int) -> [PVProvenanceSheetContent.Record] {
-        let full = [
-            CatalogCitationRun(text: "1880 U.S. census, Ontario, Canada; digital image, ", italic: false),
-            CatalogCitationRun(text: "Ancestry", italic: true),
-            CatalogCitationRun(text: " (accessed 12 March 2025)", italic: false),
-        ]
-        return (0..<count).map { index in
-            var record = PVProvenancePreviewData.record(
-                "r\(index)", readAs: "14 May 1817", title: "Parish register \(index)", detail: "p. \(index)")
-            record.rendered = CatalogRenderedCitation(
-                citationID: "cit-r\(index)",
-                full: .init(runs: full, plain: full.map(\.text).joined()),
-                short: .init(runs: [CatalogCitationRun(text: "1880 U.S. census", italic: false)], plain: "1880 U.S. census"),
-                groupKey: "full:\(index)")
-            return record
-        }
-    }
-
     /// A fresh sheet of `count` records at `.ready`, laid out once: the best of 3 times to build and lay
     /// it out, and the height of the scroll area's document, read from the last run's host after the timing.
     private func firstLayout(records count: Int) -> (milliseconds: Double, documentHeight: CGFloat) {
         let content = PVProvenancePreviewData.content(
-            groups: [PVProvenanceSheetContent.Group(owner: nil, records: records(count))], summary: nil)
+            groups: [PVProvenanceSheetContent.Group(owner: nil, records: PVProvenancePreviewData.records(count, formatted: true))], summary: nil)
         var last: NSHostingView<PVProvenanceSheet>?
         let best = bestOfMilliseconds(runs: 3) {
             let (_, host) = hostInBorderlessWindow(

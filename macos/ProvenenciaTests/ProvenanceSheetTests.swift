@@ -39,10 +39,10 @@ struct ProvenanceSheetTests {
     @Test func citationTextFallsBack() {
         var formatted = record("a", rank: 1)
         #expect(!formatted.isFormatted && formatted.citationText == formatted.citation.line)
-        formatted.rendered = renderedCitation("cit-a", key: "full:x", full: "Rendered, 1880")
+        formatted.rendered = renderedCitation("cit-a", full: "Rendered, 1880")
         #expect(formatted.isFormatted && formatted.citationText == "Rendered, 1880")
         #expect(formatted.spoken.contains("Rendered, 1880") && !formatted.spoken.contains(formatted.citation.line))
-        formatted.rendered = renderedCitation("cit-a", key: "citation:cit-a", full: "")
+        formatted.rendered = renderedCitation("cit-a", full: "")
         #expect(!formatted.isFormatted && formatted.citationText == formatted.citation.line)
         #expect(formatted.spoken.contains(formatted.citation.line))
     }
@@ -61,12 +61,12 @@ struct ProvenanceSheetTests {
     @Test func withRendersSetsEachRecordsRender() {
         let a = record("a", citation: "ca"), b = record("b", citation: "cb"), c = record("c", citation: "cc")
         let both = content([[a, b, c]]).withRenders([
-            "ca": renderedCitation("ca", key: "K", full: "same"), "cc": renderedCitation("cc", key: "K", full: "same"),
+            "ca": renderedCitation("ca", full: "same"), "cc": renderedCitation("cc", full: "same"),
         ])
         #expect(both.records.map(\.id) == ["a", "b", "c"])
         #expect(both.records.map { $0.rendered?.full.plain } == ["same", nil, "same"])
 
-        let one = content([[a, b, c]]).withRenders(["ca": renderedCitation("ca", key: "K")])
+        let one = content([[a, b, c]]).withRenders(["ca": renderedCitation("ca")])
         #expect(one.records.map(\.id) == ["a", "b", "c"])
         #expect(one.records.map { $0.rendered != nil } == [true, false, false])
     }
@@ -74,14 +74,14 @@ struct ProvenanceSheetTests {
     /// T-8 (D-9, AC-2.2, AC-2.3, AC-2.4).
     @Test func copyButtonsFollowTheRender() {
         var formatted = record("a", rank: 1)
-        formatted.rendered = renderedCitation("cit-a", key: "full:x", short: "Short")
+        formatted.rendered = renderedCitation("cit-a", short: "Short")
         let both = PVProvenanceRecordRow.copies(for: formatted)
         #expect(both.map(\.kind) == [.full, .short])
         #expect(both.map(\.text) == ["cit-a", "Short"])
         #expect(both.allSatisfy { $0.rich != nil })
-        formatted.rendered = renderedCitation("cit-a", key: "full:x")
+        formatted.rendered = renderedCitation("cit-a")
         #expect(PVProvenanceRecordRow.copies(for: formatted).map(\.kind) == [.full])
-        formatted.rendered = renderedCitation("cit-a", key: "citation:cit-a", full: "")
+        formatted.rendered = renderedCitation("cit-a", full: "")
         #expect(PVProvenanceRecordRow.copies(for: formatted).map(\.kind) == [.citation])
         let today = PVProvenanceRecordRow.copies(for: record("b", rank: 1))
         #expect(today.map(\.kind) == [.citation])

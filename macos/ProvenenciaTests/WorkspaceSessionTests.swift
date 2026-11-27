@@ -2629,7 +2629,7 @@ struct ProvenanceSheetSessionTests {
 
     @Test func releaseDuringALoadNeverLandsOnTheNewHandle() async {
         let store = makeStore()
-        store.renderCitationsReplies = ["a": renderedCitation("a", key: "released")]
+        store.renderCitationsReplies = ["a": renderedCitation("a", full: "released")]
         store.renderCitationsHold.isOn = true
         let session = WorkspaceSession(projectKey: projectKey, store: store)
         let key = makeKey()
@@ -2641,12 +2641,12 @@ struct ProvenanceSheetSessionTests {
         // The released load answers first, with its own reply; the new load answers after, with another.
         store.renderCitationsHold.release()
         while store.renderCitationsCalls.isEmpty { await Task.yield() }
-        store.renderCitationsReplies = ["a": renderedCitation("a", key: "current")]
+        store.renderCitationsReplies = ["a": renderedCitation("a", full: "current")]
         store.renderCitationsHold.isOn = false
         store.renderCitationsHold.release()
         await waitForQuery(second)
         #expect(store.renderCitationsCalls.count == 2)
-        #expect(second.value?.citations["a"]?.groupKey == "current")
+        #expect(second.value?.citations["a"]?.full.plain == "current")
         #expect(second.revision == 1)
         #expect(first.value == nil)
     }

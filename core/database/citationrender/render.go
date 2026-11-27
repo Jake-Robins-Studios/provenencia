@@ -1,16 +1,13 @@
 // Package citationrender renders Citations and Sources through their Source
 // type's citation formats, on demand from SQL: a batch of Citations (full and
-// short citation, group key, and the inputs the read used) and one form against
+// short citation, and the inputs the read used) and one form against
 // one target with an optional unsaved format. It runs no SQL of its own: it
 // reads through the owning packages and answers through
 // sourcemetadata.CitationValues, the resolver the metadata boards use too.
 package citationrender
 
 import (
-	"crypto/sha256"
 	"database/sql"
-	"encoding/binary"
-	"encoding/hex"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
@@ -34,8 +31,6 @@ type RenderedCitation struct {
 	CitationID []byte
 	Full       citationformat.Rendered
 	Short      citationformat.Rendered
-	// GroupKey is equal for Citations whose full citations render the same.
-	GroupKey string
 }
 
 // Render renders the Citations with the given ids in one read transaction, in
@@ -117,7 +112,6 @@ func render(tx *sql.Tx, citationIDs [][]byte, in *graphcache.PageInputs) ([]Rend
 				r.Short = citationformat.Render(t.short, s.values)
 			}
 		}
-		r.GroupKey = groupKey(s.cited.ID, r.Full)
 		total += size(r.Full) + size(r.Short)
 		if total > MaxBatchBytes {
 			return nil, citations.ErrInvalid
@@ -134,28 +128,4 @@ func size(r citationformat.Rendered) int {
 		n += len(run.Text)
 	}
 	return n
-}
-
-// groupKey is equal for Citations whose full citations render the same. A
-// Citation with a full citation gets "full:" and the hex SHA-256 over each run
-// in order: one byte for its style (1 italic, 0 plain), the text's length as an
-// unsigned varint, then the text, so no text can fake a run boundary. A
-// Citation with none gets "citation:" and its id, so each stands alone.
-func groupKey(id []byte, full citationformat.Rendered) string {
-	if len(full.Runs) == 0 {
-		return "citation:" + database.UUIDString(id)
-	}
-	h := sha256.New()
-	var buf []byte
-	for _, run := range full.Runs {
-		style := byte(0)
-		if run.Italic {
-			style = 1
-		}
-		buf = append(buf[:0], style)
-		buf = binary.AppendUvarint(buf, uint64(len(run.Text)))
-		h.Write(buf)
-		h.Write([]byte(run.Text))
-	}
-	return "full:" + hex.EncodeToString(h.Sum(nil))
 }

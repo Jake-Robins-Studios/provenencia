@@ -420,7 +420,7 @@ func TestRender(t *testing.T) {
 		locator      string
 		setup        func(w *world, src sources.Source)
 		want         string // the full text, unless dropsGroup
-		dropsGroup   bool   // no runs, and the group key is the Citation's own
+		dropsGroup   bool   // no runs
 		wantTypeName bool
 	}{
 		{name: "each built-in", full: `{source.title}/{source.type}/{artifact.label}/{graph.name}/{citation.label}`, label: "entry", locator: pageLocator("1"), wantTypeName: true},
@@ -454,7 +454,7 @@ func TestRender(t *testing.T) {
 			r := one(t, w, w.cite(art.ID, graph.ID, tc.label, tc.locator))
 			switch {
 			case tc.dropsGroup:
-				if len(r.Full.Runs) != 0 || r.GroupKey != "citation:"+database.UUIDString(r.CitationID) {
+				if len(r.Full.Runs) != 0 {
 					t.Errorf("got %+v", r)
 				}
 			case tc.wantTypeName:
@@ -478,7 +478,7 @@ func TestRender(t *testing.T) {
 			t.Fatal(err)
 		}
 		r := one(t, w, w.cite(art.ID, graph.ID, "", pageLocator("1")))
-		if len(r.Full.Runs) != 0 || !strings.HasPrefix(r.GroupKey, "citation:") {
+		if len(r.Full.Runs) != 0 {
 			t.Errorf("got %+v", r)
 		}
 	})
@@ -578,63 +578,6 @@ func TestRenderUnknownAndSupplied(t *testing.T) {
 	}
 	if got[0].Full.Plain() != "n.p.; n.d.; p. unpaginated." || got[1].Full.Plain() != "[Ashby Press]; [ca. 1880]; p. [23]." {
 		t.Errorf("got %q and %q", got[0].Full.Plain(), got[1].Full.Plain())
-	}
-}
-
-func TestGroupKey(t *testing.T) {
-	w := newWorld(t)
-	typ := w.newType("Book of hours", sourcetypes.Formats{Full: `{source.title}, p. {meta.page}`})
-	withLabel := w.newType("Labelled", sourcetypes.Formats{Full: `{source.title}, {citation.label}`})
-	plainType := w.newType("Plain", sourcetypes.Formats{Full: `{source.title}`})
-	italicType := w.newType("Italic", sourcetypes.Formats{Full: `*{source.title}*`})
-	bare := w.newType("Bare", sourcetypes.Formats{})
-
-	src := w.source(typ.ID, "Family Bible")
-	art, graph := w.artifact(src.ID, "Scan"), w.graph(src.ID)
-	c14a := w.cite(art.ID, graph.ID, "a", pageLocator("14"))
-	c14b := w.cite(art.ID, graph.ID, "b", pageLocator("14"))
-	c15 := w.cite(art.ID, graph.ID, "a", pageLocator("15"))
-	for id, page := range map[*[]byte]string{&c14a: "14", &c14b: "14", &c15: "15"} {
-		w.set(vocabkey.LevelCitation, *id, "page", page, valuemark.Mark{})
-	}
-	got := w.render(c14a, c14b, c15)
-	if got[0].GroupKey != got[1].GroupKey || !strings.HasPrefix(got[0].GroupKey, "full:") {
-		t.Errorf("same page: %q vs %q", got[0].GroupKey, got[1].GroupKey)
-	}
-	if got[0].GroupKey == got[2].GroupKey {
-		t.Errorf("page 14 and 15 share %q", got[0].GroupKey)
-	}
-
-	lsrc := w.source(withLabel.ID, "Family Bible")
-	lart, lgraph := w.artifact(lsrc.ID, "Scan"), w.graph(lsrc.ID)
-	la := w.cite(lart.ID, lgraph.ID, "a", pageLocator("1"))
-	lb := w.cite(lart.ID, lgraph.ID, "b", pageLocator("1"))
-	got = w.render(la, lb)
-	if got[0].GroupKey == got[1].GroupKey {
-		t.Errorf("labels a and b share %q though the format reads the label", got[0].GroupKey)
-	}
-
-	psrc := w.source(plainType.ID, "Family Bible")
-	isrc := w.source(italicType.ID, "Family Bible")
-	pc := w.cite(w.artifact(psrc.ID, "Scan").ID, w.graph(psrc.ID).ID, "", pageLocator("1"))
-	ic := w.cite(w.artifact(isrc.ID, "Scan").ID, w.graph(isrc.ID).ID, "", pageLocator("1"))
-	got = w.render(pc, ic)
-	if got[0].Full.Plain() != got[1].Full.Plain() || got[0].GroupKey == got[1].GroupKey {
-		t.Errorf("same words, one italic: %q vs %q", got[0].GroupKey, got[1].GroupKey)
-	}
-
-	bsrc := w.source(bare.ID, "Family Bible")
-	bart, bgraph := w.artifact(bsrc.ID, "Scan"), w.graph(bsrc.ID)
-	b1 := w.cite(bart.ID, bgraph.ID, "", pageLocator("1"))
-	b2 := w.cite(bart.ID, bgraph.ID, "", pageLocator("1"))
-	got = w.render(b1, b2)
-	for i, id := range [][]byte{b1, b2} {
-		if want := "citation:" + database.UUIDString(id); got[i].GroupKey != want {
-			t.Errorf("key %d = %q, want %q", i, got[i].GroupKey, want)
-		}
-	}
-	if got[0].GroupKey == got[1].GroupKey {
-		t.Error("two fallback Citations share a key")
 	}
 }
 

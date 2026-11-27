@@ -106,11 +106,11 @@ func catalogMetadataEntry(
 }
 
 /// A rendered Citation for tests. `full` is the id's text unless it says otherwise (empty for a Citation with
-/// no format), `short` empty, and `key` the engine's group key, `full:` plus the id.
-func renderedCitation(_ id: String, key: String? = nil, full: String? = nil, short: String = "") -> CatalogRenderedCitation {
+/// no format), and `short` empty.
+func renderedCitation(_ id: String, full: String? = nil, short: String = "") -> CatalogRenderedCitation {
     func render(_ text: String) -> CatalogCitationRender {
         text.isEmpty ? .init() : .init(runs: [CatalogCitationRun(text: text, italic: false)], plain: text)
     }
     return CatalogRenderedCitation(
-        citationID: id, full: render(full ?? id), short: render(short), groupKey: key ?? "full:\(id)")
+        citationID: id, full: render(full ?? id), short: render(short))
 }

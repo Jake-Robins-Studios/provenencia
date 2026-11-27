@@ -132,8 +132,7 @@ enum PVProvenancePreviewData {
         return CatalogRenderedCitation(
             citationID: "cit-\(id)",
             full: .init(runs: full, plain: full.map(\.text).joined()),
-            short: .init(runs: [CatalogCitationRun(text: short, italic: false)], plain: short),
-            groupKey: "full:\(id)")
+            short: .init(runs: [CatalogCitationRun(text: short, italic: false)], plain: short))
     }
 
     /// `count` records numbered from 1, each its own Citation: `<prefix>1` … `<prefix>count`, every

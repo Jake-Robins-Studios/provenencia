@@ -9355,9 +9355,6 @@ public nonisolated struct Provenencia_Engine_V1_RenderedCitation: Sendable {
   /// Clears the value of `short`. Subsequent reads from it will return its default value.
   public mutating func clearShort() {self._short = nil}
 
-  /// Equal keys are one citation: same rendered full note. Opaque.
-  public var groupKey: String = String()
-
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
@@ -25346,7 +25343,7 @@ nonisolated extension Provenencia_Engine_V1_RenderCitationsRequest: SwiftProtobu
 
 nonisolated extension Provenencia_Engine_V1_RenderedCitation: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".RenderedCitation"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}citation_id\0\u{1}full\0\u{1}short\0\u{3}group_key\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}citation_id\0\u{1}full\0\u{1}short\0\u{b}group_key\0\u{c}\u{4}\u{1}")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -25357,7 +25354,6 @@ nonisolated extension Provenencia_Engine_V1_RenderedCitation: SwiftProtobuf.Mess
       case 1: try { try decoder.decodeSingularStringField(value: &self.citationID) }()
       case 2: try { try decoder.decodeSingularMessageField(value: &self._full) }()
       case 3: try { try decoder.decodeSingularMessageField(value: &self._short) }()
-      case 4: try { try decoder.decodeSingularStringField(value: &self.groupKey) }()
       default: break
       }
     }
@@ -25377,9 +25373,6 @@ nonisolated extension Provenencia_Engine_V1_RenderedCitation: SwiftProtobuf.Mess
     try { if let v = self._short {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
     } }()
-    if !self.groupKey.isEmpty {
-      try visitor.visitSingularStringField(value: self.groupKey, fieldNumber: 4)
-    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -25387,7 +25380,6 @@ nonisolated extension Provenencia_Engine_V1_RenderedCitation: SwiftProtobuf.Mess
     if lhs.citationID != rhs.citationID {return false}
     if lhs._full != rhs._full {return false}
     if lhs._short != rhs._short {return false}
-    if lhs.groupKey != rhs.groupKey {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

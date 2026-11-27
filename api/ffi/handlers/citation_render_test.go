@@ -167,17 +167,6 @@ func TestRenderCitations(t *testing.T) {
 		}
 	})
 
-	t.Run("AC-1.2 equal renders group", func(t *testing.T) {
-		same := newCitation(t, w.dir, w.userID, w.artifact, w.graph, depictionvaluetest.Locator)
-		other := newCitation(t, w.dir, w.userID, w.artifact, w.graph, depictionvaluetest.Locator)
-		setValues(t, w.dir, w.userID, w.fields, "citation", same, map[string]string{"leaf": "14"})
-		setValues(t, w.dir, w.userID, w.fields, "citation", other, map[string]string{"leaf": "15"})
-		c := render(t, w.citation, same, other)
-		if len(c) != 3 || c[0].GetGroupKey() != c[1].GetGroupKey() || c[0].GetGroupKey() == c[2].GetGroupKey() {
-			t.Errorf("group keys %q %q %q", c[0].GetGroupKey(), c[1].GetGroupKey(), c[2].GetGroupKey())
-		}
-	})
-
 	t.Run("AC-1.3 a value answers at the nearest level that holds it", func(t *testing.T) {
 		src := w.newSource(t, "Loose leaves", pointDate(1880, 0, 0))
 		setValues(t, w.dir, w.userID, w.fields, "source", src, map[string]string{"ledger": "Calder ledger", "keeper": "Westmark Archive"})
@@ -189,10 +178,10 @@ func TestRenderCitations(t *testing.T) {
 		setValues(t, w.dir, w.userID, w.fields, "citation", own, map[string]string{"leaf": "4"})
 		c := render(t, shared1, shared2, own)
 		const graphLeaf = "Calder ledger, Ben Robins, leaf 3; Westmark Archive, 1880."
-		if c[0].GetFull().GetPlain() != graphLeaf || c[1].GetFull().GetPlain() != graphLeaf || c[0].GetGroupKey() != c[1].GetGroupKey() {
-			t.Errorf("graph's leaf: %q %q, keys %q %q", c[0].GetFull().GetPlain(), c[1].GetFull().GetPlain(), c[0].GetGroupKey(), c[1].GetGroupKey())
+		if c[0].GetFull().GetPlain() != graphLeaf || c[1].GetFull().GetPlain() != graphLeaf {
+			t.Errorf("graph's leaf: %q %q", c[0].GetFull().GetPlain(), c[1].GetFull().GetPlain())
 		}
-		if got := c[2].GetFull().GetPlain(); got != "Calder ledger, Ben Robins, leaf 4; Westmark Archive, 1880." || c[2].GetGroupKey() == c[0].GetGroupKey() {
+		if got := c[2].GetFull().GetPlain(); got != "Calder ledger, Ben Robins, leaf 4; Westmark Archive, 1880." {
 			t.Errorf("own leaf = %q", got)
 		}
 		if got := render(t, w.citation)[0].GetFull().GetPlain(); got != renderFull {

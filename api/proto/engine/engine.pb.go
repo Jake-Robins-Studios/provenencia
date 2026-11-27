@@ -22218,12 +22218,10 @@ func (x *RenderCitationsRequest) GetCitationIds() []string {
 }
 
 type RenderedCitation struct {
-	state      protoimpl.MessageState `protogen:"open.v1"`
-	CitationId string                 `protobuf:"bytes,1,opt,name=citation_id,json=citationId,proto3" json:"citation_id,omitempty"`
-	Full       *CitationRender        `protobuf:"bytes,2,opt,name=full,proto3" json:"full,omitempty"` // empty: the type has no full format; show today's line
-	Short      *CitationRender        `protobuf:"bytes,3,opt,name=short,proto3" json:"short,omitempty"`
-	// Equal keys are one citation: same rendered full note. Opaque.
-	GroupKey      string `protobuf:"bytes,4,opt,name=group_key,json=groupKey,proto3" json:"group_key,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CitationId    string                 `protobuf:"bytes,1,opt,name=citation_id,json=citationId,proto3" json:"citation_id,omitempty"`
+	Full          *CitationRender        `protobuf:"bytes,2,opt,name=full,proto3" json:"full,omitempty"` // empty: the type has no full format; show today's line
+	Short         *CitationRender        `protobuf:"bytes,3,opt,name=short,proto3" json:"short,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -22277,13 +22275,6 @@ func (x *RenderedCitation) GetShort() *CitationRender {
 		return x.Short
 	}
 	return nil
-}
-
-func (x *RenderedCitation) GetGroupKey() string {
-	if x != nil {
-		return x.GroupKey
-	}
-	return ""
 }
 
 type RenderCitationsResponse struct {
@@ -24749,13 +24740,12 @@ const file_engine_proto_rawDesc = "" +
 	"\x16RenderCitationsRequest\x12\x1f\n" +
 	"\vproject_dir\x18\x01 \x01(\tR\n" +
 	"projectDir\x12!\n" +
-	"\fcitation_ids\x18\x02 \x03(\tR\vcitationIds\"\xc8\x01\n" +
+	"\fcitation_ids\x18\x02 \x03(\tR\vcitationIds\"\xbc\x01\n" +
 	"\x10RenderedCitation\x12\x1f\n" +
 	"\vcitation_id\x18\x01 \x01(\tR\n" +
 	"citationId\x129\n" +
 	"\x04full\x18\x02 \x01(\v2%.provenencia.engine.v1.CitationRenderR\x04full\x12;\n" +
-	"\x05short\x18\x03 \x01(\v2%.provenencia.engine.v1.CitationRenderR\x05short\x12\x1b\n" +
-	"\tgroup_key\x18\x04 \x01(\tR\bgroupKey\"\x9b\x01\n" +
+	"\x05short\x18\x03 \x01(\v2%.provenencia.engine.v1.CitationRenderR\x05shortJ\x04\b\x04\x10\x05R\tgroup_key\"\x9b\x01\n" +
 	"\x17RenderCitationsResponse\x12E\n" +
 	"\tcitations\x18\x01 \x03(\v2'.provenencia.engine.v1.RenderedCitationR\tcitations\x129\n" +
 	"\x06inputs\x18\x02 \x01(\v2!.provenencia.engine.v1.PageInputsR\x06inputs\"\x98\x02\n" +
