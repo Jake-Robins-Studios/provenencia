@@ -76,7 +76,7 @@ Below blocker, noted by the round-2 reviewer (no Fix plan 2: round 2 only fixes 
 - `Couples` doc line at `families.go:442` runs long (cosmetic).
 
 ## Result
-`origin/main` unchanged since `47935695b`; no merge needed. Gate PASS at `7f4a75fcd` · CI pending · open blockers/majors: none · later PR: MNT-4 (S16-81 scope entry) · open minors: the four above · follow-ups: `promotealign` `TestLargeSourceBudgets` wall-clock budget trips under gate load · to user: —
+`origin/main` unchanged since `47935695b`; no merge needed. Gate PASS at `7f4a75fcd` · CI green (Go tests, macOS tests, localizable at `62ceac63e`) · open blockers/majors: none · later PR: MNT-4 (S16-81 scope entry) · open minors: the four above · follow-ups: `promotealign` `TestLargeSourceBudgets` wall-clock budget trips under gate load · to user: —
 
 ## Cost
 Plan: 5,700 words (check-plan-docs info line).
