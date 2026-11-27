@@ -128,7 +128,7 @@ Each module answers three questions:
 - **Fold?** When does a less specific value fold into a more specific one?
 - **Merge?** How does a group become one displayed value?
 
-**Grouping policy (decided 2026-10-17, S11-06).** Modules decide sameness with value compare ([`matching-model.md`](matching-model.md) layer 1): values group on `Same` and fold on `Contains`, or on an alias pair (§7.2); `Equivalent` (an accent fold, an alias) never groups; it folds only through an alias pair of given names (§7.2). Terms, subjects and depictions keep their catalog identity.
+**Grouping policy (decided 2026-10-17, S11-06).** Modules decide sameness with value compare ([`matching-model.md`](matching-model.md) layer 1): values group on `Same` and fold on `Contains`, or on an alias pair (§7.2); `Equivalent` (an accent fold, an alias) never groups; it folds only through an alias pair of given names (§7.2). Terms and depictions group by their catalog identity. Subjects group by identity too, and fold on `Contains` when their value carries the entities that contain it at its date (a Place's wholes, §11.1).
 
 | Value type | Same value | Fold | Merge | No evidence |
 | --- | --- | --- | --- | --- |
@@ -136,7 +136,7 @@ Each module answers three questions:
 | **integer** | equal (value compare's `Same`) | none | the value | — |
 | **boolean** | equal (value compare's `Same`) | none | the value | — |
 | **term** | same term | none | the term | terms flagged `property_terms.neutral` (seeded on *unknown*, *indeterminate*) |
-| **subject** | candidate Subjects map to the **same handle**; unpromoted Subjects drop out | none | the handle (an edge of the canonical graph) | unpromoted |
+| **subject** | candidate Subjects map to the **same handle**; unpromoted Subjects drop out | a handle into a narrower handle it contains, when the caller passes what contains each (`Within`); none without it | the handle (an edge of the canonical graph) | unpromoted |
 | **date** | the same span of days (§7.1) | span containment | §7.1 | empty |
 | **name** | §7.2 | containment per part type (§7.2) | §7.2 | no parts |
 | **depiction** | the same image File (the same pixels) | none | the image | an image `depictionvalue.Readable` refuses |
@@ -203,6 +203,8 @@ Many displayed values come from another entity. A Person's birth date is their b
 
 The model allows a Person with two birth Events, and the reconciler must handle it: the derived value reconciles across the Events' reconciled values. The **UI should push the researcher toward a cleaner state**, merging duplicate Events into one canonical Event so reconciliation happens inside it. A derived value's Why lists each owning entity's field records, judged on that entity.
 
+A derived **place** is the exception that reconciles across entities: an event's places are the records of all its location links, voted together (§11.1), so the Sources that name one place outvote the one that names another. The Why lists every location link's records, each with what the vote did to it.
+
 ---
 
 # 10. Cache and upkeep
@@ -259,7 +261,7 @@ The rebuild-equals-upkeep tests hold upkeep equal to a full rebuild. Every new t
   - **Undated link:** it holds wherever the two places' periods overlap. Toronto (1834–) part of Upper Canada (1791–1841), then the Province of Canada (1841–1867), then Ontario (1867–) is three undated links: the parents' periods already change, so the overlap answers "what is Toronto part of?" at a date.
   - **Dated link:** it holds only inside its own span, and only while both places' periods hold. A membership can end while both places continue. Ireland is part of the United Kingdom until 1922; Guam is part of Spain until 1898 and of the United States after. Neither place has to end for the link to end.
 - **A chain at a date** follows the hierarchical links whose span holds then. Display uses the connected event's date, or today for a Place's own chain. When the date can't decide (an approximate or ranged date straddling a change, or mixed dates on the link), show every candidate: *born about 1841 in Toronto, Upper Canada or Province of Canada*. When a place has several parents at once, every parent is a candidate — there is no nature-based preference this spike.
-- **Several Locations on one Event (or life place) fold into chains.** The composer walks `part_of` among the linked Places (and their parents at the event's date). Places that sit on one containment graph become **one chain value** (*Toronto, Ontario*). Places that do not connect stay **separate competing values** and reconcile like any other multi-valued or mixed field (majority, mixed, weak drop). Prefer derivative complexity here over a schema label for "which place to show"; a later Property (nature, grain, …) can simplify display if dogfood proves it necessary.
+- **Several Locations on one Event (or life place) fold into chains, then vote.** The summary composer builds each linked Place as a subject value whose `Within` is the wholes above it that hold at the event's date (the fold date: a birth or death's own date, an Event's dating's low end). A Place that contains another linked Place folds into it (*Toronto, Ontario*: Ontario folds into Toronto), and value compare is the one rule for that. If more than one Place is left, the records of every location link vote as one single-valued field: each link's association contributes its records on the place end that put the link's place first, each from its Source, so the Sources vote, weak evidence drops, and the rest read as outvoted. A Place that no record supports leaves the event. A Place that folds still counts: a record naming Canada counts for Swift Current when Swift Current is the narrower linked place, so one Source naming Canada, one Swift Current and one Toronto (both under Canada) reads Swift Current 2 of 3, with Toronto outvoted. A membership that ended before the event's date does not fold. Two places that contain each other (a cycle) do not fold. "An event has one place" is decided here, in the vote, by the cardinality the composer passes; a declaration that matching reads too waits on [`ideas/one-bridge-cardinality.md`](ideas/one-bridge-cardinality.md). Other place-to-place, person-to-event and person-to-person links are many-valued and are not reconciled this way. Prefer derivative complexity here over a schema label for "which place to show"; a later Property (nature, grain, …) can simplify display if dogfood proves it necessary.
 - **A rename is a new Place.** York (1793–1834) and Toronto (1834–) are two Places. Merge is only for two handles that turn out to be the same place.
 - **Succession may branch.** A split is one Place `succeeded_by` several (a county divided in two); an amalgamation is several Places `succeeded_by` one (townships joined into a city). A lineage has any number of predecessors and successors.
 - **Concurrent names are one Place.** `toponym` is multi-valued (§8): Montréal and Montreal, Köln and Cologne, Tkaronto and Toronto are all names of one Place at the same time. Spelling duplicates still merge.
