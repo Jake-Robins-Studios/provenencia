@@ -104,7 +104,7 @@ Today: `["birth", "b1", "undated", "i1", "i2", "death"]`.
 
 **Evidence.** Seed test: `persondetail.PersonFamily` on 1,000 and 4,000 children; the larger must not take more than 8× the smaller. A `kinship` test with 30,000 shared parents through `Siblings` → `KinOf` → `FamilyUnits` under a second.
 
-**Fix (capped).** Keep at most a fixed number of relatives per role from the person's kin, in link order, in one capped kin that both of `Families`' loops use (the relatives it loads, then `Around` and `FamilyUnits`), so no relative is read that was not loaded; derive no implied siblings through a person with more than `kinship.Rules.MaxPivotEnd` parents (the bound `parentUnits` already uses to stop pairing).
+**Fix (capped).** Keep at most a fixed number of relatives per role from the person's kin, in link order, in one capped kin that both of `Families`' loops use (the relatives it loads, then `Around` and `FamilyUnits`), so no relative is read that was not loaded; derive no implied siblings through a person with more than `kinship.Rules.MaxPivotEnd` parents (the bound `pairsParents` uses).
 
 **Origin.** `forLinks`' walk predates Spike 13 (S11-49); S13-04 (#671) runs it once per relative and added `partnerUnits`; S13-03 (#666) added one shape per parent.
 

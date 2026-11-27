@@ -110,7 +110,7 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 46. **A copy's metadata can be edited before it is made.** Copy Source shows the original's metadata as a board, in the original's order, each value editable. Change one value and clear another: the copy's board shows the changed value and not the cleared one; the original's values are unchanged. Change the copy's type: every value stays, and the empty suggestions are the new type's. (S16-D17.)
 47. **A marked value keeps its mark.** Copy a Source whose publisher is marked unknown and whose date is marked supplied: the copy's publisher is still unknown and its date still supplied (a handler test until S15-41 and S15-42 show the marks). Edit an Artifact with a marked value in the Artifact sheet and save: the mark stays. (S16-76.)
 
-**Scale.** Real data, which must stay as fast as today: a person in 50 Evidence graphs (Spike 13's budget) with one or two records per graph, 200 events with 10 participants each (12 shown per event at Wide), 20 children in four parent sets, one to three places per event. Crafted data, which only has to stay bounded: each axis in bar 2 and 3, at least 20 times past its cap.
+**Scale.** Real data, which must stay as fast as today: a person in 50 Evidence graphs (Spike 13's budget) with one or two records per graph, 200 events with 10 participants each (12 shown per event at Wide), 20 children in four sibling groups, one to three places per event. Crafted data, which only has to stay bounded: each axis in bar 2 and 3, at least 20 times past its cap.
 
 **Scale (Batch 2).** The S11-21 large fixture at 4,000 and 16,000 persons (8,000 town events; 18,000 and 37,000 handles); one place with 6,000 events, and 24,000 for growth; a person in 50 and in 80 Evidence graphs; for the entity records, 3,000 Sources, 10,000 Evidence graphs and 50,000 Observations. Every speed claim is measured at 4,000 and 16,000 (or at the input it grows with) against today on the same machine.
 
@@ -230,7 +230,7 @@ These are the calls for this spike. PR plans treat them as binding.
   - an event's places, 20, applied in `eventLocations` (S16-01 plan D-6), one event's capped location links, which `placesOfEvents` (the shared read S14-40 added, which `eventPlaceGraph` uses), `leadLife`, `lifeOwners` and `composeEvents` in `conclusionsummaries/compose.go` read, so no read walks the rest; `eventPlaces` takes its caller's links (S16-01);
   - a life row's owners, 64, applied in `lifeFacts` (S16-19);
   - the relatives per role (parents, children, spouses, siblings) a person's kin holds, 100, applied in `kinship.KinOf` as the registry knob `kinship.Rules.MaxKinPerRole`, so both of `Families`' loops (the relatives it loads, and `Around` and `FamilyUnits`) and every later reader of a person's kin get it (S16-01; map review K-28);
-  - implied siblings only through a person with at most `kinship.Rules.MaxPivotEnd` parents, the bound `parentUnits` already uses to stop pairing (S16-01);
+  - implied siblings only through a person with at most `kinship.Rules.MaxPivotEnd` parents, the bound `pairsParents` uses (S16-01);
   - a couple's marriage events, 10 (`maxMarriagesPerCouple`), the first of its pivots in shape order, applied in `persondetail.Families` before any event node is loaded (S16-82; user, 2026-11-08);
   - a person's records per Evidence graph, `recordlinks` `Rules.MaxEntityMembers` (10, user 2026-11-07: "malformed"), applied by one function the claims read calls (S16-01; S16-13 keeps calling it).
 
