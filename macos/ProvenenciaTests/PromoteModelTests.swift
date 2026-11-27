@@ -273,7 +273,8 @@ struct PromoteModelTests {
         model.setTarget(subjectID: "b", token: "skip")
         _ = await waitUntil { !model.isProposing }
         model.done()
-        let promoted = await waitUntil { store.lastPromoteBatch != nil }
+        // The fake records the batch before it writes the claims, so wait on the claim the test asserts.
+        let promoted = await waitUntil { store.lastPromoteBatch != nil && store.claimBySubject["a"] != nil }
         #expect(promoted)
         #expect(store.lastPromoteBatch == [
             CatalogPromoteGraphAlignmentFixed(subjectID: "a", target: .new),

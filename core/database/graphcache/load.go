@@ -11,6 +11,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/connectrules"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/dbsql"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/scalarcols"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/gradeorder"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue"
 )
@@ -258,8 +259,9 @@ func (g *Graph) StoredValues(ids [][]byte) (map[string]map[string][]Value, error
 // The IN list is bounded in production: one `sqlbatch.Each` chunk (readNodes' chunk); test-only `Verify` passes every loaded node.
 func (g *Graph) loadMembers(ids [][]byte) (map[string][]Member, error) {
 	out := map[string][]Member{}
-	q := `SELECT c.entity_id, c.subject_id, s.source_id, s.graph_id, c.status FROM ` + g.claimTable + ` c
+	q := `SELECT c.entity_id, c.subject_id, s.source_id, s.graph_id, c.status, ` + gradeorder.Column + ` FROM ` + g.claimTable + ` c
 		JOIN subjects s ON s.id = c.subject_id
+		` + gradeorder.Joins("s.source_id") + `
 		WHERE c.status IN ('accepted', 'provisional') AND c.entity_id IN (` + dbsql.SQLInPlaceholders(len(ids)) + `)
 		ORDER BY c.id`
 	rows, err := g.query(q, dbsql.BlobArgs(ids)...)
@@ -270,14 +272,16 @@ func (g *Graph) loadMembers(ids [][]byte) (map[string][]Member, error) {
 	for rows.Next() {
 		var entityID, subjectID, sourceID, graphID []byte
 		var status string
-		if err := rows.Scan(&entityID, &subjectID, &sourceID, &graphID, &status); err != nil {
+		var credibility int
+		if err := rows.Scan(&entityID, &subjectID, &sourceID, &graphID, &status, &credibility); err != nil {
 			return nil, err
 		}
 		out[string(entityID)] = append(out[string(entityID)], Member{
-			SubjectID: cloneID(subjectID),
-			SourceID:  cloneID(sourceID),
-			GraphID:   cloneID(graphID),
-			Accepted:  status == "accepted",
+			SubjectID:   cloneID(subjectID),
+			SourceID:    cloneID(sourceID),
+			GraphID:     cloneID(graphID),
+			Accepted:    status == "accepted",
+			Credibility: credibility,
 		})
 	}
 	return out, rows.Err()
@@ -291,9 +295,11 @@ func (g *Graph) loadMembers(ids [][]byte) (map[string][]Member, error) {
 func (g *Graph) loadOutcomes(ids [][]byte) (map[string]map[string][]Outcome, error) {
 	out := map[string]map[string][]Outcome{}
 	q := `SELECT ao.entity_id, ao.property_id, ao.observation_id, o.subject_id, ao.reason,
-			COALESCE(ao.value_rank, 0), ao.denied_by, COALESCE(ao.vote_support, 0), COALESCE(ao.vote_total, 0)
+			COALESCE(ao.value_rank, 0), ao.denied_by, COALESCE(ao.vote_support, 0), COALESCE(ao.vote_total, 0),
+			COALESCE(c.transcription_uncertain, 0)
 		FROM ` + g.outcomeTable + ` ao
 		LEFT JOIN observations o ON o.id = ao.observation_id
+		LEFT JOIN citations c ON c.id = o.citation_id
 		WHERE ao.entity_id IN (` + dbsql.SQLInPlaceholders(len(ids)) + `)
 		ORDER BY ao.entity_id, ao.property_id, ao.observation_id`
 	rows, err := g.query(q, dbsql.BlobArgs(ids)...)
@@ -304,7 +310,7 @@ func (g *Graph) loadOutcomes(ids [][]byte) (map[string]map[string][]Outcome, err
 	for rows.Next() {
 		var entityID, propID []byte
 		var o Outcome
-		if err := rows.Scan(&entityID, &propID, &o.ObservationID, &o.SubjectID, &o.Reason, &o.ValueRank, &o.DeniedBy, &o.VoteSupport, &o.VoteOf); err != nil {
+		if err := rows.Scan(&entityID, &propID, &o.ObservationID, &o.SubjectID, &o.Reason, &o.ValueRank, &o.DeniedBy, &o.VoteSupport, &o.VoteOf, &o.Uncertain); err != nil {
 			return nil, err
 		}
 		o.ObservationID = cloneID(o.ObservationID)

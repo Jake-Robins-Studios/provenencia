@@ -22,9 +22,10 @@ import (
 )
 
 // decided: S16-26 D-13. The three filtered list reads of one write take about
-// 1.3 ms at most at 4,000 persons; the ceiling catches a slip to a whole
-// compose (28-73 ms).
-const ceilingListRowsOfWrite = 20 * time.Millisecond
+// 1.3 ms at most at 4,000 persons. The ceiling is 30 ms to leave room for a
+// loaded machine (a parallel package run read 23-29 ms), and it still catches a
+// slip to a whole compose at its upper range (28-73 ms).
+const ceilingListRowsOfWrite = 30 * time.Millisecond
 
 // lists is the three Conclusion lists read whole.
 type lists struct {

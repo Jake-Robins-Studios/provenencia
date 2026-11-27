@@ -47,7 +47,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/namevalues"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/scalarcols"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/searchindex"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/gradeorder"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/valuerules"
 	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
@@ -102,7 +102,7 @@ var sqlLoadCandidates = `SELECT ic.entity_id, o.id, o.property_id, p.value_type,
 		COALESCE(t.key, ''), COALESCE(t.neutral, 0), o.value_subject_id,
 		o.value_depiction_id, dpv.region_json, dpv.image_file_id, c.locator_json, dpf.media_type,
 		ic.status = 'provisional', o.polarity = 'negative', a.source_id,
-		` + sourcecredibilitygrades.RelativeOrderColumn + `, c.transcription_uncertain
+		` + gradeorder.Column + `, c.transcription_uncertain
 	FROM identity_claims ic
 	JOIN observations o ON o.subject_id = ic.subject_id
 	JOIN properties p ON p.id = o.property_id
@@ -111,7 +111,7 @@ var sqlLoadCandidates = `SELECT ic.entity_id, o.id, o.property_id, p.value_type,
 	LEFT JOIN property_terms t ON t.id = o.value_term_id
 	LEFT JOIN depiction_values dpv ON dpv.id = o.value_depiction_id
 	LEFT JOIN files dpf ON dpf.id = dpv.image_file_id
-	` + sourcecredibilitygrades.RelativeOrderJoins("a.source_id") + `
+	` + gradeorder.Joins("a.source_id") + `
 	WHERE ic.status IN ('accepted', 'provisional')
 	  AND ic.entity_id IN (`
 

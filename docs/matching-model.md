@@ -49,7 +49,7 @@ Gracie Gates appears on a Source with a name and a birth on 1 May 1901. The rese
 
 | Term | Means |
 | --- | --- |
-| **value** | One recorded fact of one value type: a name, a date, a piece of text, a term, an integer, a picture, a yes/no |
+| **value** | One recorded fact of one value type: a name, a date, a piece of text, a term, an integer, a picture, a yes/no, a subject (a place the caller says what contains) |
 | **value type** | The kind of a value; each has its own value comparison |
 | **speaking pair** | The one pair of values, one from each side, that decides a property comparison |
 | **relation** | What kind of match two values are: `Same`, `Equivalent`, `Contains`, `Overlaps`, `Near`, `Different` or `Unknown` |
@@ -62,7 +62,7 @@ Gracie Gates appears on a Source with a name and a birth on 1 May 1901. The rese
 | **`Unknown`** | Nothing to compare |
 | **similarity** | How alike two things are, from 0 to 1; 1 is `Same` and 0 is `Different` |
 | **detail** | The structured reasoning behind a result: which parts paired, which were left over, the cause |
-| **cause** | A code naming the rule behind a result. Layer 1's relation causes (`exact`, `fold`, `alias`, `initial`, `spelling`, `precision`, `missing_part`, `too_long`, and so on) say why two values relate as they do; layer 2's outcome causes (`relation`, `negative`, `no_values`, `cardinality`) say why a property comparison came out as it did |
+| **cause** | A code naming the rule behind a result. Layer 1's relation causes (`exact`, `fold`, `alias`, `initial`, `spelling`, `precision`, `missing_part`, `too_long`, `within`, and so on) say why two values relate as they do; layer 2's outcome causes (`relation`, `negative`, `no_values`, `cardinality`) say why a property comparison came out as it did |
 | **value ref** | An opaque reference a caller attaches to a value (an Observation id); the layers hand it back and never read it |
 | **key** | A normalized form of a value; two values have the same key exactly when they are `Same` (or `Equivalent`, at that level) |
 | **property comparison** | Layer 2: whether two Subjects agree on one property, from every value each holds |
@@ -162,6 +162,7 @@ Keys are dotted paths of the registry, `core/matchregistry`: `section.Group.Fiel
 | `value.Dates.SpanPerExtraYear` | 0.05 | `DefaultDates.SpanPerExtraYear` | Less for each extra year of span |
 | `value.Dates.SpanFloor` | 0.2 | `DefaultDates.SpanFloor` | Lowest span similarity; open bounds |
 | `value.Dates.AboutUnits` | 1 | estimate: the design's `ABT` rule, one unit of the most precise part each side | Width of an `ABT` range |
+| `value.Subjects.Partial` | 0.7 | estimate: as `value.Text.Partial` | Similarity of a place within another |
 | `value.Integers.Tolerance` | 0 | `DefaultIntegers.Tolerance` | Most an integer pair may differ and be `Near` |
 | `subject.Weights.person.name.Agree` | 2.5 | `graphalign` name `PropertyScale.Weight` | Points for a matching name |
 | `subject.Weights.person.name.Conflict` | 3 | `graphalign` name `PropertyScale.Contradiction` | Points lost for a different name |

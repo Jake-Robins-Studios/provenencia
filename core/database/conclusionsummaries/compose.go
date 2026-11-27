@@ -686,24 +686,42 @@ func composePersons(g *graphcache.Graph, v vocab, nodes []*graphcache.Node, stor
 	if err := g.Nodes(eventIDs); err != nil {
 		return nil, nil, err
 	}
-	// A person's places are those of its birth and death events only.
+	// A person's places are those of its birth and death events only. Each
+	// pick's locations are read once, through its person's scope, and then
+	// voted: the places are folded first, and the associations of the events
+	// whose places conflict load in one call.
 	type life struct{ births, deaths []lifePick }
 	lives := map[string]life{}
-	var pickIDs [][]byte
+	var seeds [][]byte
 	for _, id := range need {
 		births, deaths, err := lifePicks(scopes[string(id)], v, byID[string(id)])
 		if err != nil {
 			return nil, nil, err
 		}
+		for _, picks := range [][]lifePick{births, deaths} {
+			for i := range picks {
+				if picks[i].locations, err = eventLocations(scopes[string(id)], picks[i].event.ID); err != nil {
+					return nil, nil, err
+				}
+				seeds = append(seeds, neighborsOf(picks[i].locations)...)
+			}
+		}
 		lives[string(id)] = life{births, deaths}
-		pickIDs = append(pickIDs, lifeEvents(births, deaths)...)
-	}
-	seeds, err := placesOfEvents(g.NoInputs(), pickIDs)
-	if err != nil {
-		return nil, nil, err
 	}
 	pg, err := buildPlaceGraph(g, v, seeds)
 	if err != nil {
+		return nil, nil, err
+	}
+	var assocs [][]byte
+	for _, l := range lives {
+		for _, picks := range [][]lifePick{l.births, l.deaths} {
+			for i := range picks {
+				picks[i].prep = prepareVote(pg, picks[i].date, picks[i].locations)
+				assocs = append(assocs, picks[i].prep.assocs...)
+			}
+		}
+	}
+	if err := g.Nodes(assocs); err != nil {
 		return nil, nil, err
 	}
 	needNodes := make([]*graphcache.Node, len(need))
@@ -718,7 +736,7 @@ func composePersons(g *graphcache.Graph, v vocab, nodes []*graphcache.Node, stor
 	inputs := map[string][]graphcache.InputKey{}
 	for _, id := range need {
 		in, l := scopes[string(id)], lives[string(id)]
-		h, seeds, err := onePerson(v, byID[string(id)], in, pg, leads[string(id)], l.births, l.deaths)
+		h, seeds, err := onePerson(v, byID[string(id)], in, leads[string(id)], l.births, l.deaths)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -758,7 +776,7 @@ func leadPictures(g *graphcache.Graph, nodes []*graphcache.Node) (map[string][]b
 
 // onePerson composes a person's row, and returns the places its birth and
 // death events are located at, which the caller records the closure of.
-func onePerson(v vocab, n *graphcache.Node, in *graphcache.InputScope, pg *placeGraph, lead []byte, births, deaths []lifePick) (PersonSummary, [][]byte, error) {
+func onePerson(v vocab, n *graphcache.Node, in *graphcache.InputScope, lead []byte, births, deaths []lifePick) (PersonSummary, [][]byte, error) {
 	h := PersonSummary{Entity: canonicalentities.FromNode(n), PictureImageFileID: lead}
 	name, count, err := keptName(n, v.prop(vocabkey.PropertyName))
 	if err != nil {
@@ -768,10 +786,10 @@ func onePerson(v vocab, n *graphcache.Node, in *graphcache.InputScope, pg *place
 	h.Gender = keptTermFacts(n, v.prop(vocabkey.PropertyGender))
 	h.SexAtBirth = keptTermFacts(n, v.prop(vocabkey.PropertySexAtBirth))
 	var birthSeeds, deathSeeds [][]byte
-	if h.Birth, birthSeeds, err = lifeFacts(in, v, pg, births); err != nil {
+	if h.Birth, birthSeeds, err = lifeFacts(in, v, births); err != nil {
 		return PersonSummary{}, nil, err
 	}
-	if h.Death, deathSeeds, err = lifeFacts(in, v, pg, deaths); err != nil {
+	if h.Death, deathSeeds, err = lifeFacts(in, v, deaths); err != nil {
 		return PersonSummary{}, nil, err
 	}
 	return h, append(birthSeeds, deathSeeds...), nil
@@ -785,6 +803,10 @@ type lifePick struct {
 	count    int
 	// key is the pick's place in date order.
 	key dateKey
+	// locations are the event's location links (eventLocations) and prep the
+	// first half of its place vote; composePersons fills both.
+	locations []graphcache.Link
+	prep      placePrep
 }
 
 // lifePicks returns the person's canonical birth and death events (the
@@ -868,13 +890,14 @@ func lifeDate(v vocab, ev *graphcache.Node) (dating eventDated, count int, propI
 
 // lifeFacts composes a birth or a death from the person's events of that kind:
 // the earliest event's date and places, and the owners behind them. Every
-// event's places are folded at its own date, and the places the events are
+// event's places are voted at its own date, and the places the events are
 // located at are returned for the caller to record the closure of.
 //
-// Owners are one date owner per event, and one place owner per event–place link
-// to a folded place, both in date order, each once, up to maxLifeOwners in all.
-// Every owner of a folded place shares the one ChainedPlace built for it.
-func lifeFacts(in *graphcache.InputScope, v vocab, pg *placeGraph, picks []lifePick) (LifeFacts, [][]byte, error) {
+// Owners are one date owner per event, then for each event every location link
+// once: the links to the places it shows first (in place order, then link
+// order), then every other link in link order, each with what the vote did to
+// it. All up to maxLifeOwners in all, in date order.
+func lifeFacts(in *graphcache.InputScope, v vocab, picks []lifePick) (LifeFacts, [][]byte, error) {
 	if len(picks) == 0 {
 		return LifeFacts{}, nil, nil
 	}
@@ -890,50 +913,47 @@ func lifeFacts(in *graphcache.InputScope, v vocab, pg *placeGraph, picks []lifeP
 	listed := map[string]bool{}
 	owned := 0
 	for i, pick := range sorted {
-		locations, err := eventLocations(in, pick.event.ID)
-		if err != nil {
-			return LifeFacts{}, nil, err
-		}
+		locations := pick.locations
 		seeds = append(seeds, neighborsOf(locations)...)
-		places, err := eventPlaces(v, pg, pick.date, locations)
+		vote, err := finishVote(in, v, pick.prep)
 		if err != nil {
 			return LifeFacts{}, nil, err
 		}
 		if i == 0 {
-			facts.Places = places
+			facts.Places = vote.places
 		}
 		if !dated[string(pick.event.ID)] && owned < maxLifeOwners {
 			dated[string(pick.event.ID)] = true
 			owned++
 			facts.Owners.Dates = append(facts.Owners.Dates, FieldOwner{ID: pick.event.ID, PropertyID: pick.dateProp})
 		}
-		for _, p := range places {
-			shared := &ChainedPlace{Entity: p.Entity, Names: p.Names}
+		// A link is listed under the first group that names it: its place's
+		// group among the shown places, else the rest.
+		for _, p := range vote.places {
 			for _, l := range locations {
-				if owned >= maxLifeOwners {
-					break
+				if bytes.Equal(l.Neighbor, p.Entity.ID) {
+					owned = listOwner(&facts.Owners, vote, l, placeProp, listed, owned)
 				}
-				if !bytes.Equal(l.Neighbor, p.Entity.ID) || len(l.Association) == 0 || listed[string(l.Association)] {
-					continue
-				}
-				listed[string(l.Association)] = true
-				owned++
-				facts.Owners.Places = append(facts.Owners.Places, FieldOwner{
-					ID: l.Association, PropertyID: placeProp, Place: shared,
-				})
 			}
+		}
+		for _, l := range locations {
+			owned = listOwner(&facts.Owners, vote, l, placeProp, listed, owned)
 		}
 	}
 	return facts, seeds, nil
 }
 
-// lifeEvents are the ids of the births' and then the deaths' events.
-func lifeEvents(births, deaths []lifePick) [][]byte {
-	out := make([][]byte, 0, len(births)+len(deaths))
-	for _, pick := range append(append([]lifePick(nil), births...), deaths...) {
-		out = append(out, pick.event.ID)
+// listOwner files the link as a place owner when it has a verdict, is not
+// listed yet and there is room, and returns the owner count.
+func listOwner(owners *LifeOwners, vote placeVote, l graphcache.Link, placeProp []byte, listed map[string]bool, owned int) int {
+	owner, ok := vote.links[string(l.Association)]
+	if !ok || owned >= maxLifeOwners || listed[string(l.Association)] {
+		return owned
 	}
-	return out
+	listed[string(l.Association)] = true
+	owner.PropertyID = placeProp
+	owners.Places = append(owners.Places, owner)
+	return owned + 1
 }
 
 // maxLifeOwners is the most owners (date and place together) one life row keeps;
@@ -946,15 +966,18 @@ const maxLifeOwners = 64
 // decided: user, 2026-11-08 (Spike 16 rule "Crafted fan-out is capped, not engineered"): a real event names one to three places
 const maxEventPlaces = 20
 
-// eventLocations follows an event's locations through in and keeps every link
-// whose place is among the first maxEventPlaces distinct places (by
-// Link.Neighbor, whether or not that place's node loads later), in link order.
-// It is the one read of an event's places: the place graph, the folded places
-// and the life owners all agree on it.
+// eventLocations follows an event's locations through in and keeps the first
+// maxLifeOwners links, in link order, and of those every link whose place is
+// among the first maxEventPlaces distinct places (by Link.Neighbor, whether or
+// not that place's node loads later). It is the one read of an event's places:
+// the place graph, the vote and the life owners all agree on it.
 func eventLocations(in *graphcache.InputScope, eventID []byte) ([]graphcache.Link, error) {
 	links, err := follow(in, eventID, hops.PlacesOfEvent)
 	if err != nil {
 		return nil, err
+	}
+	if len(links) > maxLifeOwners {
+		links = links[:maxLifeOwners]
 	}
 	places := map[string]bool{}
 	kept := links[:0:0]
@@ -968,20 +991,6 @@ func eventLocations(in *graphcache.InputScope, eventID []byte) ([]graphcache.Lin
 		kept = append(kept, l)
 	}
 	return kept, nil
-}
-
-// placesOfEvents follows each event's locations through in and returns the
-// places at their far ends.
-func placesOfEvents(in *graphcache.InputScope, eventIDs [][]byte) ([][]byte, error) {
-	var out [][]byte
-	for _, id := range eventIDs {
-		locations, err := eventLocations(in, id)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, neighborsOf(locations)...)
-	}
-	return out, nil
 }
 
 func neighborsOf(links []graphcache.Link) [][]byte {
@@ -1025,12 +1034,29 @@ func composeEvents(g *graphcache.Graph, v vocab, nodes []*graphcache.Node, store
 	if err != nil {
 		return nil, nil, err
 	}
+	// Fold each event's places at its date; the associations of the events
+	// whose places conflict load in one call.
+	datings := map[string]valuecompare.Dating{}
+	preps := map[string]placePrep{}
+	var assocs [][]byte
+	for _, n := range need {
+		dating, err := eventDating(n, v)
+		if err != nil {
+			return nil, nil, err
+		}
+		prep := prepareVote(pg, eventFoldDate(dating), locationsOf[string(n.ID)])
+		datings[string(n.ID)], preps[string(n.ID)] = dating, prep
+		assocs = append(assocs, prep.assocs...)
+	}
+	if err := g.Nodes(assocs); err != nil {
+		return nil, nil, err
+	}
 	fresh := map[string]EventSummary{}
 	inputs := map[string][]graphcache.InputKey{}
 	for _, n := range need {
 		in := scopes[string(n.ID)]
 		locations := locationsOf[string(n.ID)]
-		h, err := oneEvent(in, v, pg, n, locations)
+		h, err := oneEvent(in, v, n, datings[string(n.ID)], preps[string(n.ID)])
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1045,32 +1071,36 @@ func composeEvents(g *graphcache.Graph, v vocab, nodes []*graphcache.Node, store
 	return displayed(g, nodes, fresh, func(h EventSummary) EventSummary { return finishEvent(v, h) }), inputs, nil
 }
 
-func oneEvent(in *graphcache.InputScope, v vocab, pg *placeGraph, n *graphcache.Node, locations []graphcache.Link) (EventSummary, error) {
-	h := EventSummary{Entity: canonicalentities.FromNode(n)}
-	h.EventName, h.EventNameCount = keptText(n, v.prop("event_name"))
-	h.Type = keptTermFacts(n, v.prop(vocabkey.PropertyEventType))
+// eventDating is the dating of an Event from its kept dates.
+func eventDating(n *graphcache.Node, v vocab) (valuecompare.Dating, error) {
 	date, _, err := keptDateAt(n, v.prop(string(eventLead)))
 	if err != nil {
-		return EventSummary{}, err
+		return valuecompare.Dating{}, err
 	}
 	start, _, err := keptDateAt(n, v.prop(string(eventPeriod.Start)))
 	if err != nil {
-		return EventSummary{}, err
+		return valuecompare.Dating{}, err
 	}
 	end, _, err := keptDateAt(n, v.prop(string(eventPeriod.End)))
 	if err != nil {
-		return EventSummary{}, err
+		return valuecompare.Dating{}, err
 	}
-	h.Dating = valuecompare.DatingOf(date, start, end, keptDates(n, v.prop(string(eventPeriod.Samples))))
+	return valuecompare.DatingOf(date, start, end, keptDates(n, v.prop(string(eventPeriod.Samples)))), nil
+}
+
+// oneEvent composes an Event's row. dating is eventDating's and prep the first
+// half of its place vote, made at that dating's fold date.
+func oneEvent(in *graphcache.InputScope, v vocab, n *graphcache.Node, dating valuecompare.Dating, prep placePrep) (EventSummary, error) {
+	h := EventSummary{Entity: canonicalentities.FromNode(n)}
+	h.EventName, h.EventNameCount = keptText(n, v.prop("event_name"))
+	h.Type = keptTermFacts(n, v.prop(vocabkey.PropertyEventType))
+	h.Dating = dating
 	h.DatingProperties = datingProperties(h.Dating.Kind)
-	at := h.Dating.Low
-	if at == nil {
-		at = h.Dating.High
-	}
-	h.Places, err = eventPlaces(v, pg, at, locations)
+	vote, err := finishVote(in, v, prep)
 	if err != nil {
 		return EventSummary{}, err
 	}
+	h.Places = vote.places
 	seen := map[string]bool{}
 	subjectLinks, err := follow(in, n.ID, hops.SubjectsOfEvent)
 	if err != nil {
@@ -1266,30 +1296,6 @@ func eventKeyOf(h EventSummary) dateKey {
 // one, else the ref alone.
 func birthKeyOf(h PersonSummary) dateKey {
 	return dateKeyOf(h.Birth.Date, h.Entity.Ref)
-}
-
-// eventPlaces are the event's Places, folded at the date the caller passes (nil
-// for none); locations are the
-// links the caller followed from the event. Each place's names come from its
-// entry in pg, so no place node is read.
-func eventPlaces(v vocab, pg *placeGraph, at *datevalue.Value, locations []graphcache.Link) ([]ChainedPlace, error) {
-	var raw []ChainedPlace
-	seen := map[string]bool{}
-	for _, l := range locations {
-		if seen[string(l.Neighbor)] {
-			continue
-		}
-		seen[string(l.Neighbor)] = true
-		shell, ok := pg.shell(l.Neighbor)
-		if !ok {
-			continue
-		}
-		raw = append(raw, ChainedPlace{Entity: shell.Entity, Names: shell.Names})
-	}
-	if len(raw) == 0 {
-		return nil, nil
-	}
-	return pg.FoldLocations(raw, at), nil
 }
 
 func composePlaces(g *graphcache.Graph, v vocab, nodes []*graphcache.Node, store bool, rec *inputBudget) ([]PlaceSummary, map[string][]graphcache.InputKey, error) {

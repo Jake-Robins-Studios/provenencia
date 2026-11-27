@@ -31,6 +31,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibility"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/gradeorder"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
@@ -169,7 +170,7 @@ func Impact(c *database.Catalog, seed evidencegraphs.Seed, targetID []byte) (Rep
 	rep.WeighedAsLabel = rep.TargetCredibilityLabel
 	if rep.WeighedAsLabel == "" {
 		// A Source with no assessment weighs as the provenencia default grade.
-		def, err := sourcecredibilitygrades.Lookup(c, sourcecredibilitygrades.DefaultKey, vocabkey.OriginProvenencia)
+		def, err := sourcecredibilitygrades.Lookup(c, gradeorder.DefaultKey, vocabkey.OriginProvenencia)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return Report{}, err
 		}

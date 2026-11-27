@@ -1,22 +1,29 @@
 package conclusiondetails_test
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/autoreconcile"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusiondetails"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/databasetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs/evidencegraphstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/observations"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/searchindex"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibility"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectpositions"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/hops"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 )
 
@@ -32,29 +39,47 @@ func (f *fixture) at(s subjects.Subject, x, y int64) {
 // promotes all three, and returns the Person's handle.
 func (f *fixture) birthAt(src sources.Source, toponyms ...observations.Input) ([]byte, subjects.Subject) {
 	f.T.Helper()
-	person, birth, place := f.personOn(src), f.subjectOn(src, "event"), f.subjectOn(src, "place")
-	f.at(person, 0, 0)
-	f.at(birth, 4, 0)
-	f.at(place, 8, 0)
-	f.cite(person, f.nameIn(person, "form:Ann Lee"))
+	h, _, _, place := f.fileBirth(src, toponyms, nil, nil, nil)
+	return h, place
+}
+
+// placedBirth files a Person born at a Place named toponym on src, and
+// promotes each onto the handle given (nil promotes a new handle). It returns
+// the handles.
+func (f *fixture) placedBirth(src sources.Source, toponym string, person, birth, place []byte) (personH, birthH, placeH []byte) {
+	f.T.Helper()
+	personH, birthH, placeH, _ = f.fileBirth(src, []observations.Input{text(toponym)}, person, birth, place)
+	return personH, birthH, placeH
+}
+
+// fileBirth is the one filing of a birth: a Person, a birth Event and a Place
+// with the toponym records given, linked, each promoted onto the handle given
+// (nil for a new one). It returns the handles and the Place's Subject.
+func (f *fixture) fileBirth(src sources.Source, toponyms []observations.Input, person, birth, place []byte) (personH, birthH, placeH []byte, placeSubject subjects.Subject) {
+	f.T.Helper()
+	p, b, pl := f.personOn(src), f.subjectOn(src, "event"), f.subjectOn(src, "place")
+	f.at(p, 0, 0)
+	f.at(b, 4, 0)
+	f.at(pl, 8, 0)
+	f.cite(p, f.nameIn(p, "form:Ann Lee"))
 	eventType := f.Prop("event_type")
 	term := f.Term("event_type", "birth")
-	f.cite(birth, observations.Input{SubjectID: birth.ID, PropertyID: eventType.ID, ValueTermID: term.ID})
+	f.cite(b, observations.Input{SubjectID: b.ID, PropertyID: eventType.ID, ValueTermID: term.ID})
 	for _, in := range toponyms {
-		in.SubjectID, in.PropertyID = place.ID, f.Prop("toponym").ID
-		f.cite(place, in)
+		in.SubjectID, in.PropertyID = pl.ID, f.Prop("toponym").ID
+		f.cite(pl, in)
 	}
 	// A blank toponym can't be filed through the write path; blank the marker.
 	db, err := f.C.DB()
 	must(f.T, err)
 	_, err = db.Exec(`UPDATE observations SET value_text = '  ' || char(9) || ' ' WHERE value_text = ?`, blankMarker)
 	must(f.T, err)
-	f.Participation(src, f.arts[string(src.ID)], person, birth, "subject")
-	f.Locate(src, f.arts[string(src.ID)], birth, place)
-	h := f.promote(person, nil)
-	f.promote(birth, nil)
-	f.promote(place, nil)
-	return h, place
+	f.Participation(src, f.arts[string(src.ID)], p, b, "subject")
+	f.Locate(src, f.arts[string(src.ID)], b, pl)
+	personH = f.promote(p, person)
+	birthH = f.promote(b, birth)
+	placeH = f.promote(pl, place)
+	return personH, birthH, placeH, pl
 }
 
 // datedBirth dates the birth event of the Person born through birthAt and
@@ -219,4 +244,137 @@ func TestPersonDerivedRowsRecordInputs(t *testing.T) {
 	holdsIDs(t, "handles", handles, false, want...)
 	holdsIDs(t, "graphs", graphs, true, evidencegraphstest.SoleGraph(t, f.C, src.ID).ID)
 	holdsIDs(t, "sources", srcs, true, src.ID)
+}
+
+// grade assesses src as the provenencia credibility grade key.
+func (f *fixture) grade(src sources.Source, key string) {
+	f.T.Helper()
+	g, err := sourcecredibilitygrades.Lookup(f.C, key, vocabkey.OriginProvenencia)
+	must(f.T, err)
+	_, err = writes.Call(f.C, writes.Op{Action: "create_source_credibility_assessment", UserID: userID}, func(tx *database.Tx) (sourcecredibility.Assessment, []rowchange.Change, error) {
+		return sourcecredibility.Upsert(tx, userID, sourcecredibility.UpsertInput{SourceID: src.ID, CredibilityGradeID: g.ID})
+	})
+	must(f.T, err)
+}
+
+// TestPlaceOwnersCarryTheVote: the Birth place sheet lists every record behind
+// the event's place links, each with what the vote did to it (S16-80 AC-3.x).
+func TestPlaceOwnersCarryTheVote(t *testing.T) {
+	type outcome struct {
+		reason    string
+		vote      autoreconcile.Vote
+		valueRank int // 0 for "folded"
+		weakCred  bool
+	}
+	tests := []struct {
+		name  string
+		build func(f *fixture) (person, shown, other []byte)
+		shown []outcome // the shown place's records
+		other []outcome // the other place's records
+	}{
+		{"three Sources outvote the fourth", func(f *fixture) ([]byte, []byte, []byte) {
+			person, birth, swift := f.placedBirth(f.source("Register 1"), "Swift Current", nil, nil, nil)
+			f.placedBirth(f.source("Register 2"), "Swift Current", person, birth, swift)
+			f.placedBirth(f.source("Register 3"), "Swift Current", person, birth, swift)
+			_, _, england := f.placedBirth(f.source("Gazette"), "England", person, birth, nil)
+			return person, swift, england
+		}, []outcome{{"kept", autoreconcile.Vote{}, 1, false}, {"kept", autoreconcile.Vote{}, 1, false}, {"kept", autoreconcile.Vote{}, 1, false}},
+			[]outcome{{"outvoted", autoreconcile.Vote{Support: 3, Of: 4}, 1, false}}},
+		{"a container folds into the place it contains", func(f *fixture) ([]byte, []byte, []byte) {
+			reg := f.source("Register")
+			person, birth, swift := f.placedBirth(reg, "Swift Current", nil, nil, nil)
+			_, _, canada := f.placedBirth(f.source("Gazette"), "Canada", person, birth, nil)
+			rel := f.source("Atlas")
+			s, c := f.subjectOn(rel, "place"), f.subjectOn(rel, "place")
+			f.at(s, 0, 0)
+			f.at(c, 4, 0)
+			f.PlaceRel(rel, f.arts[string(rel.ID)], s, c, "part_of")
+			f.promote(s, swift)
+			f.promote(c, canada)
+			return person, swift, canada
+		}, []outcome{{"kept", autoreconcile.Vote{}, 1, false}}, []outcome{{"folded", autoreconcile.Vote{}, 0, false}}},
+		{"a low-trust record is weak", func(f *fixture) ([]byte, []byte, []byte) {
+			low := f.source("Rumour")
+			f.grade(low, "low_trust")
+			person, birth, swift := f.placedBirth(low, "Swift Current", nil, nil, nil)
+			_, _, england := f.placedBirth(f.source("Gazette"), "England", person, birth, nil)
+			return person, swift, england
+		}, []outcome{{"weak", autoreconcile.Vote{}, 1, true}}, []outcome{{"kept", autoreconcile.Vote{}, 1, false}}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newFixture(t)
+			person, shown, other := tc.build(f)
+			owners := f.placeRows(person)
+			if len(owners) != 2 {
+				t.Fatalf("%d owners, want two (one per place)", len(owners))
+			}
+			for _, o := range owners {
+				want := tc.shown
+				if bytes.Equal(o.Place.Entity.ID, other) {
+					want = tc.other
+				} else if !bytes.Equal(o.Place.Entity.ID, shown) {
+					t.Fatalf("owner holds place %x, want %x or %x", o.Place.Entity.ID, shown, other)
+				}
+				if len(o.Field.Outcomes) != len(want) {
+					t.Fatalf("owner of %x: %d records, want %d", o.Place.Entity.ID, len(o.Field.Outcomes), len(want))
+				}
+				for i, got := range o.Field.Outcomes {
+					w := want[i]
+					if got.Reason != w.reason || got.Vote != w.vote || got.ValueRank != w.valueRank || (got.Provenance.Credibility < 0) != w.weakCred {
+						t.Fatalf("owner of %x record %d: %q %+v rank %d provenance %+v, want %+v", o.Place.Entity.ID, i, got.Reason, got.Vote, got.ValueRank, got.Provenance, w)
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestOutvotedPlaceLeavesSearchOnWrite: a write that changes the event's place
+// vote but not the association's displayed rows still drops the outvoted
+// place from the Person's and Event's search documents, as a rebuild does.
+func TestOutvotedPlaceLeavesSearchOnWrite(t *testing.T) {
+	f := newFixture(t)
+	englandDocs := func() []string {
+		rows, err := dbtest.MustDB(t, f.C).Query(`SELECT kind, entity_id FROM catalog_search_docs
+			WHERE kind IN ('person', 'event') AND (title LIKE '%England%' OR secondary LIKE '%England%')`)
+		must(t, err)
+		defer rows.Close()
+		var out []string
+		for rows.Next() {
+			var kind, id string
+			must(t, rows.Scan(&kind, &id))
+			out = append(out, kind+" "+id)
+		}
+		must(t, rows.Err())
+		return out
+	}
+	person, birth, swift := f.placedBirth(f.source("Register 1"), "Swift Current", nil, nil, nil)
+	f.placedBirth(f.source("Gazette"), "England", person, birth, nil)
+	f.placedBirth(f.source("Register 2"), "Swift Current", person, birth, swift)
+	if got := englandDocs(); len(got) != 0 {
+		t.Fatalf("outvoted England still matches search documents %v", got)
+	}
+}
+
+// TestPlaceLinkWriteLeavesOnePlaceRowsAlone: a second Source's record of the
+// place a birth already shows joins the same association and moves nothing the
+// Person's or the Event's rows read, so reprojecting the written association
+// finds no dependent row.
+func TestPlaceLinkWriteLeavesOnePlaceRowsAlone(t *testing.T) {
+	f := newFixture(t)
+	person, birth, swift := f.placedBirth(f.source("Register 1"), "Swift Current", nil, nil, nil)
+	f.placedBirth(f.source("Register 2"), "Swift Current", person, birth, swift)
+	links, err := f.C.Graph().Follow(birth, hops.PlacesOfEvent)
+	must(t, err)
+	if len(links) != 1 {
+		t.Fatalf("links %+v, want the one place link", links)
+	}
+	got, err := searchindex.ReprojectChanged(dbtest.MustDB(t, f.C), [][]byte{links[0].Association}, nil)
+	must(t, err)
+	for _, id := range got {
+		if bytes.Equal(id, person) || bytes.Equal(id, birth) {
+			t.Fatalf("reprojected %x, a row the write did not move (all %x)", id, got)
+		}
+	}
 }

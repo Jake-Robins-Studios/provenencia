@@ -15,6 +15,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibility"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/gradeorder"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/sourcecredibilitygradestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
@@ -182,7 +183,7 @@ func TestRecordsBuildOutOfRangeGrade(t *testing.T) {
 	r := recordsFixture(t)
 	db, err := r.C.DB()
 	evidencelayertest.Must(t, err)
-	_, err = db.Exec(`UPDATE source_credibility_grades SET sort_order = -9223372036854775807 WHERE key = ?`, sourcecredibilitygrades.DefaultKey)
+	_, err = db.Exec(`UPDATE source_credibility_grades SET sort_order = -9223372036854775807 WHERE key = ?`, gradeorder.DefaultKey)
 	evidencelayertest.Must(t, err)
 	_, err = writes.Call(r.C, writes.Op{Action: "upsert_source_credibility_grade"},
 		func(tx *database.Tx) ([]byte, []rowchange.Change, error) {

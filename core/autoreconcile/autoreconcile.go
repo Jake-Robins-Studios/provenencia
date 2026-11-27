@@ -23,6 +23,7 @@
 package autoreconcile
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -79,8 +80,11 @@ type Value struct {
 	Neutral   bool   // the term is no evidence either way (its catalog flag)
 	SubjectID []byte // the cited subject
 	EntityID  []byte // that subject's accepted handle, when the loader resolved one
-	Date      *datevalue.Value
-	Name      *namevalue.Value
+	// Within is the entities that contain EntityID at the value's date, filled
+	// by a caller that has them (an event's places); empty folds nothing.
+	Within [][]byte
+	Date   *datevalue.Value
+	Name   *namevalue.Value
 	// Depiction is the depiction_values row, read through
 	// depictionvalue.Readable; its ImageFileID is empty when the image is refused.
 	Depiction *depictionvalue.Value
@@ -100,6 +104,18 @@ type Candidate struct {
 	// Provisional is a candidate from a provisional member: never displayed.
 	Provisional bool
 	Provenance  Provenance
+}
+
+// RanksBefore is the order a reconcile ranks its candidates in: stronger
+// Provenance first, then the smaller ObservationID.
+func RanksBefore(a, b Candidate) bool {
+	if a.Provenance.Stronger(b.Provenance) {
+		return true
+	}
+	if b.Provenance.Stronger(a.Provenance) {
+		return false
+	}
+	return bytes.Compare(a.ObservationID, b.ObservationID) < 0
 }
 
 // Provenance is how strong a candidate's evidence is, each part relative to

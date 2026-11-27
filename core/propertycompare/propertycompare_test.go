@@ -79,7 +79,7 @@ func TestCompare(t *testing.T) {
 			outcome: unknown, cause: noValues},
 		{name: "AC-1.9 no values on either side", valType: tTerm, card: single, a: nil, b: nil,
 			outcome: unknown, cause: noValues},
-		{name: "AC-1.10 unsupported value type", valType: propertymeta.ValueTypeSubject, card: single, a: []V{propertycomparetest.Text("x")}, b: []V{propertycomparetest.Text("y")},
+		{name: "AC-1.10 unsupported value type", valType: "unregistered", card: single, a: []V{propertycomparetest.Text("x")}, b: []V{propertycomparetest.Text("y")},
 			outcome: unknown, cause: rel, pair: &wantPair{a: "x", b: "y", rel: unk, sim: 0, detCause: valuecompare.CauseUnsupported}},
 		{name: "AC-1.11 empty cardinality reads as single", valType: tTerm, card: "", a: []V{propertycomparetest.Term("male")}, b: []V{propertycomparetest.Term("female")},
 			outcome: conflict, cause: rel, pair: &wantPair{a: "male", b: "female", rel: different, sim: 0}},

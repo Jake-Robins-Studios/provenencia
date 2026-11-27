@@ -12,6 +12,7 @@
 package conclusionsummaries
 
 import (
+	"github.com/Jake-Robins-Studios/provenencia/core/autoreconcile"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/canonicalentities"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
@@ -90,11 +91,17 @@ type ChainedPlace struct {
 // FieldOwner is the id of one entity and the Property of it that a Person's
 // life row reads. A place owner's entity is the event-place link's association
 // and its Property is that of the place end; Place is the Place that end holds,
-// with its own toponyms and no parents. Place is nil for a date owner.
+// with its own toponyms and no parents. Place is nil for a date owner. A place
+// owner lists every location link of the event, the shown places' first.
 type FieldOwner struct {
 	ID         []byte
 	PropertyID []byte
 	Place      *ChainedPlace
+	// Reason and Vote are what a vote did to this owner: kept, folded,
+	// outvoted or weak, and for outvoted the majority that beat it. Reason is
+	// empty when no vote ran (a date owner).
+	Reason autoreconcile.Reason
+	Vote   autoreconcile.Vote
 }
 
 // LifeOwners are the owners behind one life row: the date owners (one per

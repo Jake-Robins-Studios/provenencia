@@ -473,13 +473,16 @@ func valueOf(s propertymeta.Scalar, termID, dateID, date, nameID, name []byte, t
 // recordReader composes an Outcome from the node's outcome row, the graph's
 // Subject record and the Source record.
 type recordReader struct {
-	recs     *sources.RecordIndex
-	graphs   map[string]*graphfill.GraphRecords // by graph id
-	graphOf  map[string][]byte                  // Subject id -> graph id
-	terms    map[string]graphcache.VocabTerm
-	toponym  []byte
-	toponyms map[string]string // value Subject id -> first toponym
-	in       *graphcache.PageInputs
+	recs    *sources.RecordIndex
+	graphs  map[string]*graphfill.GraphRecords // by graph id
+	graphOf map[string][]byte                  // Subject id -> graph id
+	// credibility is the Source's grade of each member Subject, as the node
+	// carries it (graphcache.Member.Credibility).
+	credibility map[string]int
+	terms       map[string]graphcache.VocabTerm
+	toponym     []byte
+	toponyms    map[string]string // value Subject id -> first toponym
+	in          *graphcache.PageInputs
 }
 
 // newRecordReader holds the records of every graph the rows' Subjects are on,
@@ -488,15 +491,17 @@ type recordReader struct {
 // composes as it is read.
 func newRecordReader(g *graphcache.Graph, v graphcache.Vocabulary, nodes []*graphcache.Node, rows []graphcache.Outcome, in *graphcache.PageInputs) (*recordReader, error) {
 	r := &recordReader{
-		graphOf:  map[string][]byte{},
-		terms:    v.TermsByID(),
-		toponym:  v.PropertyID(vocabkey.PropertyToponym, vocabkey.OriginProvenencia),
-		toponyms: map[string]string{},
-		in:       in,
+		graphOf:     map[string][]byte{},
+		credibility: map[string]int{},
+		terms:       v.TermsByID(),
+		toponym:     v.PropertyID(vocabkey.PropertyToponym, vocabkey.OriginProvenencia),
+		toponyms:    map[string]string{},
+		in:          in,
 	}
 	for _, n := range nodes {
 		for _, m := range n.Members {
 			r.graphOf[string(m.SubjectID)] = m.GraphID
+			r.credibility[string(m.SubjectID)] = m.Credibility
 		}
 	}
 	var graphIDs [][]byte
@@ -575,7 +580,7 @@ func (r *recordReader) outcome(row graphcache.Outcome) (Outcome, bool, error) {
 		ArtifactPage:   obs.ArtifactPage,
 		PageLabel:      obs.PageLabel,
 		CredibilityKey: src.CredibilityKey,
-		Provenance:     autoreconcile.Provenance{Credibility: src.Credibility, Uncertain: obs.TranscriptionUncertain},
+		Provenance:     autoreconcile.Provenance{Credibility: r.credibility[string(row.SubjectID)], Uncertain: row.Uncertain},
 	}, true, nil
 }
 
@@ -697,6 +702,7 @@ func PersonDerivedRows(c *database.Catalog, personID []byte, in *graphcache.Page
 					continue
 				}
 				owner := OwnerField{Entity: canonicalentities.FromNode(node), Place: copyPlace(o.Place), Field: f}
+				ownerVerdict(o, &owner.Field)
 				if l.events {
 					owner.Event = eventOf[string(o.ID)]
 				}
@@ -709,6 +715,28 @@ func PersonDerivedRows(c *database.Catalog, personID []byte, in *graphcache.Page
 		}
 	}
 	return out, nil
+}
+
+// ownerVerdict lays what a vote did to an owner over its field: with the
+// owner's Reason set, every outcome that was kept or folded in the field takes
+// the owner's Reason and Vote, and a folded one reads as plain "folded" (its
+// value rank is 0, so no value is named). With Reason empty it changes nothing.
+// The field's outcomes are copied first, so nothing shared is written.
+func ownerVerdict(owner conclusionsummaries.FieldOwner, f *Field) {
+	if owner.Reason == "" {
+		return
+	}
+	f.Outcomes = slices.Clone(f.Outcomes)
+	for i := range f.Outcomes {
+		o := &f.Outcomes[i]
+		if o.Reason != string(autoreconcile.ReasonKept) && o.Reason != string(autoreconcile.ReasonFolded) {
+			continue
+		}
+		o.Reason, o.Vote = string(owner.Reason), owner.Vote
+		if owner.Reason == autoreconcile.ReasonFolded {
+			o.ValueRank = 0
+		}
+	}
 }
 
 // copyPlace is a copy of p that shares no slice with it, so nothing outside the

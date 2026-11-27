@@ -827,3 +827,47 @@ func TestLinkFromARecordToItselfIsNotRead(t *testing.T) {
 		}
 	})
 }
+
+func TestNodeProvenance(t *testing.T) {
+	c := graphcachetest.OpenCatalog(t)
+	db, err := c.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	k := graphcachetest.NewCanon(t, c)
+	event, place := k.Event(vocabkey.EventBirth), k.Entity("place")
+	standard := k.Location(event, place)
+	k.NewSource("low_trust", true)
+	low := k.Location(event, place)
+	k.Commit(event, place, standard, low)
+	g := c.Graph()
+	prop := propertyID(t, db, "place")
+
+	tests := []struct {
+		name        string
+		assoc       []byte
+		credibility int
+		uncertain   bool
+	}{
+		{"standard Source, certain Citation", standard, 0, false},
+		{"low-trust Source, uncertain Citation", low, -1, true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			n, err := g.Node(tc.assoc)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(n.Members) != 1 || n.Members[0].Credibility != tc.credibility {
+				t.Fatalf("members %+v, want credibility %d", n.Members, tc.credibility)
+			}
+			rows := n.Outcomes[prop]
+			if len(rows) != 1 || rows[0].Uncertain != tc.uncertain {
+				t.Fatalf("outcomes %+v, want uncertain %v", rows, tc.uncertain)
+			}
+		})
+	}
+	if err := g.Verify(); err != nil {
+		t.Fatal(err)
+	}
+}

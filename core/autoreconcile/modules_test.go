@@ -149,3 +149,92 @@ func TestReconcileDepictionMultiple(t *testing.T) {
 		}
 	})
 }
+
+// subjectOf is a subject candidate for the entity (one byte), recorded by a
+// Source of its own unless source is given, whose Within holds the entities.
+func subjectOf(n, source, entity byte, within ...byte) Candidate {
+	v := Value{SubjectID: []byte{n}}
+	if entity != 0 {
+		v.EntityID = []byte{entity}
+	}
+	for _, w := range within {
+		v.Within = append(v.Within, []byte{w})
+	}
+	return Candidate{ObservationID: id(n), SourceID: []byte{source}, Value: v}
+}
+
+func TestSubjectsFoldWithin(t *testing.T) {
+	const a, b, c = 1, 2, 3 // entities; A and B lie within C
+	tests := []struct {
+		name  string
+		in    []Candidate
+		shape [][]byte
+		state State
+		// reasons are the outcome reasons by Observation id; votes the outvoted ones.
+		reasons map[byte]Reason
+		votes   map[byte]Vote
+		support []int
+	}{
+		{name: "a majority outvotes a sibling",
+			in: []Candidate{
+				subjectOf(1, 1, a, c), subjectOf(2, 2, a, c), subjectOf(3, 3, a, c), subjectOf(4, 4, b, c),
+			},
+			shape: [][]byte{{1, 2, 3}, {4}}, state: StateMerged,
+			reasons: map[byte]Reason{1: ReasonKept, 4: ReasonOutvoted},
+			votes:   map[byte]Vote{4: {Support: 3, Of: 4}}, support: []int{3, 1}},
+		{name: "a container folds into the place it contains",
+			in: []Candidate{
+				subjectOf(1, 1, a, c), subjectOf(2, 2, a, c), subjectOf(3, 3, a, c), subjectOf(4, 4, c),
+			},
+			shape: [][]byte{{1, 2, 3, 4}}, state: StateMerged,
+			reasons: map[byte]Reason{1: ReasonKept, 4: ReasonFolded}, support: []int{4}},
+		{name: "one Source each: both stay, the earlier record leads",
+			in:    []Candidate{subjectOf(1, 1, a, c), subjectOf(2, 2, b, c)},
+			shape: [][]byte{{1}, {2}}, state: StateMixed,
+			reasons: map[byte]Reason{1: ReasonKept, 2: ReasonKept}, support: []int{1, 1}},
+		{name: "a weak record drops",
+			in:    []Candidate{lowTrust(subjectOf(1, 1, a, c)), subjectOf(2, 2, b, c)},
+			shape: [][]byte{{2}, {1}}, state: StateSingle,
+			reasons: map[byte]Reason{1: ReasonWeak, 2: ReasonKept}},
+		{name: "the container folds into the first sibling and the other is outvoted",
+			in:    []Candidate{subjectOf(1, 1, a, c), subjectOf(2, 2, c), subjectOf(3, 3, b, c)},
+			shape: [][]byte{{1, 2}, {3}}, state: StateMerged,
+			reasons: map[byte]Reason{1: ReasonKept, 2: ReasonFolded, 3: ReasonOutvoted},
+			votes:   map[byte]Vote{3: {Support: 2, Of: 3}}, support: []int{2, 1}},
+		{name: "no Within: nothing folds",
+			in:    []Candidate{subjectOf(1, 1, a), subjectOf(2, 2, c)},
+			shape: [][]byte{{1}, {2}}, state: StateMixed,
+			reasons: map[byte]Reason{1: ReasonKept, 2: ReasonKept}, support: []int{1, 1}},
+		{name: "no entity: no evidence",
+			in:    []Candidate{subjectOf(1, 1, 0, c), subjectOf(2, 2, 0)},
+			shape: nil, state: StateEmpty},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := Reconcile(testRules, propertymeta.ValueTypeSubject, tc.in, nil, propertymeta.CardinalitySingle)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if s := shape(got); !reflect.DeepEqual(s, tc.shape) {
+				t.Fatalf("values %v, want %v", s, tc.shape)
+			}
+			if got.State() != tc.state {
+				t.Fatalf("state %q, want %q", got.State(), tc.state)
+			}
+			for i, want := range tc.support {
+				if got.Values[i].Support != want {
+					t.Errorf("value %d support %d, want %d", i, got.Values[i].Support, want)
+				}
+			}
+			for _, o := range got.Outcomes {
+				n := o.ObservationID[3]
+				if want, ok := tc.reasons[n]; ok && o.Reason != want {
+					t.Errorf("Observation %d: %s, want %s", n, o.Reason, want)
+				}
+				if want, ok := tc.votes[n]; ok && o.Vote != want {
+					t.Errorf("Observation %d: vote %+v, want %+v", n, o.Vote, want)
+				}
+			}
+		})
+	}
+}

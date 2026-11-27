@@ -102,13 +102,16 @@ type inputRow struct {
 //
 //   - every row composed from a gone or merged handle, whatever its key;
 //   - every row composed from a moved handle's own values;
+//   - every row that read the records of a written association, moved or
+//     not, because an event's place vote reads each one's records and a write
+//     can change the vote without changing what the association displays;
 //   - every row composed from a link at an end of an association that moved or
 //     went, by the ends the index recorded and the ends it has now.
 //
-// A handle that was written but neither moved nor gone adds no key. It then
-// reprojects written and those rows on one graph and returns the rows it found
-// plus the ends of the changed links, which are the handles whose pages the
-// app reloads. An end that no row reads through is reported, not reprojected.
+// A handle that was written but neither moved nor gone adds no key, except the
+// records key a vote read. It then reprojects written and those rows on one
+// graph and returns the rows it found plus the ends of the changed links, which
+// are the handles whose pages the app reloads. An end that no row reads through is reported, not reprojected.
 func ReprojectChanged(q database.Execer, written, moved [][]byte) ([][]byte, error) {
 	written = database.UniqueBlobIDs(written)
 	if len(written) == 0 {
@@ -136,6 +139,15 @@ func ReprojectChanged(q database.Execer, written, moved [][]byte) ([][]byte, err
 			keys = append(keys, graphcache.InputKey{ID: id})
 			movedLive = append(movedLive, id)
 		}
+	}
+	var writtenLive [][]byte
+	for _, id := range written {
+		if !isGone[string(id)] {
+			writtenLive = append(writtenLive, id)
+		}
+	}
+	for _, id := range writtenLive {
+		keys = append(keys, graphcache.RecordsKey(id))
 	}
 	changed := append(append([][]byte(nil), gone...), movedLive...)
 	old, err := oldEnds(q, changed)

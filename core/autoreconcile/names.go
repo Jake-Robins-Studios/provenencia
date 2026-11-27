@@ -126,7 +126,7 @@ func (m nameModule) split(v Value) (map[string]unit, bool) {
 func (m nameModule) fold(typ string, from, into unit) (folds, nickClass bool) {
 	res, det := valuecompare.Compare(from.data.(nameUnit).cmp, into.data.(nameUnit).cmp, m.rules)
 	switch {
-	case res.Relation == valuecompare.Contains && det.Broader == valuecompare.SideA:
+	case valuecompare.FoldsResult(res, det):
 	case res.Relation == valuecompare.Equivalent:
 	default:
 		return false, false

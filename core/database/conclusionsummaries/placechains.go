@@ -8,12 +8,14 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/canonicalentities"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/valuerules"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
 )
 
 // summaryChainDepth is how far a place row's parent chain climbs. The place
-// neighborhood, closure, ParentChain and isAncestor (so FoldLocations) use the
+// neighborhood, closure, ParentChain and subjectValue (so FoldLocations) use the
 // same bound, so a row composed in a batch shows no ancestor its recorded
 // inputs lack.
 const summaryChainDepth = 8
@@ -306,41 +308,59 @@ func (g *placeGraph) parentChain(placeID []byte, at *datevalue.Value, seen map[s
 	return append([]string{name}, rest...), false
 }
 
-// isAncestor reports whether ancestor reaches descendant via holding
-// part_of links at at (cycle-guarded BFS upward from descendant), through
-// links of at most summaryChainDepth places: the ones the build expanded.
-func (g *placeGraph) isAncestor(ancestor, descendant []byte, at *datevalue.Value) bool {
-	if bytes.Equal(ancestor, descendant) {
-		return false
-	}
-	seen := map[string]bool{string(descendant): true}
-	level := [][]byte{append([]byte(nil), descendant...)}
+// maxWithin is the most entities one place's Within holds: a dense part_of
+// mesh can reach every place of a catalog within summaryChainDepth.
+// decided: user, 2026-11-08 (Spike 16 rule "Crafted fan-out is capped, not engineered"): a real place lies within a handful of wholes
+const maxWithin = 256
+
+// subjectValue is the place id as value compare reads it at at: Within is the
+// walk up the part_of links that hold at at, nearest first, over at most
+// summaryChainDepth places and at most maxWithin entities, cycle-guarded. A
+// place outside the graph has an empty Within.
+func (g *placeGraph) subjectValue(id []byte, at *datevalue.Value) valuecompare.Value {
+	v := valuecompare.Value{Type: propertymeta.ValueTypeSubject, Entity: id}
+	seen := map[string]bool{string(id): true}
+	level := [][]byte{id}
 	for depth := 0; depth < summaryChainDepth && len(level) > 0; depth++ {
 		var next [][]byte
 		for _, cur := range level {
 			for _, p := range g.ImmediateParents(cur, at) {
-				if bytes.Equal(p, ancestor) {
-					return true
-				}
 				if seen[string(p)] {
 					continue
 				}
 				seen[string(p)] = true
+				if len(v.Within) >= maxWithin {
+					return v
+				}
+				v.Within = append(v.Within, p)
 				next = append(next, p)
 			}
 		}
 		level = next
 	}
-	return false
+	return v
+}
+
+// subjectValues are the subject values of the distinct places, keyed by raw id.
+func (g *placeGraph) subjectValues(places []ChainedPlace, at *datevalue.Value) map[string]valuecompare.Value {
+	out := make(map[string]valuecompare.Value, len(places))
+	for _, p := range places {
+		if _, ok := out[string(p.Entity.ID)]; !ok {
+			out[string(p.Entity.ID)] = g.subjectValue(p.Entity.ID, at)
+		}
+	}
+	return out
 }
 
 // FoldLocations collapses Places that lie on one part_of chain at at into
 // the deepest of them: "Ontario" and "Toronto, Ontario" are one reading,
-// shown as Toronto. A Place is dropped only when another listed Place is
-// below it. Places that are not on one chain stay competing, even when a
+// shown as Toronto. A Place is dropped only when value compare reads another
+// listed Place as inside it (values holds each Place's subject value at at).
+// Places that are not on one chain stay competing, even when a
 // vaguer listed Place is above both: Toronto and Hamilton under Ontario are
 // two readings, not one. Succession never connects Places.
-func (g *placeGraph) FoldLocations(places []ChainedPlace, at *datevalue.Value) []ChainedPlace {
+func (g *placeGraph) FoldLocations(places []ChainedPlace, values map[string]valuecompare.Value, at *datevalue.Value) []ChainedPlace {
+	rules := valuerules.Product()
 	var out []ChainedPlace
 	seen := map[string]bool{}
 	for i := range places {
@@ -354,8 +374,8 @@ func (g *placeGraph) FoldLocations(places []ChainedPlace, at *datevalue.Value) [
 			if bytes.Equal(other, id) {
 				continue
 			}
-			// A link back up (a cycle at this date) is not "below".
-			if g.isAncestor(id, other, at) && !g.isAncestor(other, id, at) {
+			// A link back up (a cycle at this date) is Different, not "below".
+			if valuecompare.FoldsInto(values[string(id)], values[string(other)], rules) {
 				covered = true
 				break
 			}
@@ -368,9 +388,6 @@ func (g *placeGraph) FoldLocations(places []ChainedPlace, at *datevalue.Value) [
 		h.Parents, h.ParentsAreCandidates = g.ParentChain(id, at)
 		out = append(out, h)
 	}
-	sort.SliceStable(out, func(i, j int) bool {
-		return out[i].Entity.Ref < out[j].Entity.Ref
-	})
 	return out
 }
 

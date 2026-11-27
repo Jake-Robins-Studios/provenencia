@@ -8,7 +8,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/gradeorder"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
@@ -60,9 +60,9 @@ func (x *RecordIndex) Artifact(id []byte) (Record, string, bool) {
 }
 
 var sqlRecordSources = `SELECT s.id, s.ref, s.title, s.source_type_id, s.date_value_id, COALESCE(sg.key, ''), ` +
-	sourcecredibilitygrades.RelativeOrderColumn + `
+	gradeorder.Column + `
 		FROM sources s
-		` + sourcecredibilitygrades.RelativeOrderJoins("s.id")
+		` + gradeorder.Joins("s.id")
 
 const sqlRecordArtifacts = `SELECT id, source_id, label FROM artifacts`
 

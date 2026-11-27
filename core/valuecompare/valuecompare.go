@@ -83,6 +83,9 @@ const (
 	// CauseUnjudged: two values the layer cannot relate: the researcher judges
 	// them.
 	CauseUnjudged Cause = "unjudged"
+	// CauseWithin: a subject that lies within the other (a Place inside a
+	// broader Place at the value's date).
+	CauseWithin Cause = "within"
 	// CauseUnsupported: no comparer for the type, or two value types.
 	CauseUnsupported Cause = "unsupported"
 )
@@ -166,7 +169,13 @@ type Value struct {
 	Date        *datevalue.Value
 	// Depiction is a likeness; only its ImageFileID is read.
 	Depiction *depictionvalue.Value
-	Ref       []byte
+	// Entity is a subject value's entity id; empty for none. Within is the
+	// entities that contain Entity at the value's date, the caller's to fill
+	// (a set: order is not part of the contract). Neither is read by another
+	// type.
+	Entity []byte
+	Within [][]byte
+	Ref    []byte
 }
 
 // comparer compares and keys the values of one value type.
@@ -185,6 +194,21 @@ var comparers = map[string]comparer{
 	propertymeta.ValueTypeName:    name{},
 
 	propertymeta.ValueTypeDepiction: depiction{},
+	propertymeta.ValueTypeSubject:   subject{},
+}
+
+// FoldsInto is the one S11-06 fold-on-Contains check: from, a less specific
+// value, folds into into when Compare reads from as the broader side of a
+// Contains.
+func FoldsInto(from, into Value, r Rules) bool {
+	res, det := Compare(from, into, r)
+	return FoldsResult(res, det)
+}
+
+// FoldsResult is FoldsInto's test on a Compare already made, for a caller that
+// also reads the Detail.
+func FoldsResult(res Result, det Detail) bool {
+	return res.Relation == Contains && det.Broader == SideA
 }
 
 // Compare relates a to b under rules. Values of different types, and types
