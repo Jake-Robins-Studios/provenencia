@@ -1,4 +1,6 @@
-# Review — S16-D18 Family: each parent drawn once, and each couple's marriage
+# Review — S16-D18 Family: siblings grouped by their parents, and each couple's marriage
+
+**Rewrite (user, 2026-11-27).** The parents half was rewritten around sibling groups before the board: each sibling once, grouped by the person's parents they share; a parent drawn in each group. The FP-* requirements and frames below are superseded by FG-*; findings on blocks, the missing-parent mark, the per-set rails and the person-tile note no longer apply. The marriage half (FM-*) carries over, with its parents option reworded for groups. Round 3 reviews the rewrite.
 
 **Verdict:** Fits with changes — Ready with changes (round 2's findings fixed by the writer; no round 3, per the two-round cap). The remaining calls are the board's options, To user.
 **Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
