@@ -76,3 +76,27 @@ Round 0 of ship-pr stopped on §11 "The Release test build fails": the test targ
 | Round | Reviewer | Model | Tokens |
 | --- | --- | --- | --- |
 | Refresh | executability | opus | 121k |
+
+## Reshape (2026-11-27)
+
+The user reshaped the PR on 2026-11-27: no citation runs (every record is its own row), the fold counts records, and the grouping goes end to end, engine group key and proto field included; owner lines and value headings stay; no new brief. The plan was rewritten on the branch head `8d3290ee4`. Fresh maintainability and executability reviewers read it: **Fits with changes** · **Ready with changes**, one round, no blocker.
+
+| ID | Severity | Finding | Answer |
+| --- | --- | --- | --- |
+| M-1 | major | Three copies of the numbered-record fixture | Fixed. D-16: `PVProvenancePreviewData.records(_:prefix:formatted:)`, `rendered(_:)` made non-private; previews, layout test and fold tests call it; Codebase fit, Deletes, STEP-1, STEP-2 |
+| M-2 | minor | `CatalogRenderedCitation`'s doc and the map's S15-D17 row unnamed | Fixed. Deletes and STEP-3 name them; STEP-3's rg covers `design/README.md` and `deployment-plan.md` |
+| M-3 | minor | T-2 and T-8's two-values case add no coverage | Fixed. T-2 dropped, AC-1.3 points at T-1; T-8 keeps order and nil-render cases |
+| M-4 | minor | Doc list in three places; D-7 repeats §4; history in §1 and Codebase fit | Fixed. The list lives in STEP-3; D-12 and the DoD point there; D-7 trimmed; "Why now" and the *(new)* marks cleaned |
+| M-5 | minor | `ValueGroup`'s explicit initializer survives | Fixed. Both explicit initializers go; the memberwise init serves |
+| X-1 | minor | STEP-2's vet command | Fixed. `CGO_ENABLED=1 go vet -tags fts5 ./api/... ./core/...` |
+| X-2 | minor | STEP-1's rg check matched too much | Fixed. Narrowed pattern; stale exclusion sentence dropped |
+| X-3 | minor | §11 stop condition 2 too narrow | Fixed. "Anything outside the files in §4 reads …" |
+| X-4 | minor | Missed doc rows | Fixed with M-2 |
+| X-5 | minor | Which figures the docs use | Fixed. Before 1,558 / 6,691 ms; after, STEP-2's T-7 on the record fold; STEP-3, DoD |
+| X-6 | minor | Doc comments naming runs, the key or old D-IDs | Fixed. One line before the Steps' count lists them |
+| X-7 | nit | T-9 and T-8 overlap | Fixed. T-9 asserts `drawsRule` and `followsLine` only; order is T-8's |
+
+| Round | Reviewer | Model | Tokens |
+| --- | --- | --- | --- |
+| Reshape | maintainability | opus | 174k |
+| Reshape | executability | opus | — |
