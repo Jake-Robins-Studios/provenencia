@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/autoreconcile"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusiondetails"
@@ -600,7 +601,7 @@ func TestPersonRowOwners(t *testing.T) {
 			w.birth.places = []owner{{link(f, ae, y), "place", y}, {link(f, be, y), "place", y}}
 			return w
 		}},
-		{"a parent Place is not an owner", func(f *fixture) world {
+		{"a parent Place is a folded owner", func(f *fixture) world {
 			york := f.placeSubject("York", nil, nil, 0, 0)
 			shire := f.placeSubject("Yorkshire", nil, nil, 2, 0)
 			f.placeRel(york, shire, propertyterms.KeyPartOf, nil, nil)
@@ -608,10 +609,9 @@ func TestPersonRowOwners(t *testing.T) {
 			ev := f.lifeEvent(p, "birth", "date", 1817, 2, york, shire)
 			var w world
 			w.person = f.promoteSubject(p)
-			e, y := f.promoteSubject(ev), f.promoteSubject(york)
-			f.promoteSubject(shire)
+			e, y, s := f.promoteSubject(ev), f.promoteSubject(york), f.promoteSubject(shire)
 			w.birth.dates = []owner{{e, "date", nil}}
-			w.birth.places = []owner{{link(f, e, y), "place", y}}
+			w.birth.places = []owner{{link(f, e, y), "place", y}, {link(f, e, s), "place", s}}
 			return w
 		}},
 		{"denied-only date", func(f *fixture) world {
@@ -683,6 +683,12 @@ func TestPersonRowOwners(t *testing.T) {
 			}
 			check("birth", birth, w.birth)
 			check("death", death, w.death)
+			if tc.name == "a parent Place is a folded owner" {
+				got := birth.Places
+				if len(got) != 2 || got[0].Reason != autoreconcile.ReasonKept || got[1].Reason != autoreconcile.ReasonFolded {
+					t.Fatalf("birth place owners %+v, want kept then folded", got)
+				}
+			}
 			if tc.name == "death at two Places that do not fold" {
 				summary := row.Death.Places
 				if len(death.Places) != 2 || len(summary) != 2 {

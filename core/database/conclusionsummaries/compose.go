@@ -868,12 +868,13 @@ func lifeDate(v vocab, ev *graphcache.Node) (dating eventDated, count int, propI
 
 // lifeFacts composes a birth or a death from the person's events of that kind:
 // the earliest event's date and places, and the owners behind them. Every
-// event's places are folded at its own date, and the places the events are
+// event's places are voted at its own date, and the places the events are
 // located at are returned for the caller to record the closure of.
 //
-// Owners are one date owner per event, and one place owner per event–place link
-// to a folded place, both in date order, each once, up to maxLifeOwners in all.
-// Every owner of a folded place shares the one ChainedPlace built for it.
+// Owners are one date owner per event, then for each event every location link
+// once: the links to the places it shows first (in place order, then link
+// order), then every other link in link order, each with what the vote did to
+// it. All up to maxLifeOwners in all, in date order.
 func lifeFacts(in *graphcache.InputScope, v vocab, pg *placeGraph, picks []lifePick) (LifeFacts, [][]byte, error) {
 	if len(picks) == 0 {
 		return LifeFacts{}, nil, nil
@@ -895,36 +896,42 @@ func lifeFacts(in *graphcache.InputScope, v vocab, pg *placeGraph, picks []lifeP
 			return LifeFacts{}, nil, err
 		}
 		seeds = append(seeds, neighborsOf(locations)...)
-		places, err := eventPlaces(v, pg, pick.date, locations)
-		if err != nil {
-			return LifeFacts{}, nil, err
-		}
+		vote := prepareVote(pg, pick.date, locations).vote
 		if i == 0 {
-			facts.Places = places
+			facts.Places = vote.places
 		}
 		if !dated[string(pick.event.ID)] && owned < maxLifeOwners {
 			dated[string(pick.event.ID)] = true
 			owned++
 			facts.Owners.Dates = append(facts.Owners.Dates, FieldOwner{ID: pick.event.ID, PropertyID: pick.dateProp})
 		}
-		for _, p := range places {
-			shared := &ChainedPlace{Entity: p.Entity, Names: p.Names}
+		// A link is listed under the first group that names it: its place's
+		// group among the shown places, else the rest.
+		for _, p := range vote.places {
 			for _, l := range locations {
-				if owned >= maxLifeOwners {
-					break
+				if bytes.Equal(l.Neighbor, p.Entity.ID) {
+					owned = listOwner(&facts.Owners, vote, l, placeProp, listed, owned)
 				}
-				if !bytes.Equal(l.Neighbor, p.Entity.ID) || len(l.Association) == 0 || listed[string(l.Association)] {
-					continue
-				}
-				listed[string(l.Association)] = true
-				owned++
-				facts.Owners.Places = append(facts.Owners.Places, FieldOwner{
-					ID: l.Association, PropertyID: placeProp, Place: shared,
-				})
 			}
+		}
+		for _, l := range locations {
+			owned = listOwner(&facts.Owners, vote, l, placeProp, listed, owned)
 		}
 	}
 	return facts, seeds, nil
+}
+
+// listOwner files the link as a place owner when it has a verdict, is not
+// listed yet and there is room, and returns the owner count.
+func listOwner(owners *LifeOwners, vote placeVote, l graphcache.Link, placeProp []byte, listed map[string]bool, owned int) int {
+	owner, ok := vote.links[string(l.Association)]
+	if !ok || owned >= maxLifeOwners || listed[string(l.Association)] {
+		return owned
+	}
+	listed[string(l.Association)] = true
+	owner.PropertyID = placeProp
+	owners.Places = append(owners.Places, owner)
+	return owned + 1
 }
 
 // lifeEvents are the ids of the births' and then the deaths' events.
@@ -946,15 +953,18 @@ const maxLifeOwners = 64
 // decided: user, 2026-11-08 (Spike 16 rule "Crafted fan-out is capped, not engineered"): a real event names one to three places
 const maxEventPlaces = 20
 
-// eventLocations follows an event's locations through in and keeps every link
-// whose place is among the first maxEventPlaces distinct places (by
-// Link.Neighbor, whether or not that place's node loads later), in link order.
-// It is the one read of an event's places: the place graph, the folded places
-// and the life owners all agree on it.
+// eventLocations follows an event's locations through in and keeps the first
+// maxLifeOwners links, in link order, and of those every link whose place is
+// among the first maxEventPlaces distinct places (by Link.Neighbor, whether or
+// not that place's node loads later). It is the one read of an event's places:
+// the place graph, the vote and the life owners all agree on it.
 func eventLocations(in *graphcache.InputScope, eventID []byte) ([]graphcache.Link, error) {
 	links, err := follow(in, eventID, hops.PlacesOfEvent)
 	if err != nil {
 		return nil, err
+	}
+	if len(links) > maxLifeOwners {
+		links = links[:maxLifeOwners]
 	}
 	places := map[string]bool{}
 	kept := links[:0:0]
@@ -1063,14 +1073,7 @@ func oneEvent(in *graphcache.InputScope, v vocab, pg *placeGraph, n *graphcache.
 	}
 	h.Dating = valuecompare.DatingOf(date, start, end, keptDates(n, v.prop(string(eventPeriod.Samples))))
 	h.DatingProperties = datingProperties(h.Dating.Kind)
-	at := h.Dating.Low
-	if at == nil {
-		at = h.Dating.High
-	}
-	h.Places, err = eventPlaces(v, pg, at, locations)
-	if err != nil {
-		return EventSummary{}, err
-	}
+	h.Places = prepareVote(pg, eventFoldDate(h.Dating), locations).vote.places
 	seen := map[string]bool{}
 	subjectLinks, err := follow(in, n.ID, hops.SubjectsOfEvent)
 	if err != nil {
@@ -1266,30 +1269,6 @@ func eventKeyOf(h EventSummary) dateKey {
 // one, else the ref alone.
 func birthKeyOf(h PersonSummary) dateKey {
 	return dateKeyOf(h.Birth.Date, h.Entity.Ref)
-}
-
-// eventPlaces are the event's Places, folded at the date the caller passes (nil
-// for none); locations are the
-// links the caller followed from the event. Each place's names come from its
-// entry in pg, so no place node is read.
-func eventPlaces(v vocab, pg *placeGraph, at *datevalue.Value, locations []graphcache.Link) ([]ChainedPlace, error) {
-	var raw []ChainedPlace
-	seen := map[string]bool{}
-	for _, l := range locations {
-		if seen[string(l.Neighbor)] {
-			continue
-		}
-		seen[string(l.Neighbor)] = true
-		shell, ok := pg.shell(l.Neighbor)
-		if !ok {
-			continue
-		}
-		raw = append(raw, ChainedPlace{Entity: shell.Entity, Names: shell.Names})
-	}
-	if len(raw) == 0 {
-		return nil, nil
-	}
-	return pg.FoldLocations(raw, at), nil
 }
 
 func composePlaces(g *graphcache.Graph, v vocab, nodes []*graphcache.Node, store bool, rec *inputBudget) ([]PlaceSummary, map[string][]graphcache.InputKey, error) {
