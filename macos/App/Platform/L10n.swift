@@ -10421,7 +10421,7 @@ enum L10n {
         static let familyThisPerson = LocalizedStringResource(
             "conclusions.family.thisPerson",
             defaultValue: "This person",
-            comment: "The label of the focus alone in the siblings group of the Family section."
+            comment: "The label of the person's group with no parents and no siblings in the Family section."
         )
 
         static let familyRoleParent = LocalizedStringResource(
@@ -10460,23 +10460,49 @@ enum L10n {
             comment: "Caption over a pair of parents in the Family section (drawn in capitals)"
         )
 
-        static let familyCaptionOtherParent = LocalizedStringResource(
-            "conclusions.family.caption.otherParent",
-            defaultValue: "Other parent",
-            comment: "Caption over a second set of one parent in the Family section (drawn in capitals)"
-        )
-
-        static let familyCaptionOtherParents = LocalizedStringResource(
-            "conclusions.family.caption.otherParents",
-            defaultValue: "Other parents",
-            comment: "Caption over a second set of parents in the Family section (drawn in capitals)"
-        )
-
         static let familyCaptionSiblings = LocalizedStringResource(
             "conclusions.family.caption.siblings",
             defaultValue: "Siblings",
-            comment: "Caption over siblings who have no recorded parents in the Family section (drawn in capitals)"
+            comment: "Caption over the person and siblings with no recorded parents in the Family section (drawn in capitals)"
         )
+
+        static let familyCaptionSharedParent = LocalizedStringResource(
+            "conclusions.family.caption.sharedParent",
+            defaultValue: "Shared parent",
+            comment: "Caption over a group of siblings who share one parent with the person in the Family section (drawn in capitals)"
+        )
+
+        static let familyCaptionSharedParents = LocalizedStringResource(
+            "conclusions.family.caption.sharedParents",
+            defaultValue: "Shared parents",
+            comment: "Caption over a group of siblings who share several parents with the person, but not all of the person's, in the Family section (drawn in capitals)"
+        )
+
+        static let familyCaptionOtherSiblings = LocalizedStringResource(
+            "conclusions.family.caption.otherSiblings",
+            defaultValue: "Other siblings",
+            comment: "Caption over siblings with no recorded parent in common with the person in the Family section (drawn in capitals)"
+        )
+
+        static let familyGroupThisPersonSiblingsAndParents = LocalizedStringResource(
+            "conclusions.family.group.thisPersonSiblingsAndParents",
+            defaultValue: "This person, siblings and parents",
+            comment: "VoiceOver label of the group holding the person, their parents and their siblings in the Family section"
+        )
+
+        static let familyGroupThisPersonAndParents = LocalizedStringResource(
+            "conclusions.family.group.thisPersonAndParents",
+            defaultValue: "This person and parents",
+            comment: "VoiceOver label of the group holding the person and their parents, with no sibling, in the Family section"
+        )
+
+        static func familyGroupChildrenOf(_ parents: String) -> String {
+            L10n.format(LocalizedStringResource(
+                "conclusions.family.group.childrenOf",
+                defaultValue: "Children of %@",
+                comment: "VoiceOver label of a group of siblings under parents they share with the person in the Family section; argument is the parents' names"
+            ), parents)
+        }
 
         static let familyCaptionPartner = LocalizedStringResource(
             "conclusions.family.caption.partner",

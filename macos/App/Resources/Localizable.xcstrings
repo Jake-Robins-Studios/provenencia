@@ -19583,7 +19583,7 @@
       }
     },
     "conclusions.family.thisPerson": {
-      "comment": "The label of the focus alone in the siblings group of the Family section.",
+      "comment": "The label of the person's group with no parents and no siblings in the Family section.",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -19690,32 +19690,8 @@
         }
       }
     },
-    "conclusions.family.caption.otherParent": {
-      "comment": "Caption over a second set of one parent in the Family section (drawn in capitals)",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Other parent"
-          }
-        }
-      }
-    },
-    "conclusions.family.caption.otherParents": {
-      "comment": "Caption over a second set of parents in the Family section (drawn in capitals)",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Other parents"
-          }
-        }
-      }
-    },
     "conclusions.family.caption.siblings": {
-      "comment": "Caption over siblings who have no recorded parents in the Family section (drawn in capitals)",
+      "comment": "Caption over the person and siblings with no recorded parents in the Family section (drawn in capitals)",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -25909,6 +25885,78 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "conclusions.family.caption.sharedParent": {
+      "comment": "Caption over a group of siblings who share one parent with the person in the Family section (drawn in capitals)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shared parent"
+          }
+        }
+      }
+    },
+    "conclusions.family.caption.sharedParents": {
+      "comment": "Caption over a group of siblings who share several parents with the person, but not all of the person's, in the Family section (drawn in capitals)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shared parents"
+          }
+        }
+      }
+    },
+    "conclusions.family.caption.otherSiblings": {
+      "comment": "Caption over siblings with no recorded parent in common with the person in the Family section (drawn in capitals)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other siblings"
+          }
+        }
+      }
+    },
+    "conclusions.family.group.thisPersonSiblingsAndParents": {
+      "comment": "VoiceOver label of the group holding the person, their parents and their siblings in the Family section",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This person, siblings and parents"
+          }
+        }
+      }
+    },
+    "conclusions.family.group.thisPersonAndParents": {
+      "comment": "VoiceOver label of the group holding the person and their parents, with no sibling, in the Family section",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This person and parents"
+          }
+        }
+      }
+    },
+    "conclusions.family.group.childrenOf": {
+      "comment": "VoiceOver label of a group of siblings under parents they share with the person in the Family section; argument is the parents' names",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Children of %@"
           }
         }
       }

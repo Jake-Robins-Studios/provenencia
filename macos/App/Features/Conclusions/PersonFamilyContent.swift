@@ -15,13 +15,15 @@ enum PersonFamilyRole: Equatable {
     }
 }
 
-/// The Family section's two columns (S13-12, board S13-D3): the origin on the
-/// left (the parent sets, then the siblings with the person among them) and the
-/// family the person formed on the right (each partner with their children).
-/// Laid out from what Go gives, in Go's order, with no regrouping. Each list is
-/// folded at `fold.limit` behind a "Show N more" row, then unfolded a page at a time as
-/// `folds` records; Go returns at most `kinship.Rules.MaxKinPerRole` relatives per role (`kinship.KinOf`); here
-/// only the first paint is bounded.
+/// The Family section's two columns (S13-12, board S13-D3, S16-D18): the origin on the
+/// left (the person's siblings, the person among them, in groups by the parents each shares with
+/// the person: each group its parents, then its children) and the family the person formed on
+/// the right (each partner with their children). Each couple the page shows carries a line for
+/// each marriage both are subjects of. Laid out from what Go gives, in Go's order, with no
+/// regrouping. The siblings and each list of children are folded at `fold.limit` behind a
+/// "Show N more" row, then unfolded a page at a time as `folds` records; Go returns at most
+/// `kinship.Rules.MaxKinPerRole` relatives per role (`kinship.KinOf`); here only the first paint
+/// is bounded.
 /// Pure; the layout places it and the view draws it.
 struct PersonFamilyContent: Equatable {
     /// How many tiles a list shows before it folds, and the fewest it hides.
@@ -30,15 +32,46 @@ struct PersonFamilyContent: Equatable {
     /// A list that can be folded. `children` takes the group's index in Go's
     /// order (before the partner fold).
     enum Fold: Hashable {
-        case parentSets, siblings, partners
+        case siblings, partners
         case children(Int)
     }
 
-    /// A sibling, once, with the parent sets it is a child of (indexes into
-    /// `parentSets`; empty when recorded only).
-    struct Sibling: Equatable {
-        var tile: PersonCardLink
-        var sets: [Int]
+    /// One marriage a couple on the page has, as a life line: drawn "m. 3 May 1812 · Altona",
+    /// spoken `accessibilityLabel`.
+    struct MarriageLine: Equatable {
+        var id: String
+        var line: PersonLifeDisplay.LifeLine
+        /// What VoiceOver reads: the couple's names, then the line; a line that names the other
+        /// spouse is read as it is drawn.
+        var accessibilityLabel: String
+
+        /// The line as drawn, labelled as the content speaks it.
+        var spokenLine: PersonLifeDisplay.LifeLine {
+            var spoken = line
+            spoken.accessibilityLabel = accessibilityLabel
+            return spoken
+        }
+    }
+
+    /// A marriage of two of a sibling group's parents (indexes into its `parents`): drawn in
+    /// the gap after parent `drawnAfter`, read after parent `spokenAfter`.
+    struct ParentMarriage: Equatable {
+        var marriage: MarriageLine
+        var drawnAfter: Int
+        var spokenAfter: Int
+    }
+
+    /// The person's siblings who share exactly the same of the person's parents, the person among
+    /// them in the first group.
+    struct SiblingGroup: Equatable {
+        /// Over the group; nil for none.
+        var caption: String?
+        var parents: [PersonCardLink]
+        /// The shown ones, in Go's order, the person among them in the first group.
+        var children: [PersonCardLink]
+        var marriages: [ParentMarriage]
+        /// What VoiceOver calls the group.
+        var label: String
     }
 
     /// One partner and the children with them, or the children with no other
@@ -50,21 +83,14 @@ struct PersonFamilyContent: Equatable {
         var childrenHidden: Int
         /// What VoiceOver calls the group.
         var label: String
+        /// The person's and the partner's marriages, drawn at the top of the group.
+        var marriages: [MarriageLine] = []
     }
 
-    var parentSets: [[PersonCardLink]]
-    /// One caption per parent set.
-    var parentCaptions: [String]
-    /// How many parent sets the fold hides.
-    var parentSetsHidden: Int
-    var siblings: [Sibling]
-    /// How many siblings the fold hides.
+    /// The groups the fold shows, in Go's order: the first always, another when its first child shows.
+    var siblingGroups: [SiblingGroup]
+    /// How many siblings the fold hides, over every group.
     var siblingsHidden: Int
-    /// Over the siblings when there are no parent sets and at least one sibling
-    /// besides the person; nil otherwise.
-    var siblingsCaption: String?
-    /// What VoiceOver calls the siblings group.
-    var siblingsLabel: String
     var groups: [Group]
     /// How many partner groups the fold hides.
     var groupsHidden: Int
@@ -84,11 +110,15 @@ struct PersonFamilyContent: Equatable {
         "\(column)-\(group)-\(personID)"
     }
 
+    /// A marriage line's id: the column, the group in it and the marriage Event.
+    static func marriageID(column: String, group: String, eventID: String) -> String {
+        "\(column)-\(group)-m-\(eventID)"
+    }
+
     /// The id of a fold's "Show more" row: the stop and scroll target Back restores when the
     /// opened tile is hidden. Tile ids start `l-` or `r-`, so they cannot collide.
     static func moreID(_ fold: Fold) -> String {
         switch fold {
-        case .parentSets: "more.parentSets"
         case .siblings: "more.siblings"
         case .partners: "more.partners"
         case .children(let index): "more.children.\(index)"
@@ -108,14 +138,20 @@ struct PersonFamilyContent: Equatable {
 
     /// Every tile on the page, in reading order.
     var allTiles: [PersonCardLink] {
-        parentSets.flatMap { $0 } + siblings.map(\.tile)
+        siblingGroups.flatMap { $0.parents + $0.children }
             + groups.flatMap { ($0.partner.map { [$0] } ?? []) + $0.children }
     }
 
-    /// Nothing to draw but the person: no parent sets, no sibling besides the
-    /// person, and no groups.
+    /// Every marriage line on the page.
+    var allMarriageLines: [MarriageLine] {
+        siblingGroups.flatMap { $0.marriages.map(\.marriage) } + groups.flatMap(\.marriages)
+    }
+
+    /// Nothing to draw but the person: one sibling group with no parents and no sibling
+    /// besides the person, and no groups.
     var isEmpty: Bool {
-        parentSets.isEmpty && !siblings.contains { !$0.tile.content.isFocus } && groups.isEmpty
+        groups.isEmpty && siblingGroups.count <= 1
+            && siblingGroups.allSatisfy { $0.parents.isEmpty && !$0.children.contains { !$0.content.isFocus } }
     }
 
     init(
@@ -146,67 +182,126 @@ struct PersonFamilyContent: Equatable {
                 orders: orders
             )
         }
-
-        // Left: the parent sets, as Go grouped them.
-        let allParentUnits = family.units.filter { $0.kind == .parents }
-        let parentUnits = folded(allParentUnits, .parentSets)
-        parentSetsHidden = allParentUnits.count - parentUnits.count
-        if let unit = revealedAt(allParentUnits, .parentSets), let first = unit.partners.first {
-            revealed[.parentSets] = Self.tileID(column: "l", group: "p\(parentUnits.count)", personID: first.person.entity.id)
+        func focusTile(_ member: CatalogFamilyMember, group: String) -> PersonCardLink {
+            PersonCardLink(
+                id: Self.tileID(column: "l", group: group, personID: member.person.entity.id),
+                content: PVPersonCardContent(summary: member.person, role: nil, isFocus: true, locale: locale, orders: orders),
+                location: nil
+            )
         }
-        for (k, unit) in allParentUnits.enumerated() where k >= parentUnits.count {
-            for member in unit.partners {
-                hiddenTiles[Self.tileID(column: "l", group: "p\(k)", personID: member.person.entity.id)] = .parentSets
-            }
-        }
-        parentSets = parentUnits.enumerated().map { k, unit in
-            unit.partners.map { tile($0, role: .parent, column: "l", group: "p\(k)") }
-        }
-        parentCaptions = parentUnits.indices.map { k in
-            let plural = parentUnits[k].partners.count > 1 || (k == 0 && allParentUnits.count > 1)
-            switch (k == 0, plural) {
-            case (true, true): return L10n.string(L10n.Conclusions.familyCaptionParents)
-            case (true, false): return L10n.string(L10n.Conclusions.familyCaptionParent)
-            case (false, true): return L10n.string(L10n.Conclusions.familyCaptionOtherParents)
-            case (false, false): return L10n.string(L10n.Conclusions.familyCaptionOtherParent)
-            }
-        }
-
-        // Left: the siblings, once, in Go's order, the person among them. The fold runs over
-        // the siblings other than the person, so a page adds exactly its count of tiles; the
-        // person always shows, in Go's place when the sibling before them shows, else last.
-        let focusAt = family.originSiblings.firstIndex { $0.member.person.entity.id == focusID }
-        let otherSiblings = family.originSiblings.filter { $0.member.person.entity.id != focusID }
-        var shownSiblings = folded(otherSiblings, .siblings)
-        siblingsHidden = otherSiblings.count - shownSiblings.count
-        if let first = revealedAt(otherSiblings, .siblings) {
-            revealed[.siblings] = Self.tileID(column: "l", group: "s", personID: first.member.person.entity.id)
-        }
-        for origin in otherSiblings.dropFirst(shownSiblings.count) {
-            hiddenTiles[Self.tileID(column: "l", group: "s", personID: origin.member.person.entity.id)] = .siblings
-        }
-        if let focusAt {
-            shownSiblings.insert(family.originSiblings[focusAt], at: min(focusAt, shownSiblings.count))
-        }
-        let visibleSets = parentUnits.count
-        siblings = shownSiblings.map { origin in
-            let summary = origin.member.person
-            let sets = origin.parentSets.filter { $0 < visibleSets }
-            if summary.entity.id == focusID {
-                let focus = PersonCardLink(
-                    id: Self.tileID(column: "l", group: "s", personID: summary.entity.id),
-                    content: PVPersonCardContent(summary: summary, role: nil, isFocus: true, locale: locale, orders: orders),
-                    location: nil
+        /// A marriage line of `couple`, nil for a marriage whose event type draws no line.
+        func marriageLines(
+            _ couple: CatalogFamilyCouple, column: String, group: String, partner: PVTitleSource?, names: [String]?
+        ) -> [MarriageLine] {
+            couple.marriages.compactMap { event in
+                guard let line = PersonLifeDisplay.eventLine(event, partner: partner, locale: locale) else { return nil }
+                let spoken = names.flatMap { L10n.DesignSystem.spokenJoin([L10n.list($0, locale: locale), line.accessibilityLabel]) }
+                return MarriageLine(
+                    id: Self.marriageID(column: column, group: group, eventID: event.entity.id),
+                    line: line,
+                    accessibilityLabel: spoken ?? line.accessibilityLabel
                 )
-                return Sibling(tile: focus, sets: sets)
             }
-            return Sibling(tile: tile(origin.member, role: .sibling, column: "l", group: "s"), sets: sets)
         }
-        let others = siblings.contains { !$0.tile.content.isFocus }
-        siblingsCaption = allParentUnits.isEmpty && others ? L10n.string(L10n.Conclusions.familyCaptionSiblings) : nil
-        siblingsLabel = others
-            ? L10n.string(L10n.Conclusions.familyGroupThisPersonAndSiblings)
-            : L10n.string(L10n.Conclusions.familyThisPerson)
+        let focusTitle = family.person.map { PersonTitleDisplay.titleSource($0, orders: orders) }
+
+        // Left: the sibling groups, as Go grouped them. The fold runs over the children other than
+        // the person, in group order, so a page adds exactly its count of tiles; the person always
+        // shows, in Go's place when the sibling before them shows, else last in the first group.
+        let sourceGroups = family.siblingGroups
+        var others: [(group: Int, member: CatalogFamilyMember)] = []
+        for (g, group) in sourceGroups.enumerated() {
+            for member in group.children where member.person.entity.id != focusID { others.append((g, member)) }
+        }
+        let shownOthers = folded(others, .siblings)
+        siblingsHidden = others.count - shownOthers.count
+        let shownIDs = Set(shownOthers.map(\.member.person.entity.id))
+        let shownGroups = sourceGroups.indices.filter { g in
+            g == 0 || shownOthers.contains { $0.group == g }
+        }
+        for hidden in others.dropFirst(shownOthers.count) {
+            hiddenTiles[Self.tileID(column: "l", group: "g\(hidden.group)", personID: hidden.member.person.entity.id)] = .siblings
+        }
+        for g in sourceGroups.indices where !shownGroups.contains(g) {
+            for parent in sourceGroups[g].parents {
+                hiddenTiles[Self.tileID(column: "l", group: "g\(g)", personID: parent.person.entity.id)] = .siblings
+            }
+        }
+        if let next = revealedAt(others, .siblings) {
+            let group = sourceGroups[next.group]
+            let first = group.children.first?.person.entity.id == next.member.person.entity.id
+            let stop = next.group > 0 && first ? group.parents.first ?? next.member : next.member
+            revealed[.siblings] = Self.tileID(column: "l", group: "g\(next.group)", personID: stop.person.entity.id)
+        }
+        siblingGroups = shownGroups.map { g in
+            let source = sourceGroups[g]
+            let name = "g\(g)"
+            let parents = source.parents.map { tile($0, role: .parent, column: "l", group: name) }
+            // The shown children other than the person, then the person at their place.
+            var shown = source.children.filter { $0.person.entity.id != focusID && shownIDs.contains($0.person.entity.id) }
+            let personAt = source.children.firstIndex { $0.person.entity.id == focusID }
+            if let personAt {
+                shown.insert(source.children[personAt], at: min(personAt, shown.count))
+            }
+            let children = shown.map { member in
+                member.person.entity.id == focusID
+                    ? focusTile(member, group: name)
+                    : tile(member, role: .sibling, column: "l", group: name)
+            }
+            let hasOthers = source.children.contains { $0.person.entity.id != focusID }
+            let caption: String?
+            let label: String
+            if g == 0 {
+                switch (parents.count, hasOthers) {
+                case (0, true):
+                    caption = L10n.string(L10n.Conclusions.familyCaptionSiblings)
+                    label = L10n.string(L10n.Conclusions.familyGroupThisPersonAndSiblings)
+                case (0, false):
+                    caption = nil
+                    label = L10n.string(L10n.Conclusions.familyThisPerson)
+                case (1, _):
+                    caption = L10n.string(L10n.Conclusions.familyCaptionParent)
+                    label = L10n.string(hasOthers
+                        ? L10n.Conclusions.familyGroupThisPersonSiblingsAndParents
+                        : L10n.Conclusions.familyGroupThisPersonAndParents)
+                default:
+                    caption = L10n.string(L10n.Conclusions.familyCaptionParents)
+                    label = L10n.string(hasOthers
+                        ? L10n.Conclusions.familyGroupThisPersonSiblingsAndParents
+                        : L10n.Conclusions.familyGroupThisPersonAndParents)
+                }
+            } else {
+                switch parents.count {
+                case 0:
+                    caption = L10n.string(L10n.Conclusions.familyCaptionOtherSiblings)
+                    label = caption ?? ""
+                case 1:
+                    caption = L10n.string(L10n.Conclusions.familyCaptionSharedParent)
+                    label = L10n.Conclusions.familyGroupChildrenOf(L10n.list(parents.map(\.content.title.spokenText), locale: locale))
+                default:
+                    caption = L10n.string(L10n.Conclusions.familyCaptionSharedParents)
+                    label = L10n.Conclusions.familyGroupChildrenOf(L10n.list(parents.map(\.content.title.spokenText), locale: locale))
+                }
+            }
+
+            // A couple whose two ends are among the group's parents draws its marriages beside them.
+            var marriages: [ParentMarriage] = []
+            for index in source.coupleIndexes where family.couples.indices.contains(index) {
+                let couple = family.couples[index]
+                guard let a = source.parents.firstIndex(where: { $0.person.entity.id == couple.aEntityId }),
+                      let b = source.parents.firstIndex(where: { $0.person.entity.id == couple.bEntityId }),
+                      a != b else { continue }
+                let (i, j) = (min(a, b), max(a, b))
+                let named = parents.count > 2
+                let lines = marriageLines(
+                    couple, column: "l", group: name,
+                    partner: named ? parents[i].content.title : nil,
+                    names: named ? nil : [parents[i].content.title.spokenText, parents[j].content.title.spokenText]
+                )
+                marriages += lines.map { ParentMarriage(marriage: $0, drawnAfter: j == i + 1 ? i : j, spokenAfter: j) }
+            }
+            return SiblingGroup(caption: caption, parents: parents, children: children, marriages: marriages, label: label)
+        }
 
         // Right: each partner with their children, then the children with no other parent.
         let partnerUnits = family.units.filter { $0.kind == .partner && !$0.partners.isEmpty }
@@ -239,13 +334,22 @@ struct PersonFamilyContent: Equatable {
             if unit.kind == .partner {
                 let partner = tile(unit.partners[0], role: .partner, column: "r", group: "\(index)")
                 let name = partner.content.title.spokenText
+                // The person's marriages with this partner, spoken with both names when the person is known.
+                var marriages: [MarriageLine] = []
+                for coupleIndex in unit.coupleIndexes where family.couples.indices.contains(coupleIndex) {
+                    marriages += marriageLines(
+                        family.couples[coupleIndex], column: "r", group: "\(index)", partner: nil,
+                        names: focusTitle.map { [$0.spokenText, name] }
+                    )
+                }
                 groups.append(Group(
                     partner: partner,
                     children: kids.tiles,
                     childrenHidden: kids.hidden,
                     label: unit.children.isEmpty
                         ? L10n.Conclusions.familyGroupPartner(name)
-                        : L10n.Conclusions.familyGroupPartnerAndChildren(name)
+                        : L10n.Conclusions.familyGroupPartnerAndChildren(name),
+                    marriages: marriages
                 ))
             } else {
                 groups.append(Group(
