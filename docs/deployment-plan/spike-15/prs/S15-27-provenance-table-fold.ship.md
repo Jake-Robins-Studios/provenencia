@@ -1,7 +1,7 @@
 # Ship log — S15-27 The provenance table folds a page at a time
 
 **Plan:** [`S15-27-provenance-table-fold.md`](S15-27-provenance-table-fold.md) · **Branch:** `s15-27-provenance-table-fold` · **PR:** #1006
-**State:** reshape fixing 1
+**State:** ready
 
 ## Round 0 — implement
 Not committed or pushed. **Stopped on** §11 "The Release test build fails". STEP-1 done in Debug (uncommitted on the local branch): `Timing.swift`, `CatalogListMergeTests` re-pointed, `PVProvenanceSheetLayoutTests`, `PVProvenancePreviewData.content(groups:summary:)` takes `String?`.
@@ -113,6 +113,21 @@ Files: `docs/deployment-plan/spike-15/prs/S15-27-provenance-table-fold.md`.
 Do: add `## Landed` listing every difference from the plan: F-1 (one sheet-level Return claim, `pvSheetTakesReturn`; the table claims Return while any of its stops has focus; supersedes D-7 and the Out line on citation-link Return), the T-7 figures (266 / 266 ms), and the STEP-1 temporary `groupKey` in the preview that STEP-2 removed. Update `completed.md`'s S15-27 paragraph if F-1 changes what it says about Done and Return.
 Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-27-provenance-table-fold.md` 0 errors.
 
+
+## Reshape round 1 — fix
+Head `da772e29b`. Gate PASS (orchestrator). F-1 to F-3 done. Deviations: the new test was red by construction (no `PVSheetDefaultAction` before the fix); `\.pvSheetInnerEditOpen` deleted (no reader left); the plan's D-7 / T-10 text stays and the Landed note supersedes it; §10's new Return steps go in the PR body's manual check (orchestrator). Mentions of the removed names in S15-34, S16-58 and S16-59 are landed history, left as is.
+
+## Reshape round 2 — review
+Reviewers: CON (CON-1 major), MNT (MNT-1 blocker), UX (UX-1 major). Scope `19750e919...da772e29b`.
+
+
+CON-1, MNT-1, UX-1: **Resolved** (all three round-2 reviewers Clean; no new blocker). Minors read by the orchestrator: CON-2 / MNT-2 **Resolved** (F-2 labels). CON round 2 noted (outside its lens) that `add-ui-component` named `pvSheetInnerEdit` but not `pvSheetTakesReturn`: one guidance line added by the orchestrator in the ship-log commit.
+
+Nits (logged): `UX-3 · PVProvenanceRecordRow.swift:110-120 · Source / Observation links and copy buttons are not table stops, so Return there still fires Done (standard macOS; pre-existing)`
+
+## Result (reshape)
+Gate PASS · CI pending at finish · open: none in code; §10 manual check with the user · follow-ups: none new · to user: —
+
 ## Cost
 Plan: 5,424 words (check-plan-docs info line).
 
@@ -137,3 +152,8 @@ Plan: 5,424 words (check-plan-docs info line).
 | reshape 1 | MNT | opus | 109k |
 | reshape 1 | UX | opus | 71k |
 | reshape 1 | SEC+PRF | opus | 78k |
+| reshape 1 | implementer fix | sonnet | 96k |
+| reshape 2 | CON | opus | 54k |
+| reshape 2 | MNT | opus | 43k |
+| reshape 2 | UX | opus | 53k |
+| | **Total** | | **~2.3M** (largest: reshape planner, 289k) |
