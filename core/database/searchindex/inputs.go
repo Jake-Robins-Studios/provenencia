@@ -10,7 +10,6 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusionsummaries"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
-	"github.com/Jake-Robins-Studios/provenencia/core/hops"
 )
 
 // catalog_search_inputs records what each person, event and place summary was
@@ -103,17 +102,16 @@ type inputRow struct {
 //
 //   - every row composed from a gone or merged handle, whatever its key;
 //   - every row composed from a moved handle's own values;
-//   - every row composed from the own values of a written event place
-//     association, moved or not, because an event's place vote reads each
-//     one's records and a write can change the vote without changing what the
-//     association displays;
+//   - every row that read the records of a written association, moved or
+//     not, because an event's place vote reads each one's records and a write
+//     can change the vote without changing what the association displays;
 //   - every row composed from a link at an end of an association that moved or
 //     went, by the ends the index recorded and the ends it has now.
 //
-// A handle that was written but neither moved nor gone adds no key. It then
-// reprojects written and those rows on one graph and returns the rows it found
-// plus the ends of the changed links, which are the handles whose pages the
-// app reloads. An end that no row reads through is reported, not reprojected.
+// A handle that was written but neither moved nor gone adds no key, except the
+// records key a vote read. It then reprojects written and those rows on one
+// graph and returns the rows it found plus the ends of the changed links, which
+// are the handles whose pages the app reloads. An end that no row reads through is reported, not reprojected.
 func ReprojectChanged(q database.Execer, written, moved [][]byte) ([][]byte, error) {
 	written = database.UniqueBlobIDs(written)
 	if len(written) == 0 {
@@ -148,14 +146,8 @@ func ReprojectChanged(q database.Execer, written, moved [][]byte) ([][]byte, err
 			writtenLive = append(writtenLive, id)
 		}
 	}
-	voted, err := g.AssociationInputs(writtenLive)
-	if err != nil {
-		return nil, err
-	}
 	for _, id := range writtenLive {
-		if ks := voted[string(id)]; len(ks) > 0 && ks[0].Bridge == hops.PlacesOfEvent.Bridge() {
-			keys = append(keys, graphcache.InputKey{ID: id})
-		}
+		keys = append(keys, graphcache.RecordsKey(id))
 	}
 	changed := append(append([][]byte(nil), gone...), movedLive...)
 	old, err := oldEnds(q, changed)

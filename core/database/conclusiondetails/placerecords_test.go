@@ -14,6 +14,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/observations"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/searchindex"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibility"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
@@ -353,5 +354,27 @@ func TestOutvotedPlaceLeavesSearchOnWrite(t *testing.T) {
 	f.placedBirth(f.source("Register 2"), "Swift Current", person, birth, swift)
 	if got := englandDocs(); len(got) != 0 {
 		t.Fatalf("outvoted England still matches search documents %v", got)
+	}
+}
+
+// TestPlaceLinkWriteLeavesOnePlaceRowsAlone: a second Source's record of the
+// place a birth already shows joins the same association and moves nothing the
+// Person's or the Event's rows read, so reprojecting the written association
+// finds no dependent row.
+func TestPlaceLinkWriteLeavesOnePlaceRowsAlone(t *testing.T) {
+	f := newFixture(t)
+	person, birth, swift := f.placedBirth(f.source("Register 1"), "Swift Current", nil, nil, nil)
+	f.placedBirth(f.source("Register 2"), "Swift Current", person, birth, swift)
+	links, err := f.C.Graph().Follow(birth, hops.PlacesOfEvent)
+	must(t, err)
+	if len(links) != 1 {
+		t.Fatalf("links %+v, want the one place link", links)
+	}
+	got, err := searchindex.ReprojectChanged(dbtest.MustDB(t, f.C), [][]byte{links[0].Association}, nil)
+	must(t, err)
+	for _, id := range got {
+		if bytes.Equal(id, person) || bytes.Equal(id, birth) {
+			t.Fatalf("reprojected %x, a row the write did not move (all %x)", id, got)
+		}
 	}
 }

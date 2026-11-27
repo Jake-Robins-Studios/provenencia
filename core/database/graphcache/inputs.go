@@ -12,7 +12,9 @@ import (
 // own values (an association's included). Otherwise Bridge is the bridge type
 // key and Endpoint the endpoint Property key where ID sits: the links ID has at
 // that end of that bridge. The key carries no bridge origin; only product
-// bridges are recorded.
+// bridges are recorded. Bridge "" with Endpoint recordsEndpoint is the records
+// of the association ID, which a reader whose result depends on them reads (see
+// RecordsKey).
 type InputKey struct {
 	ID               []byte
 	Bridge, Endpoint string
@@ -28,6 +30,13 @@ func (k InputKey) Equal(o InputKey) bool {
 
 // NodeKey is the key a read of id's values records.
 func NodeKey(id []byte) InputKey { return InputKey{ID: id} }
+
+// recordsEndpoint marks the key of an association's records.
+const recordsEndpoint = "records"
+
+// RecordsKey is the key a read of an association's records records, for a
+// reader whose result depends on its records and not only its displayed rows.
+func RecordsKey(id []byte) InputKey { return InputKey{ID: id, Endpoint: recordsEndpoint} }
 
 // FollowKeys are the keys a Follow of hop from id that returned links
 // records: the bridge end, which covers the links a filter drops, and each
@@ -71,6 +80,16 @@ func (s *InputScope) Node(id []byte) (*Node, error) {
 	n, err := s.g.Node(id)
 	if err == nil {
 		s.add(NodeKey(id))
+	}
+	return n, err
+}
+
+// Records is Node for a reader that depends on the association's records: it
+// also records RecordsKey(id).
+func (s *InputScope) Records(id []byte) (*Node, error) {
+	n, err := s.Node(id)
+	if err == nil {
+		s.Add(RecordsKey(id))
 	}
 	return n, err
 }

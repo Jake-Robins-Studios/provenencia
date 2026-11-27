@@ -149,8 +149,9 @@ func (p placePrep) place(id []byte) (ChainedPlace, bool) {
 // each association's outcome rows on the place Property that put the link's
 // place at rank 1 (kept, or folded into it), one candidate each, from the
 // Source that recorded it. The nodes are loaded by the caller and read through
-// in, which records them. A link whose node is gone or whose records are all
-// unusable gives no candidate, and its place is not shown.
+// in, which records them and each association's records. A link whose node is
+// gone or whose records are all unusable gives no candidate, and its place is
+// not shown.
 func finishVote(in *graphcache.InputScope, v vocab, prep placePrep) (placeVote, error) {
 	if prep.vote != nil {
 		return *prep.vote, nil
@@ -164,7 +165,7 @@ func finishVote(in *graphcache.InputScope, v vocab, prep placePrep) (placeVote, 
 		if len(l.Association) == 0 {
 			continue
 		}
-		n, err := in.Node(l.Association)
+		n, err := in.Records(l.Association)
 		if err != nil {
 			return placeVote{}, err
 		}
