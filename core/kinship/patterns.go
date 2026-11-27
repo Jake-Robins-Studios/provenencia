@@ -35,6 +35,29 @@ func (p Pattern) PivotKind() vocabkey.SubjectType {
 	return ""
 }
 
+// ImpliesSpouse reports whether the pattern is one whose implied relationship
+// is a spouse: its pivots are the events that marry two people.
+func (p Pattern) ImpliesSpouse() bool {
+	for _, ep := range eventPatterns {
+		if ep.code == p {
+			return ep.term == vocabkey.TermSpouse
+		}
+	}
+	return false
+}
+
+// SpouseEventTypes are the event types of the patterns that imply a spouse, in
+// eventPatterns order.
+func SpouseEventTypes() []vocabkey.EventType {
+	var out []vocabkey.EventType
+	for _, ep := range eventPatterns {
+		if ep.term == vocabkey.TermSpouse {
+			out = append(out, ep.event)
+		}
+	}
+	return out
+}
+
 // Patterns are the product's pattern codes: each event pattern in order, then
 // the parent-of-parent chain. Page-only codes (PatternSharedParent) are not in
 // it.

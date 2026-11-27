@@ -183,16 +183,8 @@ func parentUnits(person []byte, kin Kin, kinOf map[string]Kin, rules Rules) ([]U
 	// paired: two parents are one set when either files a spouse link to the
 	// other, or the person's links to both carry a birth_parents shape with the
 	// same pivot.
-	files := func(a, c []byte) bool { // a files a spouse link to c
-		for _, s := range kinOf[string(a)][RoleSpouse] {
-			if other, _, ok := s.From(a); ok && bytes.Equal(other, c) {
-				return true
-			}
-		}
-		return false
-	}
 	paired := func(i, j int) bool {
-		if files(ids[i], ids[j]) || files(ids[j], ids[i]) {
+		if _, ok := spouseLink(kinOf, ids[i], ids[j]); ok {
 			return true
 		}
 		for _, x := range parents[i].Shapes {
@@ -209,7 +201,7 @@ func parentUnits(person []byte, kin Kin, kinOf map[string]Kin, rules Rules) ([]U
 	}
 	var sets [][]int
 	inPair := make([]bool, len(parents))
-	pairing := len(parents) <= rules.MaxPivotEnd
+	pairing := pairsParents(len(parents), rules)
 	for i := range parents {
 		for j := i + 1; pairing && j < len(parents); j++ {
 			if paired(i, j) {
@@ -237,14 +229,7 @@ func parentUnits(person []byte, kin Kin, kinOf map[string]Kin, rules Rules) ([]U
 	var extraAt [][]int
 	for _, l := range kin[RoleSibling] {
 		sib := relativeOf(person, l)
-		var shared []int // indices into parents, in parent order
-		for i := range parents {
-			if slices.ContainsFunc(l.Shapes, func(s Shape) bool {
-				return s.Pattern == PatternSharedParent && bytes.Equal(s.Pivot, ids[i])
-			}) {
-				shared = append(shared, i)
-			}
-		}
+		shared := sharedParents(l, ids)
 		joined := false
 		if !pairing {
 			// Every set is one parent, at that parent's index.
@@ -280,6 +265,38 @@ func parentUnits(person []byte, kin Kin, kinOf map[string]Kin, rules Rules) ([]U
 	}
 	return append(units, extra...), unplaced
 }
+
+// sharedParents is the indexes, in parent order, of the person's parents (their
+// ids, parentIDs) that l carries a shared-parent shape through: the one meaning
+// of "shares a parent".
+func sharedParents(l Link, parentIDs [][]byte) []int {
+	var shared []int
+	for i, id := range parentIDs {
+		if slices.ContainsFunc(l.Shapes, func(s Shape) bool {
+			return s.Pattern == PatternSharedParent && bytes.Equal(s.Pivot, id)
+		}) {
+			shared = append(shared, i)
+		}
+	}
+	return shared
+}
+
+// spouseLink is the spouse link joining a and b: a's link to b if a files one,
+// else b's link to a.
+func spouseLink(kinOf map[string]Kin, a, b []byte) (Link, bool) {
+	for _, pair := range [2][2][]byte{{a, b}, {b, a}} {
+		for _, s := range kinOf[string(pair[0])][RoleSpouse] {
+			if other, _, ok := s.From(pair[0]); ok && bytes.Equal(other, pair[1]) {
+				return s, true
+			}
+		}
+	}
+	return Link{}, false
+}
+
+// pairsParents reports whether n parents are few enough to be paired: past
+// rules.MaxPivotEnd they read as malformed data and none is paired.
+func pairsParents(n int, rules Rules) bool { return n <= rules.MaxPivotEnd }
 
 // subset reports whether every index of set is in of.
 func subset(set, of []int) bool {
@@ -328,4 +345,128 @@ func partnerUnits(person []byte, kin Kin, kinOf map[string]Kin) (partners []Unit
 		}
 	}
 	return partners, oneParent
+}
+
+// SiblingGroup is the person's siblings who share exactly the same of the
+// person's parents. Parents are the person's own parent links; Children are the
+// person's sibling links, with the person last in the person's group (a nil
+// Link).
+type SiblingGroup struct {
+	Parents  []Relative
+	Children []Relative
+}
+
+// SiblingGroups groups the person and every sibling by the parents they share
+// with the person: a sibling's signature is the person's parents its link
+// carries a shared-parent shape through (sharedParents), and the person's is
+// every parent. The person's group is first, and holds the person last after its
+// siblings in link order, even with no parents (then it holds every sibling who
+// shares none). The other groups follow by signature length, longest first, then
+// by the signature's indexes compared in order, so a signature of no parents is
+// last when it is not the person's. Children are in link order.
+func SiblingGroups(person []byte, kin Kin) []SiblingGroup {
+	parents := kin[RoleParent]
+	ids := make([][]byte, len(parents))
+	own := make([]int, len(parents))
+	for i, l := range parents {
+		ids[i], _, _ = l.From(person)
+		own[i] = i
+	}
+	type group struct {
+		sig      []int
+		children []Relative
+	}
+	groups := []*group{{sig: own}}
+	for _, l := range kin[RoleSibling] {
+		sig := sharedParents(l, ids)
+		at := slices.IndexFunc(groups, func(g *group) bool { return slices.Equal(g.sig, sig) })
+		if at < 0 {
+			at = len(groups)
+			groups = append(groups, &group{sig: sig})
+		}
+		groups[at].children = append(groups[at].children, relativeOf(person, l))
+	}
+	groups[0].children = append(groups[0].children, Relative{ID: person})
+	rest := groups[1:]
+	slices.SortStableFunc(rest, func(a, b *group) int {
+		if len(a.sig) != len(b.sig) {
+			return len(b.sig) - len(a.sig)
+		}
+		return slices.Compare(a.sig, b.sig)
+	})
+	out := make([]SiblingGroup, len(groups))
+	for k, g := range groups {
+		out[k].Children = g.children
+		for _, i := range g.sig {
+			out[k].Parents = append(out[k].Parents, relativeOf(person, parents[i]))
+		}
+	}
+	return out
+}
+
+// Couple is two people the page shows together and the marriage events both are
+// subjects of: the pivots of the spouse-implying shapes of their spouse link,
+// distinct, in shape order (uncapped). A is the person for a partner, the
+// earlier parent for a pair of parents.
+type Couple struct {
+	A, B   []byte
+	Pivots [][]byte
+}
+
+// Couples lists the couples the page shows that carry at least one marriage
+// event pivot: first the person with each spouse in kin[RoleSpouse] (once per
+// spouse, the first link winning), then each two of the person's parents, in
+// parent order, joined by a spouse link (spouseLink), only where pairsParents
+// allows for the parent count. A pair with the person at either end is skipped.
+// A partner's marriages come from the person's own link; a pair of parents' from
+// the link spouseLink returns, since kinOf holds neither the person nor a
+// partner. A spouse link with no spouse-implying shape makes no couple.
+func Couples(person []byte, kin Kin, kinOf map[string]Kin, rules Rules) []Couple {
+	var out []Couple
+	seen := map[string]bool{}
+	for _, l := range kin[RoleSpouse] {
+		other, _, _ := l.From(person)
+		if bytes.Equal(other, person) || seen[string(other)] {
+			continue
+		}
+		seen[string(other)] = true
+		if pivots := marriagePivots(l); len(pivots) > 0 {
+			out = append(out, Couple{A: person, B: other, Pivots: pivots})
+		}
+	}
+	parents := kin[RoleParent]
+	if !pairsParents(len(parents), rules) {
+		return out
+	}
+	ids := make([][]byte, len(parents))
+	for i, l := range parents {
+		ids[i], _, _ = l.From(person)
+	}
+	for i := range ids {
+		for j := i + 1; j < len(ids); j++ {
+			if bytes.Equal(ids[i], person) || bytes.Equal(ids[j], person) {
+				continue
+			}
+			l, ok := spouseLink(kinOf, ids[i], ids[j])
+			if !ok {
+				continue
+			}
+			if pivots := marriagePivots(l); len(pivots) > 0 {
+				out = append(out, Couple{A: ids[i], B: ids[j], Pivots: pivots})
+			}
+		}
+	}
+	return out
+}
+
+// marriagePivots is the distinct pivots, in shape order, of l's shapes whose
+// pattern implies a spouse.
+func marriagePivots(l Link) [][]byte {
+	var pivots [][]byte
+	for _, s := range l.Shapes {
+		if s.Pattern.ImpliesSpouse() && !slices.ContainsFunc(pivots, func(p []byte) bool { return bytes.Equal(p, s.Pivot) }) {
+			pivots = append(pivots, s.Pivot)
+		}
+	}
+	return pivots
 }
