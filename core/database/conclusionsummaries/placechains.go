@@ -388,9 +388,6 @@ func (g *placeGraph) FoldLocations(places []ChainedPlace, values map[string]valu
 		h.Parents, h.ParentsAreCandidates = g.ParentChain(id, at)
 		out = append(out, h)
 	}
-	sort.SliceStable(out, func(i, j int) bool {
-		return out[i].Entity.Ref < out[j].Entity.Ref
-	})
 	return out
 }
 

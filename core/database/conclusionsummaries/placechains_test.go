@@ -757,13 +757,14 @@ func TestPersonDerivedRows(t *testing.T) {
 		}},
 		{"graph queries do not grow with events and Places", func(t *testing.T, f *fixture) {
 			york := f.placeSubject("York", nil, nil, 0, 0)
-			small := f.lifePerson()
-			smallBirth := f.lifeEvent(small, "birth", "date", 1817, 2, york)
-			big := f.lifePerson()
 			var bigPlaces []subjects.Subject
 			for i := range 2 {
 				bigPlaces = append(bigPlaces, f.placeSubject(fmt.Sprintf("Town %d", i), nil, nil, int64(4+2*i), 0))
 			}
+			// Both Persons' places conflict, so both votes read association nodes.
+			small := f.lifePerson()
+			smallBirth := f.lifeEvent(small, "birth", "date", 1817, 2, york, bigPlaces[0])
+			big := f.lifePerson()
 			bigBirths := []subjects.Subject{
 				f.lifeEvent(big, "birth", "date", 1818, 10, bigPlaces...),
 				f.lifeEvent(big, "birth", "date", 1819, 12, bigPlaces...),
@@ -798,11 +799,14 @@ func TestPersonDerivedRows(t *testing.T) {
 			if len(smallRows) != 2 || len(bigRows) != 2 {
 				t.Fatalf("rows: small %d, big %d, want a birth date and a birth place each", len(smallRows), len(bigRows))
 			}
+			if len(smallRows[1].Owners) != 2 {
+				t.Fatalf("small owners: %d places, want 2", len(smallRows[1].Owners))
+			}
 			if len(bigRows[0].Owners) != 2 || len(bigRows[1].Owners) != 4 {
 				t.Fatalf("big owners: %d dates, %d places", len(bigRows[0].Owners), len(bigRows[1].Owners))
 			}
 			if smallN == 0 || smallN != bigN {
-				t.Fatalf("graph queries: %d for one event and Place, %d for two events and two Places", smallN, bigN)
+				t.Fatalf("graph queries: %d for one event and two Places, %d for two events and two Places", smallN, bigN)
 			}
 		}},
 
