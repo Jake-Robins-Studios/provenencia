@@ -84,7 +84,7 @@ MNT-1 **Resolved** (skill line at `add-localized-string/SKILL.md:31`, rule `swif
 Merged `origin/main` `c7f4ba907` (S15-28 plan docs only). Gate PASS against `c7f4ba907`.
 
 ## Result
-Gate PASS · CI green on `415051462`; user round CI below · open: none · follow-ups: none · to user: UX-3 (VoiceOver order, manual check 3 and 5); CON-1 and UX-2 answered 2026-11-27
+Gate PASS · CI green on `415051462` and, after the user round, on `84355b64c` · open: none · follow-ups: none · to user: UX-3 (VoiceOver order, manual check 3 and 5); CON-1 and UX-2 answered 2026-11-27
 
 ## User round — dogfood visual changes (2026-11-27)
 The user asked for two layout changes after seeing the PR in the dogfood project. There is no design brief, and these changes supersede D-10's x for marriage lines and the partner-group placement in D-9 and D-10.
