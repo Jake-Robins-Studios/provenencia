@@ -61,6 +61,9 @@ enum PVTileCardSize: Equatable {
         case .compact: 8
         }
     }
+
+    /// How far in from the card's leading edge its text starts.
+    nonisolated var textLeading: CGFloat { padding.leading + thumbnail + contentSpacing }
 }
 
 /// A card with a thumbnail, a title, lines under it and an optional trailing

@@ -74,7 +74,7 @@ struct PersonFamilyContent: Equatable {
         var childrenHidden: Int
         /// What VoiceOver calls the group.
         var label: String
-        /// The person's and the partner's marriages, drawn at the top of the group.
+        /// The person's and the partner's marriages, drawn under the partner.
         var marriages: [MarriageLine] = []
     }
 

@@ -8,9 +8,9 @@ import CoreGraphics
 /// The left column is the origin: each sibling group under its caption, its parents then its
 /// children indented beneath, one line per group in the margin that stays inside the group. The
 /// right column is the family the person formed: each partner with their children indented
-/// beneath. A couple's marriages are lines between the two tiles, or at the top of a partner's
-/// group. A bus joins the person's tile to every partner. A folded list ends in one "more" row;
-/// no line goes to it.
+/// beneath. A couple's marriages are lines between the two tiles, or under a partner's tile,
+/// starting where the tile's text starts. A bus joins the person's tile to every partner. A
+/// folded list ends in one "more" row; no line goes to it.
 struct PersonFamilyLayout: Equatable {
     struct PlacedTile: Equatable {
         var id: String
@@ -103,8 +103,6 @@ struct PersonFamilyLayout: Equatable {
     /// One marriage line's height, and how far below a tile the first one starts.
     static let marriageLineHeight: CGFloat = 21
     static let marriageLineInset: CGFloat = 6
-    /// Between a partner group's marriage lines and its tile.
-    static let partnerMarriageGap: CGFloat = 4
 
     static func gutter(_ widthClass: PVWidthClass) -> CGFloat {
         widthClass == .wide ? 96 : 48
@@ -135,6 +133,7 @@ struct PersonFamilyLayout: Equatable {
         let th = PVTileCardSize.regular.height
         let step = th + Self.tileGap
         let lineHeight = Self.marriageLineHeight
+        let textLeading = PVTileCardSize.regular.textLeading
         let gutter = Self.gutter(widthClass)
         let tp = max((width - m - gutter) / 2, PVTileCardSize.regular.minimumWidth).rounded(.down)
         let c2 = m + tp + gutter
@@ -180,7 +179,8 @@ struct PersonFamilyLayout: Equatable {
                 var inGap: CGFloat = 0
                 for (index, marriage) in group.marriages.enumerated() where marriage.drawnAfter == i {
                     lineRectOf[index] = CGRect(
-                        x: m, y: rect.maxY + Self.marriageLineInset + inGap * lineHeight, width: tp, height: lineHeight
+                        x: m + textLeading, y: rect.maxY + Self.marriageLineInset + inGap * lineHeight,
+                        width: tp - textLeading, height: lineHeight
                     )
                     inGap += 1
                 }
@@ -241,17 +241,19 @@ struct PersonFamilyLayout: Equatable {
             var items: [Placed] = []
             var top = gy
             var partnerCenter: CGFloat?
-            // The marriages come first: drawn at the top of the group, read before the partner.
-            for line in group.marriages {
-                items.append(.line(PlacedLine(id: line.id, frame: CGRect(x: c2, y: top, width: tp, height: lineHeight))))
-                top += lineHeight
-            }
-            if !group.marriages.isEmpty { top += Self.partnerMarriageGap }
+            // The partner, then their marriages under them, as the left column does.
             if let partner = group.partner {
                 items.append(.tile(PlacedTile(id: partner.id, frame: CGRect(x: c2, y: top, width: tp, height: th))))
                 partnerCenter = top + th / 2
-                top += step
+                top += th
             }
+            for line in group.marriages {
+                items.append(.line(PlacedLine(id: line.id, frame: CGRect(
+                    x: c2 + textLeading, y: top + Self.marriageLineInset, width: tp - textLeading, height: lineHeight
+                ))))
+                top += lineHeight
+            }
+            if group.partner != nil { top += Self.tileGap }
             var childCenters: [CGFloat] = []
             for child in group.children {
                 items.append(.tile(PlacedTile(id: child.id, frame: CGRect(x: childX, y: top, width: tp - Self.indent, height: th))))
@@ -274,6 +276,8 @@ struct PersonFamilyLayout: Equatable {
                 for center in childCenters { horizontal(childRail, childX, y: center) }
             }
             var bottom = top - Self.tileGap
+            // A group with lines and no children ends at its last line.
+            if group.children.isEmpty, let last = items.last?.frame.maxY { bottom = max(bottom, last) }
             if group.childrenHidden > 0 {
                 items.append(.more(PlacedMore(
                     fold: .children(index), count: group.childrenHidden,

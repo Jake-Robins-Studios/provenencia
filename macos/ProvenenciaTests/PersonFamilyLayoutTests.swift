@@ -167,24 +167,28 @@ struct PersonFamilyLayoutTests {
     /// T-10 (AC-2.1, AC-2.4, AC-2.5, D-10, D-11)
     @Test func marriageLinesSitBetweenTheCouple() throws {
         let (_, married) = layout(Data.married)
-        #expect(married.frame(of: "l-g0-m0-m-ha") == CGRect(x: 20, y: 124, width: 485, height: 21))
+        #expect(married.frame(of: "l-g0-m0-m-ha") == CGRect(x: 110, y: 124, width: 395, height: 21))
         #expect(try #require(married.frame(of: "l-g0-anna")).minY == 151)
         #expect(try #require(married.frame(of: "l-g0-margarethe")).minY == 255)
-        #expect(married.frame(of: "r-0-m1-m-jm") == CGRect(x: 553, y: 26, width: 485, height: 21))
-        #expect(try #require(married.frame(of: "r-0-maria")).minY == 51)
+        // The partner comes first, her line under her, where her text starts.
+        #expect(try #require(married.frame(of: "r-0-maria")).minY == 26)
+        #expect(married.frame(of: "r-0-m1-m-jm") == CGRect(x: 643, y: 124, width: 395, height: 21))
+        #expect(married.groups.first { $0.items.contains { $0.id == "r-0-maria" } }?.items.prefix(2).map(\.id) == ["r-0-maria", "r-0-m1-m-jm"])
         // Sophie has no line.
         #expect(try #require(married.frame(of: "r-1-sophie")).minY == married.groups[3].frame.minY)
 
         let (_, two) = layout(Data.twoMarriages)
-        #expect(two.frame(of: "r-0-m0-m-jm1") == CGRect(x: 553, y: 26, width: 485, height: 21))
-        #expect(two.frame(of: "r-0-m0-m-jm2") == CGRect(x: 553, y: 47, width: 485, height: 21))
-        #expect(try #require(two.frame(of: "r-0-maria")).minY == 72)
+        #expect(two.frame(of: "r-0-m0-m-jm1") == CGRect(x: 643, y: 124, width: 395, height: 21))
+        #expect(two.frame(of: "r-0-m0-m-jm2") == CGRect(x: 643, y: 145, width: 395, height: 21))
+        #expect(try #require(two.frame(of: "r-0-maria")).minY == 26)
+        // A group with lines and no children ends at or below its last line.
+        #expect(two.groups.first { $0.items.contains { $0.id == "r-0-m0-m-jm2" } }.map { $0.frame.maxY } ?? 0 >= 166)
 
         let (three, l) = layout(Data.threeParentMarriages)
-        #expect(l.frame(of: "l-g0-m0-m-ha") == CGRect(x: 20, y: 124, width: 485, height: 21))
+        #expect(l.frame(of: "l-g0-m0-m-ha") == CGRect(x: 110, y: 124, width: 395, height: 21))
         #expect(try #require(l.frame(of: "l-g0-anna")).minY == 151)
         #expect(try #require(l.frame(of: "l-g0-katharina")).minY == 255)
-        #expect(l.frame(of: "l-g0-m1-m-hk") == CGRect(x: 20, y: 353, width: 485, height: 21))
+        #expect(l.frame(of: "l-g0-m1-m-hk") == CGRect(x: 110, y: 353, width: 395, height: 21))
         // The children start under the line that follows the last parent.
         #expect(try #require(frame(l, three, "Friedrich Weber")).minY == 380 + 104)
         // Each line is read just after its second parent.
