@@ -84,7 +84,7 @@ MNT-1 **Resolved** (skill line at `add-localized-string/SKILL.md:31`, rule `swif
 Merged `origin/main` `c7f4ba907` (S15-28 plan docs only). Gate PASS against `c7f4ba907`.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: none · to user: UX-3 (VoiceOver order, manual check 3 and 5); CON-1 and UX-2 answered 2026-11-27
+Gate PASS · CI green (test ×2, localizable) · open: none · follow-ups: none · to user: UX-3 (VoiceOver order, manual check 3 and 5); CON-1 and UX-2 answered 2026-11-27
 
 ## Cost
 Plan: 9,085 words (check-plan-docs info line).
