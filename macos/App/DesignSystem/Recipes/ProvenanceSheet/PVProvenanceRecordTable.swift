@@ -77,15 +77,9 @@ struct PVProvenanceRecordTable: View {
                 .padding(.vertical, PVSpacing.space3)
             }
         }
-        .preference(key: PVProvenanceShowMoreFocusKey.self, value: focus == .showMore)
+        // While any stop has focus Return goes to Show more or the focused citation link, not Done.
+        .pvSheetTakesReturn(focus != nil)
     }
-}
-
-/// Whether the table's Show more row has keyboard focus, so the sheet's Done gives up Return.
-/// Reduced with `||`.
-struct PVProvenanceShowMoreFocusKey: PreferenceKey {
-    static var defaultValue: Bool { false }
-    static func reduce(value: inout Bool, nextValue: () -> Bool) { value = value || nextValue() }
 }
 
 /// What the provenance table's keyboard focus rests on: a record's citation link, by the record's

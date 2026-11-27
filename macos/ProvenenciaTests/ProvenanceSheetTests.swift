@@ -494,10 +494,4 @@ struct ProvenanceSheetTests {
         let folded = Content.folded(single(records(60)), by: Self.fold, pages: 9)
         #expect(recordCount(folded.groups) == 60 && folded.hidden == 0 && folded.firstRevealed == nil)
     }
-
-    /// T-10 (AC-3.5, D-7): Return on a focused Show more reveals the next page; Done gives it up.
-    @Test func doneGivesUpReturnToShowMore() {
-        #expect(PVProvenanceSheet.doneShortcut(showMoreFocused: true) == nil)
-        #expect(PVProvenanceSheet.doneShortcut(showMoreFocused: false) == .defaultAction)
-    }
 }

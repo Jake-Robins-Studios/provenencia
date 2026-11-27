@@ -21,15 +21,9 @@ struct PVProvenanceSheet: View {
     var onReadAgain: () -> Void = {}
 
     @Environment(\.pvSheetClose) private var sheetClose
-    /// True while the table's Show more row has keyboard focus (reported by the table).
-    @State private var showMoreFocused = false
+    @Environment(\.pvSheetReturnTaken) private var returnTaken
 
     static let recordsMaxHeight: CGFloat = 560
-
-    /// Return closes the sheet through Done, unless Show more has focus: then Return reveals the next page.
-    nonisolated static func doneShortcut(showMoreFocused: Bool) -> KeyboardShortcut? {
-        showMoreFocused ? nil : .defaultAction
-    }
 
     var body: some View {
         PVPanel(
@@ -71,11 +65,10 @@ struct PVProvenanceSheet: View {
             HStack {
                 Spacer(minLength: 0)
                 PVButton(L10n.ProvenanceSheet.done, variant: .primary) { sheetClose() }
-                    .keyboardShortcut(Self.doneShortcut(showMoreFocused: showMoreFocused))
+                    .keyboardShortcut(PVSheetDefaultAction.shortcut(returnTaken: returnTaken))
                     .accessibilityIdentifier("\(idPrefix).done")
             }
         }
-        .onPreferenceChange(PVProvenanceShowMoreFocusKey.self) { showMoreFocused = $0 }
         .accessibilityElement(children: .contain)
     }
 

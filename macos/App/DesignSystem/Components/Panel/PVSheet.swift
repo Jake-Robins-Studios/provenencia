@@ -21,16 +21,18 @@ private struct PVSheetChrome<Content: View>: View {
     @State private var confirmingDiscard = false
     @State private var gate = PVDiscardGate()
     @State private var innerEditOpen = false
+    @State private var returnTaken = false
     @State private var toasts = PVToastList()
 
     var body: some View {
         sheetBody
             .environment(\.pvSheetClose, PVSheetClose(run: { next in run(next) }))
-            .environment(\.pvSheetInnerEditOpen, innerEditOpen)
+            .environment(\.pvSheetReturnTaken, returnTaken)
             // A sheet covers the window, so a toast raised inside it joins the sheet's own stack.
             .environment(\.pvSheetToasts, toasts)
             .overlay { PVToastStack(list: toasts, identifier: "sheet.toasts") }
             .onPreferenceChange(PVSheetInnerEditKey.self) { innerEditOpen = $0 }
+            .onPreferenceChange(PVSheetReturnTakenKey.self) { returnTaken = $0 }
             // A zero-size button owns Escape, so the rule lives in one place and
             // no visible Cancel needs its own key.
             .background {
@@ -185,25 +187,47 @@ private struct PVSheetInnerEditKey: PreferenceKey {
     static func reduce(value: inout Bool, nextValue: () -> Bool) { value = value || nextValue() }
 }
 
-private struct PVSheetInnerEditOpenKey: EnvironmentKey {
+/// Whether content inside a sheet takes Return itself. Reduced with `||`.
+private struct PVSheetReturnTakenKey: PreferenceKey {
+    static var defaultValue: Bool { false }
+    static func reduce(value: inout Bool, nextValue: () -> Bool) { value = value || nextValue() }
+}
+
+private struct PVSheetReturnTakenEnvironmentKey: EnvironmentKey {
     static let defaultValue = false
 }
 
 extension EnvironmentValues {
-    /// True while content in the sheet reports an open inner edit; the form
-    /// dialog's Confirm then gives up Return.
-    var pvSheetInnerEditOpen: Bool {
-        get { self[PVSheetInnerEditOpenKey.self] }
-        set { self[PVSheetInnerEditOpenKey.self] = newValue }
+    /// True while content in the sheet reports it takes Return; the sheet's
+    /// default button (Confirm, Done) then gives it up.
+    var pvSheetReturnTaken: Bool {
+        get { self[PVSheetReturnTakenEnvironmentKey.self] }
+        set { self[PVSheetReturnTakenEnvironmentKey.self] = newValue }
+    }
+}
+
+/// The sheet's default button: Return fires it, unless content in the sheet takes Return.
+enum PVSheetDefaultAction {
+    static func shortcut(returnTaken: Bool) -> KeyboardShortcut? {
+        returnTaken ? nil : .defaultAction
     }
 }
 
 extension View {
     /// Reports an open inner edit to the enclosing sheet: Escape then reaches
-    /// the edit's own handler, a click outside does nothing, and the form's
-    /// Confirm gives up Return. Outside a sheet nothing reads it.
+    /// the edit's own handler, a click outside does nothing, and the sheet's
+    /// default button gives up Return (``pvSheetTakesReturn(_:)``). Outside a
+    /// sheet nothing reads it.
     func pvSheetInnerEdit(_ open: Bool) -> some View {
         preference(key: PVSheetInnerEditKey.self, value: open)
+            .pvSheetTakesReturn(open)
+    }
+
+    /// Reports to the enclosing sheet that this content takes Return (a focused
+    /// link or row), so the sheet's default button (Confirm, Done) gives it up.
+    /// Outside a sheet nothing reads it.
+    func pvSheetTakesReturn(_ taken: Bool) -> some View {
+        preference(key: PVSheetReturnTakenKey.self, value: taken)
     }
 }
 
