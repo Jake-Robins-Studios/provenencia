@@ -29,6 +29,12 @@
 
 ---
 
+## Landed
+
+- F-1 (review round 1): Return is one sheet-level claim. `pvSheetTakesReturn(_:)` (`PVSheet.swift`) raises a `||`-reduced preference that the sheet chrome puts on `\.pvSheetReturnTaken`; `PVSheetDefaultAction.shortcut(returnTaken:)` is read by `PVFormDialog`'s Confirm and `PVProvenanceSheet`'s Done, and `pvSheetInnerEdit(_:)` raises it too. The table claims Return while any of its stops has focus, so Return goes to Show more or to the focused citation link, not Done. This supersedes D-7 (`doneShortcut(showMoreFocused:)`, `PVProvenanceShowMoreFocusKey`, T-10 `doneGivesUpReturnToShowMore`) and the Out line on Return on a focused citation link firing Done; `PVFormDialogControls.confirmShortcut(innerEditOpen:)` and `\.pvSheetInnerEditOpen` are gone.
+- T-7 measured 266 ms at 300 records and 266 ms at 1,200 records in Debug.
+- STEP-1 carried a temporary `groupKey` in the preview data; STEP-2 removed it.
+
 ## 1. Objective
 
 A value with hundreds or thousands of records opens its provenance sheet quickly. The record table draws its first 50 records and ends with the kit's "Show 50 more" row; each press reveals the next 50 records. Every record is its own row: records that cite the same thing are no longer gathered into citation runs, so the engine's citation group key goes too. Before the fold, 1,200 records took 6691 ms to lay out in a Debug build; the branch's fold brought it to 268 ms ([`provenance-loading.md`](../provenance-loading.md) "Cap").
