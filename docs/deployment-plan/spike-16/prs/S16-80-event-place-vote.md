@@ -1,6 +1,7 @@
 # S16-80 — An event's places reconcile by their records
 
-**Status:** Planned
+**Status:** Landed in [#1007](https://github.com/Jake-Robins-Studios/provenencia/pull/1007) (2026-11-27)
+**Landed:** As planned, except: the version is 0.48.3, since main was already at 0.48.2 when the PR was cut; `eventFoldDate` takes the event's `valuecompare.Dating`, which the new `eventDating` computes once, in place of the node and vocabulary; `FoldLocations` takes the places' subject values as an argument, and `finishVote` takes the vocabulary to name the place Property; `placePrep` carries the fold's survivors, the subject values and the place graph for `finishVote`; `lifeEvents` and `placesOfEvents` are deleted with their last callers; a displayed place the fold dropped (a container whose contained place has no record) is built from its shell by `placePrep.place`.
 **Spike / slice:** Spike 16 · Slice 6k — Event places by evidence
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the life rows, the Event page's Place row and the provenance sheet draw what they draw today; only which place leads, the mixed badge and each record's outcome words change, and every outcome phrase already exists)
