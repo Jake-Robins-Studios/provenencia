@@ -33,6 +33,7 @@
 
 - `PersonDetailTests.aMergedNameRowCarriesItsStateAndProvenance`: the nickname fixture (`nick`, `nicked`) went with its only assertion, the deleted `whyTitle` line, since an unused value is a Swift warning.
 - STEP-5/6: `main` gained a second Why sentence after the planning base (`docs/conclusion-reconciliation.md`, the derived-place paragraph, "The Why lists every location link's records"); it now reads "The provenance sheet lists".
+- The §9 sweep's only hits are `SourceMoveModel.showsWhy` (`SourceMoveModel.swift`, `SourceMoveDialog.swift`, `SourceMoveModelTests.swift`), unrelated to the Conclusions Why, which STEP-1 keeps.
 - The §10 manual check was not run by the implementer; the visual, keyboard and VoiceOver steps are left to the user.
 
 ## 1. Objective
