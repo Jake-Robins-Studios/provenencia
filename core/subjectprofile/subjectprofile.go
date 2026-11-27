@@ -251,7 +251,8 @@ func lifespan(events []LifeEvent, l subjectcompare.Lifespan) (window, span prope
 
 // Value is the one conversion from the reconciler's value to layer 2's. Type
 // and Ref stay empty: layer 2 sets the type from the meta. Name, Date and Depiction
-// are shared with v.
+// are shared with v. Entity and Within stay empty until matching fills Within
+// (docs/ideas/one-bridge-cardinality.md); do not copy them across here.
 func Value(v autoreconcile.Value, negative bool, namePattern string) propertycompare.Value {
 	out := propertycompare.Value{
 		Value: valuecompare.Value{
