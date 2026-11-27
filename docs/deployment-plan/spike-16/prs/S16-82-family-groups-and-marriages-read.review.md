@@ -1,10 +1,10 @@
 # Review — S16-82 The Family read sends sibling groups and each couple's marriages
 
-**Verdict:** round 1: Fits with changes — Ready with changes; all findings answered, one To user item open.
-**Rounds:** 1. **Reviewers:** maintainability (opus), executability (sonnet)
+**Verdict:** Fits with changes — Ready; every finding answered, the To user item answered (2026-11-27).
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
-- **M-1. Which PR deletes the old fields.** The map says S16-82 replaces `origin_siblings` and S16-81 has no Go or proto change; this plan keeps S16-82 additive and gives the Go, proto and Swift-mapping deletions (the Out row's list) to S16-81. Writer's recommendation: yes. Today's drawing is their only reader, and S16-81 rewrites it; replacing them here would mean adapting a drawing S16-81 throws away. On a yes, STEP-9 rewrites the map rows, both scope entries and the working rule.
+- **M-1. Which PR deletes the old fields.** Answered 2026-11-27: S16-81 deletes them; the map and the working rule now say so. The map says S16-82 replaces `origin_siblings` and S16-81 has no Go or proto change; this plan keeps S16-82 additive and gives the Go, proto and Swift-mapping deletions (the Out row's list) to S16-81. Writer's recommendation: yes. Today's drawing is their only reader, and S16-81 rewrites it; replacing them here would mean adapting a drawing S16-81 throws away. On a yes, STEP-9 rewrites the map rows, both scope entries and the working rule.
 
 ## Writer's own calls
 - `maxMarriagesPerCouple = 10` (D-6): real data has one to three.
@@ -71,6 +71,23 @@
 ### X-14 · minor · STEP-4 too big; Swift mapping detail
 **Answer:** Fixed. STEP-4 split into STEP-4 (read) and STEP-5 (order, drop, index); §6 macOS names the mapping functions and `FakeStore`.
 
+## Round 2
+
+### X-20 · blocker · Partner couples sent through `spouseLink`, which never sees the person
+**Answer:** Fixed. D-5: a partner couple reads the person's own `kin[RoleSpouse]` link; `spouseLink` is for parent pairs only; a T-3 row with no `kinOf` entry for the person.
+
+### X-21 · blocker · `TestPersonFamily` AC-1.14 breaks on the new index fields
+**Answer:** Fixed. D-11: one `indexCouples`, called last in `Families` and again after the drop; AC-1.14 named in §8.
+
+### X-22 · major · A dedupe that never fires; an unclear T-3 row
+**Answer:** Fixed. The clause dropped; the T-3 row states its fixture and two couples.
+
+### M-10 · blocker · D-1 moves the grouping out of the package the rule names
+**Answer:** Fixed. Rules this plan bends (2): the user decided the engine groups; the package was the writer's wording; the rule now names `core/kinship`, reported to the user for veto. The DoD's "(none)" removed.
+
+### Smaller point · Where the person sits in the kinship group
+**Answer:** Fixed. D-4: appended last; `persondetail` sorts by birth.
+
 ## Cost
 Plan: 4,459 words at round 1, about 5,600 at the answers.
 
@@ -78,3 +95,4 @@ Plan: 4,459 words at round 1, about 5,600 at the answers.
 | --- | --- | --- | --- |
 | 1 | maintainability | opus | 154k |
 | 1 | executability | sonnet | 152k |
+| 2 | both lenses | opus | — |
