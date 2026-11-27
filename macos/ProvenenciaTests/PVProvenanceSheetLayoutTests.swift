@@ -3,7 +3,7 @@ import SwiftUI
 import Testing
 @testable import Provenencia
 
-/// How long the provenance sheet takes to lay out its record table (S15-27 D-9).
+/// How long the provenance sheet takes to lay out its record table (S15-27 D-14, T-7).
 @Suite(.serialized, .hostedWindows)
 @MainActor
 struct PVProvenanceSheetLayoutTests {

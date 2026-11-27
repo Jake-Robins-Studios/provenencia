@@ -35,7 +35,7 @@ struct ProvenanceSheetTests {
         return record
     }
 
-    /// T-4 (D-8, AC-1.1, AC-1.2).
+    /// S15-21 T-4 (D-8, AC-1.1, AC-1.2).
     @Test func citationTextFallsBack() {
         var formatted = record("a", rank: 1)
         #expect(!formatted.isFormatted && formatted.citationText == formatted.citation.line)
@@ -57,7 +57,7 @@ struct ProvenanceSheetTests {
             groups: [PVProvenanceSheetContent.Group(owner: nil, values: groups)])
     }
 
-    /// T-8 (D-9, AC-4.2).
+    /// S15-27 T-8 (D-9, AC-4.2).
     @Test func withRendersSetsEachRecordsRender() {
         let a = record("a", citation: "ca"), b = record("b", citation: "cb"), c = record("c", citation: "cc")
         let both = content([[a, b, c]]).withRenders([
@@ -71,7 +71,7 @@ struct ProvenanceSheetTests {
         #expect(one.records.map { $0.rendered != nil } == [true, false, false])
     }
 
-    /// T-8 (D-9, AC-2.2, AC-2.3, AC-2.4).
+    /// S15-21 T-8 (D-9, AC-2.2, AC-2.3, AC-2.4).
     @Test func copyButtonsFollowTheRender() {
         var formatted = record("a", rank: 1)
         formatted.rendered = renderedCitation("cit-a", short: "Short")
@@ -88,7 +88,7 @@ struct ProvenanceSheetTests {
         #expect(today.first?.rich == nil)
     }
 
-    /// T-9 (AC-4.1, D-1): the rule before each record, in a group's values.
+    /// S15-27 T-9 (AC-4.1, D-1): the rule before each record, in a group's values.
     @Test func ruleFallsBeforeEachRecordButTheFirstAfterALine() {
         typealias Table = PVProvenanceRecordTable
         let led = Table.followsLine(hasHeading: true, valueIndex: 0, hasOwner: false)
@@ -105,7 +105,7 @@ struct ProvenanceSheetTests {
         #expect(!bare && Table.drawsRule(recordIndex: 0, followsLine: bare))
     }
 
-    /// T-7 (D-11, AC-1.1).
+    /// S15-21 T-7 (D-11, AC-1.1).
     @Test func styledMarksItalicRuns() {
         let render = CatalogCitationRender(
             runs: [CatalogCitationRun(text: "a", italic: false), CatalogCitationRun(text: "b", italic: true)],
@@ -396,7 +396,7 @@ struct ProvenanceSheetTests {
         PVProvenancePreviewData.records(count, prefix: prefix)
     }
 
-    /// T-1 (AC-1.1, AC-1.3, AC-1.4, D-4).
+    /// S15-27 T-1 (AC-1.1, AC-1.3, AC-1.4, D-4).
     @Test func foldShowsFiftyRecordsThenAPageAtATime() {
         let groups = single(records(120))
         let first = Content.folded(groups, by: Self.fold, pages: 0)
@@ -416,7 +416,7 @@ struct ProvenanceSheetTests {
         #expect(cut.groups[0].records.map(\.id).suffix(3) == ["r48", "r49", "r50"])
     }
 
-    /// T-3 (AC-2.1, AC-2.2).
+    /// S15-27 T-3 (AC-2.1, AC-2.2).
     @Test func foldKeepsLinesOverShownRecordsOnly() {
         let owners = [
             Content.Group(owner: owner("a"), values: [.init(heading: nil, records: records(50, prefix: "a"))]),
@@ -437,7 +437,7 @@ struct ProvenanceSheetTests {
         #expect(second.groups == values)
     }
 
-    /// T-4 (AC-1.2, AC-2.3).
+    /// S15-27 T-4 (AC-1.2, AC-2.3).
     @Test func foldLeavesASmallTableWhole() {
         let small = single(records(50))
         let whole = Content.folded(small, by: Self.fold, pages: 0)
@@ -452,7 +452,7 @@ struct ProvenanceSheetTests {
         #expect(Content.folded([big, empty], by: Self.fold, pages: 1).groups.map(\.id) == ["big", "empty"])
     }
 
-    /// T-5 (D-4, D-5).
+    /// S15-27 T-5 (D-4, D-5).
     @Test func foldKeepsEveryShownPosition() {
         let groups = [
             Content.Group(owner: owner("a"), values: [
@@ -489,7 +489,7 @@ struct ProvenanceSheetTests {
         }
     }
 
-    /// T-6 (D-6).
+    /// S15-27 T-6 (D-6).
     @Test func foldClampsPastTheEnd() {
         let folded = Content.folded(single(records(60)), by: Self.fold, pages: 9)
         #expect(recordCount(folded.groups) == 60 && folded.hidden == 0 && folded.firstRevealed == nil)
