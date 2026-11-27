@@ -260,7 +260,8 @@ def main(argv: list[str]) -> int:
 
     for path in new_files:
         for rule in RULES:
-            if rule.pattern is None and applies(rule, path):
+            # A rule that checks lines (`outside_debug`) gets its pattern below; a new file is not a finding.
+            if rule.pattern is None and not rule.outside_debug and applies(rule, path):
                 findings.append(f"{path}: {rule.id}: {rule.message} ({rule.source})")
 
     for rule in RULES:
