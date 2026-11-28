@@ -1,7 +1,7 @@
 # S16-73 — Add Source takes the Published date and Private
 
 **Status:** Landed in [#1019](https://github.com/Jake-Robins-Studios/provenencia/pull/1019) (2026-11-28)
-**Landed:** As planned, except: D-15 disables every `pvFormDialog` body while it runs, so a failed save no longer keeps first responder in the field that was focused (as the Copy sheets already behaved); the version bump is to 0.52.0 (main was already 0.51.1) and all four `MARKETING_VERSION` lines moved; T-2 is a subtest of `TestSourcePublic`; STEP-8 names the brief at `design/archive/`; the date form's range-order message now carries the `end.fieldError` identifier too; `rg "\.disabled\(model\.isSaving\)"` also lists `PromoteView` (a page, not a dialog). The date line names what keeps a date from saving, and Remove time clears that side's time. The board update (2026-11-28) moved Private beside Type with its help behind an info icon (`PVHelpIcon`, also used by the Source page's Metadata heading) and put Description above the date, so AC-1.1's order and the Batch 8 working rule's "Title, Type, Published date, Description and Private" no longer hold: the order is Title, Type | Private, Description, Published date.
+**Landed:** As planned, except: D-15 disables every `pvFormDialog` body while it runs, so a failed save no longer keeps first responder in the field that was focused (as the Copy sheets already behaved); the version bump is to 0.52.0 (main was already 0.51.1) and all four `MARKETING_VERSION` lines moved; T-2 is a subtest of `TestSourcePublic`; STEP-8 names the brief at `design/archive/`; the date form's range-order message now carries the `end.fieldError` identifier too; `rg "\.disabled\(model\.isSaving\)"` also lists `PromoteView` (a page, not a dialog). The date line names what keeps a date from saving, and Remove time clears that side's time. The board update (2026-11-28) moved Private beside Type with its help behind an info icon (`PVHelpIcon`, also used by the Source page's Metadata heading) and put Description above the date, so AC-1.1's order and the Batch 8 working rule's "Title, Type, Published date, Description and Private" no longer hold: the order is Title, Type | Private, Description, Published date. Private lines up with the Type input through the kit's `pvFieldControl` alignment guide, which replaces any label padding.
 **Spike / slice:** Spike 16 · Slice 8a — The Add and Copy Source sheets
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S16-D15](../design/archive/S16-D15-add-source-fields.md), board agreed 2026-11-28
@@ -32,7 +32,7 @@
 
 ## 1. Objective
 
-A researcher adding a Source often knows when the record was published and whether it is private. Today Add Source takes only Title, Type and Description, so both need a second visit to the Source page. After this PR the Add Source dialog shows the shared Source fields, Title, Type, Published date, Description and Private, and Create writes the Source with its date and Private in its one write.
+A researcher adding a Source often knows when the record was published and whether it is private. Today Add Source takes only Title, Type and Description, so both need a second visit to the Source page. After this PR the Add Source dialog shows the shared Source fields, Title, Type with Private beside it (its help behind an info icon), Description and Published date, and Create writes the Source with its date and Private in its one write.
 
 **Why now.** It is a user request (2026-11-26), Batch 8 of Spike 16. S16-74 puts the same fields on the Copy sheet and needs the shared view and the one composer this PR makes.
 
@@ -44,7 +44,7 @@ A researcher adding a Source often knows when the record was published and wheth
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-1.1 | Add Source opens | Title (focused), Type, Published date (the date form, blank), Description, Private (a checkbox, unticked, its help under it), in that order; the dialog is 560 pt wide |
+| AC-1.1 | Add Source opens | Title (focused), Type with Private beside it (a checkbox, unticked, its help behind an info icon), Description, Published date (the date form, blank), in that order; the dialog is 560 pt wide |
 | AC-1.2 | Title "1880 census, Ward 4", Type Census, date Point 1 Jun 1880, Private ticked → Create | The new Source's page header shows "1 Jun 1880" and its Private switch on; the Sources table's Published column shows the date; one `create_source` audit row |
 | AC-1.3 | Same, date left blank, Private unticked | The Source is undated and public, exactly as a create today |
 | AC-1.4 | Date Range 1879 to 1880 → Create | The Source's date is that range |

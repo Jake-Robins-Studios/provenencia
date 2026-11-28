@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// A small muted icon that explains itself: hover or focus shows `help` as a
-/// tooltip, and VoiceOver speaks `label` then `help` as one element. Beside a
-/// section heading or a control that needs a sentence of help. Call sites own
-/// `.accessibilityIdentifier`.
+/// A small muted icon that explains itself: hover shows `help` as a tooltip;
+/// VoiceOver reads it as the hint. It cannot take keyboard focus, so do not put
+/// an instruction a researcher needs only here. Beside a section heading or a
+/// control that needs a sentence of help. Call sites own `.accessibilityIdentifier`.
 struct PVHelpIcon: View {
     private let icon: PVSymbol
     private let label: LocalizedStringResource
@@ -27,7 +27,7 @@ struct PVHelpIcon: View {
 
 #if DEBUG
 #Preview("Help icon") {
-    PVHelpIcon(icon: .info, label: L10n.Sources.privateHelpLabel, help: L10n.Sources.privateSwitchHelp)
+    PVHelpIcon(icon: .info, label: LocalizedStringResource("Help"), help: LocalizedStringResource("Hover shows this sentence."))
         .padding(PVSpacing.space8)
 }
 #endif

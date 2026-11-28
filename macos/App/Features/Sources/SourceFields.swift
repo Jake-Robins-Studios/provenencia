@@ -23,20 +23,17 @@ struct SourceFields: View {
                 types: types,
                 accessibilityIdentifierPrefix: accessibilityIdentifierPrefix
             ) {
-                // A field with a hidden label, so Private lines up with the Type input.
-                PVField(label: L10n.Sources.formType, labelHidden: true) {
-                    HStack(spacing: PVSpacing.space3) {
-                        PVCheckbox(L10n.Sources.privateSwitch, isChecked: $draft.isPrivate)
-                            .accessibilityIdentifier("\(accessibilityIdentifierPrefix).private")
-                        PVHelpIcon(
-                            icon: .info,
-                            label: L10n.Sources.privateHelpLabel,
-                            help: L10n.Sources.privateSwitchHelp
-                        )
-                        .accessibilityIdentifier("\(accessibilityIdentifierPrefix).privateHelp")
-                    }
-                    .frame(height: PVControlSize.md.height)
+                HStack(spacing: PVSpacing.space3) {
+                    PVCheckbox(L10n.Sources.privateSwitch, isChecked: $draft.isPrivate)
+                        .accessibilityIdentifier("\(accessibilityIdentifierPrefix).private")
+                    PVHelpIcon(
+                        icon: .info,
+                        label: L10n.Sources.privateHelpLabel,
+                        help: L10n.Sources.privateSwitchHelp
+                    )
+                    .accessibilityIdentifier("\(accessibilityIdentifierPrefix).privateHelp")
                 }
+                .alignmentGuide(.pvFieldControl) { $0[VerticalAlignment.center] }
             }
             PVField(
                 label: L10n.Sources.formDescription,

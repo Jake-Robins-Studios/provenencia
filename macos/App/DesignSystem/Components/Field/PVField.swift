@@ -6,8 +6,8 @@ import SwiftUI
 /// `Features/Onboarding/` screens, so this isn't a new
 /// pattern for the codebase, just this file's version of it.
 ///
-/// `labelHidden` keeps the label's space but draws and speaks nothing, so a
-/// control beside a field lines up with that field's input.
+/// Sets `.pvFieldControl` on its content, so a control placed beside a field
+/// lines up with that field's control: `HStack(alignment: .pvFieldControl)`.
 ///
 /// See `DesignSystem/README.md` / `PVButton.swift` for the component
 /// pattern this follows.
@@ -29,7 +29,6 @@ struct PVField<Content: View>: View {
     private let error: String?
     private let announcesError: Bool
     private let marker: Marker
-    private let labelHidden: Bool
     private let content: Content
 
     init(
@@ -38,7 +37,6 @@ struct PVField<Content: View>: View {
         error: String? = nil,
         marker: Marker = .none,
         announcesError: Bool = false,
-        labelHidden: Bool = false,
         @ViewBuilder content: () -> Content
     ) {
         self.label = label
@@ -46,7 +44,6 @@ struct PVField<Content: View>: View {
         self.error = error
         self.announcesError = announcesError
         self.marker = marker
-        self.labelHidden = labelHidden
         self.content = content()
     }
 
@@ -66,14 +63,11 @@ struct PVField<Content: View>: View {
                 }
                 .font(PVFont.body(size: PVTypeScale.caption, weight: PVFontWeight.medium))
                 .foregroundStyle(PVColor.textSecondary)
-                // Keeps the label's height for a neighbour that lines up with
-                // the control below it, and draws and speaks nothing.
-                .opacity(labelHidden ? 0 : 1)
-                .accessibilityHidden(labelHidden)
             }
 
             content
                 .environment(\.pvFieldLabel, label)
+                .alignmentGuide(.pvFieldControl) { $0[VerticalAlignment.center] }
 
             if let error {
                 PVErrorText(error, announces: announcesError)
@@ -84,6 +78,18 @@ struct PVField<Content: View>: View {
             }
         }
     }
+}
+
+extension VerticalAlignment {
+    private enum PVFieldControl: AlignmentID {
+        static func defaultValue(in context: ViewDimensions) -> CGFloat {
+            context[VerticalAlignment.center]
+        }
+    }
+
+    /// The centre of a ``PVField``'s control. Lines up a control placed beside
+    /// a field with that field's control.
+    static let pvFieldControl = VerticalAlignment(PVFieldControl.self)
 }
 
 private struct PVFieldLabelKey: EnvironmentKey {

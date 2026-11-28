@@ -52,7 +52,7 @@ struct SourceTitleTypeFields<TypeTrailing: View>: View {
                 )
                 .accessibilityIdentifier("\(accessibilityIdentifierPrefix).title")
             }
-            HStack(alignment: .top, spacing: PVSpacing.space7) {
+            HStack(alignment: .pvFieldControl, spacing: PVSpacing.space7) {
                 PVField(
                     label: L10n.Sources.formType,
                     error: typeError,
