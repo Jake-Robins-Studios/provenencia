@@ -113,7 +113,7 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 **Batch 9 — The date form** (user, 2026-11-28; lands before S16-99):
 
 52. **The date form is smaller.** The Source date dialog and Add Source draw the date form in less height than today, at the sizes S16-D20 agrees; observation dates in the Citation composer and the Copy sheet get the same form. Nothing a researcher could set before is gone. (S16-D20.)
-53. **A repeated letter walks a select's matches.** In the date form's Month select, pressing J three times quickly shows January, then June, then July; in any kit select, menu or list, a repeated letter walks the options that start with it, and a letter after a pause starts again from the current one. (S16-83.)
+53. **A repeated letter walks a select's matches.** In the date form's Month select, pressing J three times quickly shows January, then June, then July; in any kit select, menu or table, a repeated letter walks the options that start with it, and a letter after a pause starts again from the current one. (S16-83.)
 54. **Typing a date is keyboard-first.** Tab into the date form lands on Year; Tab goes on to Month and Day (and the time fields when shown), then leaves the form. Shift-Tab from Year goes to the qualifier (Single date), then Kind; Tab from Kind comes back to Year. (S16-83.)
 
 **Scale.** Real data, which must stay as fast as today: a person in 50 Evidence graphs (Spike 13's budget) with one or two records per graph, 200 events with 10 participants each (12 shown per event at Wide), 20 children in four sibling groups, one to three places per event. Crafted data, which only has to stay bounded: each axis in bar 2 and 3, at least 20 times past its cap.
@@ -350,8 +350,8 @@ These are the calls for this spike. PR plans treat them as binding.
 ### Batch 9 — The date form
 
 - **(Batch 9) One date form, every host** (user, 2026-11-28). The condensed layout lands in `DateValueEditorForm` and `SourceDateEditor`, so the Source date dialog, Add Source, the Copy sheet (S16-74) and the Citation composer's observation dates all take it. No host draws its own date layout. Design: [`date-value-form.md`](date-value-form.md). Binds S16-83.
-- **(Batch 9) A repeated letter walks its matches** (user, 2026-11-28). In `PVTypeSelectMatcher`, a buffer that is one character repeated (`j`, `jj`, `jjj`) searches for that one character from past the current row, as a single keystroke does, so J, J, J walks January, June, July without a pause; a buffer of different characters stays a prefix search. Every caller (`PVSelectSession`, `PVContextMenuKeyboard`, the combo box, the list, the table) gets it through the one matcher. Binds S16-83.
-- **(Batch 9) The date form's Tab starts at Year** (user, 2026-11-28). Tab into the form lands on Year, then Month, Day, and the time fields when shown, then leaves the form. Shift-Tab from Year goes to the qualifier (on a Single date), then Kind; Tab from Kind returns to Year. The form owns this loop through the kit's field focus (`PVFieldFocus`, `PVSegmentedControl`'s focus target), not through system order. Binds S16-83.
+- **(Batch 9) A repeated letter walks its matches** (user, 2026-11-28). In `PVTypeSelectMatcher`, a buffer that is one character repeated (`j`, `jj`, `jjj`) searches for that one character from past the current row, as a single keystroke does, so J, J, J walks January, June, July without a pause; a buffer of different characters stays a prefix search. Its three callers (`PVSelectSession`, `PVContextMenuKeyboard`, `PVTable`) get it through the one matcher; the combo box filters typed text instead, and `PVList` has no type-select. As macOS pop-ups and tables do, a quick `aa` walks the A's rather than matching "Aaron" first, a quick `11` in a table walks the rows that start with 1, and `jjo` (a repeat, then another letter) is a prefix search and matches nothing (map review K9-9). Binds S16-83.
+- **(Batch 9) The date form's Tab starts at Year** (user, 2026-11-28). Tab into the form lands on Year, then Month, Day, and the time fields when shown, then leaves the form. Shift-Tab from Year goes to the qualifier (on a Single date), then Kind; Tab from Kind returns to Year. The form owns this loop through the kit's field focus, not through system order: one `@FocusState` over every field of the form (the two hour Bools fold into it), and a host's handle becomes the Year entry through one new `PVFieldFocus` operation that replaces a handle's Tab neighbours, so the loop crosses the host's binding and the form's without hand-built closures (map review K9-1). The field before the form claims Tab into Year; in Add Source that is Description, so `SourceFields` gains a focus order (K9-4). The qualifier becomes a `PVSegmentedControl` (As stated, About, Before, After) with a focus handle, like Kind, so each is one Tab stop with ←/→ between options (K9-2), and `PVSegmentedControl`'s focus target claims Tab and Shift-Tab through `claimTab(shift:)` when its handle has neighbours, as `PVInput` does; callers with no neighbours do not change (K9-3). Binds S16-83.
 
 ## PR map
 
@@ -445,7 +445,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-74 | Copy Source edits the date, description and Private | 8a | Go and Swift: `CopySourceRequest` carries the description text, the date with its mark and `is_private` in place of their ticks; the Copy sheet shows the shared Source fields filled from the original; credibility and Artifacts stay ticks | S16-D16 | S16-73, S16-76, S16-D16 | — | Scoped |
 | S16-77 | A draft board for a new Source | 8a | Preparatory, Go: `GetDraftMetadataBoard` serves level `source` for a type, seeded from an original Source and a draft through one overlay in `sourcemetadata`, which the copy write also uses | — | S16-76 | — | Scoped |
 | S16-75 | Copy Source edits each metadata value | 8a | Go and Swift: `CopySourceRequest` carries a `MetadataDraft` in place of `copy_metadata`; the Copy sheet hosts the seeded draft board and reads it again on a type change | S16-D17 | S16-74, S16-77, S16-D17 | — | Scoped |
-| S16-83 | The date form is smaller and keyboard-first | 9a | Swift: `DateValueEditorForm` takes S16-D20's condensed layout in every host; its Tab loop starts at Year with Kind and the qualifier behind Shift-Tab; `PVTypeSelectMatcher` walks a repeated letter's matches; the two parked date-form calls in [`date-value-form.md`](date-value-form.md) | S16-D20 | S16-73, S16-D20 | — | Scoped |
+| S16-83 | The date form is smaller and keyboard-first | 9a | Swift: `DateValueEditorForm` takes S16-D20's condensed layout in every host; its Tab loop starts at Year with Kind and the qualifier (now a segmented control) behind Shift-Tab, through one new `PVFieldFocus` neighbour operation; `PVTypeSelectMatcher` walks a repeated letter's matches; the four open calls in [`date-value-form.md`](date-value-form.md) | S16-D20 | S16-73, S16-D20 | — | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -464,7 +464,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-D10 | Toast stack: two and more toasts stacked top-trailing in the workspace window, newest on top; entering and leaving (and Reduce Motion's fade); a refreshed card; a burst clipped at the window's bottom; the Citation composer's toast, which moves there from the foot of its observations column | **S16-58** | Starts from `PVToast`'s board |
 | [S16-D6](design/archive/S16-D6-event-date-row.md) | Event page: the Date row for an event dated by as-ofs | **S16-44** | Extends the S9-D6 Event page frames on the Event Detail board |
 | [S16-D18](design/archive/S16-D18-family-groups-and-marriages.md) | Person page Family: the siblings grouped by their parents, each group its parents then its children, no crossing lines; each couple's marriage date and place, for a group's parents and for the person and each partner; Regular and Wide | **S16-81** | An enhancement of the S13-D3 Family frames (11a, 11c) on the Person Detail board; redraws the left column. Absorbed S16-D19 before it was drawn (user, 2026-11-26); regrouped around sibling groups (user, 2026-11-27). [Agreed 2026-11-27](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ): Shared parent(s); "m." between a group's parents and over a partner's group; tiles keep 92 pt |
-| S16-D20 | The date form, condensed: its own dialog (Source date) and inline (Add Source); Single date and Between two bounds, with and without time and More open; a field error and the can't-be-saved line | **S16-83** | Iterates on the S16-D15 board's date form (Source Detail, page Dialogs); keeps every control the form has today |
+| S16-D20 | The date form, condensed: its own dialog (Source date) and inline (Add Source, and the Citation composer's narrow observation value box); Single date and Between two bounds, with and without time and More open; a field error and the can't-be-saved line; Kind and the qualifier as two segmented controls | **S16-83** | Iterates on the S16-D15 board's date form (Source Detail, page Dialogs); keeps every control the form has today; drawn before S16-D16, which draws the Copy sheet with it |
 
 ## Slices
 
@@ -632,9 +632,11 @@ SLICE 8a — The Add and Copy Source sheets           (any time; S16-73 and S16-
   ✎ S16-D17 ──▶ S16-75  Copy Source edits each metadata value
   Check: bar 44 to 47.
 
-SLICE 9a — The date form                             (after S16-73)
+SLICE 9a — The date form                             (after S16-73; before S16-74)
   ✎ S16-D20 ──▶ S16-83  The date form is smaller and keyboard-first
-  Check: bar 52 to 54.
+  Check: bar 52 to 54 (bar 52's Copy half at S16-74).
+
+S16-99 — Batch 9 lands between S16-73 and S16-74 (map review K9-5): S16-74 hosts the date form and folds `SourceTitleTypeFields` into `SourceFields`, which S16-83 gives a focus order, and S16-D16 draws the Copy sheet with the date form S16-D20 replaces.
 
 S16-99 — Dogfood close / docs
 ```
@@ -727,8 +729,9 @@ S16-76 ──▶ S16-77 ──▶ S16-75
 S16-D16 ──▶ S16-74
 S16-D17 ──▶ S16-75
 S16-76 ──▶ S15-41, S15-42 (Spike 15)
-S16-73 ──▶ S16-83
+S16-73 ──▶ S16-83 ──▶ S16-74
 S16-D20 ──▶ S16-83
+S16-D20 ──▶ S16-D16
 ```
 
 Batch 5 runs in order: each PR reads what the one before added (the key and the samples rule, then the summary's dating).
@@ -1375,8 +1378,8 @@ A user request (2026-11-28): the date form takes less space, and typing a date s
 #### S16-83 — The date form is smaller and keyboard-first
 
 **Today.** `DateValueEditorForm` stacks a labelled Kind control, a labelled qualifier row, dividers, a heading and hint per side, Year, Month and Day with a label each, an Add time link and a Calendar and phrase disclosure; in Add Source it is most of the sheet. Without Full Keyboard Access, Tab skips Kind and the qualifier; with it, they come before Year. `PVTypeSelectMatcher.advance` (`PVFloatingMenuSelection.swift`) appends each key inside 0.8 s, so J, J builds `jj` and matches nothing.
-**Ships.** Swift: the layout S16-D20 agrees, in the shared form (rule "One date form, every host"); the Tab loop (rule "The date form's Tab starts at Year"); the repeated-letter walk in the matcher (rule "A repeated letter walks its matches") with a `PVFloatingMenuSelectionTests` case for J, J, J inside the reset interval; the two calls in [`date-value-form.md`](date-value-form.md) once the user makes them (open in the plan until then).
-**Updates.** The kit README's Select row (type-select walks a repeated letter); `add-ui-component` if the Tab loop adds a kit pattern.
-**Not this PR.** The Copy sheet's own fields (S16-74); keyboard focus for the Reads as line.
+**Ships.** Swift: the layout S16-D20 agrees, in the shared form (rule "One date form, every host"); the qualifier as a `PVSegmentedControl`; the Tab loop (rule "The date form's Tab starts at Year") with the new `PVFieldFocus` neighbour operation and its test, `PVSegmentedControl`'s Tab claim, one `@FocusState` in the form, and the entry from each host (`SourceFields`' Description, `SourceDateDialog`, the composer's `CitationAuthoringNavigation`); the repeated-letter walk in the matcher (rule "A repeated letter walks its matches") with `PVFloatingMenuSelectionTests` cases for J, J, J inside the reset interval, `aa`, a table's `11` and `jjo`. The four open calls in [`date-value-form.md`](date-value-form.md): the user makes Remove time and the range-message timing before the plan is written; the plan decides the range's end side and the links, and Shift-Tab from Kind and the Calendar and Phrase fields' place in the loop (K9-4, K9-11). Deletes: the captions, headings and hints S16-D20 drops (`dateQualifierLabel`, `datePointHeading`, `dateEarliestHeading`, `dateLatestHeading`, `dateLeaveEmptyHint`, `dateKindRangeHint`, as the board decides) and their catalog entries; the qualifier's chips; the two hour `@FocusState` Bools (K9-10).
+**Updates.** The kit README's FloatingMenuSelection row, the table keys table, the Select contract's closed keys, the Field focus row and the SegmentedControl row; the `advance` and `applyTypeSelect` doc comments; `add-ui-component`'s field-focus line (a handle's neighbours can be replaced) (K9-1, K9-3, K9-8).
+**Not this PR.** The Copy sheet's own fields (S16-74, which inherits the focus order through `SourceFields`); keyboard focus for the Reads as line; type-select in `PVList`.
 **Check.** Bar 52 to 54.
-**Context.** `DateValueEditorForm.swift`, `SourceDateEditor.swift`, `SourceDateDialog.swift`, `SourceFields.swift`, `CitationComposerAuthoringBox.swift` (an observation date host), `PVFloatingMenuSelection.swift`, `PVSelectSession.swift`, `PVSegmentedControl.swift`, `PVFieldFocus.swift`; skills `add-ui-component`, `add-localized-string`, `add-swift-test`, `add-design-brief`.
+**Context.** `DateValueEditorForm.swift`, `SourceDateEditor.swift`, `SourceDateDialog.swift`, `SourceFields.swift`, `CitationComposerAuthoringBox.swift` and `CitationAuthoringNavigation` (an observation date host), `macos/App/Platform/DateValueDraft.swift` (Remove time), `PVFloatingMenuSelection.swift`, `PVTable.swift`, `PVChipGroup`, `PVSelectSession.swift`, `PVSegmentedControl.swift`, `PVFieldFocus.swift`; skills `add-ui-component`, `add-localized-string`, `add-swift-test`, `add-design-brief`.

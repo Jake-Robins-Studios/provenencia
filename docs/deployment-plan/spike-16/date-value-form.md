@@ -30,7 +30,7 @@ Nothing a researcher can set today goes. The board decides the layout, and the p
 
 ## A repeated letter walks a select's matches
 
-`PVTypeSelectMatcher` (`PVFloatingMenuSelection.swift`) appends every key that comes within 0.8 s of the last. So pressing J twice quickly builds `jj`, and that matches nothing. The Month select stays on January, and only a pause between presses walks on to June. macOS's own pop-up buttons walk a repeated letter's matches. The fix is in the matcher: a buffer that is one character repeated searches for that single character, starting past the current row. Every select, menu, list and table that uses the matcher gets it. This is a kit fix that rides with this PR because the user asked for one PR (2026-11-28).
+`PVTypeSelectMatcher` (`PVFloatingMenuSelection.swift`) appends every key that comes within 0.8 s of the last. So pressing J twice quickly builds `jj`, and that matches nothing. The Month select stays on January, and only a pause between presses walks on to June. macOS's own pop-up buttons walk a repeated letter's matches. The fix is in the matcher: a buffer that is one character repeated searches for that single character, starting past the current row. Its three callers get it: `PVSelectSession`, `PVContextMenuKeyboard` and `PVTable`. (The combo box filters typed text instead, and `PVList` has no type-select.) This is a kit fix that rides with this PR because the user asked for one PR (2026-11-28).
 
 ## Tab starts at Year
 
@@ -45,10 +45,14 @@ The loop the user chose (2026-11-28):
 
 Today the system order decides. Without Full Keyboard Access, Kind, the chips and the links are not Tab stops at all. With it, Kind and the qualifier come before Year. The form needs its own loop, through the kit's field focus (`PVFieldFocus`, and `PVSegmentedControl`'s focus target).
 
+**How the loop is built** (map review K9-1 – K9-4): one `@FocusState` over every field of the form; a new `PVFieldFocus` operation that replaces a handle's Tab neighbours, so a host's handle becomes the Year entry; the qualifier as a `PVSegmentedControl` like Kind; `PVSegmentedControl` claiming Tab when its handle has neighbours; the field before the form claiming Tab into Year.
+
 **Still open for the plan:**
 
 - **The end side of a range:** where its Year, Month and Day sit in the loop. Straight after the start side's Day is the natural answer.
 - **The links:** whether Add time and Calendar and phrase are Tab stops, and where.
+- **Leaving backwards:** whether Shift-Tab from Kind goes to the host's previous field.
+- **More open:** where the Calendar select and the Phrase input sit in the loop.
 
 ## Remove time clears the time, or keeps it
 
@@ -58,4 +62,4 @@ The other way out is to keep the values, and to show the time fields whenever th
 
 ## The range message shows before the second bound is typed
 
-On Between two bounds, as soon as the earliest year is typed, the form shows "Add the latest bound, or choose Single date." That is before the researcher has had a chance to type the latest bound. The line is true, but it comes early on the usual path. It could wait until the latest bound's fields lose focus, or until Create is pressed. `DateValueDraft.unsavableError` decides the text; the timing belongs to the form. The condensed layout and the new Tab loop change where focus goes, so the timing is decided in the same plan. (From S16-73's review, UX-5.)
+On Between two bounds, as soon as the earliest year is typed, the form shows "Add the latest bound, or choose Single date." That is before the researcher has had a chance to type the latest bound. The line is true, but it comes early on the usual path. It could wait until the latest bound's fields lose focus, or until Create is pressed. `DateValueDraft.unsavableError` decides the text, and the host shows it: Add Source reads it through `SourcesModel.Draft.validation` (`SourcesModel.swift:50`) and draws it as the date field's error in `SourceFields`; the form itself never shows it. So the timing needs one home the host's validation reads (draft state in `DateValueDraft`, or something the form reports), not a second rule in the form (map review K9-7). The condensed layout and the new Tab loop change where focus goes, so the timing is decided in the same plan. (From S16-73's review, UX-5.)
