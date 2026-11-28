@@ -368,6 +368,7 @@ private struct SourcesAddDialog: ViewModifier {
                     confirm: L10n.Sources.createAction,
                     cancel: L10n.Sources.cancelAction
                 ),
+                width: SourceFields.dialogWidth,
                 isRunning: model.isSaving,
                 isDirty: model.addSheetIsDirty,
                 confirmDisabled: !model.canSubmitAdd,
@@ -417,20 +418,13 @@ private struct SourcesAddDialog: ViewModifier {
                 )
                 .accessibilityIdentifier("sources.add.loadError")
             }
-            SourceTitleTypeFields(
+            SourceFields(
                 draft: $model.draft,
                 titleError: $model.titleError,
                 typeError: $model.typeError,
                 types: model.types,
                 accessibilityIdentifierPrefix: "sources.add"
             )
-            PVField(
-                label: L10n.Sources.formDescription,
-                hint: L10n.Sources.formDescriptionHint
-            ) {
-                PVInput(text: $model.draft.description)
-                    .accessibilityIdentifier("sources.add.description")
-            }
         }
     }
 }
