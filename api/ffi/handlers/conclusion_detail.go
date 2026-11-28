@@ -102,6 +102,10 @@ func conclusionFieldProto(f conclusiondetails.Field) *engine.ConclusionField {
 		Label:       f.Label,
 		ValueType:   f.ValueType,
 		State:       string(f.State),
+		RecordCounts: &engine.FieldRecordCounts{
+			Records: int32(f.RecordCounts.Records),
+			Sources: int32(f.RecordCounts.Sources),
+		},
 	}
 	for _, v := range f.Values {
 		pf.Values = append(pf.Values, &engine.ReconciledValueDetail{
@@ -118,27 +122,35 @@ func conclusionFieldProto(f conclusiondetails.Field) *engine.ConclusionField {
 	return pf
 }
 
+// derivedRowKinds maps a life row kind to its wire kind.
+var derivedRowKinds = map[conclusiondetails.DerivedRowKind]engine.DerivedRowKind{
+	conclusiondetails.DerivedRowBirthDate:  engine.DerivedRowKind_DERIVED_ROW_KIND_BIRTH_DATE,
+	conclusiondetails.DerivedRowBirthPlace: engine.DerivedRowKind_DERIVED_ROW_KIND_BIRTH_PLACE,
+	conclusiondetails.DerivedRowDeathDate:  engine.DerivedRowKind_DERIVED_ROW_KIND_DEATH_DATE,
+	conclusiondetails.DerivedRowDeathPlace: engine.DerivedRowKind_DERIVED_ROW_KIND_DEATH_PLACE,
+}
+
+// ownerFieldProto maps one owner of a field: its entity, field and, for an
+// Event, its summary, and, for a place link, its Place.
+func ownerFieldProto(o conclusiondetails.OwnerField) *engine.ConclusionOwnerField {
+	po := &engine.ConclusionOwnerField{Entity: canonicalEntityProto(o.Entity), Field: conclusionFieldProto(o.Field)}
+	if o.Event != nil {
+		po.Event = eventSummaryProto(*o.Event, nil)
+	}
+	if o.Place != nil {
+		po.Place = chainedPlaceProto(*o.Place)
+	}
+	return po
+}
+
 // derivedRowsProto maps a Person's life rows, each owner with its entity,
 // field and, for an Event, its summary.
 func derivedRowsProto(rows []conclusiondetails.DerivedRow) []*engine.DerivedRow {
-	kinds := map[conclusiondetails.DerivedRowKind]engine.DerivedRowKind{
-		conclusiondetails.DerivedRowBirthDate:  engine.DerivedRowKind_DERIVED_ROW_KIND_BIRTH_DATE,
-		conclusiondetails.DerivedRowBirthPlace: engine.DerivedRowKind_DERIVED_ROW_KIND_BIRTH_PLACE,
-		conclusiondetails.DerivedRowDeathDate:  engine.DerivedRowKind_DERIVED_ROW_KIND_DEATH_DATE,
-		conclusiondetails.DerivedRowDeathPlace: engine.DerivedRowKind_DERIVED_ROW_KIND_DEATH_PLACE,
-	}
 	var out []*engine.DerivedRow
 	for _, r := range rows {
-		pr := &engine.DerivedRow{Kind: kinds[r.Kind]}
+		pr := &engine.DerivedRow{Kind: derivedRowKinds[r.Kind]}
 		for _, o := range r.Owners {
-			po := &engine.ConclusionOwnerField{Entity: canonicalEntityProto(o.Entity), Field: conclusionFieldProto(o.Field)}
-			if o.Event != nil {
-				po.Event = eventSummaryProto(*o.Event, nil)
-			}
-			if o.Place != nil {
-				po.Place = chainedPlaceProto(*o.Place)
-			}
-			pr.Owners = append(pr.Owners, po)
+			pr.Owners = append(pr.Owners, ownerFieldProto(o))
 		}
 		out = append(out, pr)
 	}
@@ -169,6 +181,8 @@ func reconcilerOutcomeProto(o conclusiondetails.Outcome) *engine.ReconcilerOutco
 		ArtifactPage:           int32(o.ArtifactPage),
 		PageLabel:              o.PageLabel,
 		GroupRank:              int32(o.GroupRank),
+		DeniedAValue:           o.DeniedAValue,
+		DeniedBySourceTitle:    o.DeniedBySourceTitle,
 	}
 	if len(o.DeniedBy) > 0 {
 		po.DeniedByObservationId = database.UUIDString(o.DeniedBy)

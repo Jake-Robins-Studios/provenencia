@@ -1,6 +1,6 @@
 # S15-28 — A value's records load on their own
 
-**Status:** Planned
+**Status:** Landed in [#1016](https://github.com/Jake-Robins-Studios/provenencia/pull/1016) (2026-11-28)
 **Spike / slice:** Spike 15 · Slice 8 — Provenance loading
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Go and the wire only; the app's rows and sheet read what they read today until S15-29)
@@ -27,6 +27,13 @@
 8. **Docs-only lines in the DoD are part of the PR.** Do not skip them.
 
 ---
+
+## Landed
+
+- The version bump is 0.51.0, not 0.50.0: `main`'s `VERSION` was already 0.50.1 when the PR was cut.
+- T-3's malformed-id case runs through `RenderAll` (the exported entry that checks ids), not `renderAll`; its other cases run through `renderAll`.
+- T-10 compares the count of SELECTs a warm read issues with the count a warm `citationrender.Render` of the same Citations issues.
+- T-7 measured 34,704 bytes with outcomes and 2,963 bytes with every outcome cleared; T-8 measured 14.8 ms warm at 1,200 records.
 
 ## 1. Objective
 

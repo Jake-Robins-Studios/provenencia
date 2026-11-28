@@ -285,7 +285,7 @@ The auto-reconciler, its cache, the pages that read it, place chains, Promote, a
 | Per-Property cardinality on that same pipeline | `core/autoreconcile` |
 | Depictions by image File, cached as `value_image_file_id` | `core/autoreconcile`, `core/database/autoreconciler` |
 | Cache, evidence, outcomes, and upkeep (credibility and certainty included) | `core/database/autoreconciler` |
-| Detail read: each field's state, values, and outcomes with their evidence | `core/database/conclusiondetails` |
+| Detail read and provenance sheet read: each field's state, values, counts, and outcomes with their evidence | `core/database/conclusiondetails` |
 | Subject-valued bridges filed by their ends | `core/database/identityclaims` |
 | Place chains at a date, folded from `part_of` | `core/database/conclusionsummaries` |
 | A summary of any kind on the wire: one `ConclusionSummary` field, built by `conclusionSummaryProto` and mapped by `mapConclusionSummary`; mixed-kind reads go through `Want.Add` and `ByIDs` | `core/database/conclusionsummaries`, `api/ffi/handlers`, `macos/App/Platform/GoStore.swift` |
