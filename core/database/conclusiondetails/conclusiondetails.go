@@ -31,6 +31,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/autoreconcile"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/canonicalentities"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/citationrender"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusionsummaries"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/gallery"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
@@ -874,6 +875,54 @@ func personDerivedRows(c *database.Catalog, personID []byte, kinds []DerivedRowK
 		}
 	}
 	return out, nil
+}
+
+// SheetRequest names one provenance sheet's row: the (owner, Property) pairs
+// of a field row, or a Person's life row by kind. Pairs, when any, win.
+type SheetRequest struct {
+	Pairs    []Pair
+	PersonID []byte
+	Kind     DerivedRowKind
+}
+
+// Sheet is one provenance sheet's read: the owners' fields with their records,
+// and those records' citations rendered, each Citation once.
+type Sheet struct {
+	Owners    []OwnerField
+	Citations []citationrender.RenderedCitation
+}
+
+// ProvenanceSheet reads one sheet: FieldRecords for pairs, or PersonDerivedRow's
+// owners for a Person and a life row kind; any other request, and a row the
+// Person lacks, is an empty sheet. It renders the Citations of the owners'
+// records, in owner then outcome order. It records on in what its reads do, and
+// the Evidence graphs and Sources of the Citations it rendered.
+func ProvenanceSheet(c *database.Catalog, req SheetRequest, in *graphcache.PageInputs) (Sheet, error) {
+	var sheet Sheet
+	var err error
+	switch {
+	case len(req.Pairs) > 0:
+		sheet.Owners, err = FieldRecords(c, req.Pairs, in)
+	case len(req.PersonID) > 0 && slices.Contains([]DerivedRowKind{DerivedRowBirthDate, DerivedRowBirthPlace, DerivedRowDeathDate, DerivedRowDeathPlace}, req.Kind):
+		var row DerivedRow
+		var ok bool
+		if row, ok, err = PersonDerivedRow(c, req.PersonID, req.Kind, in); ok {
+			sheet.Owners = row.Owners
+		}
+	}
+	if err != nil {
+		return Sheet{}, err
+	}
+	var ids [][]byte
+	for _, o := range sheet.Owners {
+		for _, out := range o.Field.Outcomes {
+			ids = append(ids, out.CitationID)
+		}
+	}
+	if sheet.Citations, err = citationrender.RenderAll(c, ids, in); err != nil {
+		return Sheet{}, err
+	}
+	return sheet, nil
 }
 
 // ownerVerdict lays what a vote did to an owner over its field: with the

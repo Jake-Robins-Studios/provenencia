@@ -625,3 +625,74 @@ func TestRenderLimits(t *testing.T) {
 		}
 	})
 }
+
+// TestRenderAll: any number of Citations render, a batch at a time, within one
+// byte budget for the whole call.
+func TestRenderAll(t *testing.T) {
+	w := newWorld(t)
+	ids := seedScale(t, w, 10) // 300 Citations that render alike
+	// inTx runs f on a read transaction that is over before the next call.
+	inTx := func(f func(tx *sql.Tx) ([]RenderedCitation, error)) ([]RenderedCitation, error) {
+		tx, err := w.db.Begin()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = tx.Rollback() }()
+		return f(tx)
+	}
+	one, err := inTx(func(tx *sql.Tx) ([]RenderedCitation, error) {
+		return render(tx, ids[:1], w.c.Graph().PageInputs(), MaxBatchBytes)
+	})
+	if err != nil || len(one) != 1 {
+		t.Fatalf("one Citation: %v %v", one, err)
+	}
+	unit := size(one[0].Full) + size(one[0].Short)
+	if unit == 0 {
+		t.Fatal("a rendered Citation has no text")
+	}
+	idsOf := func(rs []RenderedCitation) [][]byte {
+		var out [][]byte
+		for _, r := range rs {
+			out = append(out, r.CitationID)
+		}
+		return out
+	}
+	for _, tc := range []struct {
+		name         string
+		ids          [][]byte
+		batch, limit int
+		want         [][]byte
+		err          error
+	}{
+		{"every Citation in input order", ids, 120, MaxBatchBytes, ids, nil},
+		{"a repeat past the first batch renders once", append(append([][]byte{}, ids...), ids[0]), 120, MaxBatchBytes, ids, nil},
+		{"batches over the budget are left out", ids[:250], 100, 60 * unit, ids[200:250], nil},
+		{"the budget left decides the next batch", ids[:250], 100, 150 * unit, append(append([][]byte{}, ids[:100]...), ids[200:250]...), nil},
+		{"an id that is not 16 bytes", [][]byte{ids[0], make([]byte, 15)}, 100, MaxBatchBytes, nil, citations.ErrInvalid},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.err != nil {
+				if _, err := RenderAll(w.c, tc.ids, w.c.Graph().PageInputs()); !errors.Is(err, tc.err) {
+					t.Fatalf("err %v, want %v", err, tc.err)
+				}
+				return
+			}
+			rs, err := inTx(func(tx *sql.Tx) ([]RenderedCitation, error) {
+				return renderAll(tx, tc.ids, w.c.Graph().PageInputs(), tc.batch, tc.limit)
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := idsOf(rs)
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("rendered %d Citations, want %d", len(got), len(tc.want))
+			}
+		})
+	}
+	if rs, err := RenderAll(w.c, nil, w.c.Graph().PageInputs()); err != nil || rs != nil {
+		t.Fatalf("no ids: %v %v", rs, err)
+	}
+	if rs, err := RenderAll(w.c, ids, w.c.Graph().PageInputs()); err != nil || len(rs) != len(ids) {
+		t.Fatalf("RenderAll over %d ids: %d, %v", len(ids), len(rs), err)
+	}
+}
