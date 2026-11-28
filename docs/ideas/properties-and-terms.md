@@ -1,6 +1,6 @@
 # Properties page and terms — later
 
-**Status:** idea, not scheduled. Binding order from S11-32 (D-22); term management from 2026-10-09; event-type scoping and Occupation seed from dogfood 2026-10-15 / 2026-10-25. Placement of a terms view (panel vs page) is undecided.
+**Status:** idea, not scheduled. Binding order from S11-32 (D-22); term management from 2026-10-09; event-type scoping and Employment seed from dogfood 2026-10-15 / 2026-10-25. Placement of a terms view (panel vs page) is undecided.
 
 ## Editing a type's property order
 
@@ -26,11 +26,11 @@ Today a Property bound to `event` is offered on every event, whatever its `event
 - **Where they are offered.** `CitationComposerVocabulary.propertyOptions` filters by subject type, connect rules, and locator capabilities — not by the event's current `event_type` observation.
 - **Other readers.** Conclusion detail and reconciliation list values by Properties actually observed; a scoped-out Property that already has values would still display. [`seeded-vocabulary.md`](../seeded-vocabulary.md) §3.3 would need the new concept.
 
-## Seed an Occupation event type
+## Seed an Employment event type
 
-Horizon key listed in [`seeded-vocabulary.md`](../seeded-vocabulary.md) §3.4. Occupation is one of the most common facts a census, directory, or civil record gives, and the Properties page copy already steers researchers toward recording it as an event. The create-time seeded event types stop at vital events plus census / residence / migration / travel.
+Horizon key listed in [`seeded-vocabulary.md`](../seeded-vocabulary.md) §3.4. An employment (a job held at a place for a span: hired, left) is a common fact in directories, obituaries and employer records, and the Properties page copy already steers researchers toward recording it as an event. A trade or skill set is the seeded `occupation` Person Property, not this event. The create-time seeded event types stop at vital events plus census / residence / migration / travel.
 
-**Wanted:** Ship `occupation` as a product-seeded `event_type` term alongside `residence`. Add it in `subjectvocab` `seedTerms` next to `residence`. Title composition follows the generic subject-count rule. Install runs only at catalog create; existing projects would not pick it up unless a separate backfill is decided. Follow [`.agents/skills/add-seeded-vocabulary`](../../.agents/skills/add-seeded-vocabulary/SKILL.md).
+**Wanted:** Ship `employment` as a product-seeded `event_type` term alongside `residence`. Add it in `subjectvocab` `seedTerms` next to `residence`. Title composition follows the generic subject-count rule. Install runs only at catalog create; existing projects would not pick it up unless a separate backfill is decided. Follow [`.agents/skills/add-seeded-vocabulary`](../../.agents/skills/add-seeded-vocabulary/SKILL.md).
 
 ## A place to manage terms
 
