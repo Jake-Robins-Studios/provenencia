@@ -1,6 +1,6 @@
 # Place types and households
 
-**Status:** idea, not scheduled (2026-11-28). From a discussion of how to enter residences: one residence event per person, sharing a Place, instead of one residence event shared by a household.
+**Status:** idea, not scheduled (2026-11-28; decisions 2026-11-28). From a discussion of how to enter residences: one residence event per person, sharing a Place, instead of one residence event shared by a household.
 
 ## Why
 
@@ -12,28 +12,32 @@ What it loses is the fact that people lived *together*. Separate events say only
 
 ## Wanted
 
-A seeded term Property **`place_type`** on `place`, with terms such as `country`, `state`, `province`, `region`, `county`, `township`, `city`, `town`, `village`, `parish`, `farm` and `dwelling`. Views read it as the signal: **residences that share a household-type Place and overlap in time are people who lived together**, and the timeline, Person page, event page and Place page can group them.
+A seeded term Property **`place_type`** on `place`, with terms such as `country`, `state`, `province`, `region`, `county`, `township`, `city`, `town`, `village`, `parish` and `dwelling`. Views read it as the signal: **residences that share a household-type Place and overlap in time are people who lived together**, and the timeline, Person page, event page and Place page can group them.
 
 The property is worth having for more than households: roll-ups ("events in Upper Canada"), maps, search filters, the gazetteer ([`place-gazetteer-service.md`](place-gazetteer-service.md)) and place matching all need to know a place's size.
 
-## Things to decide
+## Decided (user, 2026-11-28)
 
-1. **Key name.** `place_type`, matching `event_type`, `relationship_type` and `place_relationship_type`. A bare `type` reads like the Subject type (person, event, place).
-2. **The household term's name.** Not `residence`, which is already an `event_type` term. The registry allows one key under two properties (`child` is both a role and a relationship type), but "a Residence at a Residence" reads badly. `dwelling` is census vocabulary ("dwelling house") and names a building, not an activity. Alternatives: `habitation`, `abode`, `household`.
-3. **The rule belongs on the term, not in the code.** No `if place_type == dwelling`. Give a term a flag, like `Directed`, `Inverse` and `Neutral` on `seedTerm` (`core/database/subjectvocab/registry.go`), meaning "residences that overlap here are a household". Each existing flag is a column on `property_terms` added by its own migration (`000044`, `000046`, `000047`), so this one is one too, via [`add-catalog-migration`](../../.agents/skills/add-catalog-migration/SKILL.md). Then:
-   - a researcher's own terms (an apartment, a cabin) can opt in without a code change;
-   - the Properties page needs a way to set the flag on a researcher's own term.
-4. **Places where people live together but aren't a household.** A boarding house, workhouse, asylum, prison, barracks, school or hospital. Co-residents there aren't a family. Leave them out of the flag. Perhaps group them under a different label ("residents of") instead, which might mean the flag is a small vocabulary (`household`, `institution`, none) rather than a boolean.
-5. **Farms and homesteads.** A farm with tenant cottages holds several households. Leave `farm` and `homestead` out of the household rule by default.
-6. **Dates must overlap.** Same dwelling and overlapping residence spans means living together. Same dwelling forty years apart means successive occupants. Use the as-of-as-bounds comparison from S16 ([`event-as-of.md`](../deployment-plan/spike-16/event-as-of.md)): as of x is start ≤ x ≤ end, and two as-ofs never conflict. Decide what an open-ended or undated residence does. Probably it isn't grouped, or is grouped and shown as uncertain.
-7. **Which layer the grouping reads.** On a Source graph, the place type is what that record says. On the Conclusion side a Place can be `mixed` (one record says town, another dwelling). Group only when the Conclusion value carries the household flag, and not when it's mixed.
-8. **Matching.** Places at different levels shouldn't merge, so a `place_type` conflict is probably a knob: `subject.Weights.place.place_type`, through [`add-match-rule`](../../.agents/skills/add-match-rule/SKILL.md) and the [`matching-model.md`](../matching-model.md) knob inventory. Decide whether neighbouring levels (town and city, village and parish) count as a conflict or are compared as unknown.
-9. **Place types over time.** A village becomes a town and a township becomes a city. A single value with `mixed` handles a record that disagrees, but a real change of status is probably a `succeeded_by` place relationship, not a second type. Say which in the copy.
-10. **Show it as implied, like kinship.** "Lived together" is a fact nobody entered, like the spouses and parents `core/kinship` derives from marriages and births. Model it once as a derived fact that every view reads, not as grouping in each view. A co-residence pattern would pivot on a Place. That's new: `Pattern.PivotKind` (`core/kinship/patterns.go`) returns only an event or a person today. It's also not a kinship term, so it might be a sibling reader rather than a kinship pattern. [`kinship-view.md`](kinship-view.md) already lists "census households" under other patterns, and the two should be decided together.
-11. **Labels.** The derived fact supports "also at this dwelling, 1880–1885", not "lived with" stated as a conclusion. Copy goes through [`add-localized-string`](../../.agents/skills/add-localized-string/SKILL.md).
-12. **Binding.** Bind `place_type` on `place`, probably locked, since the screens and the rule key into it ([`seeded-vocabulary.md`](../seeded-vocabulary.md) §3.3). Add a §3.x terms table for it.
-13. **Existing catalogs.** Install seeds only at catalog create ([`add-seeded-vocabulary`](../../.agents/skills/add-seeded-vocabulary/SKILL.md)). Existing projects need a backfill of the property, its terms, the flag and the binding. Existing places stay untyped, so the grouping simply doesn't apply until the researcher types them.
-14. **Entry.** The type is one more field on every place card. The pattern shortcuts in [`evidence-graph-structure-shortcuts.md`](evidence-graph-structure-shortcuts.md) (a residence cluster placed in one action) could set it.
+1. **Key name: `place_type`**, matching `event_type`, `relationship_type` and `place_relationship_type`. A bare `type` reads like the Subject type (person, event, place).
+2. **The household term is `dwelling`.** Not `residence`, which is already an `event_type` term. `dwelling` is census vocabulary ("dwelling house") and names a building, not an activity.
+3. **The rule is registry data, not code.** No `if place_type == dwelling`. A term carries a flag, like `Directed`, `Inverse` and `Neutral` on `seedTerm` (`core/database/subjectvocab/registry.go`), meaning "residences that overlap here are a household". Each existing flag is a column on `property_terms` added by its own migration (`000044`, `000046`, `000047`), so this one is too, via [`add-catalog-migration`](../../.agents/skills/add-catalog-migration/SKILL.md). A researcher's own term (an apartment, a cabin) can then opt in without a code change. The Properties page needs a way to set the flag on one.
+4. **Institutions are descoped.** Boarding houses, workhouses, asylums, prisons, barracks, schools and hospitals get no seeded term and no household rule for now. They're places where people live together without being a household, so a later slice might give them their own label ("residents of"). That would make the flag a small vocabulary (`household`, `institution`, none) rather than a boolean.
+5. **A farm is a dwelling.** Enter a farm as a `dwelling`; there is no separate `farm` or `homestead` term.
+6. **Dates must overlap.** Any view that says people lived together requires overlapping residence spans at the dwelling. Same dwelling forty years apart means successive occupants. Use the as-of-as-bounds comparison from S16 ([`event-as-of.md`](../deployment-plan/spike-16/event-as-of.md)): as of x is start ≤ x ≤ end, and two as-ofs never conflict.
+7. **The grouping reads the Conclusion value.** Group when a Place's reconciled `place_type` (`single`, `merged`, or `concluded` by the researcher; [`conclusion-reconciliation.md`](../conclusion-reconciliation.md)) carries the household flag. When it's `mixed` and the researcher hasn't concluded it, don't group. This is the "later Property (nature, grain, …)" that `conclusion-reconciliation.md` §place chains anticipated.
+8. **Matching gets a knob.** A `place_type` conflict scores against a merge: `subject.Weights.place.place_type`, through [`add-match-rule`](../../.agents/skills/add-match-rule/SKILL.md) and the [`matching-model.md`](../matching-model.md) knob inventory.
+9. **A change of type is a new Place.** When a township becomes a city, enter a new Place and link the two with `succeeded_by`. A Place has one type for its whole period, so a `mixed` type means records disagree, never that the place changed.
+10. **No backfill.** Install seeds `place_type` only into catalogs created after it ships ([`add-seeded-vocabulary`](../../.agents/skills/add-seeded-vocabulary/SKILL.md)).
+
+## Still open
+
+1. **One derived fact, or grouping in each view.** "Lived together" is a fact nobody entered, like the spouses and parents `core/kinship` derives from marriages and births and shows as implied. The choice is between computing it once, as a derived fact the timeline, Person, event and Place pages all read, and having each view group residences itself. The first keeps one rule; the second repeats it. A co-residence fact would hinge on a Place, which is new: `Pattern.PivotKind` (`core/kinship/patterns.go`) returns only an event or a person today. It isn't a family relationship either, so it may be a sibling reader rather than a kinship pattern. [`kinship-view.md`](kinship-view.md) lists "census households" under other patterns; decide the two together.
+2. **Wording.** What the views say. The evidence supports "also at this dwelling, 1880–1885", which is weaker than "lived with". Copy goes through [`add-localized-string`](../../.agents/skills/add-localized-string/SKILL.md).
+3. **Locked binding.** Bind `place_type` on `place` as locked, so the Properties page can't unbind it while the household rule reads it, as `event_type` is locked on `event` ([`seeded-vocabulary.md`](../seeded-vocabulary.md) §3.3). Add a §3.x terms table.
+4. **Entering the type.** One more field to fill on every place. The pattern shortcuts in [`evidence-graph-structure-shortcuts.md`](evidence-graph-structure-shortcuts.md) (a residence cluster placed in one action) could set `dwelling` for the researcher.
+5. **Open-ended and undated residences.** Whether a residence with no dates, or only one end, joins a group, or is shown as uncertain.
+6. **Neighbouring types in matching.** Whether town and city, or village and parish, count as a conflict or compare as unknown.
+7. **The full seeded term list.** Which of `country`, `state`, `province`, `region`, `county`, `township`, `city`, `town`, `village`, `parish` and `dwelling` ship.
 
 ## Alternatives considered
 
@@ -44,4 +48,4 @@ The property is worth having for more than households: roll-ups ("events in Uppe
 
 ## First slice
 
-The `place_type` property, its terms, the flag (with its migration), the binding and the backfill, with no grouping. Grouping and the derived co-residence fact come after, once real places have been typed.
+The `place_type` property, its terms, the household flag (with its migration), the binding and the matching knob, with no grouping. Grouping and the derived co-residence fact come after, once real places have been typed.
