@@ -70,6 +70,10 @@ type ReconciledValue struct {
 	Support int    // distinct Sources
 	Against int    // negative records that match it
 	Reason  string // "kept" when displayed, else why not
+	// PooledSupport is, on a provenance sheet's life row over Places, the
+	// distinct Sources behind this displayed value across every link to the
+	// same Place; 0 everywhere else.
+	PooledSupport int
 }
 
 // Displayed reports whether the value is one of the displayed values.
@@ -928,6 +932,7 @@ func ProvenanceSheet(c *database.Catalog, req SheetRequest, in *graphcache.PageI
 		var ok bool
 		if row, ok, err = PersonDerivedRow(c, req.PersonID, req.Kind, in); ok {
 			sheet.Owners = row.Owners
+			poolPlaceSupport(sheet.Owners)
 		}
 	}
 	if err != nil {
@@ -943,6 +948,50 @@ func ProvenanceSheet(c *database.Catalog, req SheetRequest, in *graphcache.PageI
 		return Sheet{}, err
 	}
 	return sheet, nil
+}
+
+// poolPlaceSupport sets PooledSupport on each displayed value of each owner
+// with a Place: the distinct Sources among the outcomes counted under that
+// value, over every owner on the same Place whose displayed value has the same
+// scalar. It copies an owner's Values before writing, so nothing shared changes.
+func poolPlaceSupport(owners []OwnerField) {
+	type pool struct {
+		place string
+		value propertymeta.Scalar
+	}
+	sources := map[pool]map[string]bool{}
+	for _, o := range owners {
+		if o.Place == nil {
+			continue
+		}
+		for _, v := range o.Field.Values {
+			if !v.Displayed() {
+				continue
+			}
+			k := pool{string(o.Place.Entity.ID), v.Value.Scalar}
+			if sources[k] == nil {
+				sources[k] = map[string]bool{}
+			}
+			for _, out := range o.Field.Outcomes {
+				if out.GroupRank == v.Rank {
+					sources[k][string(out.SourceID)] = true
+				}
+			}
+		}
+	}
+	for i := range owners {
+		o := &owners[i]
+		if o.Place == nil {
+			continue
+		}
+		o.Field.Values = slices.Clone(o.Field.Values)
+		for j := range o.Field.Values {
+			v := &o.Field.Values[j]
+			if v.Displayed() {
+				v.PooledSupport = len(sources[pool{string(o.Place.Entity.ID), v.Value.Scalar}])
+			}
+		}
+	}
 }
 
 // ownerVerdict lays what a vote did to an owner over its field: with the

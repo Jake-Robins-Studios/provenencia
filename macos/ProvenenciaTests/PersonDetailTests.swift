@@ -85,9 +85,13 @@ struct PersonDetailTests {
     /// record speaks to it.
     @Test func rowsAreNameThenLifeThenRecordedFields() {
         let weak = D.outcome("w", "weak", rank: 1, recorded: .integer(8))
+        let occupation = D.field(
+            "", key: "occupation", label: "Occupation", valueType: "text",
+            outcomes: [D.outcome("o", "no_evidence", rank: nil)], counts: .init(records: 1, sources: 0)
+        )
         let content = PersonDetailContent(detail: detail(extra: [
-            D.field("", key: "occupation", label: "Occupation", valueType: "text", outcomes: [D.outcome("o", "no_evidence", rank: nil)]),
-            D.field("single", key: "birth_weight", label: "Birth weight", valueType: "integer", [D.value(1, "weak", .integer(8))], outcomes: [weak]),
+            occupation,
+            D.field("single", key: "birth_weight", label: "Birth weight", valueType: "integer", [D.value(1, "weak", .integer(8))], outcomes: [weak], counts: .init(records: 1, sources: 0)),
             D.field("", key: "height", label: "Height", valueType: "integer"),
         ]))
         // Sex at birth and Height have no records, so they don't show.
@@ -100,14 +104,25 @@ struct PersonDetailTests {
         ])
         #expect(content.rows[1...4].allSatisfy { $0.shown.lead == nil && $0.recordCount == 0 && $0.count == nil })
         // A recorded field with nothing to show says so, and keeps its records in the sheet.
-        #expect(content.rows[5].shown.lead == nil && content.rows[5].shown.emptyText == "Nothing recorded" && content.rows[5].provenanceContent().records.count == 1)
+        #expect(content.rows[5].shown.lead == nil && content.rows[5].shown.emptyText == "Nothing recorded" && content.rows[5].provenanceContent(records: D.readOf(occupation)).records.count == 1)
+    }
+
+    /// AC-1.3: a field other than the name shows once a record speaks to it.
+    @Test func aFieldShowsOnceARecordSpeaksToIt() {
+        func labels(records: Int) -> [String] {
+            let sex = D.field("single", key: "sex_at_birth", label: "Sex at birth", valueType: "term", [D.value(1, "kept")],
+                              counts: .init(records: records, sources: records))
+            return PersonDetailContent(detail: detail(extra: [sex])).rows.map(\.label)
+        }
+        #expect(!labels(records: 0).contains("Sex at birth"))
+        #expect(labels(records: 1).contains("Sex at birth"))
     }
 
     @Test func treatmentRidesOnContentAndRowsStay() {
         let woman = CatalogConclusionValue.term(id: "t", key: "woman", label: "Woman", origin: CatalogOrigin.provenencia)
         let gender = D.field(
             "single", key: "gender", label: "Gender", valueType: "term",
-            [D.value(1, "kept", woman)], outcomes: [D.outcome("g", "kept", recorded: woman)]
+            [D.value(1, "kept", woman)], outcomes: [D.outcome("g", "kept", recorded: woman)], counts: .init(records: 1, sources: 1)
         )
         var personSummary = CatalogPersonSummary(
             entity: CatalogCanonicalEntity(id: "e1", ref: "PER-7KD45", subjectTypeID: "t", label: ""),
@@ -133,7 +148,7 @@ struct PersonDetailTests {
         let woman = CatalogConclusionValue.term(id: "t", key: "woman", label: "Woman", origin: CatalogOrigin.provenencia)
         let gender = D.field(
             "single", key: "gender", label: "Gender", valueType: "term",
-            [D.value(1, "kept", woman)], outcomes: [D.outcome("g", "kept", recorded: woman)]
+            [D.value(1, "kept", woman)], outcomes: [D.outcome("g", "kept", recorded: woman)], counts: .init(records: 1, sources: 1)
         )
         let content = PersonDetailContent(detail: detail(extra: [gender]))
         #expect(content.treatment == nil && content.badge == nil)
@@ -144,7 +159,7 @@ struct PersonDetailTests {
         let woman = CatalogConclusionValue.term(id: "t", key: "woman", label: "Woman", origin: CatalogOrigin.provenencia)
         let gender = D.field(
             "single", key: "gender", label: "Gender", valueType: "term",
-            [D.value(1, "kept", woman)], outcomes: [D.outcome("g", "kept", recorded: woman)]
+            [D.value(1, "kept", woman)], outcomes: [D.outcome("g", "kept", recorded: woman)], counts: .init(records: 1, sources: 1)
         )
         var summary = CatalogPersonSummary(
             entity: CatalogCanonicalEntity(id: "e1", ref: "PER-7KD45", subjectTypeID: "t", label: ""),
@@ -411,10 +426,10 @@ struct PersonDetailTests {
         #expect(row.shown.lead == "James Robins" && row.shown.face == .text)
         #expect(row.shown.badge == .merged && row.count == "2 Sources" && row.against == nil)
         #expect(row.otherValuesLabel == nil && row.otherValues.isEmpty)
-        #expect(row.provenanceContent().records.map(\.phrase) == [
+        #expect(row.provenanceContent(records: D.readOf(D.mergedName)).records.map(\.phrase) == [
             "kept", "folded into James Robins", "outvoted (2 of 3 Sources)", "weak · low-trust Source",
         ])
-        #expect(row.provenanceContent().records.map(\.citation.title).first == "Census of Canada West, 1851")
+        #expect(row.provenanceContent(records: D.readOf(D.mergedName)).records.map(\.citation.title).first == "Census of Canada West, 1851")
         #expect(row.accessibilityLabel == "Name, James Robins, merged from 2 Sources")
     }
 
@@ -471,7 +486,7 @@ struct PersonDetailTests {
         let page = PersonDetailContent(detail: detail(summary: james), locale: en)
         #expect(page.lifeLines.map(\.date) == ["1817", "1880"])
         #expect(page.lifeLines.map(\.place) == ["York", "Toronto"])
-        #expect(page.rows[1].shown.lead == "1817" && page.rows[1].shown.badge == nil && page.rows[1].provenanceContent().records.isEmpty)
+        #expect(page.rows[1].shown.lead == "1817" && page.rows[1].shown.badge == nil && page.rows[1].provenanceContent(records: []).records.isEmpty)
         #expect(page.rows[2].shown.lead == "York" && page.rows[2].shown.face == .place)
         #expect(page.rows[4].shown.lead == "Toronto")
         // Derived rows open the Event or Place that owns their records.
@@ -507,7 +522,7 @@ struct PersonDetailTests {
         ]
         #expect(PersonLifeDisplay.lifeLines(twoPlaces, locale: en, missing: .omitted).map(\.extraPlaces) == [1, 0])
         let mixed = PersonDetailContent(detail: detail(summary: twoPlaces), locale: en)
-        #expect(mixed.rows[2].shown.lead == "York" && mixed.rows[2].shown.badge == .mixed && mixed.rows[2].provenanceContent().records.isEmpty)
+        #expect(mixed.rows[2].shown.lead == "York" && mixed.rows[2].shown.badge == .mixed && mixed.rows[2].provenanceContent(records: []).records.isEmpty)
         #expect(mixed.rows[1].shown.badge == nil, "one birth event with one date is not mixed")
 
         // Two birth events disagree: both birth rows are mixed.
@@ -656,7 +671,7 @@ struct PersonDetailTests {
     ) -> CatalogOwnerField {
         CatalogOwnerField(
             entity: entity, event: event, place: place,
-            field: D.field(values.isEmpty ? "" : "single", key: key, label: key, valueType: key == "date" ? "date" : "text", values, outcomes: outcomes)
+            field: D.field(values.isEmpty ? "" : "single", key: key, label: key, valueType: key == "date" ? "date" : "text", values, outcomes: outcomes, counts: .init(records: outcomes.count, sources: 1))
         )
     }
 
@@ -674,18 +689,18 @@ struct PersonDetailTests {
         ])]
         let page = PersonDetailContent(detail: detail(summary: summary, derivedRows: rows), locale: en)
         let birth = page.rows[1]
-        #expect(birth.provenanceContent().groups.count == 1 && birth.provenanceContent().groups[0].owner == nil)
-        #expect(birth.provenanceContent().records.count == 2 && birth.provenanceContent().records.allSatisfy { $0.counted })
+        #expect(birth.provenanceContent(records: rows.flatMap(\.owners)).groups.count == 1 && birth.provenanceContent(records: rows.flatMap(\.owners)).groups[0].owner == nil)
+        #expect(birth.provenanceContent(records: rows.flatMap(\.owners)).records.count == 2 && birth.provenanceContent(records: rows.flatMap(\.owners)).records.allSatisfy { $0.counted })
         #expect(birth.shown.lead != nil)
         // No death event: no records.
-        #expect(page.rows[3].provenanceContent().records.isEmpty)
+        #expect(page.rows[3].provenanceContent(records: []).records.isEmpty)
 
         // A date whose only record is denied: stated empty, with its records in the sheet.
         let denied = [CatalogDerivedRow(kind: .birthDate, owners: [
             owner(event, key: "date", outcomes: [D.outcome("den", "denied", rank: nil)]),
         ])]
         let empty = PersonDetailContent(detail: detail(summary: lifeSummary(), derivedRows: denied), locale: en).rows[1]
-        #expect(empty.shown.lead == nil && empty.provenanceContent().records.count == 1)
+        #expect(empty.shown.lead == nil && empty.provenanceContent(records: denied.flatMap(\.owners)).records.count == 1)
     }
 
     @Test func anOwnerThatIsNotTheShownOneIsNamed() {
@@ -698,9 +713,9 @@ struct PersonDetailTests {
                   place: CatalogChainedPlace(entity: york, names: ["York"])),
         ])]
         let birth = PersonDetailContent(detail: detail(summary: summary, derivedRows: rows), locale: en).rows[2]
-        #expect(birth.provenanceContent().groups.count == 1)
-        #expect(birth.provenanceContent().groups[0].owner?.title == "York")
-        #expect(birth.provenanceContent().groups[0].records.allSatisfy { !$0.counted })
+        #expect(birth.provenanceContent(records: rows.flatMap(\.owners)).groups.count == 1)
+        #expect(birth.provenanceContent(records: rows.flatMap(\.owners)).groups[0].owner?.title == "York")
+        #expect(birth.provenanceContent(records: rows.flatMap(\.owners)).groups[0].records.allSatisfy { !$0.counted })
     }
 
     @Test func competingOwnersAreGroupedAndSecondary() {
@@ -722,19 +737,19 @@ struct PersonDetailTests {
         ])]
         let birth = PersonDetailContent(detail: detail(summary: summary, derivedRows: rows), locale: en).rows[1]
         // The summary's lead event (the second) is shown, so it comes first.
-        #expect(birth.provenanceContent().groups.map(\.id) == ["ev2", "ev1"])
-        #expect(birth.provenanceContent().groups[0].records.allSatisfy { $0.counted })
-        #expect(birth.provenanceContent().groups[1].records.allSatisfy { !$0.counted })
-        #expect(birth.provenanceContent().groups[0].owner?.title == "Birth of Ada Lovelace")
-        #expect(birth.provenanceContent().groups[0].owner?.ref == "EVT-9RW7P")
-        #expect(birth.provenanceContent().groups[0].owner?.spoken == "Birth of Ada Lovelace, EVT-9RW7P, shown value")
+        #expect(birth.provenanceContent(records: rows.flatMap(\.owners)).groups.map(\.id) == ["ev2", "ev1"])
+        #expect(birth.provenanceContent(records: rows.flatMap(\.owners)).groups[0].records.allSatisfy { $0.counted })
+        #expect(birth.provenanceContent(records: rows.flatMap(\.owners)).groups[1].records.allSatisfy { !$0.counted })
+        #expect(birth.provenanceContent(records: rows.flatMap(\.owners)).groups[0].owner?.title == "Birth of Ada Lovelace")
+        #expect(birth.provenanceContent(records: rows.flatMap(\.owners)).groups[0].owner?.ref == "EVT-9RW7P")
+        #expect(birth.provenanceContent(records: rows.flatMap(\.owners)).groups[0].owner?.spoken == "Birth of Ada Lovelace, EVT-9RW7P, shown value")
 
         // An owner with no summary and no label is titled by its ref, once.
         let bare = [CatalogDerivedRow(kind: .birthDate, owners: [
             owner(first, key: "date", outcomes: [D.outcome("a", "kept")]),
             owner(second, key: "date", outcomes: [D.outcome("b", "kept")]),
         ])]
-        let line = PersonDetailContent(detail: detail(summary: summary, derivedRows: bare), locale: en).rows[1].provenanceContent().groups[1].owner
+        let line = PersonDetailContent(detail: detail(summary: summary, derivedRows: bare), locale: en).rows[1].provenanceContent(records: bare.flatMap(\.owners)).groups[1].owner
         #expect(line?.title == "EVT-4KX2M" && line?.ref == nil && line?.spoken == "EVT-4KX2M")
 
         // Two Places are titled as the Places list titles them.
@@ -750,15 +765,15 @@ struct PersonDetailTests {
             CatalogChainedPlace(entity: toronto, names: ["Toronto"]), CatalogChainedPlace(entity: yorkville, names: ["Yorkville"]),
         ]))
         let row = PersonDetailContent(detail: detail(summary: death, derivedRows: places), locale: en).rows[4]
-        #expect(row.provenanceContent().groups.compactMap { $0.owner?.title } == ["Toronto", "Yorkville"])
-        #expect(row.provenanceContent().groups[1].records.allSatisfy { !$0.counted })
+        #expect(row.provenanceContent(records: places.flatMap(\.owners)).groups.compactMap { $0.owner?.title } == ["Toronto", "Yorkville"])
+        #expect(row.provenanceContent(records: places.flatMap(\.owners)).groups[1].records.allSatisfy { !$0.counted })
 
         // A nameless first Place is not the shown one: the second leads the records.
         let nameless = CatalogChainedPlace(entity: toronto, names: [])
         let paris = CatalogChainedPlace(entity: yorkville, names: ["Paris"])
         let lopsided = lifeSummary(death: CatalogLifeFacts(places: [nameless, paris]))
         let shown = PersonDetailContent(detail: detail(summary: lopsided, derivedRows: places), locale: en).rows[4]
-        #expect(shown.shown.lead == "Paris" && shown.provenanceContent().groups.first?.owner?.id == "pl2")
+        #expect(shown.shown.lead == "Paris" && shown.provenanceContent(records: places.flatMap(\.owners)).groups.first?.owner?.id == "pl2")
         #expect(shown.opens?.location == .placeDetail(entityId: "pl2", ref: "PLC-2", title: "Paris"))
     }
 
@@ -781,11 +796,11 @@ struct PersonDetailTests {
             owner(first, key: "date", outcomes: [D.outcome("a", "kept")], event: eventSummary(first)),
         ])]
         let birth = PersonDetailContent(detail: detail(summary: summary, derivedRows: rows), locale: en).rows[1]
-        #expect(birth.provenanceContent().groups.map(\.id) == ["ev1", "ev2"])
-        #expect(birth.provenanceContent().groups[0].owner?.isShownOwner == true)
-        #expect(birth.provenanceContent().groups[0].owner?.spoken == "Birth of Ada Lovelace, EVT-4KX2M, shown value")
-        #expect(birth.provenanceContent().groups[1].owner?.isShownOwner == false)
-        #expect(birth.provenanceContent().groups[1].owner?.spoken == "Birth of Ada Lovelace, EVT-9PQ2R")
+        #expect(birth.provenanceContent(records: rows.flatMap(\.owners)).groups.map(\.id) == ["ev1", "ev2"])
+        #expect(birth.provenanceContent(records: rows.flatMap(\.owners)).groups[0].owner?.isShownOwner == true)
+        #expect(birth.provenanceContent(records: rows.flatMap(\.owners)).groups[0].owner?.spoken == "Birth of Ada Lovelace, EVT-4KX2M, shown value")
+        #expect(birth.provenanceContent(records: rows.flatMap(\.owners)).groups[1].owner?.isShownOwner == false)
+        #expect(birth.provenanceContent(records: rows.flatMap(\.owners)).groups[1].owner?.spoken == "Birth of Ada Lovelace, EVT-9PQ2R")
     }
 
     @Test func oneOwnerHasNoGroupLine() {
@@ -795,7 +810,7 @@ struct PersonDetailTests {
             owner(event, key: "date", outcomes: [D.outcome("a", "kept")]),
         ])]
         let birth = PersonDetailContent(detail: detail(summary: summary, derivedRows: rows), locale: en).rows[1]
-        #expect(birth.provenanceContent().groups.count == 1 && birth.provenanceContent().groups[0].owner == nil)
+        #expect(birth.provenanceContent(records: rows.flatMap(\.owners)).groups.count == 1 && birth.provenanceContent(records: rows.flatMap(\.owners)).groups[0].owner == nil)
 
         // The shown owner has no records; the one other owner is not the shown one.
         let other = entity("ev2", "EVT-2")
@@ -804,19 +819,19 @@ struct PersonDetailTests {
             owner(other, key: "date", outcomes: [D.outcome("b", "kept")]),
         ])]
         let row = PersonDetailContent(detail: detail(summary: lopsided, derivedRows: others), locale: en).rows[1]
-        #expect(row.provenanceContent().groups.count == 1 && row.provenanceContent().groups[0].owner?.isShownOwner == false)
+        #expect(row.provenanceContent(records: others.flatMap(\.owners)).groups.count == 1 && row.provenanceContent(records: others.flatMap(\.owners)).groups[0].owner?.isShownOwner == false)
     }
 
     @Test func onlyRowsWithRecordsOfferProvenance() {
         let page = PersonDetailContent(detail: detail(summary: lifeSummary()), locale: en)
-        #expect(page.rows[1].provenanceContent().records.isEmpty)
+        #expect(page.rows[1].provenanceContent(records: []).records.isEmpty)
 
         let event = entity("ev1", "EVT-1")
         let denied = [CatalogDerivedRow(kind: .birthDate, owners: [
             owner(event, key: "date", outcomes: [D.outcome("den", "denied", rank: nil)]),
         ])]
         let birth = PersonDetailContent(detail: detail(summary: lifeSummary(), derivedRows: denied), locale: en).rows[1]
-        #expect(birth.shown.lead == nil && birth.provenanceContent().records.count == 1)
+        #expect(birth.shown.lead == nil && birth.provenanceContent(records: denied.flatMap(\.owners)).records.count == 1)
         #expect(ProvenanceSheetItem(id: birth.id).row(in: [birth]) == birth)
     }
 

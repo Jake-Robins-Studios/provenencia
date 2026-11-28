@@ -60,7 +60,7 @@ struct EventDetailContent: ConclusionDetailBody {
         }
         let behind: [(property: CatalogEventDatingProperty, field: CatalogConclusionField)] =
             summary.datingProperties.compactMap { property in
-                fields.first { $0.propertyKey == property.key && !$0.outcomes.isEmpty }
+                fields.first { $0.propertyKey == property.key && $0.hasRecords }
                     .map { (property, $0) }
             }
         let lead = DateRowDisplay.line(dating: summary.dating, locale: locale)

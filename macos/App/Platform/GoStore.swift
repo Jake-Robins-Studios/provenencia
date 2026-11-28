@@ -821,23 +821,37 @@ struct GoStore: GenealogyStore {
         return (Self.mapSourceType(resp.type), reply, Self.mapWriteEffects(resp.effects))
     }
 
-    func renderCitations(projectDir: String, citationIDs: [String]) async throws -> CatalogRenderedCitations {
-        if citationIDs.isEmpty { return CatalogRenderedCitations() }
-        var req = Provenencia_Engine_V1_RenderCitationsRequest()
+    func getProvenanceRecords(projectDir: String, request: CatalogProvenanceRequest) async throws
+        -> CatalogProvenanceSheetRead
+    {
+        var req = Provenencia_Engine_V1_GetProvenanceRecordsRequest()
         req.projectDir = projectDir
-        req.citationIds = citationIDs
-        let resp: Provenencia_Engine_V1_RenderCitationsResponse = try await provenenciaCall(
-            method: CoreMethod.renderCitations,
+        switch request {
+        case .fields(let pairs):
+            var wire = Provenencia_Engine_V1_ProvenancePairs()
+            wire.pairs = pairs.map {
+                var pair = Provenencia_Engine_V1_ProvenancePair()
+                pair.ownerID = $0.ownerID
+                pair.propertyID = $0.propertyID
+                return pair
+            }
+            req.fields = wire
+        case .derived(let personID, let kind):
+            var wire = Provenencia_Engine_V1_ProvenanceDerivedRow()
+            wire.personID = personID
+            wire.kind = kind.wire
+            req.derived = wire
+        }
+        let resp: Provenencia_Engine_V1_GetProvenanceRecordsResponse = try await provenenciaCall(
+            method: CoreMethod.getProvenanceRecords,
             request: req
         )
-        return CatalogRenderedCitations(
-            citations: resp.citations.map {
-                CatalogRenderedCitation(
-                    citationID: $0.citationID,
-                    full: Self.mapCitationRender($0.full),
-                    short: Self.mapCitationRender($0.short)
-                )
-            },
+        return CatalogProvenanceSheetRead(
+            owners: resp.owners.map(Self.mapOwnerField),
+            citations: Dictionary(
+                resp.citations.map { ($0.citationID, Self.mapRenderedCitation($0)) },
+                uniquingKeysWith: { first, _ in first }
+            ),
             inputs: Self.mapPageInputs(resp.inputs)
         )
     }
@@ -1747,6 +1761,23 @@ struct GoStore: GenealogyStore {
         )
     }
 
+    private static func mapRenderedCitation(_ c: Provenencia_Engine_V1_RenderedCitation) -> CatalogRenderedCitation {
+        CatalogRenderedCitation(
+            citationID: c.citationID,
+            full: mapCitationRender(c.full),
+            short: mapCitationRender(c.short)
+        )
+    }
+
+    private static func mapOwnerField(_ o: Provenencia_Engine_V1_ConclusionOwnerField) -> CatalogOwnerField {
+        CatalogOwnerField(
+            entity: mapCanonicalEntity(o.entity),
+            event: o.hasEvent ? mapEventSummary(o.event) : nil,
+            place: o.hasPlace ? mapChainedPlace(o.place) : nil,
+            field: mapConclusionField(o.field)
+        )
+    }
+
     private static func mapConclusionField(_ f: Provenencia_Engine_V1_ConclusionField) -> CatalogConclusionField {
         CatalogConclusionField(
             propertyID: f.propertyID,
@@ -1761,34 +1792,22 @@ struct GoStore: GenealogyStore {
                     reason: ReconcilerReason(wire: v.reason),
                     support: Int(v.support),
                     against: Int(v.against),
-                    value: Self.mapConclusionValue(v.value)
+                    value: Self.mapConclusionValue(v.value),
+                    pooledSupport: Int(v.pooledSupport)
                 )
             },
-            outcomes: f.outcomes.map(Self.mapReconcilerOutcome)
+            outcomes: f.outcomes.map(Self.mapReconcilerOutcome),
+            recordCounts: CatalogFieldRecordCounts(
+                records: Int(f.recordCounts.records),
+                sources: Int(f.recordCounts.sources)
+            )
         )
     }
 
     /// A row of a kind this build doesn't know is dropped.
     private static func mapDerivedRow(_ r: Provenencia_Engine_V1_DerivedRow) -> CatalogDerivedRow? {
-        let kind: CatalogDerivedRowKind
-        switch r.kind {
-        case .birthDate: kind = .birthDate
-        case .birthPlace: kind = .birthPlace
-        case .deathDate: kind = .deathDate
-        case .deathPlace: kind = .deathPlace
-        case .unspecified, .UNRECOGNIZED: return nil
-        }
-        return CatalogDerivedRow(
-            kind: kind,
-            owners: r.owners.map {
-                CatalogOwnerField(
-                    entity: mapCanonicalEntity($0.entity),
-                    event: $0.hasEvent ? mapEventSummary($0.event) : nil,
-                    place: $0.hasPlace ? mapChainedPlace($0.place) : nil,
-                    field: mapConclusionField($0.field)
-                )
-            }
-        )
+        guard let kind = CatalogDerivedRowKind(wire: r.kind) else { return nil }
+        return CatalogDerivedRow(kind: kind, owners: r.owners.map(mapOwnerField))
     }
 
     private static func mapReconcilerOutcome(_ o: Provenencia_Engine_V1_ReconcilerOutcomeDetail) -> CatalogReconcilerOutcome {
@@ -1815,7 +1834,9 @@ struct GoStore: GenealogyStore {
             citationLabel: o.citationLabel,
             artifactPage: Int(o.artifactPage),
             pageLabel: o.pageLabel,
-            groupRank: Int(o.groupRank)
+            groupRank: Int(o.groupRank),
+            deniedAValue: o.deniedAValue,
+            deniedBySourceTitle: o.deniedBySourceTitle
         )
     }
 
@@ -2963,5 +2984,28 @@ struct GoStore: GenealogyStore {
             endTZ: d.endTz,
             phrase: d.phrase
         )
+    }
+}
+
+extension CatalogDerivedRowKind {
+    /// The kind a wire row carries; nil for one this build doesn't know.
+    init?(wire: Provenencia_Engine_V1_DerivedRowKind) {
+        switch wire {
+        case .birthDate: self = .birthDate
+        case .birthPlace: self = .birthPlace
+        case .deathDate: self = .deathDate
+        case .deathPlace: self = .deathPlace
+        case .unspecified, .UNRECOGNIZED: return nil
+        }
+    }
+
+    /// The wire kind of this row.
+    var wire: Provenencia_Engine_V1_DerivedRowKind {
+        switch self {
+        case .birthDate: return .birthDate
+        case .birthPlace: return .birthPlace
+        case .deathDate: return .deathDate
+        case .deathPlace: return .deathPlace
+        }
     }
 }

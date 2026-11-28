@@ -65,11 +65,37 @@ struct CatalogQueryKey: Hashable, Sendable {
         case provenanceSheet
     }
 
-    /// The renders a provenance sheet shows, for these Citation ids (sorted,
-    /// distinct, none empty). Held only while the sheet is shown
-    /// (`WorkspaceSession.release`).
-    static func provenanceSheet(project: ProjectKey, citationIds: [String]) -> CatalogQueryKey {
-        .init(.provenanceSheet, project, Set(citationIds.filter { !$0.isEmpty }).sorted())
+    /// The records a provenance sheet shows, for its row's request, held only
+    /// while the sheet is shown (`WorkspaceSession.release`). The ids start with
+    /// a tag: `["fields", owner, property, …]` (pairs in the row's order, a pair
+    /// with an empty id dropped, a repeat removed) or `["life", person, kind]`.
+    static func provenanceSheet(project: ProjectKey, request: CatalogProvenanceRequest) -> CatalogQueryKey {
+        switch request {
+        case .fields(let pairs):
+            var seen: Set<CatalogProvenancePair> = []
+            let kept = pairs.filter { !$0.ownerID.isEmpty && !$0.propertyID.isEmpty && seen.insert($0).inserted }
+            return .init(.provenanceSheet, project, ["fields"] + kept.flatMap { [$0.ownerID, $0.propertyID] })
+        case .derived(let personID, let kind):
+            return .init(.provenanceSheet, project, ["life", personID, kind.rawValue])
+        }
+    }
+
+    /// The request of a `provenanceSheet` key, read back from its ids.
+    var provenanceRequest: CatalogProvenanceRequest {
+        precondition(kind == .provenanceSheet, "\(kind) has no provenance request")
+        if ids[0] == "life" {
+            guard let row = CatalogDerivedRowKind(rawValue: ids[2]) else {
+                preconditionFailure("\(ids[2]) is not a life row kind")
+            }
+            return .derived(personID: ids[1], kind: row)
+        }
+        var pairs: [CatalogProvenancePair] = []
+        var index = 1
+        while index + 1 < ids.count {
+            pairs.append(CatalogProvenancePair(ownerID: ids[index], propertyID: ids[index + 1]))
+            index += 2
+        }
+        return .fields(pairs)
     }
 
     static func sourcesList(project: ProjectKey) -> CatalogQueryKey { .init(.sourcesList, project) }

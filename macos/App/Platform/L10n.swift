@@ -9289,16 +9289,16 @@ enum L10n {
             comment: "VoiceOver announcement after the provenance sheet copies a record's short citation"
         )
 
-        static let citationsLoading = LocalizedStringResource(
-            "provenanceSheet.citationsLoading",
-            defaultValue: "Loading citations",
-            comment: "Caption and VoiceOver label of the provenance sheet's record area while its citations are being rendered"
+        static let recordsLoading = LocalizedStringResource(
+            "provenanceSheet.recordsLoading",
+            defaultValue: "Loading records",
+            comment: "Caption and VoiceOver label of the provenance sheet's record area while its records are being read"
         )
 
-        static let citationsFailedTitle = LocalizedStringResource(
-            "provenanceSheet.citationsFailedTitle",
-            defaultValue: "Citations could not be read",
-            comment: "Title of the provenance sheet's notice when its citations could not be rendered"
+        static let recordsFailedTitle = LocalizedStringResource(
+            "provenanceSheet.recordsFailedTitle",
+            defaultValue: "Records could not be read",
+            comment: "Title of the provenance sheet's notice when its records could not be read"
         )
 
         static let done = LocalizedStringResource(

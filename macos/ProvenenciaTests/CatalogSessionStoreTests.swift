@@ -19,17 +19,29 @@ struct CatalogSessionStoreTests {
         #expect(store.heldCatalogProjectDir == projectDir)
     }
 
-    @Test func renderCitationsAnswersTheAskedIds() async throws {
+    @Test func provenanceRecordsAnswersTheAskedRequest() async throws {
         let store = FakeStore()
-        store.renderCitationsReplies = [
-            "a": renderedCitation("a", full: ""), "b": renderedCitation("b", full: ""),
+        let asked = CatalogProvenanceRequest.fields([CatalogProvenancePair(ownerID: "P", propertyID: "p-name")])
+        store.provenanceRecordsReplies = [
+            asked: CatalogProvenanceSheetRead(
+                owners: [CatalogOwnerField(entity: CatalogCanonicalEntity(id: "P", ref: "PER-1", subjectTypeID: "t", label: "James"), field: sampleField())],
+                citations: ["a": renderedCitation("a", full: "")]
+            )
         ]
-        let reply = try await store.renderCitations(projectDir: projectDir, citationIDs: ["a", "b", "c"])
-        #expect(reply.citations.map(\.citationID) == ["a", "b"])
-        #expect(store.renderCitationsCalls == [["a", "b", "c"]])
-        let empty = try await store.renderCitations(projectDir: projectDir, citationIDs: [])
-        #expect(empty == CatalogRenderedCitations())
-        #expect(store.renderCitationsCalls.count == 1)
+        let reply = try await store.getProvenanceRecords(projectDir: projectDir, request: asked)
+        #expect(reply.owners.map(\.entity.id) == ["P"])
+        #expect(reply.citations.keys.sorted() == ["a"])
+        #expect(store.provenanceRecordsCalls == [asked])
+        let unlisted = try await store.getProvenanceRecords(projectDir: projectDir, request: .derived(personID: "P", kind: .birthDate))
+        #expect(unlisted.owners.isEmpty && unlisted.citations.isEmpty && unlisted.inputs == .init())
+        #expect(store.provenanceRecordsCalls.count == 2)
+    }
+
+    private func sampleField() -> CatalogConclusionField {
+        CatalogConclusionField(
+            propertyID: "p-name", propertyKey: "name", label: "Name", valueType: .name,
+            state: .single, values: [], outcomes: []
+        )
     }
 
     @Test func closeCatalogSessionClearsHeldAndRecordsDir() async throws {

@@ -500,9 +500,9 @@ extension CatalogQueryKey.Kind {
                 }
             )
         case .conclusionDetail:
-            // A rename or a Citation or Artifact label fix reaches the
-            // provenance sheet, the Gallery captions and the viewer's record
-            // row through the Sources and graphs its records cite.
+            // A rename, a credibility change or a Citation or Artifact label fix
+            // reaches the counts and states, the Gallery captions and the
+            // viewer's record row through the Sources and graphs its records cite.
             return .entityPage(kind: self) { (key, store) -> CatalogConclusionDetail in
                 try await store.getConclusionDetail(projectDir: key.project.projectDir, entityID: key.id)
             }
@@ -532,16 +532,14 @@ extension CatalogQueryKey.Kind {
                 try await store.getPersonRecordLinks(projectDir: key.project.projectDir, entityID: key.id)
             }
         case .provenanceSheet:
-            // The renders of a provenance sheet's Citations: held only while
-            // the sheet is shown (`WorkspaceSession.release`). A write that
-            // reaches its Sources, graphs or handles while it is open
-            // reloads it.
+            // A provenance sheet's records and their citations, held only while
+            // the sheet is shown; a write that reaches its Sources, graphs or
+            // handles while it is open reloads it.
             return .make(
                 kind: self,
                 refreshes: CatalogQueryRefresh.followsInputs(CatalogProvenanceSheetRead.self),
                 load: { key, store in
-                    let reply = try await store.renderCitations(projectDir: key.project.projectDir, citationIDs: key.ids)
-                    return CatalogProvenanceSheetRead(reply)
+                    try await store.getProvenanceRecords(projectDir: key.project.projectDir, request: key.provenanceRequest)
                 }
             )
         }

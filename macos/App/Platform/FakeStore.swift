@@ -431,16 +431,14 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     /// When set, an `updateSourceType` that carries formats answers this reply and
     /// saves nothing (a refused write); otherwise it stores them in `citationFormatsByType`.
     var updateSourceTypeFormatsReply: CatalogCitationFormatsReply?
-    /// What `renderCitations` answers, by Citation id; the reply holds the asked ids found here, in asked order.
-    var renderCitationsReplies: [String: CatalogRenderedCitation] = [:]
-    /// The `inputs` of a `renderCitations` reply.
-    var renderCitationsInputs: CatalogPageInputs = .init()
-    /// Awaited before a `renderCitations` reply.
-    let renderCitationsHold = FakeHold()
-    /// The ids of every `renderCitations` call, in order.
-    private(set) var renderCitationsCalls: [[String]] = []
-    /// When set, `renderCitations` throws.
-    var renderCitationsError: Error?
+    /// What `getProvenanceRecords` answers, by request; an unlisted request answers no owners, no citations and empty inputs.
+    var provenanceRecordsReplies: [CatalogProvenanceRequest: CatalogProvenanceSheetRead] = [:]
+    /// Awaited before a `getProvenanceRecords` reply.
+    let provenanceRecordsHold = FakeHold()
+    /// The request of every `getProvenanceRecords` call, in order.
+    private(set) var provenanceRecordsCalls: [CatalogProvenanceRequest] = []
+    /// When set, `getProvenanceRecords` throws.
+    var provenanceRecordsError: Error?
     /// What `renderCitationPreview` answers, by form; a form with no entry renders nothing.
     var previewReplies: [CitationForm: CatalogCitationPreview] = [:]
     /// The arguments of every `renderCitationPreview` call, in order.
@@ -1479,17 +1477,25 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         }
     }
 
-    func renderCitations(projectDir: String, citationIDs: [String]) async throws -> CatalogRenderedCitations {
-        if citationIDs.isEmpty { return CatalogRenderedCitations() }
-        await renderCitationsHold.wait()
+    func getProvenanceRecords(projectDir: String, request: CatalogProvenanceRequest) async throws
+        -> CatalogProvenanceSheetRead
+    {
+        await provenanceRecordsHold.wait()
         return try withState {
             markCatalogSessionHeld(projectDir)
-            renderCitationsCalls.append(citationIDs)
-            if let renderCitationsError { throw renderCitationsError }
-            return CatalogRenderedCitations(
-                citations: citationIDs.compactMap { renderCitationsReplies[$0] },
-                inputs: renderCitationsInputs
-            )
+            provenanceRecordsCalls.append(request)
+            if let provenanceRecordsError { throw provenanceRecordsError }
+            if let reply = provenanceRecordsReplies[request] { return reply }
+            // A field row's read: the name field of each owner asked, with its records.
+            guard case .fields(let pairs) = request else { return CatalogProvenanceSheetRead() }
+            let sources = sourcesByProject[projectDir] ?? []
+            let owners = pairs.compactMap { pair -> CatalogOwnerField? in
+                let group = membershipBySubject.values.filter { $0.entity.id == pair.ownerID }
+                guard let entity = group.first?.entity else { return nil }
+                let field = nameField(memberIDs: Set(group.map(\.subjectID)), sources: sources)
+                return field.propertyID == pair.propertyID ? CatalogOwnerField(entity: entity, field: field) : nil
+            }
+            return CatalogProvenanceSheetRead(owners: owners)
         }
     }
 
@@ -2224,6 +2230,8 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
             if let person = personSummaries().first(where: { $0.entity.id == entityID }) {
                 detail.summary = .person(person)
             }
+            // The detail read sends counts, not the records behind them.
+            for i in detail.fields.indices { detail.fields[i].outcomes = [] }
             return detail
         }
     }
@@ -2313,7 +2321,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         } else {
             state = .single
         }
-        return CatalogConclusionField(
+        var field = CatalogConclusionField(
             propertyID: propertyID,
             propertyKey: SeededPropertyKey.name,
             label: "Name",
@@ -2325,6 +2333,23 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
                     < (Self.lastIfNone($1.groupRank), $1.valueRank ?? .max, $1.observationID)
             }
         )
+        field.recordCounts = Self.recordCounts(of: field)
+        return field
+    }
+
+    /// The counts the engine sends for a field (Go `conclusiondetails.recordCounts`): one record per
+    /// outcome; one displayed value's Sources are its Support, several are the distinct Sources of
+    /// the outcomes counted under a displayed value, else their summed Support.
+    static func recordCounts(of field: CatalogConclusionField) -> CatalogFieldRecordCounts {
+        var counts = CatalogFieldRecordCounts(records: field.outcomes.count, sources: 0)
+        let shown = field.displayedValues
+        if shown.count == 1 {
+            counts.sources = shown[0].support
+        } else if shown.count > 1 {
+            let counted = Set(field.outcomes.filter { $0.groupRank > 0 }.map(\.sourceID))
+            counts.sources = counted.isEmpty ? shown.reduce(0) { $0 + $1.support } : counted.count
+        }
+        return counts
     }
 
     /// A group rank sorts after every real one when it is 0 (none).

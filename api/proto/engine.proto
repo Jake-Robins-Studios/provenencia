@@ -136,7 +136,9 @@ enum Method {
   reserved "METHOD_UPDATE_CITATION_FORMATS";
   METHOD_COPY_SOURCE_TYPE = 122;
   METHOD_GET_DRAFT_METADATA_BOARD = 123;
-  METHOD_RENDER_CITATIONS = 124;
+  // Citations render with the sheet's records, in GetProvenanceRecords.
+  reserved 124;
+  reserved "METHOD_RENDER_CITATIONS";
   METHOD_RENDER_CITATION_PREVIEW = 125;
   METHOD_LIST_CITATION_PLACEHOLDERS = 126;
   METHOD_GET_SOURCE_MOVE_IMPACT = 127;
@@ -1853,6 +1855,8 @@ message ReconciledValueDetail {
   int32 support = 3; // distinct Sources
   int32 against = 4; // negative records that match it
   ConclusionValue value = 5;
+  // distinct Sources behind this value across every link to the same Place, on a provenance sheet's life row; 0 elsewhere
+  int32 pooled_support = 6;
 }
 
 // ReconcilerOutcomeDetail is what the auto-reconciler did with one
@@ -1902,6 +1906,7 @@ message ConclusionField {
   string value_type = 4;
   string state = 5;
   repeated ReconciledValueDetail values = 6;
+  // Filled only by GetProvenanceRecords; GetConclusionDetail sends record_counts instead.
   repeated ReconcilerOutcomeDetail outcomes = 7;
   FieldRecordCounts record_counts = 8;
 }
@@ -2958,24 +2963,12 @@ message CitationRender {
   string plain = 2;
 }
 
-// Renders each Citation's full and short note. Ids not in the catalog are left
-// out; a repeated id comes back once, in first place. At most 2,000 ids.
-message RenderCitationsRequest {
-  string project_dir = 1;
-  repeated string citation_ids = 2;
-}
-
 message RenderedCitation {
   string citation_id = 1;
   CitationRender full = 2;  // empty: the type has no full format; show today's line
   CitationRender short = 3;
   reserved 4;
   reserved "group_key";
-}
-
-message RenderCitationsResponse {
-  repeated RenderedCitation citations = 1;
-  PageInputs inputs = 2; // the Evidence graphs and Sources the render read
 }
 
 message ProvenancePair {

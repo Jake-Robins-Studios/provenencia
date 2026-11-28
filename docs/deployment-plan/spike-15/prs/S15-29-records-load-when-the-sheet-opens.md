@@ -1,6 +1,6 @@
 # S15-29 — The provenance sheet loads its records when it opens
 
-**Status:** Planned
+**Status:** Landed in [#1024](https://github.com/Jake-Robins-Studios/provenencia/pull/1024) (2026-11-28)
 **Spike / slice:** Spike 15 · Slice 8 — Provenance loading
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no new chrome: the record area keeps S15-D9's load area, and only its two strings change; S15-D18 descoped, user, 2026-11-28)
@@ -27,6 +27,15 @@
 8. **Docs-only lines in the DoD are part of the PR.** Do not skip them.
 
 ---
+
+## Landed
+
+- The version bump is 0.53.0, not 0.52.0: `main`'s `VERSION` was already 0.52.1 when the PR was cut.
+- T-15's last case (`GetProvenanceRecords` on S16-80's fixture) runs in `core/database/conclusiondetails` through `ProvenanceSheet` over a birth place with three Sources, and not through the handler: the handlers' tests have no Place life row fixture. The wire mapping of `pooled_support` is asserted in `TestReconcilerOutcomeProtoCarriesVoteAndArtifact`.
+- The Event and Place test fixtures take their counts from `ReconciledValueDisplayTests.counted` (one record per outcome, the lead value's Sources), and the Person tests pass counts directly; `FakeStore`'s detail sets `recordCounts` the same way so the fake app's rows still show.
+- T-12 measured 2,963 bytes for the detail of `researchedPerson(t, 30, 2)`.
+- STEP-3 to STEP-6 are one commit: the row, key and sheet-content changes swap together and the Swift tree builds only with all of them.
+- The manual check (section 10) was not run by the implementer.
 
 ## 1. Objective
 

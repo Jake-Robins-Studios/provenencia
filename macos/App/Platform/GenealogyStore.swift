@@ -724,6 +724,9 @@ struct CatalogReconciledValue: Sendable, Equatable, Identifiable {
     /// Negative records that match it.
     var against: Int
     var value: CatalogConclusionValue
+    /// On a provenance sheet's life row over Places: the distinct Sources behind
+    /// it across every link to the same Place. 0 elsewhere.
+    var pooledSupport: Int = 0
 
     var id: Int { rank }
     var isDisplayed: Bool { reason == .kept }
@@ -767,9 +770,21 @@ struct CatalogReconcilerOutcome: Sendable, Equatable, Identifiable {
     /// The displayed value the record counts under: its value rank for a kept
     /// or folded record of a displayed value, else 0.
     var groupRank: Int = 0
+    /// On a negative record: it eliminated a value in its field.
+    var deniedAValue: Bool = false
+    /// For a denied record: the Source title of the record that denied it; ""
+    /// when that record is not in the field.
+    var deniedBySourceTitle: String = ""
 
     var id: String { observationID }
     var isLowTrustSource: Bool { credibilityOffset < 0 }
+}
+
+/// How many records sit behind a field and how many Sources its row names;
+/// the engine's `FieldRecordCounts`.
+struct CatalogFieldRecordCounts: Sendable, Equatable {
+    var records: Int = 0
+    var sources: Int = 0
 }
 
 /// One Property of a handle's detail. Go computes `state`.
@@ -780,9 +795,13 @@ struct CatalogConclusionField: Sendable, Equatable, Identifiable {
     var valueType: PropertyValueType
     var state: ReconciledState
     var values: [CatalogReconciledValue]
+    /// Empty on a detail page's field; filled on a provenance sheet's read.
     var outcomes: [CatalogReconcilerOutcome]
+    var recordCounts: CatalogFieldRecordCounts = .init()
 
     var id: String { propertyID }
+    /// Whether any record sits behind the field.
+    var hasRecords: Bool { recordCounts.records > 0 }
     var displayedValues: [CatalogReconciledValue] { values.filter(\.isDisplayed) }
 }
 
@@ -1051,8 +1070,11 @@ struct CatalogConclusionDetail: Sendable, Equatable {
 }
 
 /// A Person life row whose value is read off other handles.
-enum CatalogDerivedRowKind: Sendable, Equatable {
-    case birthDate, birthPlace, deathDate, deathPlace
+enum CatalogDerivedRowKind: String, Sendable, Equatable {
+    case birthDate = "birth_date"
+    case birthPlace = "birth_place"
+    case deathDate = "death_date"
+    case deathPlace = "death_place"
 }
 
 /// The field a derived row reads off the entity that owns it. `event` is the
@@ -1389,28 +1411,37 @@ struct CatalogCitationRender: Sendable, Equatable {
     var plain: String = ""
 }
 
-/// One Citation rendered by `renderCitations`: its full and short forms.
+/// One Citation rendered for a provenance sheet's records: its full and short forms.
 struct CatalogRenderedCitation: Sendable, Equatable {
     var citationID: String
     var full: CatalogCitationRender
     var short: CatalogCitationRender
 }
 
-/// A batch of rendered Citations in the engine's reply order, and what they read.
-struct CatalogRenderedCitations: Sendable, Equatable {
-    var citations: [CatalogRenderedCitation] = []
-    var inputs: CatalogPageInputs = .init()
+/// One (owner, Property) pair of a provenance sheet's request.
+struct CatalogProvenancePair: Sendable, Hashable {
+    var ownerID: String
+    var propertyID: String
 }
 
-/// What a provenance sheet reads while it is shown: its Citations' renders by
-/// Citation id, and what they read.
-struct CatalogProvenanceSheetRead: Sendable, Equatable {
-    var citations: [String: CatalogRenderedCitation]
-    var inputs: CatalogPageInputs
+/// What a provenance sheet asks to read: the (owner, Property) pairs of a
+/// field row, or a Person's life row by kind.
+enum CatalogProvenanceRequest: Sendable, Hashable {
+    case fields([CatalogProvenancePair])
+    case derived(personID: String, kind: CatalogDerivedRowKind)
+}
 
-    init(_ reply: CatalogRenderedCitations) {
-        citations = Dictionary(reply.citations.map { ($0.citationID, $0) }, uniquingKeysWith: { first, _ in first })
-        inputs = reply.inputs
+/// What a provenance sheet reads while it is shown: its row's owners with their
+/// records, those records' Citations' renders by Citation id, and what they read.
+struct CatalogProvenanceSheetRead: Sendable, Equatable {
+    var owners: [CatalogOwnerField] = []
+    var citations: [String: CatalogRenderedCitation] = [:]
+    var inputs: CatalogPageInputs = .init()
+
+    init(owners: [CatalogOwnerField] = [], citations: [String: CatalogRenderedCitation] = [:], inputs: CatalogPageInputs = .init()) {
+        self.owners = owners
+        self.citations = citations
+        self.inputs = inputs
     }
 }
 
@@ -1918,9 +1949,10 @@ protocol GenealogyStore: Sendable {
         iconKey: String,
         formats: CatalogCitationFormats?
     ) async throws -> (CatalogSourceType, CatalogCitationFormatsReply?, CatalogWriteEffects)
-    /// The full and short citations of these Citations, in the asked order, for
-    /// those that exist. Empty `citationIDs` answers empty without a call.
-    func renderCitations(projectDir: String, citationIDs: [String]) async throws -> CatalogRenderedCitations
+    /// One provenance sheet's read: the owners of the row `request` names, each
+    /// field with its records, their Citations rendered, and what the read used.
+    func getProvenanceRecords(projectDir: String, request: CatalogProvenanceRequest) async throws
+        -> CatalogProvenanceSheetRead
     /// One form rendered for one Source of a type (nil for none), against
     /// `format` (unsaved text with fields by key; nil renders the stored form).
     /// With no Source and a format, only its diagnostics come back.

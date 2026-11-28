@@ -56,7 +56,8 @@ struct PlaceDetailTests {
                 D.outcome("map", "kept", rank: 2, source: "s-map", recorded: .text("Tkaronto")),
                 D.outcome("letter", "weak", rank: 3, source: "s-letter", title: "Letter, 1793",
                           recorded: .text("Torento"), credibilityOffset: -1),
-            ]
+            ],
+            counts: .init(records: 3, sources: 2)
         )
         let page = content(detail(label: "York", fields: [field]))
         let names = page.rows[0]
@@ -67,9 +68,19 @@ struct PlaceDetailTests {
         #expect(names.shown.badge == nil)
         #expect(names.otherValuesLabel == nil)
         #expect(names.accessibilityLabel == "Names, Toronto; Tkaronto, 2 values from 2 Sources")
-        #expect(names.provenanceContent().records.map(\.id).contains("letter"))
+        #expect(names.provenanceContent(records: D.readOf(field)).records.map(\.id).contains("letter"))
         #expect(!names.shown.listedValues.map(\.text).contains("Torento"))
-        #expect(names.provenanceContent().records.first { $0.id == "letter" }?.phrase.contains("weak") == true)
+        #expect(names.provenanceContent(records: D.readOf(field)).records.first { $0.id == "letter" }?.phrase.contains("weak") == true)
+    }
+
+    /// AC-1.4: a toponym with no records is the empty row, whatever outcomes it carries.
+    @Test func namesRowIsEmptyWithNoRecords() {
+        let field = D.field(
+            "multiple", key: "toponym", label: "Toponym", valueType: "text", [D.value(1, "kept", .text("Toronto"))],
+            counts: .init(records: 0, sources: 0)
+        )
+        let names = content(detail(label: "York", fields: [field])).rows[0]
+        #expect(names.shown.lead == nil && names.shown.emptyText == "No names recorded" && !names.hasRecords)
     }
 
     @Test func periodAndRelationshipsAreStatedEmpty() {

@@ -81,33 +81,30 @@ func provenanceFields(owner, property string) *engine.GetProvenanceRecordsReques
 	}}
 }
 
-// TestDetailPayloadWithoutRecords logs what the page read's records weigh: the
-// payload S15-29 stops sending once the sheet loads them.
-func TestDetailPayloadWithoutRecords(t *testing.T) {
+// TestDetailCarriesNoRecords: the page read sends no record on any field or life row owner, and
+// logs what that weighs.
+func TestDetailCarriesNoRecords(t *testing.T) {
 	t.Cleanup(func() { _ = catalogsession.CloseAll() })
 	dir, entityID, _ := researchedPerson(t, 30, 2)
 	var d engine.ConclusionDetail
 	mustRPC(t, GetConclusionDetail, &engine.GetConclusionDetailRequest{ProjectDir: dir, EntityId: entityID}, &d)
-	with, err := proto.Marshal(&d)
-	if err != nil {
-		t.Fatal(err)
-	}
 	for _, f := range d.GetFields() {
-		f.Outcomes = nil
+		if len(f.GetOutcomes()) != 0 {
+			t.Fatalf("field %q sends %d outcomes", f.GetPropertyKey(), len(f.GetOutcomes()))
+		}
 	}
 	for _, row := range d.GetDerivedRows() {
 		for _, o := range row.GetOwners() {
-			o.GetField().Outcomes = nil
+			if len(o.GetField().GetOutcomes()) != 0 {
+				t.Fatalf("life row owner sends %d outcomes", len(o.GetField().GetOutcomes()))
+			}
 		}
 	}
-	without, err := proto.Marshal(&d)
+	payload, err := proto.Marshal(&d)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("detail payload: %d bytes with outcomes, %d bytes with every outcome cleared", len(with), len(without))
-	if len(without) >= len(with) {
-		t.Fatalf("clearing the outcomes did not shrink the payload: %d, %d", len(with), len(without))
-	}
+	t.Logf("detail payload: %d bytes", len(payload))
 }
 
 // TestProvenanceRecordsScale: one name field with 1,200 records, each its own
@@ -295,7 +292,7 @@ func TestGetProvenanceRecordsWarmReadsNoRecordSQL(t *testing.T) {
 			u := uuid.MustParse(rc.GetCitationId())
 			ids = append(ids, u[:])
 		}
-		_, err := citationrender.Render(c, ids, c.Graph().PageInputs())
+		_, err := citationrender.RenderAll(c, ids, c.Graph().PageInputs())
 		return err
 	}); err != nil {
 		t.Fatal(err)

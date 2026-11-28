@@ -18,11 +18,10 @@ import (
 )
 
 const (
-	// MaxCitations is the most ids one Render call takes, and the batch RenderAll
-	// renders at a time.
+	// MaxCitations is the batch RenderAll renders at a time.
 	MaxCitations = 2_000
-	// MaxBatchBytes is the most text one Render or RenderAll call renders: the
-	// sum of the plain text of every full and short citation.
+	// MaxBatchBytes is the most text one RenderAll call renders: the sum of the
+	// plain text of every full and short citation.
 	MaxBatchBytes = 8 << 20
 )
 
@@ -36,40 +35,6 @@ type RenderedCitation struct {
 	CitationID []byte
 	Full       citationformat.Rendered
 	Short      citationformat.Rendered
-}
-
-// Render renders the Citations with the given ids in one read transaction, in
-// input order, a repeated id once; an id with no Citation is left out. It
-// records in in the Evidence graphs and Sources of the Citations it found; in
-// must not be nil. More than MaxCitations ids, an id that is not 16 bytes, or
-// more than MaxBatchBytes of rendered text is citations.ErrInvalid. No ids
-// returns nil and reads nothing.
-func Render(c *database.Catalog, citationIDs [][]byte, in *graphcache.PageInputs) ([]RenderedCitation, error) {
-	if len(citationIDs) > MaxCitations {
-		return nil, citations.ErrInvalid
-	}
-	for _, id := range citationIDs {
-		if len(id) != 16 {
-			return nil, citations.ErrInvalid
-		}
-	}
-	if len(citationIDs) == 0 {
-		return nil, nil
-	}
-	db, err := c.DB()
-	if err != nil {
-		return nil, err
-	}
-	tx, err := db.Begin()
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = tx.Rollback() }()
-	out, _, err := render(tx, citationIDs, in, MaxBatchBytes)
-	if errors.Is(err, errOverBudget) {
-		return nil, citations.ErrInvalid
-	}
-	return out, err
 }
 
 // RenderAll renders the Citations with the given ids, any number of them, in

@@ -30,11 +30,11 @@ struct EventDetailTests {
         _ date: CatalogDateValueInput,
         id: String = "rec"
     ) -> CatalogConclusionField {
-        D.field(
+        D.withEngineCounts(D.field(
             "single", key: key, label: key, valueType: "date",
             [D.value(1, "kept", .date(date))],
             outcomes: [D.outcome(id, "kept", title: "Census", recorded: .date(date))]
-        )
+        ))
     }
 
     /// The Properties Go names behind each kind of dating (the event period registry's four keys).
@@ -76,7 +76,7 @@ struct EventDetailTests {
         _ values: [(date: CatalogDateValueInput, support: Int)],
         denied: [CatalogDateValueInput] = []
     ) -> CatalogConclusionField {
-        D.field(
+        D.withEngineCounts(D.field(
             "multiple", key: key, label: key, valueType: "date",
             values.enumerated().map { D.value($0.offset + 1, "kept", support: $0.element.support, .date($0.element.date)) },
             outcomes: values.enumerated().map {
@@ -84,7 +84,7 @@ struct EventDetailTests {
             } + denied.enumerated().map {
                 D.outcome("\(key)-denied-\($0.offset)", "denied", rank: nil, title: "Directory", recorded: .date($0.element))
             }
-        )
+        ))
     }
 
     private var asOfDating: (low: CatalogDateValueInput, high: CatalogDateValueInput) { (day(1990, 1, 10), day(2015, 2, 10)) }
@@ -140,59 +140,76 @@ struct EventDetailTests {
     @Test func anOccurrenceKeepsTheDateRowWhateverElseIsRecorded() {
         let point = day(1817, 5, 14)
         let dating = CatalogEventDating(kind: .occurrence, low: point)
-        let page = content(detail(fields: [
+        let fields = [
             dateField("date", point, id: "point"),
             dateField("start_date", year(1849), id: "start"),
             multiDateField("as_of", [(year(1820), 1)]),
-        ], summary: dated(dating: dating, properties: [occurrence])))
+        ]
+        let page = content(detail(fields: fields, summary: dated(dating: dating, properties: [occurrence])))
         #expect(page.rows.map(\.label) == ["Date", "Place"])
         #expect(page.rows[0].shown.lead == "14 May 1817")
-        #expect(page.rows[0].provenanceContent().records.map(\.id) == ["point"])
+        #expect(page.rows[0].provenanceContent(records: fields.flatMap { D.readOf($0) }).records.map(\.id) == ["point"])
         #expect(page.secondaryDate == "14 May 1817")
+    }
+
+    /// AC-1.4: a date field with no records gives way to the next dating Property.
+    @Test func theDateRowSkipsAPropertyWithNoRecords() {
+        let start = year(1849)
+        let empty = D.field(
+            "single", key: "date", label: "Date", valueType: "date", [D.value(1, "kept", .date(day(1817, 5, 14)))],
+            counts: .init(records: 0, sources: 0)
+        )
+        let startField = dateField("start_date", start, id: "start")
+        let page = content(detail(fields: [empty, startField], summary: dated(
+            dating: CatalogEventDating(kind: .span, low: start), properties: [occurrence, startProperty, endProperty]
+        )))
+        #expect(page.rows[0].shown.lead == "1849")
+        #expect(page.rows[0].provenanceContent(records: D.readOf(startField)).records.map(\.id) == ["start"])
     }
 
     @Test func spanLeadWhenThereIsNoDate() {
         let start = year(1849)
         let end = year(1851)
-        let page = content(detail(fields: [
+        let spanFields = [
             dateField("start_date", start, id: "start"),
             dateField("end_date", end, id: "end"),
-        ], summary: dated(
+        ]
+        let page = content(detail(fields: spanFields, summary: dated(
             dating: CatalogEventDating(kind: .span, low: start, high: end), properties: [startProperty, endProperty]
         )))
         #expect(page.rows[0].shown.lead == L10n.Dates.rowSpan(start: "1849", end: "1851", locale: en))
-        #expect(page.rows[0].provenanceContent().records.map(\.id) == ["start", "end"])
+        #expect(page.rows[0].provenanceContent(records: spanFields.flatMap { D.readOf($0) }).records.map(\.id) == ["start", "end"])
         #expect(page.rows[0].shown.badge == nil)
         #expect(page.secondaryDate == page.rows[0].shown.lead)
     }
 
     @Test func aSpanWithOneSideIsThatFieldsRow() {
         let start = year(1849)
-        let page = content(detail(fields: [
-            dateField("start_date", start, id: "start"),
-        ], summary: dated(
+        let startField = dateField("start_date", start, id: "start")
+        let page = content(detail(fields: [startField], summary: dated(
             dating: CatalogEventDating(kind: .span, low: start), properties: [startProperty, endProperty]
         )))
         #expect(page.rows[0].label == "Date")
         #expect(page.rows[0].shown.lead == "1849")
-        #expect(page.rows[0].provenanceContent().records.map(\.id) == ["start"])
+        #expect(page.rows[0].provenanceContent(records: D.readOf(startField)).records.map(\.id) == ["start"])
     }
 
     @Test func dateRowFallsToTheSpanWhenTheDateShowsNothing() {
         let start = year(1849)
         let end = year(1851)
-        let page = content(detail(fields: [
-            D.field(
+        let fallFields = [
+            D.withEngineCounts(D.field(
                 "single", key: SeededPropertyKey.date, label: "Date", valueType: "date", [],
                 outcomes: [D.outcome("rec", "kept", title: "Census", recorded: .date(start))]
-            ),
+            )),
             dateField("start_date", start, id: "start"),
             dateField("end_date", end, id: "end"),
-        ], summary: dated(
+        ]
+        let page = content(detail(fields: fallFields, summary: dated(
             dating: CatalogEventDating(kind: .span, low: start, high: end), properties: [startProperty, endProperty]
         )))
         #expect(page.rows[0].shown.lead == L10n.Dates.rowSpan(start: "1849", end: "1851", locale: en))
-        #expect(page.rows[0].provenanceContent().records.map(\.id) == ["start", "end"])
+        #expect(page.rows[0].provenanceContent(records: fallFields.flatMap { D.readOf($0) }).records.map(\.id) == ["start", "end"])
         #expect(page.rows[0].shown.lead == page.secondaryDate)
     }
 
@@ -224,10 +241,10 @@ struct EventDetailTests {
             dating: CatalogEventDating(kind: .span, low: start, high: end), properties: [startProperty, endProperty]
         )
         let spanned = content(detail(
-            fields: [D.field(
+            fields: [D.withEngineCounts(D.field(
                 "single", key: SeededPropertyKey.date, label: "Date", valueType: "date", [],
                 outcomes: [D.outcome("rec", "kept", title: "Census", recorded: .date(start))]
-            )],
+            ))],
             summary: span
         ))
         #expect(spanned.secondaryDate == EventSecondaryDisplay.content(span, locale: en).date)
@@ -249,8 +266,9 @@ struct EventDetailTests {
     }
 
     @Test func asOfRowListsEachAsOfEarliestFirst() {
+        let asOfField = multiDateField("as_of", [(asOfDating.low, 1), (asOfDating.high, 2)], denied: [year(1970)])
         let row = asOfPage(
-            fields: [multiDateField("as_of", [(asOfDating.low, 1), (asOfDating.high, 2)], denied: [year(1970)])],
+            fields: [asOfField],
             dating: openBoth()
         )
         #expect(row.shown.listedValues.map(\.text) == ["as of 10 Jan 1990", "as of 10 Feb 2015"])
@@ -264,7 +282,7 @@ struct EventDetailTests {
         }
         #expect(row.shown.lead == "as of 10 Jan 1990–10 Feb 2015")
         #expect(row.shown.badge == nil && row.count == nil)
-        #expect(row.provenanceContent().records.count == 3)
+        #expect(row.provenanceContent(records: D.readOf(asOfField)).records.count == 3)
         #expect(row.accessibilityLabel == "Date, as of 10 Jan 1990; as of 10 Feb 2015")
         #expect(row.label == "Date")
     }
@@ -275,7 +293,7 @@ struct EventDetailTests {
             fields: [CatalogConclusionField], dating: CatalogEventDating
         ) -> (lines: [String], records: [String], lead: String?) {
             let r = asOfPage(fields: fields, dating: dating)
-            return (r.shown.listedValues.map(\.text), r.provenanceContent().records.map(\.id), r.shown.lead)
+            return (r.shown.listedValues.map(\.text), r.provenanceContent(records: fields.flatMap { D.readOf($0) }).records.map(\.id), r.shown.lead)
         }
         let start = dateField("start_date", ys.y1985, id: "start")
         let end = dateField("end_date", ys.y2015, id: "end")
@@ -314,14 +332,14 @@ struct EventDetailTests {
     }
 
     @Test func anAsOfFieldThatIsNotMultipleListsItsFirstValue() {
-        let two = D.field(
+        let two = D.withEngineCounts(D.field(
             "mixed", key: "as_of", label: "as_of", valueType: "date",
             [D.value(1, "kept", .date(asOfDating.low)), D.value(2, "kept", .date(asOfDating.high))],
             outcomes: [
                 D.outcome("as_of-1", "kept", rank: 1, title: "Census", recorded: .date(asOfDating.low)),
                 D.outcome("as_of-2", "kept", rank: 2, title: "Census", recorded: .date(asOfDating.high)),
             ]
-        )
+        ))
         let row = asOfPage(fields: [two], dating: openBoth())
         #expect(row.shown.listedValues.map(\.text) == ["as of 10 Jan 1990"])
     }
@@ -360,28 +378,30 @@ struct EventDetailTests {
             content(detail(fields: fields, summary: dated(properties: all))).rows[0]
         }
         func unshown(_ key: String, _ id: String) -> CatalogConclusionField {
-            D.field(
+            D.withEngineCounts(D.field(
                 "single", key: key, label: key, valueType: "date", [],
                 outcomes: [D.outcome(id, "kept", title: "Census", recorded: .date(year(1849)))]
-            )
+            ))
         }
-        let one = page([unshown("date", "d")])
+        let dField = unshown("date", "d"), sField = unshown("start_date", "s")
+        let one = page([dField])
         #expect(one.label == "Date" && one.shown.emptyText == "Nothing recorded")
-        #expect(one.provenanceContent().records.map(\.id) == ["d"])
+        #expect(one.provenanceContent(records: D.readOf(dField)).records.map(\.id) == ["d"])
 
-        let asOf = page([D.field(
+        let asOfField = D.withEngineCounts(D.field(
             "multiple", key: "as_of", label: "As of", valueType: "date", [],
             outcomes: [D.outcome("a", "denied", rank: nil, title: "Census", recorded: .date(year(1849)))]
-        )])
+        ))
+        let asOf = page([asOfField])
         #expect(asOf.label == "Date" && asOf.shown.emptyText == "Nothing recorded")
-        #expect(asOf.provenanceContent().records.map(\.id) == ["a"])
+        #expect(asOf.provenanceContent(records: D.readOf(asOfField)).records.map(\.id) == ["a"])
 
-        let both = page([unshown("date", "d"), unshown("start_date", "s")])
+        let both = page([dField, sField])
         #expect(both.shown.lead == nil && both.shown.emptyText == "No date recorded")
-        #expect(both.provenanceContent().records.map(\.id) == ["d", "s"])
+        #expect(both.provenanceContent(records: D.readOf(dField) + D.readOf(sField)).records.map(\.id) == ["d", "s"])
 
         let none = page([])
-        #expect(none.shown.emptyText == "No date recorded" && none.provenanceContent().records.isEmpty)
+        #expect(none.shown.emptyText == "No date recorded" && none.provenanceContent(records: []).records.isEmpty)
     }
 
     @Test func aLongListFoldsTwentyThenFifty() {
@@ -427,11 +447,11 @@ struct EventDetailTests {
         #expect(empty.accessibilityLabel(pages: 0) == empty.accessibilityLabel)
 
         let ranks: [Int] = Array(1...25)
-        let names = D.field(
+        let names = D.withEngineCounts(D.field(
             "multiple", key: "toponym", label: "Name", valueType: "text",
             ranks.map { D.value($0, "kept", .text("Name \($0)")) },
             outcomes: ranks.map { D.outcome("n\($0)", "kept", rank: $0, recorded: .text("Name \($0)")) }
-        )
+        ))
         let place = PlaceDetailContent.namesRow(names, locale: en)
         #expect(lines(place.accessibilityLabel(pages: 0)) == 20)
         #expect(lines(place.accessibilityLabel(pages: 1)) == 25)
@@ -462,7 +482,7 @@ struct EventDetailTests {
         let date = page.rows[0]
         #expect(date.label == "Date" && date.shown.face == .date && date.shown.lead == nil)
         #expect(date.shown.emptyText == "No date recorded")
-        #expect(date.provenanceContent().records.isEmpty)
+        #expect(date.provenanceContent(records: []).records.isEmpty)
         #expect(page.secondaryDate == nil)
     }
 
@@ -494,7 +514,7 @@ struct EventDetailTests {
         let page = EventDetailContent(detail: detail(summary: summary), locale: en)
         #expect(page.title == .name(L10n.EventTitle.ofOne(type: "Birth", subject: "James Robins", locale: en)))
         #expect(page.secondaryPlace == "York")
-        #expect(page.rows[1].shown.lead == "York" && page.rows[1].shown.badge == .mixed && page.rows[1].provenanceContent().records.isEmpty)
+        #expect(page.rows[1].shown.lead == "York" && page.rows[1].shown.badge == .mixed && page.rows[1].provenanceContent(records: []).records.isEmpty)
         #expect(!page.rows[1].hasRecords && page.rows[1].recordCount == 0)
         #expect(!page.rows[1].shown.lead!.contains(","))
         #expect(page.rows[1].opens?.location == .placeDetail(entityId: "pl1", ref: "PLC-1", title: "York"))
@@ -507,7 +527,7 @@ struct EventDetailTests {
         let place = page.rows[1]
         #expect(place.label == "Place" && place.shown.face == .place && place.shown.lead == nil)
         #expect(place.shown.emptyText == "No place recorded")
-        #expect(place.provenanceContent().records.isEmpty)
+        #expect(place.provenanceContent(records: []).records.isEmpty)
         #expect(!place.hasRecords && place.recordCount == 0)
     }
 

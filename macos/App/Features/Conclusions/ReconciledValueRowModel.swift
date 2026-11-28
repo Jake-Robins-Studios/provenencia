@@ -10,8 +10,8 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
         var label: String
     }
 
-    /// What the row's records are built from, not the records: the sheet builds
-    /// them when it opens (`provenanceContent()`).
+    /// What the row's records are read with: the sheet asks for them by
+    /// `provenanceRequest(entityID:)` when it opens.
     private enum RecordsSource: Equatable {
         case field(CatalogConclusionField)
         case spanning([CatalogConclusionField])
@@ -52,9 +52,9 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
     /// How many records sit behind the row.
     var recordCount: Int {
         switch source {
-        case .field(let field): field.outcomes.count
-        case .spanning(let fields): fields.reduce(0) { $0 + $1.outcomes.count }
-        case .derived(let owners, _, _): owners.reduce(0) { $0 + $1.field.outcomes.count }
+        case .field(let field): field.recordCounts.records
+        case .spanning(let fields): fields.reduce(0) { $0 + $1.recordCounts.records }
+        case .derived(let owners, _, _): owners.reduce(0) { $0 + $1.field.recordCounts.records }
         }
     }
 
@@ -114,18 +114,44 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
         }
     }
 
-    /// The sheet content of the row, built from its records now. The
-    /// row's label and shown value go in, so a relabelled row and its sheet
-    /// cannot disagree.
-    func provenanceContent() -> PVProvenanceSheetContent {
+    /// What the row's sheet asks the engine to read, from the page's entity: the row's field, its
+    /// fields in order, or the Person's life row. Nil for a row with no records or a life row with
+    /// no kind.
+    func provenanceRequest(entityID: String) -> CatalogProvenanceRequest? {
+        guard hasRecords else { return nil }
         switch source {
         case .field(let field):
-            PVProvenanceSheetContent(field: field, title: label, shown: shown, locale: locale, orders: orders)
+            return .fields([CatalogProvenancePair(ownerID: entityID, propertyID: field.propertyID)])
         case .spanning(let fields):
-            .spanning(fields: fields, title: label, shown: shown, locale: locale, orders: orders)
+            return .fields(fields.map { CatalogProvenancePair(ownerID: entityID, propertyID: $0.propertyID) })
+        case .derived(_, _, let kind):
+            return kind.map { .derived(personID: entityID, kind: $0) }
+        }
+    }
+
+    /// The sheet content of the row: its header from the row, its records from the sheet's read
+    /// (`records`, none until it answers). The row's label and shown value go in, so a relabelled row
+    /// and its sheet cannot disagree. A field the read left out has no records.
+    func provenanceContent(records: [CatalogOwnerField]) -> PVProvenanceSheetContent {
+        func read(_ field: CatalogConclusionField) -> CatalogConclusionField? {
+            records.first { $0.field.propertyID == field.propertyID }?.field
+        }
+        switch source {
+        case .field(let field):
+            return PVProvenanceSheetContent(
+                field: field, recordsField: read(field), recordCount: recordCount,
+                title: label, shown: shown, locale: locale, orders: orders
+            )
+        case .spanning(let fields):
+            return .spanning(
+                recordFields: fields.compactMap(read), recordCount: recordCount,
+                title: label, shown: shown, locale: locale, orders: orders
+            )
         case .derived(let owners, let shownOwnerID, let kind):
-            .derived(
-                owners: owners, shownOwnerID: shownOwnerID, kind: kind,
+            return .derived(
+                owners: records,
+                ownerCount: PVProvenanceSheetContent.ownerGroups(owners, shownOwnerID: shownOwnerID).count,
+                recordCount: recordCount, shownOwnerID: shownOwnerID, kind: kind,
                 title: label, shown: shown, locale: locale, orders: orders
             )
         }

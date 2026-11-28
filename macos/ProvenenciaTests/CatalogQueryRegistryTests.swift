@@ -492,13 +492,20 @@ struct CatalogQueryRegistryTests {
         #expect(name.values.map(\.reason) == [.kept, .outvoted])
         let james1 = CatalogNameValue(form: "James Robins", parts: [part("James", "given"), part("Robins", "surname")])
         #expect(name.displayedValues.map(\.value) == [.name(james1)])
-        #expect(name.outcomes.map(\.observationRef) == ["OBS-o1", "OBS-o3", "OBS-o2", "OBS-o4"])
-        #expect(name.outcomes.map(\.valueRank) == [1, 1, 2, nil])
-        #expect(name.outcomes.map(\.reason) == [.kept, .kept, .outvoted, .noEvidence])
-        #expect(name.outcomes.allSatisfy { $0.subjectRef == "CPR-1" && $0.sourceID == "s1" })
+        // The detail read sends counts; the sheet's read of the field carries the records.
+        #expect(name.outcomes.isEmpty && name.recordCounts == CatalogFieldRecordCounts(records: 4, sources: 1))
+        let read = try await store.getProvenanceRecords(
+            projectDir: projectDir,
+            request: .fields([CatalogProvenancePair(ownerID: james.entity.id, propertyID: name.propertyID)])
+        )
+        let records = try #require(read.owners.first?.field)
+        #expect(records.outcomes.map(\.observationRef) == ["OBS-o1", "OBS-o3", "OBS-o2", "OBS-o4"])
+        #expect(records.outcomes.map(\.valueRank) == [1, 1, 2, nil])
+        #expect(records.outcomes.map(\.reason) == [.kept, .kept, .outvoted, .noEvidence])
+        #expect(records.outcomes.allSatisfy { $0.subjectRef == "CPR-1" && $0.sourceID == "s1" })
         // One Source voted, so the outvoted Jim lost 1 of 1.
-        #expect(name.outcomes.map(\.voteSupport) == [0, 0, 1, 0])
-        #expect(name.outcomes.map(\.voteTotal) == [0, 0, 1, 0])
+        #expect(records.outcomes.map(\.voteSupport) == [0, 0, 1, 0])
+        #expect(records.outcomes.map(\.voteTotal) == [0, 0, 1, 0])
         #expect(detail.memberCount == 1)
         #expect(store.heldCatalogProjectDir == projectDir)
     }
@@ -2049,28 +2056,35 @@ struct CatalogQueryRegistryTests {
 struct ProvenanceSheetKeyTests {
     private let projectKey = ProjectKey(projectDir: "/tmp/provenance-sheet-key.provenencia")
 
-    /// T-2 (D-2): the key's ids are sorted and distinct; a reply with an id twice builds one entry; a write
+    /// T-7 (D-3, D-4): the key's ids keep the row's pairs in order, tagged, and the request reads back; a write
     /// reaching the value's Sources reloads it.
-    @Test func provenanceSheetKeySortsAndFollowsInputs() async {
-        let key = CatalogQueryKey.provenanceSheet(project: projectKey, citationIds: ["b", "a", "a", ""])
-        #expect(key.ids == ["a", "b"])
-
-        let reply = CatalogRenderedCitations(
-            citations: [renderedCitation("a"), renderedCitation("a", full: "other")], inputs: .init())
-        #expect(CatalogProvenanceSheetRead(reply).citations.count == 1)
-        #expect(CatalogProvenanceSheetRead(reply).citations["a"]?.full.plain == "a")
+    @Test func provenanceSheetKeyKeepsOrderAndFollowsInputs() async {
+        let pairs = [("b", "x"), ("a", "y"), ("b", "x"), ("", "z"), ("c", "")].map {
+            CatalogProvenancePair(ownerID: $0.0, propertyID: $0.1)
+        }
+        let key = CatalogQueryKey.provenanceSheet(project: projectKey, request: .fields(pairs))
+        #expect(key.ids == ["fields", "b", "x", "a", "y"])
+        #expect(key.provenanceRequest == .fields([
+            CatalogProvenancePair(ownerID: "b", propertyID: "x"), CatalogProvenancePair(ownerID: "a", propertyID: "y"),
+        ]))
+        let life = CatalogQueryKey.provenanceSheet(project: projectKey, request: .derived(personID: "P", kind: .deathPlace))
+        #expect(life.ids == ["life", "P", "death_place"])
+        #expect(life.provenanceRequest == .derived(personID: "P", kind: .deathPlace))
+        #expect(life != CatalogQueryKey.provenanceSheet(project: projectKey, request: .derived(personID: "P", kind: .birthPlace)))
 
         let store = FakeStore()
-        store.renderCitationsReplies = ["a": renderedCitation("a"), "b": renderedCitation("b")]
-        store.renderCitationsInputs = CatalogPageInputs(sources: ["s1"])
+        store.provenanceRecordsReplies = [key.provenanceRequest: CatalogProvenanceSheetRead(
+            citations: ["a": renderedCitation("a")], inputs: CatalogPageInputs(sources: ["s1"])
+        )]
         let session = WorkspaceSession(projectKey: projectKey, store: store)
         let handle: QueryHandle<CatalogProvenanceSheetRead> = session.query(key)
         await waitForQuery(handle)
-        #expect(store.renderCitationsCalls == [["a", "b"]])
+        #expect(store.provenanceRecordsCalls == [key.provenanceRequest])
+        #expect(handle.value?.citations.count == 1)
 
         session.apply(CatalogWriteEffects(reads: [CatalogWriteEffectsRead(read: .sourceRecords, ids: ["s1"])]))
         await session.settleWrites()
-        #expect(store.renderCitationsCalls.count == 2)
+        #expect(store.provenanceRecordsCalls.count == 2)
     }
 }
 

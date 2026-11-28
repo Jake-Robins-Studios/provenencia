@@ -196,6 +196,8 @@ struct ReconciledValueRow: View {
 /// section switcher) passes nil.
 struct ConclusionDetailRowsSection: View {
     let rows: [ReconciledValueRowModel]
+    /// The page's entity: the owner of every row's records, or the Person of a life row.
+    let entityId: String
     let refreshing: Bool
     var title: LocalizedStringResource? = nil
 
@@ -238,9 +240,10 @@ struct ConclusionDetailRowsSection: View {
             Self.anchorStop(rows: rows, anchor: $0)
         }
         .pvSheet(item: $provenanceItem) { item in
-            if let row = item.row(in: rows) {
+            if let row = item.row(in: rows), let request = row.provenanceRequest(entityID: entityId) {
                 ProvenanceSheetHost(
-                    content: row.provenanceContent(),
+                    row: row,
+                    request: request,
                     columns: PVProvenanceColumns(widthClass: widthClass),
                     idPrefix: "conclusion.detail.provenance",
                     open: { navigation.go(to: .provenance($0, $1)) }

@@ -19050,6 +19050,18 @@
         }
       }
     },
+    "provenanceSheet.recordsFailedTitle": {
+      "comment": "Title of the provenance sheet's notice when its records could not be read",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Records could not be read"
+          }
+        }
+      }
+    },
     "provenanceSheet.recordsFromBirthEvents": {
       "comment": "Provenance sheet summary of a birth date backed by several birth events; arguments are the record count and the event count",
       "extractionState": "manual",
@@ -19208,6 +19220,18 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "provenanceSheet.recordsLoading": {
+      "comment": "Caption and VoiceOver label of the provenance sheet's record area while its records are being read",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading records"
           }
         }
       }
@@ -19436,30 +19460,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Short citation copied"
-          }
-        }
-      }
-    },
-    "provenanceSheet.citationsLoading": {
-      "comment": "Caption and VoiceOver label of the provenance sheet's record area while its citations are being rendered",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Loading citations"
-          }
-        }
-      }
-    },
-    "provenanceSheet.citationsFailedTitle": {
-      "comment": "Title of the provenance sheet's notice when its citations could not be rendered",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Citations could not be read"
           }
         }
       }

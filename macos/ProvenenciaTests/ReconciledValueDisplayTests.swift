@@ -13,8 +13,11 @@ struct ReconciledValueDisplayTests {
     ])
 
     static func value(_ rank: Int, _ reason: String, support: Int = 1, against: Int = 0,
-                      _ v: CatalogConclusionValue = .text("x")) -> CatalogReconciledValue {
-        CatalogReconciledValue(rank: rank, reason: ReconcilerReason(wire: reason), support: support, against: against, value: v)
+                      pooledSupport: Int = 0, _ v: CatalogConclusionValue = .text("x")) -> CatalogReconciledValue {
+        CatalogReconciledValue(
+            rank: rank, reason: ReconcilerReason(wire: reason), support: support, against: against, value: v,
+            pooledSupport: pooledSupport
+        )
     }
 
     static func picture(_ id: String, path: String, title: String, leads: Bool = false) -> CatalogPicture {
@@ -34,7 +37,9 @@ struct ReconciledValueDisplayTests {
         credibilityOffset: Int = 0,
         uncertain: Bool = false,
         vote: (Int, Int) = (0, 0),
-        groupRank: Int? = nil
+        groupRank: Int? = nil,
+        deniedAValue: Bool = false,
+        deniedBySourceTitle: String = ""
     ) -> CatalogReconcilerOutcome {
         CatalogReconcilerOutcome(
             observationID: id, observationRef: "OBS-\(id)", reason: ReconcilerReason(wire: reason), valueRank: rank,
@@ -44,7 +49,9 @@ struct ReconciledValueDisplayTests {
             transcriptionUncertain: uncertain,
             credibilityOffset: credibilityOffset,
             voteSupport: vote.0, voteTotal: vote.1,
-            groupRank: groupRank ?? (["kept", "folded"].contains(reason) ? rank ?? 0 : 0)
+            groupRank: groupRank ?? (["kept", "folded"].contains(reason) ? rank ?? 0 : 0),
+            deniedAValue: deniedAValue,
+            deniedBySourceTitle: deniedBySourceTitle
         )
     }
 
@@ -54,12 +61,25 @@ struct ReconciledValueDisplayTests {
         label: String = "Name",
         valueType: String = "name",
         _ values: [CatalogReconciledValue] = [],
-        outcomes: [CatalogReconcilerOutcome] = []
+        outcomes: [CatalogReconcilerOutcome] = [],
+        counts: CatalogFieldRecordCounts = .init()
     ) -> CatalogConclusionField {
         CatalogConclusionField(
             propertyID: "p-\(key)", propertyKey: key, label: label, valueType: PropertyValueType(rawValue: valueType) ?? .text,
-            state: ReconciledState(wire: state), values: values, outcomes: outcomes
+            state: ReconciledState(wire: state), values: values, outcomes: outcomes, recordCounts: counts
         )
+    }
+
+    /// `field` with the counts the engine would send for it: the same rule as the engine's, in FakeStore.
+    static func withEngineCounts(_ field: CatalogConclusionField) -> CatalogConclusionField {
+        var field = field
+        field.recordCounts = FakeStore.recordCounts(of: field)
+        return field
+    }
+
+    /// What a sheet's read answers for a field row: the field with its records, under the page's entity.
+    static func readOf(_ field: CatalogConclusionField, entity: String = "e1") -> [CatalogOwnerField] {
+        [CatalogOwnerField(entity: CatalogCanonicalEntity(id: entity, ref: "PER-7KD45", subjectTypeID: "t", label: ""), field: field)]
     }
 
     /// Frame 1c: the merged name and its four records.
@@ -76,7 +96,7 @@ struct ReconciledValueDisplayTests {
                     recorded: .name(CatalogNameValue(form: "James Robbins")), vote: (2, 3)),
             outcome("news", "weak", rank: 3, source: "s-news", title: "Death notice, The Globe, 1880",
                     recorded: .name(jamesRobins), credibilityOffset: -1),
-        ])
+        ], counts: CatalogFieldRecordCounts(records: 4, sources: 2))
     }
 
     @Test func aDepictionReadsAsLikeness() {
@@ -94,35 +114,20 @@ struct ReconciledValueDisplayTests {
 
     @Test func countLineCountsSourcesNotRecords() {
         #expect(ReconciledValueDisplay.countLine(Self.field("")) == nil)
-        #expect(ReconciledValueDisplay.countLine(Self.field("single", [Self.value(1, "kept")])) == "1 Source")
+        #expect(ReconciledValueDisplay.countLine(Self.field("single", [Self.value(1, "kept")], counts: .init(records: 1, sources: 1))) == "1 Source")
+        // The record count does not decide it: four records from two Sources read "2 Sources".
         #expect(ReconciledValueDisplay.countLine(Self.mergedName) == "2 Sources")
         #expect(ReconciledValueDisplay.countLine(Self.field("concluded", [Self.value(1, "kept")])) == "by you")
-        // Mixed: distinct Sources across the shown values; one Source behind
-        // two values counts once.
-        let mixed = Self.field("mixed", key: "deathDate", [
-            Self.value(1, "kept", support: 2), Self.value(2, "kept", support: 2),
-        ], outcomes: [
-            Self.outcome("burial", "kept", rank: 1, source: "a"),
-            Self.outcome("probate", "kept", rank: 1, source: "b"),
-            Self.outcome("bible", "kept", rank: 2, source: "b"),
-            Self.outcome("bible2", "kept", rank: 2, source: "c"),
-            Self.outcome("census", "no_evidence", rank: nil, source: "d"),
-        ])
+        let mixed = Self.field("mixed", key: "deathDate", [Self.value(1, "kept", support: 2), Self.value(2, "kept", support: 2)],
+                               counts: .init(records: 5, sources: 3))
         #expect(ReconciledValueDisplay.countLine(mixed) == "3 Sources")
     }
 
-    @Test func sourceCountCountsOnlyTheSourcesBehindDisplayedValues() {
-        // Records the engine put under no displayed value (group rank 0) do
-        // not count, whatever their value rank.
-        let mixed = Self.field("mixed", key: "deathDate", [
-            Self.value(1, "kept", support: 1), Self.value(2, "kept", support: 1), Self.value(3, "outvoted"),
-        ], outcomes: [
-            Self.outcome("burial", "kept", rank: 1, source: "a"),
-            Self.outcome("bible", "kept", rank: 2, source: "b"),
-            Self.outcome("news", "outvoted", rank: 3, source: "c"),
-            Self.outcome("kept-but-lost", "kept", rank: 3, source: "d", groupRank: 0),
-        ])
-        #expect(ReconciledValueDisplay.sourceCount(mixed) == 2)
+    @Test func spokenStateReadsTheCounts() {
+        #expect(ReconciledValueDisplay.spokenState(Self.mergedName) == "merged from 2 Sources")
+        #expect(ReconciledValueDisplay.spokenState(Self.field("single", [Self.value(1, "kept")], counts: .init(records: 1, sources: 1))) == "single, 1 Source")
+        #expect(ReconciledValueDisplay.spokenState(Self.field("mixed", counts: .init(records: 5, sources: 3))) == "mixed from 3 Sources")
+        #expect(ReconciledValueDisplay.spokenState(Self.field("")) == nil)
     }
 
     @Test func againstLineSaysHowManyRecordsDisagree() {
@@ -179,14 +184,14 @@ struct ReconciledValueDisplayTests {
     @Test func frame1cPhrasesAndMarks() {
         let f = Self.mergedName
         func phrase(_ i: Int) -> String { ReconciledValueDisplay.outcomePhrase(f.outcomes[i], in: f) }
-        func mark(_ i: Int) -> PVSymbol { ReconciledValueDisplay.outcomeMark(f.outcomes[i], in: f) }
+        func mark(_ i: Int) -> PVSymbol { ReconciledValueDisplay.outcomeMark(f.outcomes[i]) }
         #expect(phrase(0) == "kept" && mark(0) == .check)
         #expect(phrase(1) == "folded into James Robins" && mark(1) == .gitMerge)
         #expect(phrase(2) == "outvoted (2 of 3 Sources)" && mark(2) == .scale)
         #expect(phrase(3) == "weak · low-trust Source" && mark(3) == .signalLow)
         #expect(ReconciledValueDisplay.readAs(f.outcomes[1], propertyKey: "name") == "J. Robins")
         // Kept and folded records went into the value; the rest didn't.
-        #expect(f.outcomes.map { ReconciledValueDisplay.counted($0, in: f) } == [true, true, false, false])
+        #expect(f.outcomes.map { ReconciledValueDisplay.counted($0) } == [true, true, false, false])
     }
 
     @Test func outvotedWithoutAVoteSaysOutvoted() {
@@ -203,42 +208,52 @@ struct ReconciledValueDisplayTests {
         let name = Self.field("merged", [Self.value(1, "kept", support: 2, .name(Self.jamesRobins))], outcomes: [
             Self.outcome("pass", "weak", rank: 2, title: "Passenger list index, Quebec, 1832", uncertain: true),
             Self.outcome("dir", "denied", rank: 3, title: "City directory, Toronto, 1856",
-                         recorded: .text("James Robinson"), deniedBy: "depo"),
-            Self.outcome("depo", "against", rank: 3, title: "Court deposition, 1862", recorded: .text("James Robinson")),
+                         recorded: .text("James Robinson"), deniedBy: "depo", deniedBySourceTitle: "Court deposition, 1862"),
+            Self.outcome("depo", "against", rank: 3, title: "Court deposition, 1862", recorded: .text("James Robinson"), deniedAValue: true),
         ])
         func phrase(_ i: Int) -> String { ReconciledValueDisplay.outcomePhrase(name.outcomes[i], in: name) }
         #expect(phrase(0) == "weak · uncertain transcription")
         #expect(phrase(1) == "denied by Court deposition, 1862")
-        #expect(ReconciledValueDisplay.outcomeMark(name.outcomes[1], in: name) == .ban)
+        #expect(ReconciledValueDisplay.outcomeMark(name.outcomes[1]) == .ban)
         #expect(phrase(2) == "kept")
-        #expect(ReconciledValueDisplay.outcomeMark(name.outcomes[2], in: name) == .check)
+        #expect(ReconciledValueDisplay.outcomeMark(name.outcomes[2]) == .check)
         #expect(ReconciledValueDisplay.readAs(name.outcomes[2], propertyKey: "name") == "not James Robinson")
         #expect(ReconciledValueDisplay.readAsIsPhrase(name.outcomes[2], propertyKey: "name"))
-        #expect(ReconciledValueDisplay.counted(name.outcomes[2], in: name))
+        #expect(ReconciledValueDisplay.counted(name.outcomes[2]))
 
         let place = Self.field("merged", key: "birthPlace", label: "Birth place", valueType: "text",
                                [Self.value(1, "kept", support: 2, against: 1, .text("York, Upper Canada"))],
                                outcomes: [Self.outcome("bible", "against", rank: 1, recorded: .text("York"))])
         #expect(ReconciledValueDisplay.outcomePhrase(place.outcomes[0], in: place) == "disagrees · did not eliminate")
-        #expect(ReconciledValueDisplay.outcomeMark(place.outcomes[0], in: place) == .circleMinus)
-        #expect(!ReconciledValueDisplay.counted(place.outcomes[0], in: place))
+        #expect(ReconciledValueDisplay.outcomeMark(place.outcomes[0]) == .circleMinus)
+        #expect(!ReconciledValueDisplay.counted(place.outcomes[0]))
         #expect(ReconciledValueDisplay.againstLine(place) == "1 record disagrees")
     }
 
-    @Test func deniedNamesTheDeniersSourceOrAPlainPhrase() {
-        let titled = Self.field("single", [Self.value(1, "kept")], outcomes: [
-            Self.outcome("dir", "denied", rank: 2, deniedBy: "depo"),
-            Self.outcome("depo", "against", rank: nil, title: "Deposition"),
-        ])
-        #expect(ReconciledValueDisplay.outcomePhrase(titled.outcomes[0], in: titled) == "denied by Deposition")
-        let gone = Self.field("single", [Self.value(1, "kept")], outcomes: [Self.outcome("dir", "denied", rank: 2, deniedBy: "x")])
-        #expect(ReconciledValueDisplay.outcomePhrase(gone.outcomes[0], in: gone) == "denied")
+    @Test func aNegativeReadsFromItsDenialFact() {
+        let f = Self.field("single", [Self.value(1, "kept")])
+        let kept = Self.outcome("a", "against", rank: nil, deniedAValue: true)
+        let disagrees = Self.outcome("b", "against", rank: nil)
+        #expect(ReconciledValueDisplay.outcomePhrase(kept, in: f) == "kept")
+        #expect(ReconciledValueDisplay.outcomeMark(kept) == .check)
+        #expect(ReconciledValueDisplay.counted(kept))
+        #expect(ReconciledValueDisplay.outcomePhrase(disagrees, in: f) == "disagrees · did not eliminate")
+        #expect(ReconciledValueDisplay.outcomeMark(disagrees) == .circleMinus)
+        #expect(!ReconciledValueDisplay.counted(disagrees))
+    }
+
+    @Test func aDeniedRecordNamesItsDenier() {
+        let f = Self.field("single", [Self.value(1, "kept")])
+        let titled = Self.outcome("dir", "denied", rank: 2, deniedBySourceTitle: "Court deposition, 1862")
+        #expect(ReconciledValueDisplay.outcomePhrase(titled, in: f) == "denied by Court deposition, 1862")
+        let gone = Self.outcome("dir", "denied", rank: 2, deniedBySourceTitle: "")
+        #expect(ReconciledValueDisplay.outcomePhrase(gone, in: f) == "denied")
     }
 
     @Test func otherReasonsHaveAPhraseAndAMark() {
         let f = Self.field("single", [Self.value(1, "kept")])
         func both(_ o: CatalogReconcilerOutcome) -> (String, PVSymbol) {
-            (ReconciledValueDisplay.outcomePhrase(o, in: f), ReconciledValueDisplay.outcomeMark(o, in: f))
+            (ReconciledValueDisplay.outcomePhrase(o, in: f), ReconciledValueDisplay.outcomeMark(o))
         }
         #expect(both(Self.outcome("p", "provisional", rank: 2)) == ("provisional record", .circleDashed))
         let none = Self.outcome("n", "no_evidence", rank: nil, recorded: .none)
@@ -263,10 +278,10 @@ struct ReconciledValueDisplayTests {
     @Test func voiceOverReadsStateInWords() {
         #expect(ReconciledValueDisplay.accessibilityLabel(label: "Name", lead: "James Robins", field: Self.mergedName)
             == "Name, James Robins, merged from 2 Sources")
-        let place = Self.field("merged", [Self.value(1, "kept", support: 2, against: 1)])
+        let place = Self.field("merged", [Self.value(1, "kept", support: 2, against: 1)], counts: .init(records: 3, sources: 2))
         #expect(ReconciledValueDisplay.accessibilityLabel(label: "Birth place", lead: "York", field: place)
             == "Birth place, York, merged from 2 Sources, 1 record disagrees")
-        #expect(ReconciledValueDisplay.accessibilityLabel(label: "Name", lead: "Jim", field: Self.field("single", [Self.value(1, "kept")]))
+        #expect(ReconciledValueDisplay.accessibilityLabel(label: "Name", lead: "Jim", field: Self.field("single", [Self.value(1, "kept")], counts: .init(records: 1, sources: 1)))
             == "Name, Jim, single, 1 Source")
         #expect(ReconciledValueDisplay.accessibilityLabel(label: "Birth date", lead: nil, field: nil) == "Birth date, empty")
     }

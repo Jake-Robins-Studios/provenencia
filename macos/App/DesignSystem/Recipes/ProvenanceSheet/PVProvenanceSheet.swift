@@ -14,7 +14,7 @@ struct PVProvenanceSheet: View {
     /// The prefix of the row ids (`PVProvenanceRecordRow`) and of the Done button's id (`<prefix>.done`).
     let idPrefix: String
     let open: (PVProvenanceSheetContent.Record, PVProvenanceLink) -> Void
-    /// What the record area shows while the citations are read: the kit's load area (none of the
+    /// What the record area shows while the records are read: the kit's load area (none of the
     /// records draw until `.ready`). The header and column headings draw in every state.
     var load: PVFormLoadState = .ready
     /// The load area's Read again.
@@ -42,11 +42,11 @@ struct PVProvenanceSheet: View {
                     PVDivider()
                     PVFormLoadArea(
                         state: load,
-                        loadingText: L10n.ProvenanceSheet.citationsLoading,
-                        errorTitle: L10n.ProvenanceSheet.citationsFailedTitle,
+                        loadingText: L10n.ProvenanceSheet.recordsLoading,
+                        errorTitle: L10n.ProvenanceSheet.recordsFailedTitle,
                         errorMessage: { $0 },
                         onReadAgain: onReadAgain,
-                        accessibilityIdentifierPrefix: "\(idPrefix).citations"
+                        accessibilityIdentifierPrefix: "\(idPrefix).records"
                     ) {
                         ScrollView {
                             PVProvenanceRecordTable(
@@ -102,7 +102,7 @@ struct PVProvenanceSheet: View {
     )
 }
 
-#Preview("Citations loading") {
+#Preview("Records loading") {
     PVProvenanceSheet(
         content: PVProvenancePreviewData.content(groups: PVProvenancePreviewData.groups, summary: "2 records"),
         idPrefix: "preview",
@@ -111,12 +111,12 @@ struct PVProvenanceSheet: View {
     )
 }
 
-#Preview("Citations failed") {
+#Preview("Records failed") {
     PVProvenanceSheet(
         content: PVProvenancePreviewData.content(groups: PVProvenancePreviewData.groups, summary: "2 records"),
         idPrefix: "preview",
         open: { _, _ in },
-        load: .failed("The citations could not be rendered."),
+        load: .failed("The records could not be read."),
         onReadAgain: {}
     )
 }

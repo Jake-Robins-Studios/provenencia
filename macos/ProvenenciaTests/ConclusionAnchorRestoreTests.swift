@@ -84,7 +84,7 @@ struct ConclusionAnchorRestoreTests {
                             location: .eventDetail(entityId: "row\(index)", ref: "EVT-1", title: nil), label: "Open event"
                         )
                         return row
-                    }, refreshing: false)
+                    }, entityId: "e1", refreshing: false)
                 case .timeline:
                     PersonTimelineList(
                         content: PersonTimelineContent(timeline: PersonTimelinePreviewData.johann),
