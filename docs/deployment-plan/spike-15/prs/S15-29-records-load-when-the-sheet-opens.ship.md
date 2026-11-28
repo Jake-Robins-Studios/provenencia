@@ -1,7 +1,7 @@
 # Ship log — S15-29 The provenance sheet loads its records when it opens
 
 **Plan:** [`S15-29-records-load-when-the-sheet-opens.md`](S15-29-records-load-when-the-sheet-opens.md) · **Branch:** `s15-29-records-load-when-the-sheet-opens` · **PR:** #1024
-**State:** fixing 1
+**State:** ready
 
 ## Round 0 — implement
 Head `49606eb3d`. Gate PASS (orchestrator run against `07278873f`). Report deviations: version 0.53.0 (main was 0.52.1); STEP-3–6 in one commit (only build together); T-15's sheet-read case runs in `core/database/conclusiondetails` (no Place life-row handler fixture), `pooled_support` wire mapping asserted in `TestReconcilerOutcomeProtoCarriesVoteAndArtifact`; Event/Place fixtures take counts from new helper `ReconciledValueDisplayTests.counted`; `FakeStore` detail sets `recordCounts`; manual check §10 not run.
@@ -40,6 +40,14 @@ Failing test first: not applicable (restores a dropped assertion on behavior tha
 Do: In `contentTakesRecordsFromTheRead`, add `var renamed = row; renamed.label = "Born"; #expect(renamed.provenanceContent(records: []).title == "Born")`.
 Check: test passes; scripts/check-pr.sh PASS.
 
+## Round 1 — fix
+Head `9735e26c3`. Gate PASS. F-1 done (`FakeStore.recordCounts(of:)` is the one count rule; fake detail clears outcomes; fake sheet read answers `.fields` on the name field; test helper renamed `withEngineCounts`; deviation: `CatalogQueryRegistryTests.conclusionDetailLoadsAPersonsNameValuesAndOutcomes` now reads outcomes through `getProvenanceRecords`). F-2 done (red with 1 owner, green with 3). F-3 done.
+Orchestrator read the fix commits: MNT-1/CON-4 **Resolved**, CON-1 **Resolved**, CON-2 **Resolved**. No round 2: round 1 had no blocker or major.
+Merged `origin/main` @ `a39185aab` (docs only); gate PASS at `5f92f8345`.
+
+## Result
+Gate PASS · CI pending · open: none · follow-ups: MNT-2 · to user: — (manual check §10 is the user's)
+
 ## Cost
 Plan: 7,640 words (check-plan-docs info line).
 
@@ -50,3 +58,5 @@ Plan: 7,640 words (check-plan-docs info line).
 | 1 | MNT | opus | 114k |
 | 1 | UX | opus | 106k |
 | 1 | SEC+PRF | opus | 69k |
+| 1 | implementer (fix) | sonnet | 103k |
+| | **Total** | | **916k** |
