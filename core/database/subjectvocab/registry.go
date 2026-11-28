@@ -180,6 +180,12 @@ var seedProperties = []seedProperty{
 	{Key: "place_picture", Label: "Picture", Description: "A picture of this place: a region of a cited page and the image of it. More than one is allowed.", ValueType: propertymeta.ValueTypeDepiction, Cardinality: propertymeta.CardinalityMultiple},
 	{Key: "religion", Label: "Religion", Description: "Religion or denomination as recorded. More than one value is allowed. Product term vocabulary; add your own terms.", ValueType: propertymeta.ValueTypeTerm, Cardinality: propertymeta.CardinalityMultiple},
 	{Key: "languages_spoken", Label: "Languages spoken", Description: "Languages the person spoke. More than one value is allowed. Product term vocabulary; add your own terms.", ValueType: propertymeta.ValueTypeTerm, Cardinality: propertymeta.CardinalityMultiple},
+	{Key: "height", Label: "Height", Description: "Height as recorded, with its unit (5 ft 9 in, 175 cm).", ValueType: propertymeta.ValueTypeText},
+	{Key: "weight", Label: "Weight", Description: "Weight as recorded, with its unit (160 lb, 72 kg).", ValueType: propertymeta.ValueTypeText},
+	{Key: "eye_color", Label: "Eye color", Description: "Eye color as recorded.", ValueType: propertymeta.ValueTypeText},
+	{Key: "hair_color", Label: "Hair color", Description: "Hair color as recorded.", ValueType: propertymeta.ValueTypeText},
+	{Key: "complexion", Label: "Complexion", Description: "Complexion as recorded.", ValueType: propertymeta.ValueTypeText},
+	{Key: "profession", Label: "Profession", Description: "Profession or occupation as recorded. More than one value is allowed.", ValueType: propertymeta.ValueTypeText, Cardinality: propertymeta.CardinalityMultiple},
 }
 
 // Non-bridge bindings from docs/seeded-vocabulary.md §3.3.
@@ -194,6 +200,12 @@ var seedBindings = []seedBinding{
 	{TypeKey: "person", PropertyKey: "interests", SortOrder: 4},
 	{TypeKey: "person", PropertyKey: "religion", SortOrder: 5},
 	{TypeKey: "person", PropertyKey: "languages_spoken", SortOrder: 6},
+	{TypeKey: "person", PropertyKey: "height", SortOrder: 7},
+	{TypeKey: "person", PropertyKey: "weight", SortOrder: 8},
+	{TypeKey: "person", PropertyKey: "eye_color", SortOrder: 9},
+	{TypeKey: "person", PropertyKey: "hair_color", SortOrder: 10},
+	{TypeKey: "person", PropertyKey: "complexion", SortOrder: 11},
+	{TypeKey: "person", PropertyKey: "profession", SortOrder: 12},
 
 	{TypeKey: "event", PropertyKey: "event_type", SortOrder: 0, Locked: true},
 	{TypeKey: "event", PropertyKey: "event_name", SortOrder: 1},

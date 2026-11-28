@@ -228,6 +228,12 @@ event_picture       depiction     Picture of an event; region plus image; cardin
 place_picture       depiction     Picture of a place; region plus image; cardinality `multiple`; locked on place; new catalogs only (S14-01)
 religion            term          religion or denomination as recorded; cardinality `multiple`; unlocked on person; terms §3.10
 languages_spoken    term          languages the person spoke; cardinality `multiple`; unlocked on person; terms §3.11
+height              text          as recorded, with its unit; unlocked on person
+weight              text          as recorded, with its unit; unlocked on person
+eye_color           text          as recorded; unlocked on person
+hair_color          text          as recorded; unlocked on person
+complexion          text          as recorded; unlocked on person
+profession          text          profession or occupation as recorded; cardinality `multiple`; unlocked on person
 ```
 
 Target Subject type hints are application-only (not SQL allow-lists). See the Interpretation doc.
@@ -253,6 +259,12 @@ person          gender              # term; unlocked
 person          interests           # text; multiple; unlocked
 person          religion            # term; multiple; unlocked
 person          languages_spoken    # term; multiple; unlocked
+person          height              # text; unlocked
+person          weight              # text; unlocked
+person          eye_color           # text; unlocked
+person          hair_color          # text; unlocked
+person          complexion          # text; unlocked
+person          profession          # text; multiple; unlocked
 
 event           event_type          # term; locked
 event           event_name          # text; unlocked
