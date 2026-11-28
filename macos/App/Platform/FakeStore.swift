@@ -1485,7 +1485,17 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
             markCatalogSessionHeld(projectDir)
             provenanceRecordsCalls.append(request)
             if let provenanceRecordsError { throw provenanceRecordsError }
-            return provenanceRecordsReplies[request] ?? CatalogProvenanceSheetRead()
+            if let reply = provenanceRecordsReplies[request] { return reply }
+            // A field row's read: the name field of each owner asked, with its records.
+            guard case .fields(let pairs) = request else { return CatalogProvenanceSheetRead() }
+            let sources = sourcesByProject[projectDir] ?? []
+            let owners = pairs.compactMap { pair -> CatalogOwnerField? in
+                let group = membershipBySubject.values.filter { $0.entity.id == pair.ownerID }
+                guard let entity = group.first?.entity else { return nil }
+                let field = nameField(memberIDs: Set(group.map(\.subjectID)), sources: sources)
+                return field.propertyID == pair.propertyID ? CatalogOwnerField(entity: entity, field: field) : nil
+            }
+            return CatalogProvenanceSheetRead(owners: owners)
         }
     }
 
@@ -2220,6 +2230,8 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
             if let person = personSummaries().first(where: { $0.entity.id == entityID }) {
                 detail.summary = .person(person)
             }
+            // The detail read sends counts, not the records behind them.
+            for i in detail.fields.indices { detail.fields[i].outcomes = [] }
             return detail
         }
     }
@@ -2309,7 +2321,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         } else {
             state = .single
         }
-        return CatalogConclusionField(
+        var field = CatalogConclusionField(
             propertyID: propertyID,
             propertyKey: SeededPropertyKey.name,
             label: "Name",
@@ -2319,9 +2331,25 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
             outcomes: outcomes.sorted {
                 (Self.lastIfNone($0.groupRank), $0.valueRank ?? .max, $0.observationID)
                     < (Self.lastIfNone($1.groupRank), $1.valueRank ?? .max, $1.observationID)
-            },
-            recordCounts: CatalogFieldRecordCounts(records: outcomes.count, sources: ranked.first?.support ?? 0)
+            }
         )
+        field.recordCounts = Self.recordCounts(of: field)
+        return field
+    }
+
+    /// The counts the engine sends for a field (Go `conclusiondetails.recordCounts`): one record per
+    /// outcome; one displayed value's Sources are its Support, several are the distinct Sources of
+    /// the outcomes counted under a displayed value, else their summed Support.
+    static func recordCounts(of field: CatalogConclusionField) -> CatalogFieldRecordCounts {
+        var counts = CatalogFieldRecordCounts(records: field.outcomes.count, sources: 0)
+        let shown = field.displayedValues
+        if shown.count == 1 {
+            counts.sources = shown[0].support
+        } else if shown.count > 1 {
+            let counted = Set(field.outcomes.filter { $0.groupRank > 0 }.map(\.sourceID))
+            counts.sources = counted.isEmpty ? shown.reduce(0) { $0 + $1.support } : counted.count
+        }
+        return counts
     }
 
     /// A group rank sorts after every real one when it is 0 (none).

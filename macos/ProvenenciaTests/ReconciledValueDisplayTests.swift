@@ -70,12 +70,10 @@ struct ReconciledValueDisplayTests {
         )
     }
 
-    /// `field` with the counts the engine would send for it: one record per outcome, the lead value's Sources.
-    static func counted(_ field: CatalogConclusionField) -> CatalogConclusionField {
+    /// `field` with the counts the engine would send for it: the same rule as the engine's, in FakeStore.
+    static func withEngineCounts(_ field: CatalogConclusionField) -> CatalogConclusionField {
         var field = field
-        field.recordCounts = CatalogFieldRecordCounts(
-            records: field.outcomes.count, sources: field.displayedValues.first?.support ?? 0
-        )
+        field.recordCounts = FakeStore.recordCounts(of: field)
         return field
     }
 

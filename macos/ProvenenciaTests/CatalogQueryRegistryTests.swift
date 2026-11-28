@@ -492,13 +492,20 @@ struct CatalogQueryRegistryTests {
         #expect(name.values.map(\.reason) == [.kept, .outvoted])
         let james1 = CatalogNameValue(form: "James Robins", parts: [part("James", "given"), part("Robins", "surname")])
         #expect(name.displayedValues.map(\.value) == [.name(james1)])
-        #expect(name.outcomes.map(\.observationRef) == ["OBS-o1", "OBS-o3", "OBS-o2", "OBS-o4"])
-        #expect(name.outcomes.map(\.valueRank) == [1, 1, 2, nil])
-        #expect(name.outcomes.map(\.reason) == [.kept, .kept, .outvoted, .noEvidence])
-        #expect(name.outcomes.allSatisfy { $0.subjectRef == "CPR-1" && $0.sourceID == "s1" })
+        // The detail read sends counts; the sheet's read of the field carries the records.
+        #expect(name.outcomes.isEmpty && name.recordCounts == CatalogFieldRecordCounts(records: 4, sources: 1))
+        let read = try await store.getProvenanceRecords(
+            projectDir: projectDir,
+            request: .fields([CatalogProvenancePair(ownerID: james.entity.id, propertyID: name.propertyID)])
+        )
+        let records = try #require(read.owners.first?.field)
+        #expect(records.outcomes.map(\.observationRef) == ["OBS-o1", "OBS-o3", "OBS-o2", "OBS-o4"])
+        #expect(records.outcomes.map(\.valueRank) == [1, 1, 2, nil])
+        #expect(records.outcomes.map(\.reason) == [.kept, .kept, .outvoted, .noEvidence])
+        #expect(records.outcomes.allSatisfy { $0.subjectRef == "CPR-1" && $0.sourceID == "s1" })
         // One Source voted, so the outvoted Jim lost 1 of 1.
-        #expect(name.outcomes.map(\.voteSupport) == [0, 0, 1, 0])
-        #expect(name.outcomes.map(\.voteTotal) == [0, 0, 1, 0])
+        #expect(records.outcomes.map(\.voteSupport) == [0, 0, 1, 0])
+        #expect(records.outcomes.map(\.voteTotal) == [0, 0, 1, 0])
         #expect(detail.memberCount == 1)
         #expect(store.heldCatalogProjectDir == projectDir)
     }

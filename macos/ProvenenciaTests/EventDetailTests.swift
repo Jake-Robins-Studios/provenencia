@@ -30,7 +30,7 @@ struct EventDetailTests {
         _ date: CatalogDateValueInput,
         id: String = "rec"
     ) -> CatalogConclusionField {
-        D.counted(D.field(
+        D.withEngineCounts(D.field(
             "single", key: key, label: key, valueType: "date",
             [D.value(1, "kept", .date(date))],
             outcomes: [D.outcome(id, "kept", title: "Census", recorded: .date(date))]
@@ -76,7 +76,7 @@ struct EventDetailTests {
         _ values: [(date: CatalogDateValueInput, support: Int)],
         denied: [CatalogDateValueInput] = []
     ) -> CatalogConclusionField {
-        D.counted(D.field(
+        D.withEngineCounts(D.field(
             "multiple", key: key, label: key, valueType: "date",
             values.enumerated().map { D.value($0.offset + 1, "kept", support: $0.element.support, .date($0.element.date)) },
             outcomes: values.enumerated().map {
@@ -198,7 +198,7 @@ struct EventDetailTests {
         let start = year(1849)
         let end = year(1851)
         let fallFields = [
-            D.counted(D.field(
+            D.withEngineCounts(D.field(
                 "single", key: SeededPropertyKey.date, label: "Date", valueType: "date", [],
                 outcomes: [D.outcome("rec", "kept", title: "Census", recorded: .date(start))]
             )),
@@ -241,7 +241,7 @@ struct EventDetailTests {
             dating: CatalogEventDating(kind: .span, low: start, high: end), properties: [startProperty, endProperty]
         )
         let spanned = content(detail(
-            fields: [D.counted(D.field(
+            fields: [D.withEngineCounts(D.field(
                 "single", key: SeededPropertyKey.date, label: "Date", valueType: "date", [],
                 outcomes: [D.outcome("rec", "kept", title: "Census", recorded: .date(start))]
             ))],
@@ -332,7 +332,7 @@ struct EventDetailTests {
     }
 
     @Test func anAsOfFieldThatIsNotMultipleListsItsFirstValue() {
-        let two = D.counted(D.field(
+        let two = D.withEngineCounts(D.field(
             "mixed", key: "as_of", label: "as_of", valueType: "date",
             [D.value(1, "kept", .date(asOfDating.low)), D.value(2, "kept", .date(asOfDating.high))],
             outcomes: [
@@ -378,7 +378,7 @@ struct EventDetailTests {
             content(detail(fields: fields, summary: dated(properties: all))).rows[0]
         }
         func unshown(_ key: String, _ id: String) -> CatalogConclusionField {
-            D.counted(D.field(
+            D.withEngineCounts(D.field(
                 "single", key: key, label: key, valueType: "date", [],
                 outcomes: [D.outcome(id, "kept", title: "Census", recorded: .date(year(1849)))]
             ))
@@ -388,7 +388,7 @@ struct EventDetailTests {
         #expect(one.label == "Date" && one.shown.emptyText == "Nothing recorded")
         #expect(one.provenanceContent(records: D.readOf(dField)).records.map(\.id) == ["d"])
 
-        let asOfField = D.counted(D.field(
+        let asOfField = D.withEngineCounts(D.field(
             "multiple", key: "as_of", label: "As of", valueType: "date", [],
             outcomes: [D.outcome("a", "denied", rank: nil, title: "Census", recorded: .date(year(1849)))]
         ))
@@ -447,7 +447,7 @@ struct EventDetailTests {
         #expect(empty.accessibilityLabel(pages: 0) == empty.accessibilityLabel)
 
         let ranks: [Int] = Array(1...25)
-        let names = D.counted(D.field(
+        let names = D.withEngineCounts(D.field(
             "multiple", key: "toponym", label: "Name", valueType: "text",
             ranks.map { D.value($0, "kept", .text("Name \($0)")) },
             outcomes: ranks.map { D.outcome("n\($0)", "kept", rank: $0, recorded: .text("Name \($0)")) }
