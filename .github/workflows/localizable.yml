@@ -1,0 +1,23 @@
+name: Localizable strings
+
+# The Xcode unit tests do not run in CI: macOS runners cost too much for how
+# rarely they catch what the local gate misses. scripts/check-pr.sh runs them on
+# the user's Mac, and the PR skills say that gate must pass there before merge.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "macos/**"
+      - "scripts/check-localizable-xcstrings.py"
+      - ".github/workflows/localizable.yml"
+
+jobs:
+  localizable:
+    if: github.event.pull_request.draft == false
+    runs-on: blacksmith-4vcpu-ubuntu-2604
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint Localizable.xcstrings
+        run: python3 scripts/check-localizable-xcstrings.py

@@ -130,9 +130,13 @@ Never skip, disable, or weaken a test or a check.
 **Off a Mac** the gate's `xcode-test` check fails by design. Run the checks that
 can run (`gofmt`, `go vet -tags fts5 ./api/... ./core/...`,
 `go test -tags fts5 ./api/... ./core/...`, `python3 scripts/check-guidance-names.py`,
-`python3 scripts/check-localizable-xcstrings.py`) and let CI on the ready PR
-run the Xcode part (step 7). Say so in the PR body. A fix under `macos/` that
-cannot be built here needs the user to build it before merge; say that too.
+`python3 scripts/check-localizable-xcstrings.py`, `python3 scripts/check-patterns.py`).
+**CI does not run the Xcode tests or the Swift-warning check.** Nothing tests
+the Swift side until the user runs `scripts/check-pr.sh` on their Mac, and it
+must print `check-pr: PASS` there before the PR merges. Say so in the PR body's
+**Gate** line and at the top of the report (step 7), every time, whether or not
+the fix touches `macos/`: the Go engine is linked into the app, so a Go change
+can still break a Swift test.
 
 **Version.** A fix that ships product code bumps PATCH in `VERSION`,
 `core/version.go` and `MARKETING_VERSION` together ([`docs/versioning.md`](../../../docs/versioning.md)).
@@ -211,7 +215,9 @@ Not fixed after one more try → stop and take it to the user.
    request N.", as `implement-pr` step 8 does. An ad-hoc quick PR (no map row)
    changes no planning docs.
 4. Mark the PR ready (`gh pr ready <n>`), so CI runs, and watch the checks. A red
-   check is fixed once here; red again → back to the user.
+   check is fixed once here; red again → back to the user. Green CI covers Go
+   and the strings lint only; off a Mac, the PR is still not mergeable until
+   the user's Mac gate passes.
 5. Report (below). The user reviews and merges. Never merge.
 
 ## PR body
@@ -224,7 +230,8 @@ Not fixed after one more try → stop and take it to the user.
 **Fix.** What changed, at which layer, and the existing code it reuses.
 **Test.** `TestName/case`: failed before the fix (quote the line), passes after.
 Or: no test, and why; the manual check.
-**Gate.** check-pr: PASS (paste the PASS/FAIL lines). Off a Mac: which checks ran; CI runs Xcode.
+**Gate.** check-pr: PASS (paste the PASS/FAIL lines). Off a Mac: which checks ran, then
+"⚠️ **Not run: `xcode-test`, `swift-warnings`.** CI does not run them. Run `scripts/check-pr.sh` on a Mac and get `check-pr: PASS` before merging."
 **Version.** 0.9.0 → 0.9.1, or none and why.
 **Not in this PR.** What the fix left alone on purpose.
 
@@ -239,6 +246,7 @@ Nits: …
 
 ```markdown
 **Quick PR ready for review:** <PR link>
+- ⚠️ Off a Mac only: **Run `scripts/check-pr.sh` on your Mac before merging.** CI does not run the Xcode tests, so they have not run on this PR.
 - Fixed: one sentence.
 - Test: the test name, red then green.
 - Review: findings fixed / follow-up / rejected; verdict.
@@ -252,4 +260,5 @@ Nits: …
 - Fix without a red test, except the two cases step 3 names.
 - Send the reviewer this session's reasoning.
 - Run a second review round, mark the PR ready with a blocker open, or merge.
+- Report a PR whose gate ran off a Mac without the Mac-gate warning, or call green CI proof that the Swift tests pass.
 - Choose a follow-up's home without asking the user, or put it in `docs/dogfood/`.
