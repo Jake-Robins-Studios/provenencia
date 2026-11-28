@@ -179,10 +179,27 @@ struct DateValueDraftTests {
         zone.phrase = "Spring 1880"
         #expect(zone.unsavableError == L10n.string(L10n.Sources.dateUnsavableZone))
 
+        var millisecond = DateValueDraft.empty()
+        millisecond.startMillisecond = 5
+        #expect(millisecond.unsavableError == L10n.string(L10n.Sources.dateUnsavableMillisecond))
+
+        var both2 = DateValueDraft.empty()
+        both2.startMillisecond = 5
+        both2.startTZ = "America/Chicago"
+        #expect(both2.unsavableError == L10n.string(L10n.Sources.dateUnsavableZoneAndMillisecond))
+
         var other = DateValueDraft.empty()
         other.startYear = 1880
         other.qualifier = "nonsense"
         #expect(other.unsavableError == L10n.string(L10n.Sources.dateUnsavableOther))
+    }
+
+    @Test func latestOnlyMessageKeepsTheBound() {
+        var d = DateValueDraft.empty()
+        d.setKind("range")
+        d.endYear = 1880
+        #expect(d.unsavableError == L10n.string(L10n.Sources.dateUnsavableRangeStart))
+        #expect(d.unsavableError?.contains("Single date") == false)
     }
 
     @Test func hidingTimeClearsIt() {

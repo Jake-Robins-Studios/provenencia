@@ -56,7 +56,7 @@ final class SourcesModel {
     struct SourceDraftValidation: Equatable {
         var titleError: String?
         var typeError: String?
-        /// The line under the date form for an incomplete date; nil when the form shows its own error.
+        /// The line under the date form for a date that can't be saved; nil when the form shows its own error.
         var dateError: String?
         /// The date is blank or reads as a date. A month of 13 parses not, and has no `dateError`.
         var dateParses = true

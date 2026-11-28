@@ -214,13 +214,20 @@ struct DateValueDraft: Equatable, Sendable {
             key = L10n.Sources.dateUnsavableRangeStart
         } else if isRange, !endSide.hasCivil {
             key = L10n.Sources.dateUnsavableRangeEnd
-        } else if isPoint, !startSide.hasCivil,
-                  !startTZ.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        } else if isPoint, !startSide.hasCivil, hasZone, startMillisecond != nil {
+            key = L10n.Sources.dateUnsavableZoneAndMillisecond
+        } else if isPoint, !startSide.hasCivil, hasZone {
             key = L10n.Sources.dateUnsavableZone
+        } else if isPoint, !startSide.hasCivil, startMillisecond != nil {
+            key = L10n.Sources.dateUnsavableMillisecond
         } else {
             key = L10n.Sources.dateUnsavableOther
         }
         return L10n.string(key)
+    }
+
+    private var hasZone: Bool {
+        !startTZ.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     /// What a save sends: nil while the form is blank, else the draft as input.

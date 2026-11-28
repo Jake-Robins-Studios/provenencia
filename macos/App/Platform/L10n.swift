@@ -6546,8 +6546,8 @@ enum L10n {
 
         static let dateHideTime = LocalizedStringResource(
             "sources.page.dateHideTime",
-            defaultValue: "Hide time",
-            comment: "Link to hide optional time fields"
+            defaultValue: "Remove time",
+            comment: "Link that clears the optional time fields on one side"
         )
 
         static let dateShowAdvanced = LocalizedStringResource(
@@ -6624,7 +6624,7 @@ enum L10n {
 
         static let dateUnsavableRangeStart = LocalizedStringResource(
             "sources.page.dateUnsavableRangeStart",
-            defaultValue: "Add the earliest bound, or choose Single date.",
+            defaultValue: "Add the earliest bound.",
             comment: "Line under the date form when a Between date has no date or time on its earliest bound"
         )
 
@@ -6638,6 +6638,18 @@ enum L10n {
             "sources.page.dateUnsavableZone",
             defaultValue: "A time zone needs a date or a time. Add one, or clear the time zone.",
             comment: "Line under the date form when a single date has a time zone but no date or time"
+        )
+
+        static let dateUnsavableZoneAndMillisecond = LocalizedStringResource(
+            "sources.page.dateUnsavableZoneAndMillisecond",
+            defaultValue: "A time zone and a millisecond need a date or a time. Add one, or clear them.",
+            comment: "Line under the date form when a single date has a time zone and a millisecond but no date or time"
+        )
+
+        static let dateUnsavableMillisecond = LocalizedStringResource(
+            "sources.page.dateUnsavableMillisecond",
+            defaultValue: "A millisecond needs a date or a time. Add one, or clear the millisecond.",
+            comment: "Line under the date form when a single date has a millisecond but no date or time"
         )
 
         static let dateUnsavableOther = LocalizedStringResource(

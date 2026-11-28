@@ -8735,13 +8735,13 @@
       }
     },
     "sources.page.dateHideTime": {
-      "comment": "Link to hide optional time fields",
+      "comment": "Link that clears the optional time fields on one side",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hide time"
+            "value": "Remove time"
           }
         }
       }
@@ -8789,7 +8789,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add the earliest bound, or choose Single date."
+            "value": "Add the earliest bound."
           }
         }
       }
@@ -8814,6 +8814,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "A time zone needs a date or a time. Add one, or clear the time zone."
+          }
+        }
+      }
+    },
+    "sources.page.dateUnsavableZoneAndMillisecond": {
+      "comment": "Line under the date form when a single date has a time zone and a millisecond but no date or time",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A time zone and a millisecond need a date or a time. Add one, or clear them."
+          }
+        }
+      }
+    },
+    "sources.page.dateUnsavableMillisecond": {
+      "comment": "Line under the date form when a single date has a millisecond but no date or time",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A millisecond needs a date or a time. Add one, or clear the millisecond."
           }
         }
       }
