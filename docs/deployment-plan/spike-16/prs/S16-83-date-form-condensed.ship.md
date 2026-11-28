@@ -1,7 +1,7 @@
 # Ship log — S16-83 The date form is smaller and keyboard-first
 
 **Plan:** [`S16-83-date-form-condensed.md`](S16-83-date-form-condensed.md) · **Branch:** `s16-83-date-form-condensed` · **PR:** #1027
-**State:** fixing — manual check 2
+**State:** ready — awaiting the user's look
 
 ## Round 0 — implement
 Head `f49196396`. Gate PASS (orchestrator run, xcode-test included). Report deviations: manual check (§10) and the view-level keyboard evidence (D-3, D-4, D-6, D-13) not run — needs the user's Mac; version 0.53.1 (main already 0.53.0); `monthAndDayCanBeSetWithoutAYear` lost its `applyStartCascade()` call (method deleted); `Field.neighbours` is `@MainActor`; `DateValueDraft.part(_:start:)` is static; old names (`PVInputTabClaim`, `sourceDateReadsAs`, `.date.readsAs`, `hideTime`) left in landed/historical plans and map rows, not rewritten.
@@ -107,6 +107,9 @@ Failing test first: none (layout only); evidence is the user's look at the open 
 Do: `advancedSection` becomes `HStack(alignment: .top, spacing: Layout.gap)` (8 pt, the kit token nearest the board's 10; no new token). Calendar: `PVField(label: L10n.Sources.dateCalendar) { PVSelect(…, size: .sm, menuWidth: 220, fillsWidth: true, …) }` framed `width: Layout.calendar` (new constant, 148). Phrase: `PVField(label: L10n.Sources.datePhrase, hint: L10n.Sources.datePhraseHint) { PVInput(… size: .sm …) }` with `.frame(maxWidth: .infinity, alignment: .leading)`. Keep every focus handle, accessibility label, `pvFieldLabel` and identifier as they are. If `PVField`'s caption style differs from the form's `fieldCaption`, use `PVField` anyway (the board draws `PVField`); say so in the report. This also settles MNT-5 (the hand-built Calendar/Phrase captions). Extend the plan's Landed note's F-7 sentence with: "and Calendar and Phrase share one row of `PVField`s, Calendar 148 pt".
 Check: scripts/check-pr.sh PASS; the user opens Calendar and phrase… in the Source date dialog and in the composer.
 
+## Manual check 2 — fix
+Head `fc49ff9aa`. Gate PASS (orchestrator run). F-8 done: `advancedSection` is one `HStack(alignment: .top, spacing: Layout.gap)` of two `PVField`s, Calendar 148 pt (`Layout.calendar`) with its select `size: .sm`, `fillsWidth: true`; Phrase fills the rest with its hint. Diff read by orchestrator: matches. Deviation: `PVField`'s caption style (body, medium) is larger than the date parts' `fieldCaption` (micro), as the plan allowed; the hand-set `pvFieldLabel` on Phrase went (PVField sets it). On screen: the user's look.
+
 ## Result
 Gate PASS (head `2ccc5fe70`, origin/main unchanged at `6a6854119`) · CI see PR · open: none · follow-ups: MNT-3 → S16-84 on the Spike 16 map (user) · to user: §10 manual check before merge (the only proof of UX-1 in the running app, AC-1.1/1.2/1.6, AC-2.1/2.8/2.9, D-3/D-4/D-6/D-13; watch steps 1 and 4 for the `ViewThatFits` Kind/qualifier focus).
 
@@ -123,4 +126,6 @@ Plan: 6,346 words (check-plan-docs info line).
 | 2 | CON | opus | 39k |
 | 2 | UX | opus | 39k |
 | M | implementer (fix) | sonnet | 80k |
-| | **Total** | | **791k** |
+| M2 | implementer (no plan found) | sonnet | 74k |
+| M2 | implementer (fix) | sonnet | 76k |
+| | **Total** | | **941k** |
