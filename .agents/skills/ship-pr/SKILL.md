@@ -53,7 +53,9 @@ reviewer into round 2; a reviewer that saw round 1 defends it.
 - The branch in the plan header does not exist yet (or you are resuming: read
   the ship log and continue from its last entry).
 - You are on the user's Mac: `scripts/check-pr.sh` needs `xcodebuild`. On
-  another machine the gate cannot pass; stop and say so.
+  another machine the gate cannot pass; stop and say so. CI runs no Xcode
+  tests, so this gate is the only place the Swift tests and the Swift-warning
+  check run: never hand over a PR whose gate did not pass on the Mac.
 
 ## Loop
 
@@ -257,8 +259,9 @@ the user).
 0. Bring the branch up to date: `git fetch origin`; if `origin/main` moved
    since the branch was cut, merge it (in an app-made worktree, the
    `sync_with_base_branch` tool), then run `scripts/check-pr.sh` again. CI tests
-   the PR merged with `main`, and a field this PR removed can still be used by
-   code that landed there meanwhile.
+   the Go side of the PR merged with `main`, but only this run tests the Swift
+   side, and a field this PR removed can still be used by code that landed
+   there meanwhile.
 1. Update the PR body: what shipped against each user story, AC evidence,
    review summary by lens, follow-ups, deviations, the plan's **Manual check**,
    and links to the plan, its review log, and the ship log (for a spike close, S#-99, the plan path and "deleted in this PR").

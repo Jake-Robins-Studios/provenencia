@@ -2,7 +2,8 @@
 # The deterministic gate for a PR branch: every check here answers yes or no.
 # The implementer runs it before saying "done"; the orchestrator runs it again
 # before any reviewer starts (.agents/skills/ship-pr). CI runs the same Go and
-# Xcode commands on non-draft PRs.
+# localizable commands on non-draft PRs, but not the Xcode tests: this gate, on
+# the user's Mac, is the only place they run, so it must pass there before merge.
 #
 #   scripts/check-pr.sh [--base <ref>]
 #
@@ -21,7 +22,7 @@
 #   patterns      scripts/check-patterns.py: no line this branch adds has the
 #                 shape of a known review trap (SQL built from a value, a bare
 #                 Text("…"), a hand-built IN list, …)
-#   xcode-test    xcodebuild test (ProvenenciaTests), the CI command. macOS only:
+#   xcode-test    xcodebuild test (ProvenenciaTests). Not run in CI. macOS only:
 #                 anywhere else it fails, because a PR is not checked without it.
 #                 The Swift files this branch changes are touched first, so an
 #                 incremental build recompiles them and prints their warnings.

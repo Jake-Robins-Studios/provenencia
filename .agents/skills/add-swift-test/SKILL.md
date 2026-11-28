@@ -59,11 +59,11 @@ Bundle id stays `app.provenencia.tests`. Host: Provenencia.app, which runs `Test
 xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS'
 ```
 
-⌘U in Xcode (Provenencia scheme). CI: `.github/workflows/macos-test.yml` (non-draft PRs to `main`).
+⌘U in Xcode (Provenencia scheme). CI does not run them: `scripts/check-pr.sh` runs them on the Mac, and must pass there before merge.
 
 ## Do not
 
 - Mix test sources into `macos/App/`
 - Call `GoStore` / the dylib. Fixtures that pretend to be a project should include `provenencia.sqlite` (file exists; do not open the DB).
 - Bump `VERSION` for tests-only
-- Skip signing flags in local `xcodebuild`; CI sets `CODE_SIGNING_ALLOWED=NO`
+- Skip signing flags in local `xcodebuild`; `scripts/check-pr.sh` sets `CODE_SIGNING_ALLOWED=NO`

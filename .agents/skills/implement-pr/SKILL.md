@@ -42,7 +42,9 @@ You do not decide product or architecture; the plan did.
    the callee: delete it if nothing calls it and the plan's Deletes names it,
    report it if the plan does not. Then run the gate: `scripts/check-pr.sh`
    (it includes `check-guidance-names.py`). Fix until it prints `check-pr: PASS`.
-   Never skip, disable, or weaken a test or a check to get there.
+   Never skip, disable, or weaken a test or a check to get there. Off a Mac
+   the gate cannot pass and CI runs no Xcode tests: run the other checks, and
+   report that the full gate must pass on the user's Mac before merge.
 7. **Push and open a draft PR:**
    `git push -u origin <branch>` then
    `gh pr create --draft --base main --title "<plan §13 title>" --body-file <file>`.

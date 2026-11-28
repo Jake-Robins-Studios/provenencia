@@ -32,7 +32,7 @@ The Go module is `github.com/Jake-Robins-Studios/provenencia`. It requires **Go 
 CGO_ENABLED=1 go test -tags fts5 ./api/... ./core/...
 ```
 
-PRs to `main` that are **not drafts** run this in GitHub Actions (`.github/workflows/go-test.yml`). The same PRs run Swift tests on a macOS runner (`.github/workflows/macos-test.yml`).
+PRs to `main` that are **not drafts** run this in GitHub Actions (`.github/workflows/go-test.yml`). They also lint `Localizable.xcstrings` (`.github/workflows/localizable.yml`). CI does not run the Swift tests: `scripts/check-pr.sh` runs them on your Mac, and it must pass there before a PR merges.
 
 Regenerate protobuf (needs `protoc`, `protoc-gen-go`, `protoc-gen-swift`):
 
