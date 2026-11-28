@@ -28,6 +28,8 @@ S16-D20 draws a condensed form, in its own dialog and inline. Some of the room i
 
 Nothing a researcher can set today goes. The board decides the layout, and the plan follows it.
 
+**The board** (agreed 2026-11-28; S16-D20's **Board** line): Kind and the qualifier on one row with no captions, and the range gloss as a caption line under it; no heading on a Single date, and a range's sides labelled in a left column; one row of time fields under each side's Year, Month and Day; no dividers; the hint and Calendar and phrase… on one line under the sides. The dialog is 520 pt.
+
 ## A repeated letter walks a select's matches
 
 `PVTypeSelectMatcher` (`PVFloatingMenuSelection.swift`) appends every key that comes within 0.8 s of the last. So pressing J twice quickly builds `jj`, and that matches nothing. The Month select stays on January, and only a pause between presses walks on to June. macOS's own pop-up buttons walk a repeated letter's matches. The fix is in the matcher: a buffer that is one character repeated searches for that single character, starting past the current row. Its three callers get it: `PVSelectSession`, `PVContextMenuKeyboard` and `PVTable`. (The combo box filters typed text instead, and `PVList` has no type-select.) This is a kit fix that rides with this PR because the user asked for one PR (2026-11-28).
@@ -47,12 +49,9 @@ Today the system order decides. Without Full Keyboard Access, Kind, the chips an
 
 **How the loop is built** (map review K9-1 – K9-4): one `@FocusState` over every field of the form; a new `PVFieldFocus` operation that replaces a handle's Tab neighbours, so a host's handle becomes the Year entry; the qualifier as a `PVSegmentedControl` like Kind; `PVSegmentedControl` claiming Tab when its handle has neighbours; the field before the form claiming Tab into Year.
 
-**Still open for the plan:**
+**Decided by the board** (2026-11-28): a range runs the earliest side (Year to Time zone), then the latest side in the same order; Calendar and phrase… is one stop after the last Time zone, and when it is open the Calendar select and the Phrase input follow it; then out.
 
-- **The end side of a range:** where its Year, Month and Day sit in the loop. Straight after the start side's Day is the natural answer.
-- **The link:** whether Calendar and phrase is a Tab stop, and where.
-- **Leaving backwards:** whether Shift-Tab from Kind goes to the host's previous field.
-- **More open:** where the Calendar select and the Phrase input sit in the loop.
+**Still open for the plan:** whether Shift-Tab from Kind goes to the host's previous field.
 
 ## The time fields always show
 
