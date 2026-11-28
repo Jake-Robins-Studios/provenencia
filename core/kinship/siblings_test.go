@@ -241,9 +241,11 @@ func TestSiblingsParentBound(t *testing.T) {
 			links = append(links, kinship.Link{Edge: edges[i]})
 		}
 		kin := kinship.KinOf([]byte("person"), links, terms, rules)
-		kinship.FamilyUnits([]byte("person"), kin, map[string]kinship.Kin{}, rules)
+		kinship.FamilyUnits([]byte("person"), kin, map[string]kinship.Kin{})
+		kinship.SiblingGroups([]byte("person"), kin)
+		kinship.Couples([]byte("person"), kin, map[string]kinship.Kin{}, rules)
 		if d := time.Since(start); d > time.Second {
-			t.Errorf("Siblings, KinOf and FamilyUnits took %v, want under a second", d)
+			t.Errorf("Siblings, KinOf, FamilyUnits, SiblingGroups and Couples took %v, want under a second", d)
 		}
 		if len(implied) != 0 {
 			t.Errorf("Siblings made %d links, want none", len(implied))

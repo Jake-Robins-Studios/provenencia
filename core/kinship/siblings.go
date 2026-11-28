@@ -25,7 +25,7 @@ func Parents(person []byte, edges []Edge, terms segmentcompare.Terms, rules Rule
 //
 // A family of eleven children is real data, so the number of other children is
 // not bounded. More parents than Rules.MaxPivotEnd is malformed and implies no
-// sibling, the bound parentUnits uses to stop pairing. A child of one of those
+// sibling, the bound Couples uses to pair parents. A child of one of those
 // parents still implies that person as a sibling through the shared parent,
 // since its read does not see the person's other parents, so siblinghood is
 // one-sided there; crafted data only. Rules.MaxPairSteps keeps the work linear

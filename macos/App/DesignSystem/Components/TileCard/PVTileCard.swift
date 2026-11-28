@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// The measures of a `PVTileCard`: one place for every size. The shell applies
-/// `height`, `thumbnail`, `padding` and `contentSpacing`; the title and lines slots apply
+/// `height`, `thumbnail`, `padding` and `contentSpacing`, and `textLeading` is where the text
+/// starts; the title and lines slots apply
 /// `titleLineLimit` and `linesLineLimit`.
 enum PVTileCardSize: Equatable {
     case regular, compact
@@ -61,6 +62,9 @@ enum PVTileCardSize: Equatable {
         case .compact: 8
         }
     }
+
+    /// How far in from the card's leading edge its text starts.
+    nonisolated var textLeading: CGFloat { padding.leading + thumbnail + contentSpacing }
 }
 
 /// A card with a thumbnail, a title, lines under it and an optional trailing

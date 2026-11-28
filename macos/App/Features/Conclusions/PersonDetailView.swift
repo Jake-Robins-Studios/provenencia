@@ -74,12 +74,7 @@ private struct PersonDetailLifeLines: View {
     var body: some View {
         VStackLayout(alignment: .leading, spacing: PVSpacing.space1) {
             ForEach(lines, id: \.abbreviation) { line in
-                PVDatePlaceLine(
-                    leading: line.abbreviation,
-                    date: line.date,
-                    place: line.place,
-                    accessibilityLabel: line.accessibilityLabel
-                )
+                PVDatePlaceLine(line)
             }
         }
     }

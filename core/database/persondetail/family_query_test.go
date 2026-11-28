@@ -34,13 +34,13 @@ func TestPersonFamilyQueryCount(t *testing.T) {
 		w := newKinWorld(t)
 		pat := w.shape("", 2, 2, true)
 		firstIn, secondIn := w.c.Graph().PageInputs(), w.c.Graph().PageInputs()
-		first, _, _, err := persondetail.PersonFamily(w.c, pat, firstIn)
+		first, _, err := persondetail.PersonFamily(w.c, pat, firstIn)
 		if err != nil {
 			t.Fatal(err)
 		}
 		var queries int
 		w.c.Graph().SetQueryCounterForTest(func() { queries++ })
-		second, _, _, err := persondetail.PersonFamily(w.c, pat, secondIn)
+		second, _, err := persondetail.PersonFamily(w.c, pat, secondIn)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -68,7 +68,7 @@ func TestPersonFamilyQueryCount(t *testing.T) {
 			pat := w.shape("", siblings, children, more)
 			var queries int
 			w.c.Graph().SetQueryCounterForTest(func() { queries++ })
-			if _, _, _, err := persondetail.PersonFamily(w.c, pat, w.c.Graph().PageInputs()); err != nil {
+			if _, _, err := persondetail.PersonFamily(w.c, pat, w.c.Graph().PageInputs()); err != nil {
 				t.Fatal(err)
 			}
 			return queries
@@ -111,22 +111,22 @@ func TestPersonFamilyQueryCount(t *testing.T) {
 		w := newKinWorld(t)
 		pat := w.shape("", 2, 2, true)
 		stranger := w.person("Stranger")
-		firstFamily, firstOrigin, firstSummaries, err := persondetail.PersonFamily(w.c, pat, w.c.Graph().PageInputs())
+		firstFamily, firstSummaries, err := persondetail.PersonFamily(w.c, pat, w.c.Graph().PageInputs())
 		if err != nil {
 			t.Fatal(err)
 		}
 		w.k.Commit(stranger)
 		var queries int
 		w.c.Graph().SetQueryCounterForTest(func() { queries++ })
-		family, origin, summaries, err := persondetail.PersonFamily(w.c, pat, w.c.Graph().PageInputs())
+		family, summaries, err := persondetail.PersonFamily(w.c, pat, w.c.Graph().PageInputs())
 		if err != nil {
 			t.Fatal(err)
 		}
 		if queries != 0 {
 			t.Fatalf("a read after a commit elsewhere issued %d graph queries", queries)
 		}
-		if !reflect.DeepEqual(firstFamily, family) || !reflect.DeepEqual(firstOrigin, origin) || !reflect.DeepEqual(firstSummaries, summaries) {
-			t.Fatal("the family, origin siblings or summaries changed after a commit elsewhere")
+		if !reflect.DeepEqual(firstFamily, family) || !reflect.DeepEqual(firstSummaries, summaries) {
+			t.Fatal("the family or summaries changed after a commit elsewhere")
 		}
 	})
 }

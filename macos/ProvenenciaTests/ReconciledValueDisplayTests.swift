@@ -251,13 +251,13 @@ struct ReconciledValueDisplayTests {
     @Test func weakSaysWhichEvidenceIsWeak() {
         let f = Self.field("single", [Self.value(1, "kept")])
         func phrase(_ o: CatalogReconcilerOutcome) -> String { ReconciledValueDisplay.outcomePhrase(o, in: f) }
-        #expect(phrase(Self.outcome("a", "weak", credibilityOffset: -2, uncertain: true)) == "weak · " + ListFormatter.localizedString(byJoining: ["low-trust Source", "uncertain transcription"]))
+        #expect(phrase(Self.outcome("a", "weak", credibilityOffset: -2, uncertain: true)) == "weak · " + L10n.list(["low-trust Source", "uncertain transcription"]))
         #expect(phrase(Self.outcome("a", "weak")) == "weak")
         // Above-default grades are not causes.
         #expect(phrase(Self.outcome("a", "weak", credibilityOffset: 1, uncertain: true)) == "weak · uncertain transcription")
         let all = Self.outcome("a", "weak", credibilityOffset: -2, uncertain: true)
         #expect(ReconciledValueDisplay.weakCauses(all) == ["low-trust Source", "uncertain transcription"])
-        #expect(phrase(all) == "weak · " + ListFormatter.localizedString(byJoining: ReconciledValueDisplay.weakCauses(all)))
+        #expect(phrase(all) == "weak · " + L10n.list(ReconciledValueDisplay.weakCauses(all)))
     }
 
     @Test func voiceOverReadsStateInWords() {

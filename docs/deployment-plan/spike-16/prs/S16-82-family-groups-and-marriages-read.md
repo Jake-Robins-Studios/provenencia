@@ -12,7 +12,7 @@
 **Version bump:** none — no change a researcher can see; the wire change ships inside the one app binary ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-ffi-handler`](../../../../.agents/skills/add-ffi-handler/SKILL.md), [`add-match-rule`](../../../../.agents/skills/add-match-rule/SKILL.md) (the `core/kinship` page functions section)
 **Rules that bind:** `.cursor/rules/go-tests.mdc`, `.cursor/rules/match-rules.mdc`
-**Context:** brief [S16-D18](../design/S16-D18-family-groups-and-marriages.md) (agreed 2026-11-27: the frames this read must serve), working rules "(Batch 6) Family groups siblings by their parents", "(Batch 6) Family shows a couple's marriage from its events", "(Batch 1) Crafted fan-out is capped, not engineered"
+**Context:** brief [S16-D18](../design/archive/S16-D18-family-groups-and-marriages.md) (agreed 2026-11-27: the frames this read must serve), working rules "(Batch 6) Family groups siblings by their parents", "(Batch 6) Family shows a couple's marriage from its events", "(Batch 1) Crafted fan-out is capped, not engineered"
 **Planned:** 2026-11-27 against `main` @ `c103545`
 **Review:** [`S16-82-family-groups-and-marriages-read.review.md`](S16-82-family-groups-and-marriages-read.review.md) — Fits with changes, Ready; 2 rounds, every finding answered
 

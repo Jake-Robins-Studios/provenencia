@@ -76,7 +76,7 @@ enum PVDeleteImpactCopy {
             let rest = group.total - refs.count
             let joined = rest > 0
                 ? refs.joined(separator: ", ") + L10n.DeleteImpact.summaryMore(count: rest)
-                : refs.formatted(.list(type: .and))
+                : L10n.list(refs)
             switch DeleteImpactCascadeVia(rawValue: group.via) {
             case .leavesHandle:
                 return L10n.DeleteImpact.leavesHandle(handleRefs: joined)

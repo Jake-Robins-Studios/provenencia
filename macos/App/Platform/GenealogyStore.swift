@@ -840,18 +840,16 @@ struct CatalogPersonClaim: Sendable, Equatable {
     var observations: [CatalogObservation]
 }
 
-/// A Person's family units (S13-04), grouped by Go: parent sets with the
-/// siblings through them, each partner with the children they share, the
-/// children with no other known parent, and siblings with no shown shared
-/// parent, in that order. Canonical people only. Each unit's children are in
-/// birth order, undated last (S13-12).
+/// A Person's family (S13-04, S16-82), grouped by Go: the partner units (each
+/// partner with the children they share) and the one-parent unit (the children
+/// with no other known parent), in that order; the sibling groups (the person's
+/// siblings by the parents they share, the person among them); and the couples
+/// the page shows with their marriages. Canonical people only. Each unit's and
+/// group's children are in birth order, undated last (S13-12).
 struct CatalogPersonFamily: Sendable, Equatable {
     var units: [CatalogFamilyUnit]
     /// The person's own summary; nil when an engine did not send it.
     var person: CatalogPersonSummary? = nil
-    /// Every sibling once with the person among them, in the order the page
-    /// draws them.
-    var originSiblings: [CatalogOriginSibling] = []
     /// The person's siblings by the parents they share with the person, the
     /// person among them; the first group is the person's.
     var siblingGroups: [CatalogSiblingGroup] = []
@@ -970,27 +968,14 @@ struct CatalogEventParticipant: Sendable, Equatable {
     var roles: [CatalogConclusionValue]
 }
 
-/// One child of the person's parents, or a sibling recorded with no shared
-/// parent. The person's own member has no link. `parentSets` are the indexes,
-/// among the `.parents` units, of the parent sets it is a child of; empty for a
-/// sibling recorded only.
-struct CatalogOriginSibling: Sendable, Equatable {
-    var member: CatalogFamilyMember
-    var parentSets: [Int]
-}
-
 /// One family unit.
 struct CatalogFamilyUnit: Sendable, Equatable {
     /// What a unit is to the person.
     enum Kind: Sendable, Equatable {
-        /// `partners`: a set of the person's parents; `children`: siblings through each.
-        case parents
         /// `partners`: one partner; `children`: the person's children with them.
         case partner
         /// `children`: the person's children with no other known parent.
         case oneParent
-        /// `children`: siblings with no shown shared parent.
-        case siblings
     }
 
     var kind: Kind

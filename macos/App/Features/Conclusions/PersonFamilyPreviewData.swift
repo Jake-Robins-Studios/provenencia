@@ -25,86 +25,201 @@ enum PersonFamilyPreviewData {
     static func unit(
         _ kind: CatalogFamilyUnit.Kind,
         partners: [CatalogFamilyMember] = [],
-        children: [CatalogFamilyMember] = []
+        children: [CatalogFamilyMember] = [],
+        couples: [Int] = []
     ) -> CatalogFamilyUnit {
-        CatalogFamilyUnit(kind: kind, partners: partners, children: children)
+        CatalogFamilyUnit(kind: kind, partners: partners, children: children, coupleIndexes: couples)
     }
 
-    static func origin(_ member: CatalogFamilyMember, _ sets: [Int]) -> CatalogOriginSibling {
-        CatalogOriginSibling(member: member, parentSets: sets)
+    /// A sibling group: the parents it shares with the person, its children, and the couples among its parents.
+    static func group(
+        _ parents: [CatalogFamilyMember],
+        _ children: [CatalogFamilyMember],
+        couples: [Int] = []
+    ) -> CatalogSiblingGroup {
+        CatalogSiblingGroup(parents: parents, children: children, coupleIndexes: couples)
+    }
+
+    /// The marriages of two people, by entity id, earliest first.
+    static func couple(_ a: String, _ b: String, _ marriages: CatalogEventSummary...) -> CatalogFamilyCouple {
+        CatalogFamilyCouple(aEntityId: a, bEntityId: b, marriages: marriages)
+    }
+
+    /// A marriage Event of a couple: dated by `date` as an occurrence, at `place`; `type` is another
+    /// Event type's, for a test of what a marriage line leaves out.
+    static func marriage(
+        _ id: String, _ date: CatalogDateValueInput?, place: String?, type: String = SeededEventTypeTerm.marriage
+    ) -> CatalogEventSummary {
+        PersonTimelinePreviewData.eventSummary(
+            id,
+            type: type,
+            dating: date.map { CatalogEventDating(kind: .occurrence, low: $0) },
+            place: place
+        )
+    }
+
+    static func day(_ year: Int32, _ month: Int32, _ day: Int32) -> CatalogDateValueInput {
+        CatalogDateValueInput(kind: "point", startYear: year, startMonth: month, startDay: day)
     }
 
     static let johann = summary("johann", "Johann Weber", born: 1817)
 
+    /// The person's own member: no link.
     static var johannMember: CatalogFamilyMember { CatalogFamilyMember(person: johann, link: nil) }
 
-    /// Frame 11a.
+    static var heinrich: CatalogFamilyMember { member("heinrich", "Heinrich Weber") }
+    static var anna: CatalogFamilyMember { member("anna", "Anna Weber") }
+    static var katharina: CatalogFamilyMember { member("katharina", "Katharina Weber") }
+    static var margarethe: CatalogFamilyMember { member("margarethe", "Margarethe Weber", born: 1815) }
+    static var friedrich: CatalogFamilyMember { member("friedrich", "Friedrich Weber", born: 1820) }
+    static var christian: CatalogFamilyMember { member("christian", "Christian Weber", born: 1823) }
+    static var wilhelm: CatalogFamilyMember { member("wilhelm", "Wilhelm Weber") }
+
+    /// The right column of the sample: Maria and her children, Sophie and Otto, and Paul with no other parent.
+    private static func partnerUnits(maria: [Int] = [], sophie: [Int] = []) -> [CatalogFamilyUnit] {
+        [
+            unit(.partner, partners: [member("maria", "Maria Schulz")],
+                 children: [member("karl", "Karl Weber"), member("luise", "Luise Weber"), member("emma", "Emma Weber")],
+                 couples: maria),
+            unit(.partner, partners: [member("sophie", "Sophie Brandt")], children: [member("otto", "Otto Weber")], couples: sophie),
+            unit(.oneParent, children: [member("paul", "Paul Weber")]),
+        ]
+    }
+
+    /// Frame F1: Margarethe, the person, Friedrich and Wilhelm share both parents; Christian only Anna.
     static var full: CatalogPersonFamily {
-        let margarethe = member("margarethe", "Margarethe Weber", born: 1815)
-        let friedrich = member("friedrich", "Friedrich Weber", born: 1820)
-        let wilhelm = member("wilhelm", "Wilhelm Weber")
-        return CatalogPersonFamily(
-            units: [
-                unit(.parents, partners: [member("heinrich", "Heinrich Weber"), member("anna", "Anna Weber")],
-                     children: [margarethe, friedrich, wilhelm]),
-                unit(.partner, partners: [member("maria", "Maria Schulz")],
-                     children: [member("karl", "Karl Weber"), member("luise", "Luise Weber"), member("emma", "Emma Weber")]),
-                unit(.partner, partners: [member("sophie", "Sophie Brandt")], children: [member("otto", "Otto Weber")]),
-                unit(.oneParent, children: [member("paul", "Paul Weber")]),
-            ],
+        CatalogPersonFamily(
+            units: partnerUnits(),
             person: johann,
-            originSiblings: [
-                origin(margarethe, [0]), origin(johannMember, [0]), origin(friedrich, [0]), origin(wilhelm, [0]),
+            siblingGroups: [
+                group([heinrich, anna], [margarethe, johannMember, friedrich, wilhelm]),
+                group([anna], [christian]),
             ]
         )
     }
 
-    /// Frame 11c: a second parent set, Christian in it only.
+    /// Frame F2 (11c): a third parent; Christian shares Heinrich and Katharina with no one but the person.
     static var conflicting: CatalogPersonFamily {
-        let margarethe = member("margarethe", "Margarethe Weber", born: 1815)
-        let friedrich = member("friedrich", "Friedrich Weber", born: 1820)
-        let christian = member("christian", "Christian Weber", born: 1823)
-        let wilhelm = member("wilhelm", "Wilhelm Weber")
-        return CatalogPersonFamily(
-            units: [
-                unit(.parents, partners: [member("heinrich", "Heinrich Weber"), member("anna", "Anna Weber")],
-                     children: [margarethe, friedrich, wilhelm]),
-                unit(.parents, partners: [member("heinrich", "Heinrich Weber"), member("katharina", "Katharina Weber")],
-                     children: [friedrich, christian]),
-            ],
+        CatalogPersonFamily(
+            units: [],
             person: johann,
-            originSiblings: [
-                origin(johannMember, [0, 1]), origin(friedrich, [0, 1]), origin(christian, [1]),
-                origin(margarethe, [0]), origin(wilhelm, [0]),
+            siblingGroups: [
+                group([heinrich, anna, katharina], [johannMember, friedrich]),
+                group([heinrich, anna], [margarethe, wilhelm]),
+                group([heinrich, katharina], [christian]),
             ]
         )
     }
 
-    /// Frame 11d: Clara and her recorded siblings only.
-    static var siblingsOnly: CatalogPersonFamily {
-        let clara = summary("clara", "Clara Weber", born: 1841)
-        let ida = member("ida", "Ida Weber", born: 1838)
-        let bernhard = member("bernhard", "Bernhard Weber", born: 1844)
-        return CatalogPersonFamily(
-            units: [unit(.siblings, children: [ida, bernhard])],
-            person: clara,
-            originSiblings: [
-                origin(ida, []), origin(CatalogFamilyMember(person: clara, link: nil), []), origin(bernhard, []),
+    /// Frame F3: one-parent groups under a shared two-parent group.
+    static var oneParentGroups: CatalogPersonFamily {
+        CatalogPersonFamily(
+            units: [],
+            person: johann,
+            siblingGroups: [
+                group([heinrich, anna], [margarethe, johannMember, friedrich]),
+                group([heinrich], [wilhelm]),
+                group([anna], [christian]),
             ]
         )
+    }
+
+    /// Frame F4: the person's four parents, and siblings of two of them, and Elisabeth with no parent in common.
+    static var unrelatedSets: CatalogPersonFamily {
+        let georg = member("georg", "Georg Becker")
+        let beckerKatharina = member("katharina-b", "Katharina Becker")
+        return CatalogPersonFamily(
+            units: [],
+            person: johann,
+            siblingGroups: [
+                group([heinrich, anna, georg, beckerKatharina], [johannMember]),
+                group([heinrich, anna], [margarethe, friedrich]),
+                group([georg, beckerKatharina], [christian]),
+                group([], [member("elisabeth", "Elisabeth Weber")]),
+            ]
+        )
+    }
+
+    /// Frame F6 (11d): the person and their siblings with no parent recorded.
+    static var siblingsOnly: CatalogPersonFamily {
+        CatalogPersonFamily(
+            units: [],
+            person: johann,
+            siblingGroups: [
+                group([], [member("clara", "Clara Weber", born: 1815), johannMember, member("karl", "Karl Weber", born: 1820)]),
+            ]
+        )
+    }
+
+    /// Frame M1: Heinrich and Anna married in 1812 at Altona, Johann and Maria in 1841 at Hamburg, Johann and
+    /// Sophie are partners with no marriage.
+    static var married: CatalogPersonFamily {
+        var family = full
+        family.siblingGroups[0].coupleIndexes = [0]
+        family.units = partnerUnits(maria: [1])
+        family.couples = [
+            couple("heinrich", "anna", marriage("m-ha", day(1812, 5, 3), place: "Altona")),
+            couple("johann", "maria", marriage("m-jm", day(1841, 6, 12), place: "Hamburg")),
+        ]
+        return family
+    }
+
+    /// Frame M2: a place only, a date only, neither.
+    static var marriageHalves: CatalogPersonFamily {
+        var family = full
+        family.siblingGroups[0].coupleIndexes = [0]
+        family.units = partnerUnits(maria: [1], sophie: [2])
+        family.couples = [
+            couple("heinrich", "anna", marriage("m-ha", nil, place: "Altona")),
+            couple("johann", "maria", marriage("m-jm", day(1841, 6, 12), place: nil)),
+            couple("johann", "sophie", marriage("m-js", nil, place: nil)),
+        ]
+        return family
+    }
+
+    /// Frame M3: Johann and Maria married twice, the second undated, at Lübeck.
+    static var twoMarriages: CatalogPersonFamily {
+        var family = full
+        family.units = partnerUnits(maria: [0])
+        family.couples = [
+            couple(
+                "johann", "maria",
+                marriage("m-jm1", day(1841, 6, 12), place: "Hamburg"),
+                marriage("m-jm2", nil, place: "Lübeck")
+            ),
+        ]
+        return family
+    }
+
+    /// Frame M4: three parents, Heinrich married to Anna and to Katharina.
+    static var threeParentMarriages: CatalogPersonFamily {
+        var family = conflicting
+        family.siblingGroups[0].coupleIndexes = [0, 1]
+        family.siblingGroups[1].coupleIndexes = [0]
+        family.siblingGroups[2].coupleIndexes = [1]
+        family.couples = [
+            couple("heinrich", "anna", marriage("m-ha", day(1812, 5, 3), place: "Altona")),
+            couple(
+                "heinrich", "katharina",
+                marriage("m-hk", CatalogDateValueInput(kind: "point", qualifier: "ABT", startYear: 1816), place: "Kiel")
+            ),
+        ]
+        return family
     }
 
     /// Frame 11h: Anna, with Heinrich as partner.
     static var annaOnly: CatalogPersonFamily {
         let anna = summary("anna", "Anna Weber", born: 1790)
         return CatalogPersonFamily(
-            units: [unit(.partner, partners: [member("heinrich", "Heinrich Weber")], children: [
-                member("margarethe", "Margarethe Weber", born: 1815), member("johann", "Johann Weber", born: 1817),
-                member("friedrich", "Friedrich Weber", born: 1820), member("wilhelm", "Wilhelm Weber"),
-            ])],
+            units: [unit(.partner, partners: [heinrich], children: [margarethe, member("johann", "Johann Weber", born: 1817), friedrich, wilhelm])],
             person: anna,
-            originSiblings: [origin(CatalogFamilyMember(person: anna, link: nil), [])]
+            siblingGroups: [group([], [CatalogFamilyMember(person: anna, link: nil)])]
         )
+    }
+
+    /// The person alone: one group, no parents and no sibling.
+    static var alone: CatalogPersonFamily {
+        CatalogPersonFamily(units: [], person: johann, siblingGroups: [group([], [johannMember])])
     }
 
     @MainActor

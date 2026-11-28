@@ -295,7 +295,7 @@ struct CatalogSearchHitPresentationTests {
                 == L10n.string(L10n.Workspace.omnibarKindEvidenceGraph)
         )
         #expect(CatalogSearchHitPresentation.leadThumbnail(for: hit)?.glyph == .symbol(.gitBranch))
-        let expected = ListFormatter.localizedString(byJoining: [
+        let expected = L10n.list([
             "Jones household", L10n.string(L10n.Workspace.omnibarKindEvidenceGraph),
             "1881 Census, Ward 3", "GPH-J0NES", L10n.string(L10n.Workspace.omnibarMatchDescription),
         ])

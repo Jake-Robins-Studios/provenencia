@@ -43,8 +43,8 @@ struct PersonFamilySection: View {
 }
 
 /// The two columns laid out by `PersonFamilyLayout`: lines, captions, then one
-/// container per group in reading order, so Tab runs the left column top to
-/// bottom, then the right column group by group.
+/// container per group in reading order, so Tab runs the left column group by
+/// group, then the right column group by group. A marriage line takes no Tab stop.
 struct PersonFamilyDiagram: View {
     let content: PersonFamilyContent
     let projectDir: String
@@ -73,6 +73,7 @@ struct PersonFamilyDiagram: View {
 
     private func diagram(_ layout: PersonFamilyLayout) -> some View {
         let tiles = Dictionary(content.allTiles.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let lines = Dictionary(content.allMarriageLines.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         return ZStack(alignment: .topLeading) {
             Path { path in
                 for segment in layout.segments { path.addRect(segment) }
@@ -89,34 +90,11 @@ struct PersonFamilyDiagram: View {
             }
             ForEach(Array(layout.groups.enumerated()), id: \.offset) { _, group in
                 ZStack(alignment: .topLeading) {
-                    ForEach(group.tiles, id: \.id) { placed in
-                        if let tile = tiles[placed.id] {
-                            PVPersonCard(content: tile.content, projectDir: projectDir) {
-                                if let location = tile.location {
-                                    open(location, ConclusionSectionAnchor(part: .family, id: placed.id))
-                                }
-                            }
-                            .frame(width: placed.frame.width, height: placed.frame.height)
-                            .focused($focused, equals: placed.id)
-                            .id(placed.id)
-                            .offset(x: placed.frame.minX, y: placed.frame.minY)
-                            .accessibilityIdentifier("\(accessibilityIdentifierRoot).tile.\(placed.id)")
-                        }
-                    }
-                    ForEach(group.more, id: \.fold) { more in
-                        let revealed = content.firstRevealed(by: more.fold)
-                        PVShowMoreRow(
-                            hidden: more.count,
-                            fold: PersonFamilyContent.fold,
-                            focus: $focused,
-                            stop: PersonFamilyContent.moreID(more.fold),
-                            revealed: revealed,
-                            revealedRow: revealed.map(AnyHashable.init)
-                        ) { expand(more.fold) }
-                            .id(PersonFamilyContent.moreID(more.fold))
-                            .frame(width: more.frame.width, height: more.frame.height, alignment: .leading)
-                            .offset(x: more.frame.minX, y: more.frame.minY)
-                            .accessibilityIdentifier("\(accessibilityIdentifierRoot).more")
+                    // VoiceOver reads the items in the order the layout lists them, which a
+                    // marriage line between two tiles needs: it is read after the second.
+                    ForEach(Array(group.items.enumerated()), id: \.element.id) { index, item in
+                        placed(item, tiles: tiles, lines: lines)
+                            .accessibilitySortPriority(Double(group.items.count - index))
                     }
                 }
                 .frame(width: group.frame.width, height: group.frame.height, alignment: .topLeading)
@@ -129,9 +107,66 @@ struct PersonFamilyDiagram: View {
     }
 }
 
+extension PersonFamilyDiagram {
+    /// One item of a group at its frame: a tile, a marriage line, or a Show more row.
+    @ViewBuilder
+    fileprivate func placed(
+        _ item: PersonFamilyLayout.Placed,
+        tiles: [String: PersonCardLink],
+        lines: [String: PersonFamilyContent.MarriageLine]
+    ) -> some View {
+        switch item {
+        case .tile(let placed):
+            if let tile = tiles[placed.id] {
+                PVPersonCard(content: tile.content, projectDir: projectDir) {
+                    if let location = tile.location {
+                        open(location, ConclusionSectionAnchor(part: .family, id: placed.id))
+                    }
+                }
+                .frame(width: placed.frame.width, height: placed.frame.height)
+                .focused($focused, equals: placed.id)
+                .id(placed.id)
+                .offset(x: placed.frame.minX, y: placed.frame.minY)
+                .accessibilityIdentifier("\(accessibilityIdentifierRoot).tile.\(placed.id)")
+            }
+        case .line(let placed):
+            if let marriage = lines[placed.id] {
+                // Spoken as the content words it (the couple's names, then the line), never a Tab stop.
+                PVDatePlaceLine(marriage.line)
+                    .frame(width: placed.frame.width, height: placed.frame.height, alignment: .leading)
+                    .help(marriage.line.text)
+                    .id(placed.id)
+                    .offset(x: placed.frame.minX, y: placed.frame.minY)
+                    .accessibilityIdentifier("\(accessibilityIdentifierRoot).marriage.\(placed.id)")
+            }
+        case .more(let more):
+            let revealed = content.firstRevealed(by: more.fold)
+            PVShowMoreRow(
+                hidden: more.count,
+                fold: PersonFamilyContent.fold,
+                focus: $focused,
+                stop: PersonFamilyContent.moreID(more.fold),
+                revealed: revealed,
+                revealedRow: revealed.map(AnyHashable.init)
+            ) { expand(more.fold) }
+                .id(PersonFamilyContent.moreID(more.fold))
+                .frame(width: more.frame.width, height: more.frame.height, alignment: .leading)
+                .offset(x: more.frame.minX, y: more.frame.minY)
+                .accessibilityIdentifier("\(accessibilityIdentifierRoot).more")
+        }
+    }
+}
+
+
 #if DEBUG
-#Preview("11a Full family") { PersonFamilyPreviewData.diagram(PersonFamilyPreviewData.full) }
-#Preview("11c Conflicting parents") { PersonFamilyPreviewData.diagram(PersonFamilyPreviewData.conflicting) }
-#Preview("11d Recorded siblings only") { PersonFamilyPreviewData.diagram(PersonFamilyPreviewData.siblingsOnly) }
+#Preview("F1 Shared parent") { PersonFamilyPreviewData.diagram(PersonFamilyPreviewData.full) }
+#Preview("F2 Records that disagree") { PersonFamilyPreviewData.diagram(PersonFamilyPreviewData.conflicting) }
+#Preview("F3 One-parent groups") { PersonFamilyPreviewData.diagram(PersonFamilyPreviewData.oneParentGroups) }
+#Preview("F4 Unrelated sets") { PersonFamilyPreviewData.diagram(PersonFamilyPreviewData.unrelatedSets) }
+#Preview("F6 No parents recorded") { PersonFamilyPreviewData.diagram(PersonFamilyPreviewData.siblingsOnly) }
+#Preview("M1 Marriages") { PersonFamilyPreviewData.diagram(PersonFamilyPreviewData.married) }
+#Preview("M2 Missing halves") { PersonFamilyPreviewData.diagram(PersonFamilyPreviewData.marriageHalves) }
+#Preview("M3 Two marriages") { PersonFamilyPreviewData.diagram(PersonFamilyPreviewData.twoMarriages) }
+#Preview("M4 Three parents") { PersonFamilyPreviewData.diagram(PersonFamilyPreviewData.threeParentMarriages) }
 #Preview("11h After clicking Anna") { PersonFamilyPreviewData.diagram(PersonFamilyPreviewData.annaOnly) }
 #endif

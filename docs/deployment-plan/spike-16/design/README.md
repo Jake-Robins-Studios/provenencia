@@ -12,12 +12,12 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | S16-D15 | Add Source sheet: the shared Source fields (Title, Type, Published date, Description, Private) | — | **S16-73** |
 | S16-D16 | Copy Source sheet: the shared Source fields filled from the original, above the credibility tick and the Artifact checklist | — | **S16-74** |
 | S16-D17 | Copy Source sheet: the original's metadata as an editable board, and a type change | — | **S16-75** |
-| [S16-D18](S16-D18-family-groups-and-marriages.md) | Person page Family: the siblings grouped by their parents, each group its parents then its children, and each couple's marriage date and place | [agreed 2026-11-27](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ), page "Person Detail - Family", turn "S16-D18 · Sibling groups and marriages": Shared parent(s); "m." between a group's parents and over a partner's group; tiles keep 92 pt | **S16-81** |
 
 ## Archived
 
 | Brief | View | Board | Built by |
 | --- | --- | --- | --- |
+| [S16-D18](archive/S16-D18-family-groups-and-marriages.md) | Person page Family: the siblings grouped by their parents, each group its parents then its children, and each couple's marriage date and place | [agreed 2026-11-27](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ), page "Person Detail - Family", turn "S16-D18 · Sibling groups and marriages": Shared parent(s); "m." between a group's parents and over a partner's group; tiles keep 92 pt | S16-81 |
 | [S16-D14](archive/S16-D14-sources-table.md) | The Sources list as a native table: named, sortable columns, one Source open at a time, one status badge a Source | [agreed 2026-11-24](https://claude.ai/artifact/JDm51QdorUvY79EFoci4cm), page "S2-04 Sources list": TB-7 (a), TB-W1 (a), one badge width, fixed column widths | S16-71 |
 | [S16-D12](archive/S16-D12-sources-list-outline.md) | The Sources list as a native outline: Source rows with Evidence graph rows under them | [agreed 2026-11-24](https://claude.ai/artifact/JDm51QdorUvY79EFoci4cm), page "S2-04 Sources list": one-line 34 pt graph rows, a rule under each Source's group, SO-W1 (b) | S16-66 |
 | [S16-D13](archive/S16-D13-conclusion-lists-native.md) | The Persons, Events and Places lists on the native list: a header band across the pane, the list filling it, click selects and double-click opens, loading, empty and failure states | [agreed 2026-11-23](https://claude.ai/artifact/MQtjRymfDNraEx9roK69q4), page "Persons List": plain selection, `borderSubtle` separators, no hover, no ring, no chevron, CL-W1 (a) | S16-67 |

@@ -72,15 +72,7 @@ struct PersonLifeLine: View {
         if !lines.isEmpty {
             HStack(alignment: .firstTextBaseline, spacing: PVSpacing.space6) {
                 ForEach(lines, id: \.abbreviation) { line in
-                    PVDatePlaceLine(
-                        leading: line.abbreviation,
-                        date: line.date,
-                        place: line.place,
-                        accessibilityLabel: line.accessibilityLabel,
-                        missing: .omitted,
-                        dateTone: PVColor.textMuted,
-                        extraCount: line.extraPlaces
-                    )
+                    PVDatePlaceLine(line, dateTone: PVColor.textMuted, showsExtraPlaces: true)
                 }
             }
             .accessibilityHidden(true)

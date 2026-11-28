@@ -16,4 +16,4 @@ Integer text differs between `ReconciledValueDisplay` (grouping never, locale) a
 
 ## Event and summary formatting live in Features
 
-`EventSecondaryDisplay` and `ConclusionSummaryDisplay` are value formatting left in `Features/Conclusions` after S13-36 moved the event and place titles to `Platform/`, and the Timeline reads `EventsList.spokenLine` and `.location`; move them together. Spike 16's S16-42 (landed #876) reshaped `DateRowDisplay` (one date, one span, a dating) and `EventSecondaryDisplay.content`; the two still live in `Features/`. (P-26, Person page audit)
+`ConclusionSummaryDisplay` is value formatting left in `Features/Conclusions` after S13-36 moved the event and place titles to `Platform/` (`EventSecondaryDisplay` moved to `Platform/` in S16-81), and the Timeline reads `EventsList.spokenLine` and `.location`; move them together. Spike 16's S16-42 (landed #876) reshaped `DateRowDisplay` (one date, one span, a dating) and `EventSecondaryDisplay.content`; `ConclusionSummaryDisplay` still lives in `Features/`. (P-26, Person page audit)

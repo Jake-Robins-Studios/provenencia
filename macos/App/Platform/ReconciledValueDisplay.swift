@@ -181,7 +181,7 @@ enum ReconciledValueDisplay {
             let causes = weakCauses(outcome)
             return causes.isEmpty
                 ? L10n.string(L10n.Conclusions.outcomeWeak)
-                : L10n.Conclusions.outcomeWeakBecause(ListFormatter.localizedString(byJoining: causes))
+                : L10n.Conclusions.outcomeWeakBecause(L10n.list(causes))
         case .denied:
             let denier = field?.outcomes.first { $0.observationID == outcome.deniedByObservationID }
             return denier.map { L10n.Conclusions.outcomeDeniedBy($0.sourceTitle) }

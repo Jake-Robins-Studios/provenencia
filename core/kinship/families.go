@@ -56,7 +56,7 @@ func Roles() []Role {
 type Kin map[Role][]Link
 
 // Around returns the distinct ids of person's parents then person's children, in
-// order: the people whose own kin FamilyUnits reads.
+// order: the people whose own kin FamilyUnits and Couples read.
 func (k Kin) Around(person []byte) [][]byte {
 	var ids [][]byte
 	seen := map[string]bool{}
@@ -108,10 +108,8 @@ func KinOf(person []byte, links []Link, terms segmentcompare.Terms, rules Rules)
 type UnitKind int
 
 const (
-	UnitParents   UnitKind = iota + 1 // Partners: a set of person's parents; Children: siblings through each of them
-	UnitPartner                       // Partners: one partner; Children: person's children with them
+	UnitPartner   UnitKind = iota + 1 // Partners: one partner; Children: person's children with them
 	UnitOneParent                     // Children: person's children with no other known parent
-	UnitSiblings                      // Children: siblings with no shown shared parent
 )
 
 // Relative is one person in a unit and person's own link to them; Link is nil
@@ -128,14 +126,13 @@ type Unit struct {
 	Children []Relative
 }
 
-// Empty reports whether the unit names nobody it is about: a parents or partner
-// unit with no partner, a one parent or siblings unit with no child. A kind it
-// does not know is empty.
+// Empty reports whether the unit names nobody it is about: a partner unit with
+// no partner, a one parent unit with no child. A kind it does not know is empty.
 func (u Unit) Empty() bool {
 	switch u.Kind {
-	case UnitParents, UnitPartner:
+	case UnitPartner:
 		return len(u.Partners) == 0
-	case UnitOneParent, UnitSiblings:
+	case UnitOneParent:
 		return len(u.Children) == 0
 	}
 	return true
@@ -170,120 +167,17 @@ func spouseLinks(person []byte, kin Kin) []Link {
 	return out
 }
 
-// FamilyUnits groups person's kin into units: the parent sets with the
-// siblings through them, each partner with the children they share, the
-// children with no other known parent, and the siblings with no shown shared
-// parent, in that order. Every Relative.Link is person's own link to that
+// FamilyUnits groups person's kin into the units of the family they formed: each
+// partner with the children they share, then the children with no other known
+// parent when there are any. Every Relative.Link is person's own link to that
 // relative. kinOf holds the kin of each of person's parents and children, keyed
-// by string(id); a missing entry has none.
-func FamilyUnits(person []byte, kin Kin, kinOf map[string]Kin, rules Rules) []Unit {
-	units, siblings := parentUnits(person, kin, kinOf, rules)
-	partners, oneParent := partnerUnits(person, kin, kinOf)
-	units = append(units, partners...)
-	for _, u := range []Unit{oneParent, siblings} {
-		if !u.Empty() {
-			units = append(units, u)
-		}
+// by string(id); a missing entry has none. The person's origin is SiblingGroups.
+func FamilyUnits(person []byte, kin Kin, kinOf map[string]Kin) []Unit {
+	units, oneParent := partnerUnits(person, kin, kinOf)
+	if !oneParent.Empty() {
+		units = append(units, oneParent)
 	}
 	return units
-}
-
-// parentUnits makes the parent sets and the siblings through them, and returns
-// apart the unit of siblings with no shown shared parent.
-//
-// More parents than rules.MaxPivotEnd read as malformed data: none is paired
-// with another, and a sibling is placed once, with the first parent it shares
-// (in parent order), or in the siblings unit when it shares none. That keeps
-// what is shown linear in the data. With the registry rules Siblings implies no
-// sibling past the bound, so that placement is a defence for a sibling link
-// that carries shared-parent shapes from elsewhere.
-func parentUnits(person []byte, kin Kin, kinOf map[string]Kin, rules Rules) ([]Unit, Unit) {
-	parents := kin[RoleParent]
-	ids := parentIDs(person, kin)
-	// paired: two parents are one set when either files a spouse link to the
-	// other, or the person's links to both carry a birth_parents shape with the
-	// same pivot.
-	paired := func(i, j int) bool {
-		if _, ok := spouseLink(kinOf, ids[i], ids[j]); ok {
-			return true
-		}
-		for _, x := range parents[i].Shapes {
-			if x.Pattern != PatternBirthParents {
-				continue
-			}
-			for _, y := range parents[j].Shapes {
-				if y.Pattern == PatternBirthParents && bytes.Equal(x.Pivot, y.Pivot) {
-					return true
-				}
-			}
-		}
-		return false
-	}
-	var sets [][]int
-	inPair := make([]bool, len(parents))
-	pairing := pairsParents(len(parents), rules)
-	for i := range parents {
-		for j := i + 1; pairing && j < len(parents); j++ {
-			if paired(i, j) {
-				sets = append(sets, []int{i, j})
-				inPair[i], inPair[j] = true, true
-			}
-		}
-		if !inPair[i] {
-			sets = append(sets, []int{i})
-		}
-	}
-	// A lone parent is emitted at its own place, after the pairs at lower i that
-	// name it, so inPair for i is complete when i is reached.
-	units := make([]Unit, len(sets))
-	for k, set := range sets {
-		units[k].Kind = UnitParents
-		for _, i := range set {
-			units[k].Partners = append(units[k].Partners, relativeOf(person, parents[i]))
-		}
-	}
-
-	var unplaced Unit
-	unplaced.Kind = UnitSiblings
-	var extra []Unit
-	var extraAt [][]int
-	for _, l := range kin[RoleSibling] {
-		sib := relativeOf(person, l)
-		shared := sharedParents(l, ids)
-		joined := false
-		if !pairing {
-			// Every set is one parent, at that parent's index.
-			if len(shared) > 0 {
-				units[shared[0]].Children = append(units[shared[0]].Children, sib)
-				joined = true
-			}
-		} else {
-			for k, set := range sets {
-				if len(set) > 0 && subset(set, shared) {
-					units[k].Children = append(units[k].Children, sib)
-					joined = true
-				}
-			}
-		}
-		switch {
-		case joined:
-		case len(shared) == 0:
-			unplaced.Children = append(unplaced.Children, sib)
-		default:
-			at := slices.IndexFunc(extraAt, func(x []int) bool { return slices.Equal(x, shared) })
-			if at < 0 {
-				at = len(extra)
-				extraAt = append(extraAt, shared)
-				u := Unit{Kind: UnitParents}
-				for _, i := range shared {
-					u.Partners = append(u.Partners, relativeOf(person, parents[i]))
-				}
-				extra = append(extra, u)
-			}
-			extra[at].Children = append(extra[at].Children, sib)
-		}
-	}
-	return append(units, extra...), unplaced
 }
 
 // sharedParents is the indexes, in parent order, of the person's parents (their
@@ -323,16 +217,6 @@ func filedSpouseLink(kinOf map[string]Kin, a, c []byte) (Link, bool) {
 // pairsParents reports whether n parents are few enough to be paired: past
 // rules.MaxPivotEnd they read as malformed data and none is paired.
 func pairsParents(n int, rules Rules) bool { return n <= rules.MaxPivotEnd }
-
-// subset reports whether every index of set is in of.
-func subset(set, of []int) bool {
-	for _, i := range set {
-		if !slices.Contains(of, i) {
-			return false
-		}
-	}
-	return true
-}
 
 // partnerUnits makes one unit per partner, and the unit of children with no
 // other known parent.

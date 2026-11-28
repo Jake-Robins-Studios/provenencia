@@ -70,9 +70,7 @@ enum CatalogSearchHitPresentation {
         if !matchContext.isEmpty {
             parts.append(matchContext)
         }
-        let formatter = ListFormatter()
-        formatter.locale = .current
-        return formatter.string(from: parts) ?? parts.joined(separator: ", ")
+        return L10n.list(parts)
     }
 
     /// Title the list would show. Falls back to the indexed title when the hit

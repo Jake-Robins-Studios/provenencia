@@ -26,6 +26,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/graphalign"
 	"github.com/Jake-Robins-Studios/provenencia/core/ingest/mediatypes"
+	"github.com/Jake-Robins-Studios/provenencia/core/kinship"
 	"github.com/Jake-Robins-Studios/provenencia/core/locator"
 	"github.com/Jake-Robins-Studios/provenencia/core/matchregistry"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
@@ -425,10 +426,12 @@ var (
 	// so a plain `Sentence(` row does not satisfy a composer-worded term.
 	wordingCase = regexp.MustCompile(`case \(SeededPropertyKey\.\w+, (Seeded\w+Term)\.(\w+)\): return \.?(\w+)`)
 	sentenceRow = regexp.MustCompile(`namedTermSentence\(\s*\.\w+,\s*(Seeded\w+Term)\.(\w+),`)
-	rawCase     = regexp.MustCompile(`(?m)^\s+case (\w+)\s*$`)
-	unrecogniz  = regexp.MustCompile(`case unrecognized\(String\)`)
-	listCase    = regexp.MustCompile(`case \w+ = "([a-z_.]+)"`)
-	subjectMark = regexp.MustCompile(`case \w+ = "(subject_[a-z_]+)"`)
+	// lifeLineCase reads `case SeededEventTypeTerm.marriage: return marriage` in L10n.LifeLine.copy.
+	lifeLineCase = regexp.MustCompile(`case (SeededEventTypeTerm)\.(\w+): return`)
+	rawCase      = regexp.MustCompile(`(?m)^\s+case (\w+)\s*$`)
+	unrecogniz   = regexp.MustCompile(`case unrecognized\(String\)`)
+	listCase     = regexp.MustCompile(`case \w+ = "([a-z_.]+)"`)
+	subjectMark  = regexp.MustCompile(`case \w+ = "(subject_[a-z_]+)"`)
 )
 
 // citationBuiltinNames is level.name of every built-in placeholder, sorted.
@@ -736,6 +739,28 @@ func TestSwiftVocabularyMatchesGo(t *testing.T) {
 			t.Fatal("termWording(propertyKey:termKey:): no wording cases read")
 		}
 		reportUnnamedTerms(t, composerWordedTermEnums, named, "has no CitationComposerAuthoring.termWording case")
+	})
+	t.Run("every spouse event type has life-line copy", func(t *testing.T) {
+		body := swiftFuncBody(t, swiftL10n, "static func copy(eventTypeKey")
+		named := namedTerms(lifeLineCase, body)
+		if len(named) == 0 {
+			t.Fatal("L10n.LifeLine.copy(eventTypeKey:origin:): no life-line cases read")
+		}
+		constants := swiftEnumBody(t, swiftVocabulary, "SeededEventTypeTerm")
+		for _, eventType := range kinship.SpouseEventTypes() {
+			found := false
+			for _, m := range swiftNamedKey.FindAllStringSubmatch(constants, -1) {
+				if m[2] == string(eventType) {
+					found = true
+					if !named["SeededEventTypeTerm."+m[1]] {
+						t.Errorf("spouse event type %q (Swift SeededEventTypeTerm.%s) has no L10n.LifeLine.copy case", eventType, m[1])
+					}
+				}
+			}
+			if !found {
+				t.Errorf("spouse event type %q has no constant in Swift SeededEventTypeTerm", eventType)
+			}
+		}
 	})
 	t.Run("every composer-worded term has a connection sentence", func(t *testing.T) {
 		b, err := os.ReadFile(swiftConnectionSentenceRegistry)

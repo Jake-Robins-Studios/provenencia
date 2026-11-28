@@ -34,7 +34,7 @@ The dated rows after the death marker never fold: every dated row after the pers
 
 ## The family response sends each sibling two or three times (P-23)
 
-Siblings ship as the parents units' children, the siblings unit, and `origin_siblings`, each with a full `PersonSummary` (`api/proto/engine.proto` 1549–1553, 1680–1692; `core/database/persondetail/family.go` 173–241). The app reads only the parents units' partners and `originSiblings` (`PersonFamilyContent.swift` 224–262). Units are the family tree's shape (S13-12 D-3, [`kinship-view.md`](kinship-view.md)), so the tree may read them later. **Shape:** send `origin_siblings` as indexes into one relatives table, or leave the unit children off the page response until a tree reads them.
+Siblings ship as the sibling groups' children (S16-82; S16-81 dropped the older sibling list and the parents and siblings units), and a parent in several groups ships once for each, each with a full `PersonSummary` (`api/proto/engine.proto` `SiblingGroup`; `core/database/persondetail/family.go`). The app reads the groups (`PersonFamilyContent.swift`). **Shape:** send the groups' relatives as indexes into one relatives table.
 
 ## The Persons list reads a shared life event's places once per person (S16-19 PRF-1)
 

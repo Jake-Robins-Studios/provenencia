@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-81 — Family groups siblings by their parents and shows each couple's marriage
+
+**Landed 2026-11-27** in [#1013](https://github.com/Jake-Robins-Studios/provenencia/pull/1013). The Family section draws the person's siblings in groups by the parents each shares with them, each group its parents then its children indented under one line that stays inside the group, a parent in two groups drawn in each. Each couple the page shows carries a line per marriage ("m. 12 Jun 1841 · Hamburg"), between a group's parents or under a partner's tile, each starting where a tile's text starts, named when a group has more than two parents, spoken after the second parent. A person's b. and d. lines and a marriage line share one `L10n.LifeLine` table of whole phrases drawn by one `PVDatePlaceLine(_ line:)`; the wire lost `origin_siblings` and the parents and siblings units. In the right column a partner's first child sits 18 pt below their last marriage line. Version 0.50.0.
+
 ## S16-82 — The Family read sends sibling groups and each couple's marriages
 
 **Landed 2026-11-27** in [#1009](https://github.com/Jake-Robins-Studios/provenencia/pull/1009). The Family read now sends the person's siblings in groups by the parents they share with the person (the person among them, the person's group first) and each couple's marriage events as event summaries, earliest first, at most 10 a couple, with each group and partner unit naming its couples by index. `kinship.SiblingGroups` and `kinship.Couples` do the grouping, reading marriages through `Pattern.ImpliesSpouse`; `GoStore` maps the new fields. Nothing draws them yet and nothing was removed: S16-81 draws them and deletes the fields they replace.

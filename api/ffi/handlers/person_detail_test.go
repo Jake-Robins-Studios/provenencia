@@ -288,7 +288,7 @@ func TestGetPersonFamily(t *testing.T) {
 		}
 	}
 
-	t.Run("carries the person and the origin siblings", func(t *testing.T) {
+	t.Run("carries the person and the sibling group", func(t *testing.T) {
 		created, err := onboarding.Complete(t.TempDir(), t.TempDir(), "Jake", "Robins")
 		if err != nil {
 			t.Fatal(err)
@@ -314,21 +314,22 @@ func TestGetPersonFamily(t *testing.T) {
 		if got.GetPerson().GetEntity().GetId() != database.UUIDString(person) {
 			t.Fatalf("person %+v", got.GetPerson())
 		}
-		if len(got.OriginSiblings) != 2 {
-			t.Fatalf("%d origin siblings, want 2: %+v", len(got.OriginSiblings), got.OriginSiblings)
+		if len(got.SiblingGroups) != 1 {
+			t.Fatalf("%d sibling groups, want 1: %+v", len(got.SiblingGroups), got.SiblingGroups)
 		}
-		ids := map[string]*engine.OriginSibling{}
-		for _, o := range got.OriginSiblings {
-			ids[o.GetMember().GetPerson().GetEntity().GetId()] = o
-			if len(o.GetParentSets()) != 1 || o.GetParentSets()[0] != 0 {
-				t.Fatalf("parent_sets %v, want [0]", o.GetParentSets())
-			}
+		group := got.SiblingGroups[0]
+		if len(group.Parents) != 2 || len(group.Children) != 2 {
+			t.Fatalf("group %+v, want the father and mother and two children", group)
 		}
-		if o := ids[database.UUIDString(person)]; o == nil || o.GetMember().GetLink() != nil {
-			t.Fatalf("the person's member %+v: want present, with no link", o)
+		ids := map[string]*engine.FamilyMember{}
+		for _, m := range group.Children {
+			ids[m.GetPerson().GetEntity().GetId()] = m
 		}
-		if o := ids[database.UUIDString(sibling)]; o == nil || o.GetMember().GetLink() == nil {
-			t.Fatalf("the sibling's member %+v: want present, with a link", o)
+		if m := ids[database.UUIDString(person)]; m == nil || m.GetLink() != nil {
+			t.Fatalf("the person's member %+v: want present, with no link", m)
+		}
+		if m := ids[database.UUIDString(sibling)]; m == nil || m.GetLink() == nil {
+			t.Fatalf("the sibling's member %+v: want present, with a link", m)
 		}
 		var partnerUnits int
 		for _, u := range got.Units {
