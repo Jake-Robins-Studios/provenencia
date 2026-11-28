@@ -155,3 +155,6 @@ Files: `macos/App/Features/Conclusions/PersonFamilyLayout.swift`, `macos/Provene
 Failing test first: `marriageLinesSitBetweenTheCouple`. In `married`, Karl's minY is the line's maxY + 18, which is 26 + 92 + 6 + 21 + 18 = 163. With `twoMarriages`, the first child is 18 below the second line. A partner with no marriage keeps its children `tileGap` (12) below the partner, unchanged. The line stays 6 pt below the partner.
 Do: add `static let partnerMarriageChildGap: CGFloat = 18`, documented as the space between a partner's last marriage line and their first child, three times `marriageLineInset` so the line reads as the partner's. In the right-column loop, when the group has marriages, the children start at the last line's maxY + that gap. Otherwise keep `top += Self.tileGap`. The left column is unchanged.
 Check: the test passes; scripts/check-pr.sh PASS. The Landed note records U-6 as a user change of 2026-11-28.
+
+### User round 2 — fix
+Head `5ee368caf`. Red first (Karl 151 vs 163). `partnerMarriageChildGap` = 18; the left column is unchanged. Orchestrator gate PASS; diff read: a partner with lines and no children still ends at its last line (one bottom rule). CI green on `5ee368caf`. Implementer 84k.
