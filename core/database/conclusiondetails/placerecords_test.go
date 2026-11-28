@@ -570,20 +570,28 @@ func TestPoolPlaceSupport(t *testing.T) {
 	}
 	t.Run("the sheet's life row carries it, the detail read's does not", func(t *testing.T) {
 		f := newFixture(t)
-		person, birth, swift := f.placedBirth(f.source("Register 1"), "Swift Current", nil, nil, nil)
-		f.placedBirth(f.source("Register 2"), "Swift Current", person, birth, swift)
-		f.placedBirth(f.source("Register 3"), "Swift Current", person, birth, swift)
+		person, _, swift := f.placedBirth(f.source("Register 1"), "Swift Current", nil, nil, nil)
+		// Each Register files its own birth Event onto the one Place, so the sheet pools three links.
+		f.placedBirth(f.source("Register 2"), "Swift Current", person, nil, swift)
+		f.placedBirth(f.source("Register 3"), "Swift Current", person, nil, swift)
 		sheet, err := conclusiondetails.ProvenanceSheet(f.C, conclusiondetails.SheetRequest{PersonID: person, Kind: conclusiondetails.DerivedRowBirthPlace}, f.C.Graph().NoPageInputs())
 		must(t, err)
-		if len(sheet.Owners) == 0 {
-			t.Fatal("no owners")
+		if len(sheet.Owners) < 2 {
+			t.Fatalf("%d owners, want at least two links pooled", len(sheet.Owners))
 		}
+		checked := 0
 		for _, o := range sheet.Owners {
 			for _, v := range o.Field.Values {
-				if v.Displayed() && v.PooledSupport != 3 {
-					t.Fatalf("sheet value %+v, want pooled support 3", v)
+				if v.Displayed() {
+					checked++
+					if v.PooledSupport != 3 {
+						t.Fatalf("sheet value %+v, want pooled support 3", v)
+					}
 				}
 			}
+		}
+		if checked == 0 {
+			t.Fatal("no displayed value checked")
 		}
 		for _, o := range f.placeRows(person) {
 			for _, v := range o.Field.Values {
