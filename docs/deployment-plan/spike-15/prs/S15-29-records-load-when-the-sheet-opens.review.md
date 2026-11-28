@@ -1,17 +1,19 @@
 # Review — S15-29 The provenance sheet loads its records when it opens
 
-**Verdict:** (round 2 pending)
-**Rounds:** 1 so far. **Reviewers:** maintainability (opus), executability (sonnet)
+**Verdict:** Fits with changes — Ready with changes (every finding Fixed; the user answered the one To user)
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
 
-None. The two product calls were asked before review and answered (user, 2026-11-28): a sheet whose read answers no owners gets no state of its own (D-9); a failed reload behind shown records stays silent; S15-D18 is descoped, since only the load area's two strings change.
+- M-12 (round 2): the pooled Place heading's distinct-Source count, kept in Swift, bent the working rule "Records load when the sheet opens". Writer recommended bending the rule. **User (2026-11-28): "do it on this pr"** — Go counts it in this PR (D-8, STEP-1, T-15). That Go half was written after round 2, so no reviewer has read it; the implementer's STEP-1 tests are its first check.
+
+Earlier, before review, the two product calls were asked before review and answered (user, 2026-11-28): a sheet whose read answers no owners gets no state of its own (D-9); a failed reload behind shown records stays silent; S15-D18 is descoped, since only the load area's two strings change.
 
 ## Writer's own calls
 
 - D-1 / D-2: the page's entity id reaches the presenter through the sections context; the row model carries no owner id.
 - D-3: the sheet's key encodes its request as tag-first ids (`fields` / `life`), one kind, one arm.
-- D-8: the pooled Place heading's Source count stays in Swift, over the sheet's own records (logged as an idea line).
+- D-8: Go pools a life row's place owners by `Place.Entity.ID` and the value's `Scalar`, and sends `pooled_support` on each displayed value of the sheet read only.
 - D-16: `provenance-loading.md` is retired in place (Status line) instead of deleted now; spike close deletes it.
 - Version bump minor (0.52.0): the RPC removed was called only by this build.
 
@@ -77,11 +79,41 @@ None. The two product calls were asked before review and answered (user, 2026-11
 ### X-9 · minor · Smaller gaps
 **Answer:** Fixed — D-8 says an empty `sourceID` counts once, as before; D-7 says `Record.init` and the picture viewer keep `in:`; STEP-2 names which tests pass counts; D-13 and a Stop condition cover `TestRenderScale`'s SELECT counts; STEP-8 gives `citation-formats.md` line 70's full sentence.
 
+## Round 2
+
+Both reviewers checked round 1's answers: M-1 – M-9, M-11 and X-1, X-3, X-6 – X-9 held; M-10, X-2, X-4 and X-5 were reopened below.
+
+### M-12 · blocker · D-8 keeps the distinct-Source rule in Swift against the working rule (reopens M-10)
+**Answer:** To user → answered: Go counts it in this PR. D-8 rewritten; STEP-1 (new) adds `PooledSupport`, `poolPlaceSupport` and `pooled_support = 6`; STEP-4 makes the heading read it; T-15; Out row and idea line removed; Rules this plan bends stays None.
+
+### M-13 · blocker · `init(field:recordsField:…)` leaves open which field labels the value headings
+**Answer:** Fixed — §6 macOS: headings and records both come from `recordsField`; `field` feeds only the summary. STEP-6 item 1 says so.
+
+### X-10 · blocker · AC-4.4's `rg` cannot be copied from the table (reopens X-2)
+**Answer:** Fixed — AC-4.4 points at the DoD's sweep, which carries the command with plain `|`.
+
+### X-11 · blocker · Off macOS, the order and the stop rule disagree (reopens X-5)
+**Answer:** Fixed — §7 opens: the PR needs the Mac; without `xcodebuild` or `protoc` stop before STEP-1; never hand-edit generated code. The Stop condition matches.
+
+### X-12 · major · STEP-5 still large; `ConclusionAnchorRestoreTests` caller missing (reopens X-4)
+**Answer:** Fixed — STEP-6 lists `ConclusionAnchorRestoreTests.swift` (passes `entityId: "e1"`); §7 says the tree builds after each sub-part and the tests pass at the step's end. The step stays one: its parts swap together.
+
+### X-13 · major · `mapDerivedRow`'s inline owner mapping
+**Answer:** Fixed — STEP-2: `mapDerivedRow` calls `mapOwnerField`.
+
+### X-14 · minor · `reconcilerOutcomeProto` / `reconcilerOutcomesProto`
+**Answer:** Fixed — no new helper; `GetProvenanceRecords` loops over `reconcilerOutcomeProto` (D-11); T-11 renamed.
+
+### X-15 · minor · Smaller choices
+**Answer:** Fixed — STEP-2 says "Add the doc comment"; STEP-3 says what counts a fixture passes; STEP-9's `macos-client-patterns.md` text covers the life rows sentence; D-3 drops empty ids; T-14 names `citationformat.Parse` and `Render` with `render_test.go`'s resolver; STEP-8 deletes the messages' comment blocks. Current state rows corrected (no `outcomes` doc today; `mergedName` is a static var; `ConclusionAnchorRestoreTests` added).
+
 ## Cost
 
-Plan: 6,264 words at round 1, 7,048 after round 1's fixes (check-plan-docs info line).
+Plan: 6,264 words at round 1, 7,048 at round 2, 7,617 at the verdict (check-plan-docs info line).
 
 | Round | Reviewer | Model | Tokens |
 | --- | --- | --- | --- |
 | 1 | maintainability | opus | 203k |
 | 1 | executability | sonnet | 191k |
+| 2 | maintainability | opus | 178k |
+| 2 | executability | sonnet | 175k |
