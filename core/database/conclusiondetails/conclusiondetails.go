@@ -23,7 +23,6 @@
 package conclusiondetails
 
 import (
-	"bytes"
 	"fmt"
 	"slices"
 	"sort"
@@ -688,15 +687,123 @@ type DerivedRow struct {
 	Owners []OwnerField
 }
 
+// Pair names one field of one handle: an owner and a Property.
+type Pair struct{ OwnerID, PropertyID []byte }
+
+// fieldsByPair composes the fields the pairs name, the one step that turns
+// (owner, Property) pairs into fields for every read of named fields. It
+// returns the fields keyed by string(owner)+string(property) (ids are 16 bytes,
+// so no key collides) and the owners' nodes keyed by owner. A pair whose ids
+// are not 16 bytes is skipped, an unknown or merged owner has no node entry,
+// and a pair with no composed field has no field entry.
+func fieldsByPair(c *database.Catalog, pairs []Pair, in *graphcache.PageInputs) (map[string]Field, map[string]*graphcache.Node, error) {
+	g := c.Graph()
+	var ids [][]byte
+	only := map[string]map[string]bool{}
+	for _, p := range pairs {
+		if len(p.OwnerID) != 16 || len(p.PropertyID) != 16 {
+			continue
+		}
+		ids = append(ids, p.OwnerID)
+		if only[string(p.OwnerID)] == nil {
+			only[string(p.OwnerID)] = map[string]bool{}
+		}
+		only[string(p.OwnerID)][string(p.PropertyID)] = true
+	}
+	ids = database.UniqueBlobIDs(ids)
+	nodeOf := map[string]*graphcache.Node{}
+	if len(ids) == 0 {
+		return map[string]Field{}, nodeOf, nil
+	}
+	if err := g.Nodes(ids); err != nil {
+		return nil, nil, err
+	}
+	nodes := make([]*graphcache.Node, 0, len(ids))
+	for _, id := range ids {
+		n, err := in.Node(id)
+		if err != nil {
+			return nil, nil, err
+		}
+		nodes = append(nodes, n)
+		if n != nil {
+			nodeOf[string(id)] = n
+		}
+	}
+	v, err := g.Vocabulary()
+	if err != nil {
+		return nil, nil, err
+	}
+	composed, _, err := fieldsOf(g, v, nodes, nil, only, in)
+	if err != nil {
+		return nil, nil, err
+	}
+	fields := map[string]Field{}
+	for owner, fs := range composed {
+		for _, f := range fs {
+			fields[owner+string(f.PropertyID)] = f
+		}
+	}
+	return fields, nodeOf, nil
+}
+
+// FieldRecords composes the fields the pairs name, each with its records, one
+// OwnerField per distinct pair in first-request order (two pairs on one owner
+// are two OwnerFields with the same entity). An owner that is unknown or merged
+// and a pair with no records are left out. A nil catalog or graph, or no pairs,
+// is nil and reads nothing. It records the owners, and the graphs and Sources of
+// their records, on in.
+func FieldRecords(c *database.Catalog, pairs []Pair, in *graphcache.PageInputs) ([]OwnerField, error) {
+	if c == nil || c.Graph() == nil || len(pairs) == 0 {
+		return nil, nil
+	}
+	fields, nodes, err := fieldsByPair(c, pairs, in)
+	if err != nil {
+		return nil, err
+	}
+	var out []OwnerField
+	seen := map[string]bool{}
+	for _, p := range pairs {
+		if len(p.OwnerID) != 16 || len(p.PropertyID) != 16 {
+			continue
+		}
+		key := string(p.OwnerID) + string(p.PropertyID)
+		f, ok := fields[key]
+		if !ok || seen[key] {
+			continue
+		}
+		seen[key] = true
+		out = append(out, OwnerField{Entity: canonicalentities.FromNode(nodes[string(p.OwnerID)]), Field: f})
+	}
+	return out, nil
+}
+
 // PersonDerivedRows returns the records behind a Person's birth date, birth
 // place, death date and death place rows, in that order. The owners come from
 // the Person's summary row. A row with no owners is not returned. An owner
 // merged or gone, or without the field the row reads, is dropped. It records
-// on in each owner it reads and the place a place owner holds.
+// on in the Person, each owner it reads and the place a place owner holds.
 func PersonDerivedRows(c *database.Catalog, personID []byte, in *graphcache.PageInputs) ([]DerivedRow, error) {
+	return personDerivedRows(c, personID, []DerivedRowKind{DerivedRowBirthDate, DerivedRowBirthPlace, DerivedRowDeathDate, DerivedRowDeathPlace}, in)
+}
+
+// PersonDerivedRow returns the records behind one of a Person's life rows; false
+// when the Person has no such row (or is not a Person). It records what
+// PersonDerivedRows does for that row.
+func PersonDerivedRow(c *database.Catalog, personID []byte, kind DerivedRowKind, in *graphcache.PageInputs) (DerivedRow, bool, error) {
+	rows, err := personDerivedRows(c, personID, []DerivedRowKind{kind}, in)
+	if err != nil || len(rows) == 0 {
+		return DerivedRow{}, false, err
+	}
+	return rows[0], true, nil
+}
+
+// personDerivedRows reads the life rows of the kinds given, in the order of
+// the four kinds.
+func personDerivedRows(c *database.Catalog, personID []byte, kinds []DerivedRowKind, in *graphcache.PageInputs) ([]DerivedRow, error) {
 	if c == nil || c.Graph() == nil || len(personID) != 16 {
 		return nil, nil
 	}
+	in.AddHandles(personID)
 	people, err := conclusionsummaries.PersonsByIDs(c, [][]byte{personID})
 	if err != nil {
 		return nil, err
@@ -705,7 +812,7 @@ func PersonDerivedRows(c *database.Catalog, personID []byte, in *graphcache.Page
 		return nil, nil
 	}
 	birth, death := people[0].Birth.Owners, people[0].Death.Owners
-	lists := []struct {
+	all := []struct {
 		kind   DerivedRowKind
 		owners []conclusionsummaries.FieldOwner
 		events bool // the owners are Events, so each carries its summary
@@ -713,10 +820,17 @@ func PersonDerivedRows(c *database.Catalog, personID []byte, in *graphcache.Page
 		{DerivedRowBirthDate, birth.Dates, true}, {DerivedRowBirthPlace, birth.Places, false},
 		{DerivedRowDeathDate, death.Dates, true}, {DerivedRowDeathPlace, death.Places, false},
 	}
-	var all, eventIDs [][]byte
+	lists := all[:0:0]
+	for _, l := range all {
+		if slices.Contains(kinds, l.kind) {
+			lists = append(lists, l)
+		}
+	}
+	var pairs []Pair
+	var eventIDs [][]byte
 	for _, l := range lists {
 		for _, o := range l.owners {
-			all = append(all, o.ID)
+			pairs = append(pairs, Pair{OwnerID: o.ID, PropertyID: o.PropertyID})
 			if o.Place != nil {
 				in.AddHandles(o.Place.Entity.ID)
 			}
@@ -725,38 +839,10 @@ func PersonDerivedRows(c *database.Catalog, personID []byte, in *graphcache.Page
 			}
 		}
 	}
-	ids := database.UniqueBlobIDs(all)
-	if len(ids) == 0 {
+	if len(pairs) == 0 {
 		return nil, nil
 	}
-	g := c.Graph()
-	if err := g.Nodes(ids); err != nil {
-		return nil, err
-	}
-	nodes := make([]*graphcache.Node, 0, len(ids))
-	nodeOf := map[string]*graphcache.Node{}
-	for _, id := range ids {
-		n, err := in.Node(id)
-		if err != nil {
-			return nil, err
-		}
-		nodes = append(nodes, n)
-		nodeOf[string(id)] = n
-	}
-	v, err := g.Vocabulary()
-	if err != nil {
-		return nil, err
-	}
-	only := map[string]map[string]bool{}
-	for _, l := range lists {
-		for _, o := range l.owners {
-			if only[string(o.ID)] == nil {
-				only[string(o.ID)] = map[string]bool{}
-			}
-			only[string(o.ID)][string(o.PropertyID)] = true
-		}
-	}
-	fields, _, err := fieldsOf(g, v, nodes, nil, only, in)
+	fields, nodeOf, err := fieldsByPair(c, pairs, in)
 	if err != nil {
 		return nil, err
 	}
@@ -772,19 +858,16 @@ func PersonDerivedRows(c *database.Catalog, personID []byte, in *graphcache.Page
 	for _, l := range lists {
 		row := DerivedRow{Kind: l.kind}
 		for _, o := range l.owners {
-			node := nodeOf[string(o.ID)]
-			for _, f := range fields[string(o.ID)] {
-				if !bytes.Equal(f.PropertyID, o.PropertyID) {
-					continue
-				}
-				owner := OwnerField{Entity: canonicalentities.FromNode(node), Place: copyPlace(o.Place), Field: f}
-				ownerVerdict(o, &owner.Field)
-				if l.events {
-					owner.Event = eventOf[string(o.ID)]
-				}
-				row.Owners = append(row.Owners, owner)
-				break
+			f, ok := fields[string(o.ID)+string(o.PropertyID)]
+			if !ok {
+				continue
 			}
+			owner := OwnerField{Entity: canonicalentities.FromNode(nodeOf[string(o.ID)]), Place: copyPlace(o.Place), Field: f}
+			ownerVerdict(o, &owner.Field)
+			if l.events {
+				owner.Event = eventOf[string(o.ID)]
+			}
+			row.Owners = append(row.Owners, owner)
 		}
 		if len(row.Owners) > 0 {
 			out = append(out, row)

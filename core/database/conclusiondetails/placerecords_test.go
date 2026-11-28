@@ -3,6 +3,7 @@ package conclusiondetails_test
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/autoreconcile"
@@ -376,5 +377,51 @@ func TestPlaceLinkWriteLeavesOnePlaceRowsAlone(t *testing.T) {
 		if bytes.Equal(id, person) || bytes.Equal(id, birth) {
 			t.Fatalf("reprojected %x, a row the write did not move (all %x)", id, got)
 		}
+	}
+}
+
+// TestPersonDerivedRow: one life row reads as the row PersonDerivedRows gives,
+// the vote's verdict on its owners with their counts, and records the Person.
+func TestPersonDerivedRow(t *testing.T) {
+	f := newFixture(t)
+	person, shown, other := func() ([]byte, []byte, []byte) {
+		p, birth, swift := f.placedBirth(f.source("Register 1"), "Swift Current", nil, nil, nil)
+		f.placedBirth(f.source("Register 2"), "Swift Current", p, birth, swift)
+		f.placedBirth(f.source("Register 3"), "Swift Current", p, birth, swift)
+		_, _, england := f.placedBirth(f.source("Gazette"), "England", p, birth, nil)
+		return p, swift, england
+	}()
+	all, err := conclusiondetails.PersonDerivedRows(f.C, person, f.C.Graph().NoPageInputs())
+	must(t, err)
+	var want conclusiondetails.DerivedRow
+	for _, r := range all {
+		if r.Kind == conclusiondetails.DerivedRowBirthPlace {
+			want = r
+		}
+	}
+	in := f.C.Graph().PageInputs()
+	got, ok, err := conclusiondetails.PersonDerivedRow(f.C, person, conclusiondetails.DerivedRowBirthPlace, in)
+	must(t, err)
+	if !ok || !reflect.DeepEqual(got, want) || len(got.Owners) != 2 {
+		t.Fatalf("row %+v (%v), want %+v", got, ok, want)
+	}
+	for _, o := range got.Owners {
+		counts := conclusiondetails.FieldRecordCounts{Records: 1, Sources: 1}
+		if bytes.Equal(o.Place.Entity.ID, shown) {
+			counts = conclusiondetails.FieldRecordCounts{Records: 3, Sources: 3}
+		} else if !bytes.Equal(o.Place.Entity.ID, other) {
+			t.Fatalf("owner holds place %x", o.Place.Entity.ID)
+		}
+		if o.Field.RecordCounts != counts {
+			t.Errorf("owner of %x: counts %+v, want %+v", o.Place.Entity.ID, o.Field.RecordCounts, counts)
+		}
+	}
+	handles, _, _ := in.Lists()
+	holdsIDs(t, "handles", handles, false, person)
+	if _, ok, err := conclusiondetails.PersonDerivedRow(f.C, person, conclusiondetails.DerivedRowDeathPlace, f.C.Graph().NoPageInputs()); err != nil || ok {
+		t.Fatalf("a death place row: %v %v", ok, err)
+	}
+	if _, ok, err := conclusiondetails.PersonDerivedRow(f.C, shown, conclusiondetails.DerivedRowBirthPlace, f.C.Graph().NoPageInputs()); err != nil || ok {
+		t.Fatalf("a non-Person: %v %v", ok, err)
 	}
 }
