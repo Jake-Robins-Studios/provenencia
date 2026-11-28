@@ -9,16 +9,29 @@ struct PVHelpIcon: View {
     private let icon: PVSymbol
     private let label: LocalizedStringResource
     private let help: LocalizedStringResource
+    private let cardEdge: HorizontalEdge
 
     @State private var card = PVContextMenuState()
     @FocusState private var isFocused: Bool
 
-    /// The icon's side (`PVIcon` size), which the card hangs below.
+    /// The icon's side (`PVIcon` size).
     private static let iconSize: CGFloat = 15
+    /// Padding around the glyph so the focus ring circles it.
+    private static let ringPadding = PVSpacing.space2
+    /// The padded icon's side, which the card hangs below.
+    private static let iconFrame = iconSize + 2 * ringPadding
     /// The board's tooltip width.
     private static let cardWidth: CGFloat = 260
 
-    init(icon: PVSymbol, label: LocalizedStringResource, help: LocalizedStringResource) {
+    /// `cardEdge` is the icon edge the card's matching edge lines up with:
+    /// `.leading` opens the card rightward, `.trailing` leftward.
+    init(
+        icon: PVSymbol,
+        label: LocalizedStringResource,
+        help: LocalizedStringResource,
+        cardEdge: HorizontalEdge = .leading
+    ) {
+        self.cardEdge = cardEdge
         self.icon = icon
         self.label = label
         self.help = help
@@ -27,9 +40,11 @@ struct PVHelpIcon: View {
     var body: some View {
         PVIcon(icon, size: Self.iconSize)
             .foregroundStyle(PVColor.textMuted)
+            .padding(Self.ringPadding)
             .contentShape(Circle())
             .pvFocusRing(isFocused, cornerRadius: PVRadius.pill)
             .focusable()
+            .focusEffectDisabled()
             .focused($isFocused)
             .onTapGesture { toggle() }
             .onKeyPress(.space) {
@@ -39,7 +54,7 @@ struct PVHelpIcon: View {
             .onChange(of: isFocused) { _, focused in
                 if !focused { card.dismiss() }
             }
-            .help(L10n.string(help))
+            .help(card.isPresented ? "" : L10n.string(help))
             .pvContextMenu($card) {
                 PVContextMenuPanel(width: Self.cardWidth) {
                     Text(help)
@@ -49,7 +64,6 @@ struct PVHelpIcon: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .pvSheetInnerEdit(card.isPresented)
             .accessibilityElement()
             .accessibilityLabel(L10n.string(label))
             .accessibilityHint(L10n.string(help))
@@ -62,7 +76,8 @@ struct PVHelpIcon: View {
         if card.isPresented {
             card.dismiss()
         } else {
-            card.present(at: CGPoint(x: 0, y: Self.iconSize + PVSpacing.space2))
+            let x = cardEdge == .leading ? 0 : Self.iconFrame - Self.cardWidth
+            card.present(at: CGPoint(x: x, y: Self.iconFrame + PVSpacing.space1))
         }
     }
 }

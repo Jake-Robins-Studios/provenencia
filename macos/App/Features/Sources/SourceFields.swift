@@ -29,7 +29,8 @@ struct SourceFields: View {
                     PVHelpIcon(
                         icon: .info,
                         label: L10n.Sources.privateHelpLabel,
-                        help: L10n.Sources.privateSwitchHelp
+                        help: L10n.Sources.privateSwitchHelp,
+                        cardEdge: .trailing
                     )
                     .accessibilityIdentifier("\(accessibilityIdentifierPrefix).privateHelp")
                 }
