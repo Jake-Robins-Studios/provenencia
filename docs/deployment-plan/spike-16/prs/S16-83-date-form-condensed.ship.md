@@ -1,7 +1,7 @@
 # Ship log — S16-83 The date form is smaller and keyboard-first
 
 **Plan:** [`S16-83-date-form-condensed.md`](S16-83-date-form-condensed.md) · **Branch:** `s16-83-date-form-condensed` · **PR:** #1027
-**State:** ready
+**State:** fixing — manual check
 
 ## Round 0 — implement
 Head `f49196396`. Gate PASS (orchestrator run, xcode-test included). Report deviations: manual check (§10) and the view-level keyboard evidence (D-3, D-4, D-6, D-13) not run — needs the user's Mac; version 0.53.1 (main already 0.53.0); `monthAndDayCanBeSetWithoutAYear` lost its `applyStartCascade()` call (method deleted); `Field.neighbours` is `@MainActor`; `DateValueDraft.part(_:start:)` is static; old names (`PVInputTabClaim`, `sourceDateReadsAs`, `.date.readsAs`, `hideTime`) left in landed/historical plans and map rows, not rewritten.
@@ -70,6 +70,25 @@ Reviewers: CON (CON-1 major), UX (UX-1 blocker). Scope `f49196396...2ccc5fe70`.
 | UX-1 | UX | blocker | (round 1) | Resolved | `PVButton.swift:240` `.pvSheetTakesReturn(focus.isActive())`; OR-combined preference read by `PVFormDialog.swift:155`; only `focus:` caller is the date form's link |
 
 No new findings from either reviewer. No Fix plan 2.
+
+## Manual check — user feedback (2026-11-28)
+
+The user, running §10 step 1 (screenshot of a Single date, 25 October 1937): the Day input's right edge should line up with the Ms input's right edge; the gaps between Year, Month and Day are uneven; the Month select is not aligned with its caption. Asked to check the design again.
+
+Checked against the agreed board (template "DateValue editor", `DateValueEditor.dc.html` lines 112–124). The board draws both rows as one grid width: Year 64 / Month 124 / Day 48 with 8 pt column gaps (252 pt), and Hour / Min / Sec / Ms at 57 pt each with 8 pt gaps (252 pt), so Day's right edge is Ms's right edge; the Month select fills its 124 pt column (`fillsWidth: true`); captions sit 2 pt over their controls; Time zone is `minmax(0, 160px)`. The code drifted:
+- `dateRow` / `timeRow` use `PVSpacing.space3` (6 pt), not 8 pt.
+- Time fields are 48 / 48 / 48 / 52, not 57 each.
+- `monthSelect` passes `fillsWidth: false` inside `.frame(width: 124)`, so the select draws at its own width, centered in the slot: the uneven gaps and the caption misalignment.
+- `zoneField` is `minWidth: 96, maxWidth: .infinity`, not capped at 160.
+- Caption-to-control spacing is `space2` (4 pt), not 2 pt.
+
+### Fix plan M
+
+**F-7 — The date form's two rows share the board's grid** (user, manual check)
+Files: `macos/App/Features/Dates/DateValueEditorForm.swift`, `macos/ProvenenciaTests/DateValueEditorFormTests.swift`. Skill: `add-ui-component`, `add-swift-test`.
+Failing test first: `DateValueEditorFormTests/dayAndMsShareARightEdge` — with the widths and gap as named constants, `year + month + day + 2 × gap == 4 × timePart + 3 × gap` (252).
+Do: name the widths once (e.g. `private enum Layout { static let gap: CGFloat = PVSpacing.space4; year 64; month 124; day 48; timePart 57; zoneMax 160 }`, internal enough for the test) and use them in `dateRow`, `timeRow`, `partField` and `monthSelect`; both rows `HStack(alignment: .bottom, spacing: Layout.gap)`. `monthSelect`: `fillsWidth: true` so the select fills its 124 pt column, flush with its caption. `zoneField`: `.frame(minWidth: 0, maxWidth: Layout.zoneMax, alignment: .leading)` (board `minmax(0,160px)`); in the composer's range (about 440 pt box, 86 pt side column) Time zone keeps about 94 pt. Caption-to-control spacing `PVSpacing.space1` (2 pt) in `partField`, `zoneField` and `monthSelect`. Keep `sideLabelWidth` 86 (board 76 + 10 gap). Update the plan's Landed note: "the rows follow the board's grid (S16-D20): fields 57 pt, gaps 8 pt, Month fills its column, Time zone capped at 160 pt; the round-0 widths drifted from the board (user's manual check)".
+Check: the test passes; scripts/check-pr.sh PASS; the user re-runs §10 step 1 and step 4 (composer range: Time zone readable).
 
 ## Result
 Gate PASS (head `2ccc5fe70`, origin/main unchanged at `6a6854119`) · CI see PR · open: none · follow-ups: MNT-3 → S16-84 on the Spike 16 map (user) · to user: §10 manual check before merge (the only proof of UX-1 in the running app, AC-1.1/1.2/1.6, AC-2.1/2.8/2.9, D-3/D-4/D-6/D-13; watch steps 1 and 4 for the `ViewThatFits` Kind/qualifier focus).
