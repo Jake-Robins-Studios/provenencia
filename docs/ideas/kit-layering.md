@@ -30,6 +30,10 @@ The combo box's row padding and `PVSearchHitRow`'s own both apply, so a hit row 
 
 `PVComboBox.resetActiveRow` lands before the remote options exist, so the first hit is not highlighted; the omnibar lands on arrival through `CatalogSearchModel.scheduleSearch(onResults:)`. (S16-52 review M-9)
 
+## The other toggles do not dim under `.disabled(_:)`
+
+`PVFormDialog` disables its form body while it runs, and `PVCheckbox` dims then (S16-73). `PVSwitch`, `PVRadio` and `PVCopyPartTick` still dim only on their own parameter, so inside a running form they refuse clicks and keep full strength; their disabled opacity is 0.5 where `PVHoverEffect`'s is 0.45. Read `\.isEnabled` in each, and pick one disabled opacity. (S16-73)
+
 ## The table writes its own movement keys
 
 `PVTable.handleKey` writes out ⌥↑/↓, Home/End and Page Up/Down itself, with a literal `10` for `PVListKeyboard.pageStep`, and `PVTableSelection.moveIndex` is the no-edge branch of `PVFloatingMenuSelection.moveIndex`. Move the movement cases onto one `PVListKeyboard.moveIndex` call and delete `PVTableSelection.moveIndex` and its tests in `PVTableTests.swift`; no behaviour change. The table keeps its selection, type-to-select and Escape. (S16-65 review M-3)

@@ -152,7 +152,7 @@ CREATE TABLE sources (
 
 `date_unknown` and `date_supplied` are the date's two facts ([`core/valuemark`](../core/valuemark/valuemark.go)). **Unknown** means the record gives no date: the Source holds no `date_value_id` (the check refuses both), a citation prints "n.d.", and an unknown Source sorts with the undated ones. **Supplied** means the date is not on the record: it needs a date, and a citation prints it in square brackets. Never both. `sources.SetDate` writes the date and the pair in one statement, and a write with no mark clears the stored mark. A supplied Source whose date row is gone reads undated with no mark. Copy Source carries the mark with the Published date tick; the audit records `date_unknown` and `date_supplied` on the `source` change.
 
-`is_public` is the researcher's not-public switch (`0` = not public), shown on the Source page as a switch labeled "Private" that is off by default; it defaults to public, so every Source that existed before it is public. It is stored and read back and nothing else in the engine acts on it: no filter, hide or cascade.
+`is_public` is the researcher's not-public switch (`0` = not public), shown on the Source page as a switch labeled "Private" that is off by default; it defaults to public, so every Source that existed before it is public. It is stored and read back and nothing else in the engine acts on it: no filter, hide or cascade. Add Source sets the date and the switch in its one `create_source` write, through `sourcecopy.CreateFromDraft` (the audit's `source` create holds `is_public` 0 only when the Source starts private); a request with neither creates a public, undated Source.
 
 `description` is catalog text about the Source itself. Researcher commentary that may accumulate over time belongs in `source_notes` rather than a single inline notes field.
 
@@ -190,7 +190,7 @@ Copy Source makes a new Source from an existing one so a researcher starts from 
 
 **Graphs.** Like every new Source, the copy gets its own Default graph, and each copied Artifact is linked to it, as a new Artifact is by default. Nothing of the original's graphs carries over.
 
-The copy is one audited write, action `copy_source`, built by `core/database/sourcecopy` from the owner packages' own writes. It is the engine under the Copy form; it is not a way to link two Sources. How to relate Sources that belong together is a separate decision, in [the two tools](deployment-plan/archive/spike-12/source-structure.md#the-two-tools).
+The copy is one audited write, action `copy_source`, built by `core/database/sourcecopy` from the owner packages' own writes. It is the composer under the Add and Copy forms; it is not a way to link two Sources. How to relate Sources that belong together is a separate decision, in [the two tools](deployment-plan/archive/spike-12/source-structure.md#the-two-tools).
 
 ## 4.3 Copy a Source type
 

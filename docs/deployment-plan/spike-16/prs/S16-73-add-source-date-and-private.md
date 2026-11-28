@@ -3,7 +3,7 @@
 **Status:** Planned
 **Spike / slice:** Spike 16 · Slice 8a — The Add and Copy Source sheets
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S16-D15](../design/S16-D15-add-source-fields.md), board agreed 2026-11-28
+**Brief:** [S16-D15](../design/archive/S16-D15-add-source-fields.md), board agreed 2026-11-28
 **Board:** [Claude Design — Source Detail](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK), page *Dialogs*, section "Add Source" (frames `add-today` 0, `add-open` 1a, `add-open-wide` 1b, `add-filled` 2, `add-range` 3, `add-field-error` 4, `add-incomplete` 5, `add-created` 6, `add-discard` 7, `add-more` 8); read it with the Artifact tool's `read`, `path` "project/Source.dc.html", near `S16-D15`. §6 macOS describes each frame in words, so the implementer does not need to open it. Where the plan and the board differ, the plan wins (user, 2026-11-28): Private is a checkbox, not the board's switch (D-12); frame 5's phrase-only date is valid in the app (the board's stand-in check is simpler than `DateValueDraft.isValid`), so the AS-5 example is a phrase with a time zone
 **Depends on:** S16-D15 (agreed 2026-11-28)
 **Blocks:** S16-74
