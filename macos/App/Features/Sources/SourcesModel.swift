@@ -467,7 +467,9 @@ final class SourcesModel {
                 userID: userID,
                 sourceTypeID: draft.sourceTypeID,
                 title: draft.trimmedTitle,
-                description: draft.description.trimmingCharacters(in: .whitespacesAndNewlines)
+                description: draft.description.trimmingCharacters(in: .whitespacesAndNewlines),
+                date: nil,
+                isPrivate: false
             )
             session.apply(effects, .createdSource(created))
             isAdding = false

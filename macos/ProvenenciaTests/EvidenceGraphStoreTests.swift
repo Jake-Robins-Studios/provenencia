@@ -153,7 +153,8 @@ struct EvidenceGraphStoreTests {
     @Test func createSourceMakesADefaultGraph() async throws {
         let store = FakeStore()
         let (created, _) = try await store.createSource(
-            projectDir: projectDir, userID: userID, sourceTypeID: "t", title: "Deed", description: ""
+            projectDir: projectDir, userID: userID, sourceTypeID: "t", title: "Deed", description: "",
+            date: nil, isPrivate: false
         )
         let graphs = try await store.listEvidenceGraphs(projectDir: projectDir, sourceID: nil)
         #expect(graphs.map(\.name) == ["Default"])
