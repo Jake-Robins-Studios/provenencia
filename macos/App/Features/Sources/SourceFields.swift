@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// The Source fields shared by the Add and Copy Source sheets, in order: Title, Type, Published
+/// The Source fields of the Add Source sheet (Copy takes them in S16-74), in order: Title, Type, Published
 /// date, Description, Private. The sheet owns the draft, the two field errors and the save; this
 /// view draws them. Identifiers are `<prefix>.title`, `.type`, `.date`, `.date.readsAs`,
 /// `.description` and `.private`. The sheet disables it while it saves (`PVFormDialog` does).
 struct SourceFields: View {
-    /// The width of every dialog that edits these fields.
+    /// The width of the Add Source sheet and the Source date dialog.
     static let dialogWidth: CGFloat = 560
 
     @Binding var draft: SourcesModel.Draft

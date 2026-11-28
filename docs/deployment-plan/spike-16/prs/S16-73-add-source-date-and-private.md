@@ -1,7 +1,7 @@
 # S16-73 — Add Source takes the Published date and Private
 
 **Status:** Landed in [#1019](https://github.com/Jake-Robins-Studios/provenencia/pull/1019) (2026-11-28)
-**Landed:** As planned, except: the version bump is to 0.52.0 (main was already 0.51.1) and all four `MARKETING_VERSION` lines moved; T-2 is a subtest of `TestSourcePublic`; STEP-8 names the brief at `design/archive/`; the date form's range-order message now carries the `end.fieldError` identifier too; `rg "\.disabled\(model\.isSaving\)"` also lists `PromoteView` (a page, not a dialog).
+**Landed:** As planned, except: D-15 disables every `pvFormDialog` body while it runs, so a failed save no longer keeps first responder in the field that was focused (as the Copy sheets already behaved); the version bump is to 0.52.0 (main was already 0.51.1) and all four `MARKETING_VERSION` lines moved; T-2 is a subtest of `TestSourcePublic`; STEP-8 names the brief at `design/archive/`; the date form's range-order message now carries the `end.fieldError` identifier too; `rg "\.disabled\(model\.isSaving\)"` also lists `PromoteView` (a page, not a dialog).
 **Spike / slice:** Spike 16 · Slice 8a — The Add and Copy Source sheets
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S16-D15](../design/archive/S16-D15-add-source-fields.md), board agreed 2026-11-28
@@ -9,7 +9,7 @@
 **Depends on:** S16-D15 (agreed 2026-11-28)
 **Blocks:** S16-74
 **Branch:** `s16-73-add-source-date-and-private`
-**Version bump:** minor, 0.50.1 → 0.51.0 at the base — Add Source gains two fields, and `CreateSourceRequest` gains two fields that old clients can leave out ([`docs/versioning.md`](../../../versioning.md))
+**Version bump:** minor, 0.51.1 → 0.52.0 — Add Source gains two fields, and `CreateSourceRequest` gains two fields that old clients can leave out ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-ffi-handler`](../../../../.agents/skills/add-ffi-handler/SKILL.md), [`add-date-value`](../../../../.agents/skills/add-date-value/SKILL.md), [`add-audit-scope`](../../../../.agents/skills/add-audit-scope/SKILL.md), [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md), [`add-localized-string`](../../../../.agents/skills/add-localized-string/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md)
 **Rules that bind:** `.cursor/rules/go-tests.mdc`, `.cursor/rules/swift-tests.mdc`
 **Context:** map scope entry [S16-73](../deployment-plan.md#s16-73--add-source-takes-the-published-date-and-private); working rules "(Batch 8) The Add and Copy sheets share one set of Source fields" and "(Batch 8) A new Source and its parts are one write through one composer"; bar 44; [`docs/source-layer-data-model.md`](../../../source-layer-data-model.md) (the `sources` table, § 4.2 Copy Source)
