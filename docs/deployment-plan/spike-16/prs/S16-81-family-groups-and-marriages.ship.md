@@ -146,3 +146,12 @@ Plan: 9,085 words (check-plan-docs info line).
 | U | quick reviewer | opus | 45k |
 | U | implementer (U-4, U-5) | default | 88k |
 | | **Total** | | **1,315k** |
+
+## User round 2 — partner marriage spacing (2026-11-28)
+The user, from dogfooding: in the right column a partner's marriage line sits 6 pt below the partner and 6 pt above the first child, so it reads as belonging to the child. They asked for more space so it clearly belongs to the partner alone.
+
+**U-6 — Space after a partner's marriages**
+Files: `macos/App/Features/Conclusions/PersonFamilyLayout.swift`, `macos/ProvenenciaTests/PersonFamilyLayoutTests.swift`.
+Failing test first: `marriageLinesSitBetweenTheCouple`. In `married`, Karl's minY is the line's maxY + 18, which is 26 + 92 + 6 + 21 + 18 = 163. With `twoMarriages`, the first child is 18 below the second line. A partner with no marriage keeps its children `tileGap` (12) below the partner, unchanged. The line stays 6 pt below the partner.
+Do: add `static let partnerMarriageChildGap: CGFloat = 18`, documented as the space between a partner's last marriage line and their first child, three times `marriageLineInset` so the line reads as the partner's. In the right-column loop, when the group has marriages, the children start at the last line's maxY + that gap. Otherwise keep `top += Self.tileGap`. The left column is unchanged.
+Check: the test passes; scripts/check-pr.sh PASS. The Landed note records U-6 as a user change of 2026-11-28.
