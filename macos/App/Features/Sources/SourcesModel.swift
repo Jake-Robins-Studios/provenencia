@@ -80,6 +80,8 @@ final class SourcesModel {
     var titleError: String?
     /// FFI / store failure on Create Source (not field validation).
     var createError: String?
+    /// Changes each time a failed create asks the Add Source body to scroll back up to `createError`.
+    private(set) var createErrorScrollRequest = 0
     private(set) var isSaving = false
 
     var pageProjectDir: String { session.projectKey.projectDir }
@@ -493,6 +495,7 @@ final class SourcesModel {
             return created
         } catch {
             createError = L10n.Errors.message(for: error)
+            createErrorScrollRequest += 1
             return nil
         }
     }

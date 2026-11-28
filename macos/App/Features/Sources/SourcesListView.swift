@@ -358,6 +358,9 @@ private struct SourcesAddDialog: ViewModifier {
     @Bindable var model: SourcesModel
     let typesHandle: QueryHandle<[CatalogSourceType]>
 
+    /// The `.id` the body scrolls to when a failed create puts its error at the top.
+    private static let topID = "sources.add.top"
+
     func body(content: Content) -> some View {
         content
             .pvFormDialog(
@@ -373,6 +376,9 @@ private struct SourcesAddDialog: ViewModifier {
                 isDirty: model.addSheetIsDirty,
                 confirmDisabled: !model.canSubmitAdd,
                 accessibilityIdentifierPrefix: "sources.add",
+                scrollsBody: true,
+                scrollTarget: AnyHashable(Self.topID),
+                scrollRequest: AnyHashable(model.createErrorScrollRequest),
                 onConfirm: {
                     Task {
                         if let created = await model.create() {
@@ -409,7 +415,7 @@ private struct SourcesAddDialog: ViewModifier {
     private var form: some View {
         VStack(alignment: .leading, spacing: PVSpacing.space6) {
             if let createError = model.createError {
-                PVCallout(tone: .danger, message: createError)
+                PVCallout(tone: .danger, message: createError, announces: true)
                     .accessibilityIdentifier("sources.add.error")
             } else if let loadError = model.loadError, model.types.isEmpty {
                 PVCallout(
@@ -426,5 +432,6 @@ private struct SourcesAddDialog: ViewModifier {
                 accessibilityIdentifierPrefix: "sources.add"
             )
         }
+        .id(Self.topID)
     }
 }
