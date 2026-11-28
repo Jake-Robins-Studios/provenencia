@@ -441,6 +441,14 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     private(set) var renderCitationsCalls: [[String]] = []
     /// When set, `renderCitations` throws.
     var renderCitationsError: Error?
+    /// What `getProvenanceRecords` answers, by request; an unlisted request answers no owners, no citations and empty inputs.
+    var provenanceRecordsReplies: [CatalogProvenanceRequest: CatalogProvenanceSheetRead] = [:]
+    /// Awaited before a `getProvenanceRecords` reply.
+    let provenanceRecordsHold = FakeHold()
+    /// The request of every `getProvenanceRecords` call, in order.
+    private(set) var provenanceRecordsCalls: [CatalogProvenanceRequest] = []
+    /// When set, `getProvenanceRecords` throws.
+    var provenanceRecordsError: Error?
     /// What `renderCitationPreview` answers, by form; a form with no entry renders nothing.
     var previewReplies: [CitationForm: CatalogCitationPreview] = [:]
     /// The arguments of every `renderCitationPreview` call, in order.
@@ -1493,6 +1501,18 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         }
     }
 
+    func getProvenanceRecords(projectDir: String, request: CatalogProvenanceRequest) async throws
+        -> CatalogProvenanceSheetRead
+    {
+        await provenanceRecordsHold.wait()
+        return try withState {
+            markCatalogSessionHeld(projectDir)
+            provenanceRecordsCalls.append(request)
+            if let provenanceRecordsError { throw provenanceRecordsError }
+            return provenanceRecordsReplies[request] ?? CatalogProvenanceSheetRead()
+        }
+    }
+
     func renderCitationPreview(
         projectDir _: String,
         form: CitationForm,
@@ -2323,7 +2343,8 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
             outcomes: outcomes.sorted {
                 (Self.lastIfNone($0.groupRank), $0.valueRank ?? .max, $0.observationID)
                     < (Self.lastIfNone($1.groupRank), $1.valueRank ?? .max, $1.observationID)
-            }
+            },
+            recordCounts: CatalogFieldRecordCounts(records: outcomes.count, sources: ranked.first?.support ?? 0)
         )
     }
 

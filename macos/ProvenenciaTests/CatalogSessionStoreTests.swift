@@ -32,6 +32,31 @@ struct CatalogSessionStoreTests {
         #expect(store.renderCitationsCalls.count == 1)
     }
 
+    @Test func provenanceRecordsAnswersTheAskedRequest() async throws {
+        let store = FakeStore()
+        let asked = CatalogProvenanceRequest.fields([CatalogProvenancePair(ownerID: "P", propertyID: "p-name")])
+        store.provenanceRecordsReplies = [
+            asked: CatalogProvenanceSheetRead(
+                owners: [CatalogOwnerField(entity: CatalogCanonicalEntity(id: "P", ref: "PER-1", subjectTypeID: "t", label: "James"), field: sampleField())],
+                citations: ["a": renderedCitation("a", full: "")]
+            )
+        ]
+        let reply = try await store.getProvenanceRecords(projectDir: projectDir, request: asked)
+        #expect(reply.owners.map(\.entity.id) == ["P"])
+        #expect(reply.citations.keys.sorted() == ["a"])
+        #expect(store.provenanceRecordsCalls == [asked])
+        let unlisted = try await store.getProvenanceRecords(projectDir: projectDir, request: .derived(personID: "P", kind: .birthDate))
+        #expect(unlisted.owners.isEmpty && unlisted.citations.isEmpty && unlisted.inputs == .init())
+        #expect(store.provenanceRecordsCalls.count == 2)
+    }
+
+    private func sampleField() -> CatalogConclusionField {
+        CatalogConclusionField(
+            propertyID: "p-name", propertyKey: "name", label: "Name", valueType: .name,
+            state: .single, values: [], outcomes: []
+        )
+    }
+
     @Test func closeCatalogSessionClearsHeldAndRecordsDir() async throws {
         let store = FakeStore()
         _ = try await store.workspaceNavCounts(projectDir: projectDir)
