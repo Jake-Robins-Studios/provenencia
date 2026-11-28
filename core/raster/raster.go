@@ -213,6 +213,13 @@ func decode(src []byte, formats []string, reduceJPEG bool) (image.Image, error) 
 	}
 	img, _, err := image.Decode(bytes.NewReader(src))
 	if err != nil {
+		// A progressive JPEG cut off in a later pass, which image/jpeg
+		// refuses, may still decode at 1/8 scale from the passes it has.
+		if reduceJPEG && format == "jpeg" {
+			if reduced, dcErr := decodeJPEGDC(src, MaxDecodePixels); dcErr == nil {
+				return reduced, nil
+			}
+		}
 		return nil, fmt.Errorf("%w: %w", ErrUndecodable, err)
 	}
 	return img, nil

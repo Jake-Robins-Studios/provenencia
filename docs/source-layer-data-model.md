@@ -553,7 +553,7 @@ Artifact A
 
 A historical Artifact view can therefore resolve the correct derivative from the historical File version.
 
-Derivative Files use the same content-addressed `files` store, but unlike primary Files they are reproducible and disposable. They may be regenerated or purged without changing research history. A thumbnail is decoded by `core/raster` within 128 MiB and 64 MP, outside the catalog session (planned and committed inside it, staged between); a JPEG over 64 MP is decoded at 1/8 scale from its DC coefficients; other formats over the budget, and bytes that cannot be decoded, get no thumbnail.
+Derivative Files use the same content-addressed `files` store, but unlike primary Files they are reproducible and disposable. They may be regenerated or purged without changing research history. A thumbnail is decoded by `core/raster` within 128 MiB and 64 MP, outside the catalog session (planned and committed inside it, staged between); a JPEG over 64 MP, or a progressive JPEG cut off inside a pass after its DC passes, is decoded at 1/8 scale from its DC coefficients; other formats over the budget, and bytes that cannot be decoded, get no thumbnail.
 
 Derivative generation and cache eviction do not need to create research audit events.
 
