@@ -71,8 +71,60 @@ Check: `rg -n "PVSwitch" .agents/skills/add-ui-component/SKILL.md` shows it only
 ## Round 2 — fix
 Head `2f617839e`. Gate PASS (orchestrator re-run). F-5 done; orchestrator read the two lines: the skill's `isEnabled` list is `PVCheckbox` and `PVCopyPartTick`, with `PVSwitch` beside `PVRadio` and `PVArtifactChecklist`; `kit-layering.md:35` lists `PVSwitch`, `PVRadio`, `PVArtifactChecklist`. MNT-2 **Resolved**. `origin/main` has not moved since `9d0a20145`.
 
+## Round 3 — user-directed copy fix
+After the report the user asked what "This date isn't complete" means, since a partial publication date (a year, a month and year) is valid, and said: "Yeah, let's make sure our error messages are accurate and helpful to the user." The line fires for drafts that cannot be saved, not for partial dates, so "complete" is wrong. This round is the user's call, outside the two-round cap; UX-2 (Follow-up) and UX-5 (nit) come into it because the user asked for accurate, helpful messages.
+
+Reachable cases where `DateValueDraft.isValid` is false and no field shows an error (read from `DateValueDraft.swift` and `DateValueEditorForm.swift`):
+- Between two bounds with no earliest bound, no latest bound, or neither (phrase only on a range).
+- Single date with a phrase and a time zone but no date or time (the time zone sits in the time block).
+- A time block hidden by Hide time still holds its values (UX-2); a loaded date with a time zone but no hour opens with its time block hidden (`showStartTime: input.startHour != nil`).
+- Not reachable from the form (qualifier on a range, end values on a single date, millisecond alone): a fallback line.
+
+### Fix plan 3
+
+**F-6 — Say why a date can't be saved** (from the user, UX-5)
+Files: `macos/App/Platform/DateValueDraft.swift`, `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`, `macos/App/Features/Sources/SourcesModel.swift`, `macos/ProvenenciaTests/DateValueDraftTests.swift`, `macos/ProvenenciaTests/SourcesModelTests.swift`. Skill: `add-localized-string`.
+Failing test first: `DateValueDraftTests.unsavableErrors` — one `#expect` per case below, on the message.
+Do: rename `incompleteError` to `unsavableError` (doc: the line for a draft that is typed into but cannot be saved, when no field shows an error). Same guard (not blank, not valid, no shown error). Return the first case that applies:
+1. Range, start side and end side both without a date or time: "Between two bounds needs an earliest and a latest bound. Add both, or choose Single date."
+2. Range, start side without a date or time: "Add the earliest bound, or choose Single date."
+3. Range, end side without a date or time: "Add the latest bound, or choose Single date."
+4. Single date, no date or time, a time zone set: "A time zone needs a date or a time. Add one, or clear the time zone."
+5. Otherwise: "This date can't be saved as typed. Check its fields, or clear them."
+"Without a date or time" is the existing `Side.hasCivil` false. Delete `L10n.Sources.dateIncompleteError` and its catalog entry; add one `L10n.Sources` key per message with a comment saying when it shows. Update `SourcesModel`'s caller and the two existing tests that name the old key.
+Check: the test passes; `rg -n "incompleteError|dateIncompleteError" macos` prints nothing.
+
+**F-7 — No hidden time values** (from UX-2)
+Files: `macos/App/Platform/DateValueDraft.swift`, `macos/App/Features/Dates/DateValueEditorForm.swift`, `macos/ProvenenciaTests/DateValueDraftTests.swift`.
+Failing test first: `DateValueDraftTests.hidingTimeClearsIt` — set start hour, minute and time zone with `showStartTime` true, call the new `hideTime(start: true)`: the four time fields and the zone are nil/empty and `showStartTime` is false; the end side likewise. Plus `DateValueDraftTests.loadShowsTimeWithZoneOnly` — a draft built from an input with a start time zone and no hour has `showStartTime` true.
+Do: add `mutating func hideTime(start:)` beside `setKind`, which already clears the end side when switching to Single date: it clears that side's hour, minute, second, millisecond and time zone and sets its show flag false. The form's time toggle calls it when hiding (showing stays `toggle()` plus focus). In the init from input, a side's show flag is true when any of its hour, minute, second, millisecond or time zone is set.
+Check: both tests pass; scripts/check-pr.sh PASS.
+
+### Round 3 — fix and review
+Head `365f4a28a`. Gate PASS (orchestrator re-run). F-6, F-7 done. Reviewer: UX (fresh), scope `a299eafb3...365f4a28a`.
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| UX-1 (r3) | UX | major | "Hide time" now deletes the time but still says it hides | Fix now → F-8 | verified: `hideTime(start:)` clears the fields; `dateHideTime` label and comment unchanged; the Source date dialog and observation dates edit saved times |
+| UX-2 (r3) | UX | major | "Add the earliest bound, or choose Single date" erases the only bound typed | Fix now → F-8 | verified: `setKind("point")` clears every `end*` field, so following the advice leaves a blank draft and Create enabled |
+| UX-3 (r3) | UX | minor | A Single date with only a millisecond gets the catch-all line | Fix now → F-8 | traced: `hasCivil` leaves out the millisecond; the Millisecond field is in the time block, now never hidden with a value |
+
+Nits (logged): `UX-4 (r3) · SourcesModel.swift:58 · doc still says "incomplete date"` (rides along in F-8).
+
+**F-8 — The date messages and Hide time say what happens** (from UX-1, UX-2, UX-3, UX-4 of round 3)
+Files: `macos/App/Platform/DateValueDraft.swift`, `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`, `macos/App/Features/Sources/SourcesModel.swift`, `macos/ProvenenciaTests/DateValueDraftTests.swift`. Skill: `add-localized-string`.
+Failing test first: extend `DateValueDraftTests.unsavableErrors` with the millisecond-only, millisecond-and-zone and zone-only cases; add `DateValueDraftTests.latestOnlyMessageKeepsTheBound` — a range with only `endYear` set shows `dateUnsavableRangeStart`, and its text does not contain "Single date".
+Do:
+- `dateHideTime`: value "Remove time", comment "Link that clears the optional time fields on one side". Update its catalog entry.
+- `dateUnsavableRangeStart`: "Add the earliest bound." (choosing Single date clears the latest bound, the only one typed). `dateUnsavableRangeEnd` and `dateUnsavableRangeBoth` keep their text.
+- Single date with no date or time, in place of the zone case: zone and millisecond both set → new key `dateUnsavableZoneAndMillisecond` "A time zone and a millisecond need a date or a time. Add one, or clear them."; zone only → `dateUnsavableZone` as now; millisecond only → new key `dateUnsavableMillisecond` "A millisecond needs a date or a time. Add one, or clear the millisecond."
+- `SourcesModel.swift:58` doc: "for a date that can't be saved".
+Check: tests pass; `rg -n '"Hide time"' macos/App` prints nothing; scripts/check-pr.sh PASS.
+
+Head `24fee849c`. Gate PASS (orchestrator re-run). F-8 done; orchestrator read `unsavableError` and the seven strings: each case and its text match F-8. UX-1, UX-2, UX-3 (round 3) **Resolved**.
+
 ## Result
-Gate PASS · CI see PR · open: none · follow-ups: UX-2 (incomplete-date line can point at a hidden time block), CON-2/UX-3 focus restore after a failed form-dialog save · to user: —
+Gate PASS · CI green at `a299eafb3`, re-run on push · open: none · follow-ups: CON-2/UX-3 (round 1) focus restore after a failed form-dialog save · UX-2 (round 1) fixed in round 3 · to user: —
 
 ## Cost
 Plan: 6,277 words (check-plan-docs info line).
@@ -89,4 +141,7 @@ Plan: 6,277 words (check-plan-docs info line).
 | 2 | MNT | opus | 47k |
 | 2 | UX | opus | 34k |
 | 2 | implementer fix | sonnet | 72k |
-| | **Total** | | **817k** |
+| 3 | implementer fix | sonnet | 87k |
+| 3 | UX | opus | 62k |
+| 3 | implementer fix | sonnet | 77k |
+| | **Total** | | **1,043k** |
