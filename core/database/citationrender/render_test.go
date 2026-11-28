@@ -626,6 +626,26 @@ func TestRenderLimits(t *testing.T) {
 	})
 }
 
+// TestRenderBudgetSignal: render refuses an over-budget batch with its own
+// signal, not citations.ErrInvalid, so renderAll leaves out only that case.
+func TestRenderBudgetSignal(t *testing.T) {
+	w := newWorld(t)
+	ids := seedScale(t, w, 1)
+	tx, err := w.db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	_, _, err = render(tx, ids[:1], w.c.Graph().PageInputs(), 1)
+	if !errors.Is(err, errOverBudget) || errors.Is(err, citations.ErrInvalid) {
+		t.Fatalf("got %v, want errOverBudget alone", err)
+	}
+	got, spent, err := render(tx, ids[:1], w.c.Graph().PageInputs(), MaxBatchBytes)
+	if err != nil || len(got) != 1 || spent != size(got[0].Full)+size(got[0].Short) {
+		t.Fatalf("got %d, spent %d, %v", len(got), spent, err)
+	}
+}
+
 // TestRenderAll: any number of Citations render, a batch at a time, within one
 // byte budget for the whole call.
 func TestRenderAll(t *testing.T) {
@@ -641,7 +661,8 @@ func TestRenderAll(t *testing.T) {
 		return f(tx)
 	}
 	one, err := inTx(func(tx *sql.Tx) ([]RenderedCitation, error) {
-		return render(tx, ids[:1], w.c.Graph().PageInputs(), MaxBatchBytes)
+		got, _, err := render(tx, ids[:1], w.c.Graph().PageInputs(), MaxBatchBytes)
+		return got, err
 	})
 	if err != nil || len(one) != 1 {
 		t.Fatalf("one Citation: %v %v", one, err)

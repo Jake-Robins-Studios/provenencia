@@ -26,6 +26,9 @@ const (
 	MaxBatchBytes = 8 << 20
 )
 
+// errOverBudget is render's refusal of a batch whose text passes its limit.
+var errOverBudget = errors.New("citationrender: batch is over its byte budget")
+
 // RenderedCitation is one Citation rendered. A Full with no runs means the
 // Citation's type has no full format (or it did not parse, or a row it reads is
 // missing): the caller shows its own line. Short is empty the same way.
@@ -62,7 +65,11 @@ func Render(c *database.Catalog, citationIDs [][]byte, in *graphcache.PageInputs
 		return nil, err
 	}
 	defer func() { _ = tx.Rollback() }()
-	return render(tx, citationIDs, in, MaxBatchBytes)
+	out, _, err := render(tx, citationIDs, in, MaxBatchBytes)
+	if errors.Is(err, errOverBudget) {
+		return nil, citations.ErrInvalid
+	}
+	return out, err
 }
 
 // RenderAll renders the Citations with the given ids, any number of them, in
@@ -70,9 +77,9 @@ func Render(c *database.Catalog, citationIDs [][]byte, in *graphcache.PageInputs
 // repeated id once, an id with no Citation left out. All the batches share one
 // MaxBatchBytes of rendered text; a batch that would pass what is left is left
 // out, so the caller's records fall back to their own line. It records in in
-// the Evidence graphs and Sources of the Citations it rendered; in must not be
-// nil. An id that is not 16 bytes is citations.ErrInvalid. No ids returns nil
-// and reads nothing.
+// the Evidence graphs and Sources of every Citation it found, a left-out
+// batch's too; in must not be nil. An id that is not 16 bytes is
+// citations.ErrInvalid. No ids returns nil and reads nothing.
 func RenderAll(c *database.Catalog, citationIDs [][]byte, in *graphcache.PageInputs) ([]RenderedCitation, error) {
 	for _, id := range citationIDs {
 		if len(id) != 16 {
@@ -96,21 +103,20 @@ func RenderAll(c *database.Catalog, citationIDs [][]byte, in *graphcache.PageInp
 
 // renderAll renders the ids a batch at a time, dropping a repeated id (the first
 // stays). limit is the bytes of text for the whole call: a batch that render
-// refuses as over what is left is left out and spends nothing.
+// refuses as over what is left is left out and spends nothing; any other
+// refusal is returned.
 func renderAll(tx *sql.Tx, citationIDs [][]byte, in *graphcache.PageInputs, batch, limit int) ([]RenderedCitation, error) {
 	ids := database.UniqueBlobIDs(citationIDs)
 	var out []RenderedCitation
 	for start := 0; start < len(ids); start += batch {
-		got, err := render(tx, ids[start:min(start+batch, len(ids))], in, limit)
-		if errors.Is(err, citations.ErrInvalid) {
+		got, spent, err := render(tx, ids[start:min(start+batch, len(ids))], in, limit)
+		if errors.Is(err, errOverBudget) {
 			continue
 		}
 		if err != nil {
 			return nil, err
 		}
-		for _, r := range got {
-			limit -= size(r.Full) + size(r.Short)
-		}
+		limit -= spent
 		out = append(out, got...)
 	}
 	return out, nil
@@ -119,11 +125,13 @@ func renderAll(tx *sql.Tx, citationIDs [][]byte, in *graphcache.PageInputs, batc
 // templates are a type's parsed full and short formats; either may be nil.
 type templates struct{ full, short *citationformat.Template }
 
-// render renders one batch, citations.ErrInvalid when its text passes limit bytes.
-func render(tx *sql.Tx, citationIDs [][]byte, in *graphcache.PageInputs, limit int) ([]RenderedCitation, error) {
+// render renders one batch and the bytes of text it spent. It records in in the
+// Evidence graphs and Sources of the Citations it found even when it refuses;
+// errOverBudget is its refusal when the text passes limit bytes.
+func render(tx *sql.Tx, citationIDs [][]byte, in *graphcache.PageInputs, limit int) ([]RenderedCitation, int, error) {
 	subs, err := loadCitations(tx, citationIDs)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	for _, s := range subs {
 		in.AddEvidenceGraphs(s.cited.GraphID)
@@ -140,7 +148,7 @@ func render(tx *sql.Tx, citationIDs [][]byte, in *graphcache.PageInputs, limit i
 	}
 	stored, err := sourcetypes.StoredFormatsTx(tx, typeIDs)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	byType := make(map[string]templates, len(stored))
 	var all []*citationformat.Template
@@ -151,7 +159,7 @@ func render(tx *sql.Tx, citationIDs [][]byte, in *graphcache.PageInputs, limit i
 		all = append(all, t.full, t.short)
 	}
 	if err := fillValues(tx, subs, all); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	out := make([]RenderedCitation, 0, len(subs))
@@ -168,11 +176,11 @@ func render(tx *sql.Tx, citationIDs [][]byte, in *graphcache.PageInputs, limit i
 		}
 		total += size(r.Full) + size(r.Short)
 		if total > limit {
-			return nil, citations.ErrInvalid
+			return nil, 0, errOverBudget
 		}
 		out = append(out, r)
 	}
-	return out, nil
+	return out, total, nil
 }
 
 // size is the bytes of text in r.
