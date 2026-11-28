@@ -137,11 +137,9 @@ struct DateValueEditorForm: View {
                     accessibilityIdentifier: "\(accessibilityIdentifierPrefix).\(start ? "start" : "end").day"
                 )
             }
-            if let fieldErr = draft.cascadeFieldError(start: start) {
-                PVErrorText(fieldErr)
+            if let error = draft.shownError(start: start) {
+                PVErrorText(error)
                     .accessibilityIdentifier(start ? "\(accessibilityIdentifierPrefix).start.fieldError" : "\(accessibilityIdentifierPrefix).end.fieldError")
-            } else if !start, let err = draft.endError {
-                PVErrorText(err)
             }
             if start ? draft.showStartTime : draft.showEndTime {
                 timeBlock(start: start)

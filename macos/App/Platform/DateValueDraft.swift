@@ -177,6 +177,23 @@ struct DateValueDraft: Equatable, Sendable {
         return nil
     }
 
+    /// The message the date form shows for this side: an out-of-range field first, else, on the end
+    /// side, the range-order message. The one place that says when the form shows an error.
+    func shownError(start: Bool) -> String? {
+        if let message = cascadeFieldError(start: start) { return message }
+        return start ? nil : endError
+    }
+
+    /// The line for a date that is typed into but not usable, when the form shows no error of its
+    /// own: not blank, not valid, and neither side showing an error.
+    var incompleteError: String? {
+        guard !isBlank, !isValid, shownError(start: true) == nil, shownError(start: false) == nil else { return nil }
+        return L10n.string(L10n.Sources.dateIncompleteError)
+    }
+
+    /// What a save sends: nil while the form is blank, else the draft as input.
+    var value: CatalogDateValueInput? { isBlank ? nil : toInput() }
+
     var isValid: Bool {
         let q = qualifier.trimmingCharacters(in: .whitespacesAndNewlines)
         let p = phrase.trimmingCharacters(in: .whitespacesAndNewlines)

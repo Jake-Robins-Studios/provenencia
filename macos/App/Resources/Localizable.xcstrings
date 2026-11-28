@@ -7704,6 +7704,30 @@
         }
       }
     },
+    "sources.add.formPublishedDate": {
+      "comment": "Add Source form label: published date",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Published date"
+          }
+        }
+      }
+    },
+    "sources.add.formPublishedDateHint": {
+      "comment": "Hint under the optional published date on Add Source",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Optional — leave blank for an undated Source"
+          }
+        }
+      }
+    },
     "sources.add.formTitle": {
       "comment": "Add Source form label: title",
       "extractionState": "manual",
@@ -8742,6 +8766,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hour must be between 0 and 23."
+          }
+        }
+      }
+    },
+    "sources.page.dateIncompleteError": {
+      "comment": "Line under the date form when the date is typed into but not usable",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This date isn't complete. Finish it or clear its fields."
           }
         }
       }

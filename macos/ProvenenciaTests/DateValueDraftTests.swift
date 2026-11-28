@@ -116,4 +116,45 @@ struct DateValueDraftTests {
         #expect(d.isFieldInvalid(.hour, start: true))
         #expect(!d.isValid)
     }
+
+    @Test func shownAndIncompleteErrors() {
+        var month13 = DateValueDraft.empty()
+        month13.startYear = 1880
+        month13.startMonth = 13
+        #expect(month13.shownError(start: true) != nil)
+        #expect(month13.incompleteError == nil)
+
+        var backwards = DateValueDraft.empty()
+        backwards.setKind("range")
+        backwards.startYear = 1880
+        backwards.endYear = 1879
+        #expect(backwards.shownError(start: false) != nil)
+        #expect(backwards.incompleteError == nil)
+
+        var phraseAndZone = DateValueDraft.empty()
+        phraseAndZone.phrase = "Spring 1880"
+        phraseAndZone.startTZ = "America/Chicago"
+        #expect(phraseAndZone.shownError(start: true) == nil)
+        #expect(phraseAndZone.shownError(start: false) == nil)
+        #expect(phraseAndZone.incompleteError == L10n.string(L10n.Sources.dateIncompleteError))
+
+        var endOnly = DateValueDraft.empty()
+        endOnly.setKind("range")
+        endOnly.endYear = 1880
+        #expect(endOnly.shownError(start: true) == nil)
+        #expect(endOnly.shownError(start: false) == nil)
+        #expect(endOnly.incompleteError == L10n.string(L10n.Sources.dateIncompleteError))
+
+        var blank = DateValueDraft.empty()
+        #expect(blank.shownError(start: true) == nil)
+        #expect(blank.shownError(start: false) == nil)
+        #expect(blank.incompleteError == nil)
+        #expect(blank.value == nil)
+        blank.showAdvanced = true
+        #expect(blank.value == nil)
+
+        var year = DateValueDraft.empty()
+        year.startYear = 1880
+        #expect(year.value?.startYear == 1880)
+    }
 }

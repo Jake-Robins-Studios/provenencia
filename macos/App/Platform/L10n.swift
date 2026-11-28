@@ -5797,6 +5797,18 @@ enum L10n {
             comment: "Hint under the optional description field on Add Source"
         )
 
+        static let formPublishedDate = LocalizedStringResource(
+            "sources.add.formPublishedDate",
+            defaultValue: "Published date",
+            comment: "Add Source form label: published date"
+        )
+
+        static let formPublishedDateHint = LocalizedStringResource(
+            "sources.add.formPublishedDateHint",
+            defaultValue: "Optional — leave blank for an undated Source",
+            comment: "Hint under the optional published date on Add Source"
+        )
+
         static let createAction = LocalizedStringResource(
             "sources.add.create",
             defaultValue: "Create source",
@@ -6602,6 +6614,12 @@ enum L10n {
             "sources.page.dateRangeOrderError",
             defaultValue: "The latest bound falls before the earliest bound. The date has to sit inside the window.",
             comment: "Inline error when range end precedes start"
+        )
+
+        static let dateIncompleteError = LocalizedStringResource(
+            "sources.page.dateIncompleteError",
+            defaultValue: "This date isn't complete. Finish it or clear its fields.",
+            comment: "Line under the date form when the date is typed into but not usable"
         )
 
         static let dateYearOutOfRange = LocalizedStringResource(
