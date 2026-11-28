@@ -40,6 +40,7 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 - [`one-bridge-cardinality.md`](one-bridge-cardinality.md) — one declaration of "one per bridge" that matching and reconciliation both read, once matching knows place containment (from S16-80)
 - [`place-gazetteer-service.md`](place-gazetteer-service.md)
 - [`place-types-and-households.md`](place-types-and-households.md) — a `place_type` Property on places; residences at a Place typed household read as people who lived together
+- [`handle-labels.md`](handle-labels.md) — edit a Person's or Place's working label on its Conclusion page; prompt for one on Promote when a handle would be titled by its ref
 
 ### Conclusion pages and provenance
 
