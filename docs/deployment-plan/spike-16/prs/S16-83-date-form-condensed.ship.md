@@ -1,7 +1,7 @@
 # Ship log — S16-83 The date form is smaller and keyboard-first
 
 **Plan:** [`S16-83-date-form-condensed.md`](S16-83-date-form-condensed.md) · **Branch:** `s16-83-date-form-condensed` · **PR:** #1027
-**State:** fixing — manual check 3
+**State:** fixing — manual check 3b
 
 ## Round 0 — implement
 Head `f49196396`. Gate PASS (orchestrator run, xcode-test included). Report deviations: manual check (§10) and the view-level keyboard evidence (D-3, D-4, D-6, D-13) not run — needs the user's Mac; version 0.53.1 (main already 0.53.0); `monthAndDayCanBeSetWithoutAYear` lost its `applyStartCascade()` call (method deleted); `Field.neighbours` is `@MainActor`; `DateValueDraft.part(_:start:)` is static; old names (`PVInputTabClaim`, `sourceDateReadsAs`, `.date.readsAs`, `hideTime`) left in landed/historical plans and map rows, not rewritten.
@@ -124,6 +124,23 @@ Failing test first: `DateValueEditorFormTests/kindAndQualifierFitOneRow` — `La
 Do: add `Layout.kind` 220, `Layout.qualifier` 240, `Layout.kindGap` = `PVSpacing.space5` (12). In `kindRow`'s horizontal branch, `HStack(spacing: Layout.kindGap)` with `kindControl.frame(width: Layout.kind)` and `qualifierControl.frame(width: Layout.qualifier)`. Keep the `ViewThatFits` stacked fallback (the composer's ~440 pt value box is narrower than 472 and stacks, per DF-2 "when the form's width allows"); in the stacked branch keep the controls at the same fixed widths, leading-aligned, not stretched. On a range the Kind control alone keeps 220 pt. Keep the existing focus handling and the `ViewThatFits` duplication exactly as is (D-6). Extend the plan's Landed note's F-7 sentence with: "and Kind and the qualifier sit on one row at 220 and 240 pt".
 Check: the test passes; scripts/check-pr.sh PASS; the user opens the Source date dialog (one row) and the composer (stacked, not stretched).
 
+## Manual check 3 — fix (stopped)
+F-9 stopped on its own stop condition, nothing committed: measured natural widths Kind 223 pt (> 220), qualifier 228 pt (≤ 240). The user then built the uncommitted fixed widths and showed both hosts: in the Source date dialog (480 pt content) the fixed 220 / 240 pt truncate "Between two b…" and "As st…"; in the composer's value box (about 452 pt for the form: 480 − 2 × 14 pt `inlineValue` padding) the row does not fit and stacks. Orchestrator discarded the uncommitted F-9 work.
+
+**User's call (2026-11-28):** the Kind labels become **"Single"** and **"Bounded"** (was "Single date" / "Between two bounds"), so the row fits at natural width in both hosts; no fixed widths. Supersedes F-9.
+
+### Fix plan M3b
+
+**F-10 — "Single" / "Bounded", and both controls at their natural width on one row** (user, manual check 3; replaces F-9)
+Files: `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`, `macos/App/Features/Dates/DateValueEditorForm.swift`, a new `macos/ProvenenciaTests/DateValueEditorFormLayoutTests.swift` (its own file: adding SwiftUI/AppKit imports to `DateValueEditorFormTests.swift` slows an existing `#expect` past the type-checker), `docs/deployment-plan/spike-16/date-value-form.md`, the plan's Landed note. Skills: `add-localized-string`, `add-ui-component`, `add-swift-test`.
+Failing test first: `DateValueEditorFormLayoutTests/kindAndQualifierFitTheComposerBox` — host `kindControl` and `qualifierControl` (the form's real items, `.sm`) in `NSHostingView`, read `fittingSize.width` with **each** selection (a selected segment is semibold, so measure every selection and take the max); assert `maxKind + Layout.kindGap + maxQualifier <= 452` (name it `composerFormWidth` in the test with a comment: the composer's value box, 480 − 2 × 14). It fails today (223 + 12 + 228 > 452). Remove any diagnostic `Issue.record`.
+Do:
+- Copy: `dateKindPoint` defaultValue "Single", `dateKindRange` defaultValue "Bounded"; same keys; catalog source values match; comments unchanged in meaning ("DateValue kind: point" / "range").
+- `kindRow`: add `Layout.kindGap` = `PVSpacing.space5` (12, the board's gap). Horizontal branch `HStack(spacing: Layout.kindGap)`; each control `.fixedSize(horizontal: true, vertical: false)` so neither stretches nor is squeezed (an equal split of 452 would give the qualifier ~220 < 228). Stacked branch: same `fixedSize`, leading-aligned. No fixed widths, no `Layout.kind` / `Layout.qualifier`. Keep `ViewThatFits`, its duplication (D-6) and all focus handling as is.
+- `kindControl` and `qualifierControl` may drop `private` for the test (internal); do not loosen `SourceDateForm`.
+- Docs: `date-value-form.md` names the kinds "Single" and "Bounded" where it quotes the control's labels; the plan's Landed note extends the F-7 sentence with: "Kind reads Single / Bounded (was Single date / Between two bounds, user's manual check) and sits on one row with the qualifier at their natural widths in every host". Leave the map's working-rule history as written.
+Check: the test passes; scripts/check-pr.sh PASS (localizable included); the user opens the Source date dialog and the composer: one row, no truncation, in both.
+
 ## Result
 Gate PASS (head `2ccc5fe70`, origin/main unchanged at `6a6854119`) · CI see PR · open: none · follow-ups: MNT-3 → S16-84 on the Spike 16 map (user) · to user: §10 manual check before merge (the only proof of UX-1 in the running app, AC-1.1/1.2/1.6, AC-2.1/2.8/2.9, D-3/D-4/D-6/D-13; watch steps 1 and 4 for the `ViewThatFits` Kind/qualifier focus).
 
@@ -142,4 +159,5 @@ Plan: 6,346 words (check-plan-docs info line).
 | M | implementer (fix) | sonnet | 80k |
 | M2 | implementer (no plan found) | sonnet | 74k |
 | M2 | implementer (fix) | sonnet | 76k |
-| | **Total** | | **941k** |
+| M3 | implementer (stopped) | sonnet | 92k |
+| | **Total** | | **1,033k** |
