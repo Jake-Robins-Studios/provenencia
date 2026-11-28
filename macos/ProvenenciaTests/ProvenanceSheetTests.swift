@@ -200,6 +200,9 @@ struct ProvenanceSheetTests {
         #expect(before.groups.isEmpty && before.records.isEmpty)
         #expect(before.summary == "merged from 2 Sources · 4 records")
         #expect(before.title == "Name" && before.shown == row.shown)
+        var renamed = row
+        renamed.label = "Born"
+        #expect(renamed.provenanceContent(records: []).title == "Born")
 
         let read = CatalogOwnerField(
             entity: CatalogCanonicalEntity(id: "P", ref: "PER-1", subjectTypeID: "t", label: ""), field: page
