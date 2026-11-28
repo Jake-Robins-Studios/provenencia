@@ -107,6 +107,16 @@ var seedTypes = []seedType{
 		},
 	},
 	{
+		Key: "border_crossing", Label: "Border crossing",
+		Description: "A manifest, card or register of people crossing a land border at a port of entry.",
+		IconKey:     "type_document",
+		Formats: sourcetypes.Formats{
+			Full:  `{source.title}[, p. {meta.page}][, line {meta.line_number}][, {meta.item}][; {meta.repository}][; {meta.film_publication}[, roll {meta.roll}]]` + copyLayer + `.`,
+			Short: `{meta.short_title|source.title}[, p. {meta.page}][, line {meta.line_number}][, {meta.item}].`,
+			List:  `[{meta.creator}. ]{meta.collection|source.title}.[ {meta.repository}.]`,
+		},
+	},
+	{
 		Key: "voters_list", Label: "Voters list",
 		Description: "A voters list, poll book or register of electors made for an election or a registration year.",
 		IconKey:     "type_document",
