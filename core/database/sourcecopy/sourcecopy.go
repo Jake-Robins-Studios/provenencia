@@ -1,12 +1,17 @@
-// Package sourcecopy copies a Source in one write: a new Source with a chosen
-// title and type, and, each only when chosen, the original's description,
-// published date (as a date row of the copy's own, with its unknown or supplied
-// mark), metadata with its layout,
-// credibility and any subset of its Artifacts, each chosen Artifact with its
-// own metadata whatever the metadata choice says (the Artifact's metadata is
-// part of the Artifact). It composes the owner packages
-// inside the caller's writes.Run transaction and never calls writes.Run
-// itself.
+// Package sourcecopy creates a Source with its parts in one write: a new
+// Source with a title and type and, each only when present, a description,
+// Private, a published date (as a date row of its own, with its unknown or
+// supplied mark), metadata with its layout, credibility and Artifacts, each
+// Artifact with its own metadata. CreateFromDraft writes a Draft, for Add
+// Source (built from a create request) and Copy Source. Copy reads the
+// original into a Draft, keeps the parts the researcher chose, and writes it.
+// It composes the owner packages inside the caller's writes.Run transaction and
+// never calls writes.Run itself.
+//
+// A copy takes the chosen description, date (with its mark), metadata with its
+// layout, credibility and any subset of the original's Artifacts, each chosen
+// Artifact with its own metadata whatever the metadata choice says (the
+// Artifact's metadata is part of the Artifact). A copy is public.
 //
 // Notes, Subjects, Citations, Observations, graphs and the cover are never
 // copied.
@@ -27,8 +32,9 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
-// Draft is everything a copy can carry from a Source. Every SourceID is nil
-// until CreateFromDraft sets it to the new Source.
+// Draft is a new Source with its parts, read from an original (ReadDraft) or
+// built from a create request. Every SourceID is nil until CreateFromDraft
+// sets it to the new Source.
 type Draft struct {
 	Source      sources.CreateInput
 	Date        *datevalue.Value // nil when the Source is undated; its ID is always nil

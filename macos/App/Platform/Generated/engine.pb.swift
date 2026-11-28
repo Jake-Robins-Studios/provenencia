@@ -2143,9 +2143,24 @@ public nonisolated struct Provenencia_Engine_V1_CreateSourceRequest: Sendable {
 
   public var description_p: String = String()
 
+  /// absent or blank kind: undated
+  public var date: Provenencia_Engine_V1_DateValueInput {
+    get {_date ?? Provenencia_Engine_V1_DateValueInput()}
+    set {_date = newValue}
+  }
+  /// Returns true if `date` has been explicitly set.
+  public var hasDate: Bool {self._date != nil}
+  /// Clears the value of `date`. Subsequent reads from it will return its default value.
+  public mutating func clearDate() {self._date = nil}
+
+  /// unset: public
+  public var isPrivate: Bool = false
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
+
+  fileprivate var _date: Provenencia_Engine_V1_DateValueInput? = nil
 }
 
 public nonisolated struct Provenencia_Engine_V1_CreateSourceResponse: Sendable {
@@ -11873,7 +11888,7 @@ nonisolated extension Provenencia_Engine_V1_GetSourceWorkspaceResponse: SwiftPro
 
 nonisolated extension Provenencia_Engine_V1_CreateSourceRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".CreateSourceRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}user_id\0\u{3}source_type_id\0\u{1}title\0\u{1}description\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}user_id\0\u{3}source_type_id\0\u{1}title\0\u{1}description\0\u{1}date\0\u{3}is_private\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -11886,12 +11901,18 @@ nonisolated extension Provenencia_Engine_V1_CreateSourceRequest: SwiftProtobuf.M
       case 3: try { try decoder.decodeSingularStringField(value: &self.sourceTypeID) }()
       case 4: try { try decoder.decodeSingularStringField(value: &self.title) }()
       case 5: try { try decoder.decodeSingularStringField(value: &self.description_p) }()
+      case 6: try { try decoder.decodeSingularMessageField(value: &self._date) }()
+      case 7: try { try decoder.decodeSingularBoolField(value: &self.isPrivate) }()
       default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
     if !self.projectDir.isEmpty {
       try visitor.visitSingularStringField(value: self.projectDir, fieldNumber: 1)
     }
@@ -11907,6 +11928,12 @@ nonisolated extension Provenencia_Engine_V1_CreateSourceRequest: SwiftProtobuf.M
     if !self.description_p.isEmpty {
       try visitor.visitSingularStringField(value: self.description_p, fieldNumber: 5)
     }
+    try { if let v = self._date {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 6)
+    } }()
+    if self.isPrivate != false {
+      try visitor.visitSingularBoolField(value: self.isPrivate, fieldNumber: 7)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -11916,6 +11943,8 @@ nonisolated extension Provenencia_Engine_V1_CreateSourceRequest: SwiftProtobuf.M
     if lhs.sourceTypeID != rhs.sourceTypeID {return false}
     if lhs.title != rhs.title {return false}
     if lhs.description_p != rhs.description_p {return false}
+    if lhs._date != rhs._date {return false}
+    if lhs.isPrivate != rhs.isPrivate {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
