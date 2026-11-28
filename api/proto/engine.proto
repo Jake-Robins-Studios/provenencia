@@ -141,6 +141,7 @@ enum Method {
   METHOD_LIST_CITATION_PLACEHOLDERS = 126;
   METHOD_GET_SOURCE_MOVE_IMPACT = 127;
   METHOD_MOVE_TO_SOURCE = 128;
+  METHOD_GET_PROVENANCE_RECORDS = 129;
 }
 
 message PingRequest {
@@ -1886,6 +1887,8 @@ message ReconcilerOutcomeDetail {
   int32 artifact_page = 23;  // 0 = none
   string page_label = 24;    // "" = none
   int32 group_rank = 25;     // the displayed value it went into; 0 for none
+  bool denied_a_value = 26;           // a negative that eliminated a value in its field
+  string denied_by_source_title = 27; // for "denied": the denier's Source title; "" when not in the field
 }
 
 // ConclusionField is one Property of a handle: its state (single, merged,
@@ -1898,6 +1901,14 @@ message ConclusionField {
   string state = 5;
   repeated ReconciledValueDetail values = 6;
   repeated ReconcilerOutcomeDetail outcomes = 7;
+  FieldRecordCounts record_counts = 8;
+}
+
+// FieldRecordCounts is what a field's row shows without its records: how many
+// records sit behind it, and how many Sources its row names.
+message FieldRecordCounts {
+  int32 records = 1;
+  int32 sources = 2;
 }
 
 // GetConclusionDetail composes one handle's detail from the auto-reconciler
@@ -2190,8 +2201,8 @@ message KinshipShape {
 }
 
 // PictureDetail is one picture a handle's gallery shows (S10-35 / S14-01),
-// earliest recorded first. record is its earliest Observation, as the Why
-// shows it; the tile opens that record's Citation. image_rel_path is empty
+// earliest recorded first. record is its earliest Observation, with its
+// outcome; the tile opens that record's Citation. image_rel_path is empty
 // when the File's path cannot be derived.
 message PictureDetail {
   string image_rel_path = 1;
@@ -2963,6 +2974,34 @@ message RenderedCitation {
 message RenderCitationsResponse {
   repeated RenderedCitation citations = 1;
   PageInputs inputs = 2; // the Evidence graphs and Sources the render read
+}
+
+message ProvenancePair {
+  string owner_id = 1;
+  string property_id = 2;
+}
+message ProvenancePairs {
+  repeated ProvenancePair pairs = 1;
+}
+message ProvenanceDerivedRow {
+  string person_id = 1;
+  DerivedRowKind kind = 2;
+}
+
+// GetProvenanceRecords reads one provenance sheet: the fields a row names,
+// each with its records, and those records' citations rendered.
+message GetProvenanceRecordsRequest {
+  string project_dir = 1;
+  oneof row {
+    ProvenancePairs fields = 2;
+    ProvenanceDerivedRow derived = 3;
+  }
+}
+message GetProvenanceRecordsResponse {
+  repeated ConclusionOwnerField owners = 1;
+  repeated RenderedCitation citations = 2; // each Citation of the owners' records once
+  // inputs is what this value was built from.
+  PageInputs inputs = 3;
 }
 
 // Renders one form against one target, or checks an unsaved format with none.
