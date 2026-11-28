@@ -18,6 +18,8 @@ struct PVCheckbox: View {
     private let isDisabled: Bool
     private let isLocked: Bool
     private let accessibilityLabelText: Text?
+    /// A `.disabled(_:)` container dims the box as the `isDisabled` parameter does.
+    @Environment(\.isEnabled) private var isEnabled
 
     init(
         _ label: LocalizedStringResource,
@@ -128,7 +130,7 @@ struct PVCheckbox: View {
         // A locked box cannot be toggled, but it keeps full strength: it is a
         // binding the researcher reads, not a control that is off.
         .disabled(isDisabled || isLocked)
-        .opacity(isDisabled ? 0.5 : 1)
+        .opacity(isDisabled || !isEnabled ? 0.5 : 1)
         .modifier(CheckboxAccessibility(
             spoken: label == nil ? accessibilityLabelText : nil,
             isOn: isChecked || isLocked,

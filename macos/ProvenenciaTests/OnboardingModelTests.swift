@@ -374,7 +374,9 @@ private struct ThrowingStore: GenealogyStore {
         userID _: String,
         sourceTypeID _: String,
         title _: String,
-        description _: String
+        description _: String,
+        date _: CatalogDateValueInput?,
+        isPrivate _: Bool
     ) async throws -> (CatalogSource, CatalogWriteEffects) { throw StoreBoom.boom }
     func copySource(
         projectDir _: String,

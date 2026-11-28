@@ -699,16 +699,21 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         userID _: String,
         sourceTypeID: String,
         title: String,
-        description: String
+        description: String,
+        date: CatalogDateValueInput?,
+        isPrivate: Bool
     ) async throws -> (CatalogSource, CatalogWriteEffects) {
         return withState {
-            let source = CatalogSource(
+            var source = CatalogSource(
                 id: UUID().uuidString.lowercased(),
                 ref: "SRC-FAKE1",
                 sourceTypeID: sourceTypeID,
                 title: title,
                 description: description
             )
+            source.date = date
+            source.dateSortKey = date == nil ? nil : nextSourceDateSortKey
+            source.isPublic = !isPrivate
             return insertSource(source, projectDir: projectDir)
         }
     }

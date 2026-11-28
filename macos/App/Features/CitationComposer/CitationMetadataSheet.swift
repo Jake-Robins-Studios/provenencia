@@ -55,7 +55,6 @@ private struct CitationMetadataSheetForm: View {
                 board: model.board,
                 accessibilityIdentifierPrefix: "citationComposer.metadata"
             )
-            .disabled(model.isSaving)
         }
         .id(CitationMetadataSheetModel.Section.top)
     }

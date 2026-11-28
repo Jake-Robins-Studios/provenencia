@@ -307,6 +307,31 @@ struct SourcesModelTests {
         #expect(draft.validation.titleError == nil)
         #expect(draft.validation.isValid)
         #expect(draft.trimmedTitle == "Album")
+        #expect(draft.validation.dateError == nil)
+
+        func validation(_ edit: (inout DateValueDraft) -> Void) -> SourcesModel.SourceDraftValidation {
+            var draft = SourcesModel.Draft(sourceTypeID: "t1", title: "Album")
+            edit(&draft.date)
+            return draft.validation
+        }
+        // Month 13: the form shows its own error, so there is no second line, yet the draft is not valid.
+        let month13 = validation { $0.startYear = 1880; $0.startMonth = 13 }
+        #expect(month13.dateError == nil)
+        #expect(!month13.isValid)
+        // A phrase and a time zone, no year: the line shows.
+        let incomplete = validation { $0.phrase = "Spring 1880"; $0.startTZ = "America/Chicago" }
+        #expect(incomplete.dateError == L10n.string(L10n.Sources.dateUnsavableZone))
+        #expect(!incomplete.isValid)
+        // A phrase alone is a valid date; a time zone alone is blank.
+        #expect(validation { $0.phrase = "Spring 1880" }.isValid)
+        #expect(validation { $0.phrase = "Spring 1880" }.dateError == nil)
+        let zoneOnly = validation { $0.startTZ = "America/Chicago" }
+        #expect(zoneOnly.dateError == nil)
+        #expect(zoneOnly.isValid)
+        // A range with only an end year has no field error and is not valid.
+        let endOnly = validation { $0.setKind("range"); $0.endYear = 1880 }
+        #expect(endOnly.dateError != nil)
+        #expect(!endOnly.isValid)
     }
 
     @Test func canSubmitAddFollowsValidation() async {
@@ -319,6 +344,55 @@ struct SourcesModelTests {
         #expect(model.canSubmitAdd)
         model.draft.title = " "
         #expect(!model.canSubmitAdd)
+    }
+
+    @Test func addSheetDirtyCountsDateAndPrivate() async {
+        let (model, session) = makeModel(types: [photoType(), bookType()])
+        await warmLists(model, session: session)
+
+        model.openAdd()
+        #expect(!model.addSheetIsDirty)
+        model.draft.isPrivate = true
+        #expect(model.addSheetIsDirty)
+
+        model.openAdd()
+        model.draft.date.startYear = 1880
+        #expect(model.addSheetIsDirty)
+
+        model.openAdd()
+        model.draft.date.setKind("range")
+        model.draft.date.showAdvanced = true
+        #expect(!model.addSheetIsDirty)
+        model.draft.sourceTypeID = "t1"
+        model.draft.title = "Album"
+        #expect(model.canSubmitAdd)
+        model.draft.sourceTypeID = ""
+        #expect(!model.canSubmitAdd)
+    }
+
+    @Test func createSendsDateAndPrivate() async {
+        let (model, session) = makeModel(types: [photoType()])
+        await warmLists(model, session: session)
+
+        model.openAdd()
+        model.draft.sourceTypeID = "t1"
+        model.draft.title = "1880 census"
+        model.draft.date.startYear = 1880
+        model.draft.date.startMonth = 6
+        model.draft.date.startDay = 1
+        model.draft.isPrivate = true
+        let dated = await model.create()
+        #expect(dated?.date?.startYear == 1880)
+        #expect(dated?.date?.startMonth == 6)
+        #expect(dated?.date?.startDay == 1)
+        #expect(dated?.isPublic == false)
+
+        model.openAdd()
+        model.draft.sourceTypeID = "t1"
+        model.draft.title = "Undated"
+        let blank = await model.create()
+        #expect(blank?.date == nil)
+        #expect(blank?.isPublic == true)
     }
 
     @Test func createReturnsSourceAndRefreshesList() async {

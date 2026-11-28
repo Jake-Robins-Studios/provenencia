@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// The two-column body of a form dialog: the save error across the top, then two columns. The
-/// left column is disabled while the form saves; a caller disables its right column's controls
-/// itself. Content-agnostic: the Artifact sheet, the Evidence graph form and the Add source type
+/// form dialog disables its whole body while it runs, so the columns disable nothing themselves.
+/// Content-agnostic: the Artifact sheet, the Evidence graph form and the Add source type
 /// dialog all fill it.
 ///
 /// `rightWidth` nil draws two equal columns. A value fixes the right column at that width
@@ -12,7 +12,6 @@ struct PVFormColumns<Left: View, Right: View>: View {
     let saveError: String?
     let saveErrorTitle: LocalizedStringResource
     let saveErrorIdentifier: String
-    let isSaving: Bool
     var rightWidth: CGFloat? = nil
     @ViewBuilder let left: Left
     @ViewBuilder let right: Right
@@ -42,7 +41,6 @@ struct PVFormColumns<Left: View, Right: View>: View {
             VStack(alignment: .leading, spacing: PVSpacing.space6) {
                 left
             }
-            .disabled(isSaving)
             .frame(maxWidth: .infinity, maxHeight: rightWidth == nil ? nil : .infinity, alignment: .topLeading)
             if let rightWidth {
                 VStack(alignment: .leading, spacing: PVSpacing.space6) {
@@ -68,8 +66,7 @@ struct PVFormColumns<Left: View, Right: View>: View {
     PVFormColumns(
         saveError: "The type was not added.",
         saveErrorTitle: "Could not add",
-        saveErrorIdentifier: "preview.error",
-        isSaving: false
+        saveErrorIdentifier: "preview.error"
     ) {
         Text(verbatim: "Left column")
     } right: {
@@ -85,7 +82,6 @@ struct PVFormColumns<Left: View, Right: View>: View {
         saveError: nil,
         saveErrorTitle: "Could not add",
         saveErrorIdentifier: "preview.error",
-        isSaving: false,
         rightWidth: 432
     ) {
         Text(verbatim: "Left column")

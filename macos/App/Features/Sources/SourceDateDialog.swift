@@ -20,7 +20,7 @@ private struct SourceDateDialogModifier: ViewModifier {
                 confirm: L10n.Sources.sourceDateSave,
                 cancel: L10n.Sources.cancelAction
             ),
-            width: 560,
+            width: SourceFields.dialogWidth,
             isRunning: model?.isSaving ?? false,
             isDirty: model?.isDirty ?? false,
             confirmDisabled: !(model?.canSave ?? false),
@@ -44,15 +44,11 @@ private struct SourceDateForm: View {
                 PVCallout(tone: .danger, message: saveError, announces: true)
                     .accessibilityIdentifier("sources.page.sourceDate.error")
             }
-            DateValueEditorForm(
+            SourceDateEditor(
                 draft: $model.draft,
                 accessibilityIdentifierPrefix: "sources.page.sourceDate",
                 yearFocus: PVFieldFocus($focus, equals: .year)
             )
-            .disabled(model.isSaving)
-            if showsReadsAs {
-                readsAs
-            }
             if model.initial != nil {
                 clearControls
             }
@@ -60,30 +56,11 @@ private struct SourceDateForm: View {
         .onAppear { FocusClaim.claim($focus, .year) }
     }
 
-    private var showsReadsAs: Bool {
-        !model.draft.isBlank && model.draft.isValid && !model.clears
-    }
-
-    private var readsAs: some View {
-        PVCard(tone: .sunken, cornerRadius: PVRadius.sm, padding: PVSpacing.space5) {
-            HStack(spacing: PVSpacing.space5) {
-                Text(L10n.Sources.sourceDateReadsAs)
-                    .pvMicroCaps()
-                Text(verbatim: DateRowDisplay.line(date: model.draft.toInput()))
-                    .font(PVFont.mono(size: PVTypeScale.caption))
-                    .foregroundStyle(PVColor.textPrimary)
-                    .accessibilityIdentifier("sources.page.sourceDate.readsAs")
-                Spacer(minLength: 0)
-            }
-        }
-    }
-
     private var clearControls: some View {
         VStack(alignment: .leading, spacing: PVSpacing.space3) {
             PVButton(L10n.Sources.sourceDateClear, variant: .ghost, size: .sm, icon: .trash) {
                 model.clear()
             }
-            .disabled(model.isSaving)
             .accessibilityIdentifier("sources.page.sourceDate.clear")
             if model.clears {
                 // Announced: Clear date changes the form without moving focus.

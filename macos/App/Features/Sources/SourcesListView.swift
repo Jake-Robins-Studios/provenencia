@@ -358,6 +358,9 @@ private struct SourcesAddDialog: ViewModifier {
     @Bindable var model: SourcesModel
     let typesHandle: QueryHandle<[CatalogSourceType]>
 
+    /// The `.id` the body scrolls to when a failed create puts its error at the top.
+    private static let topID = "sources.add.top"
+
     func body(content: Content) -> some View {
         content
             .pvFormDialog(
@@ -368,10 +371,14 @@ private struct SourcesAddDialog: ViewModifier {
                     confirm: L10n.Sources.createAction,
                     cancel: L10n.Sources.cancelAction
                 ),
+                width: SourceFields.dialogWidth,
                 isRunning: model.isSaving,
                 isDirty: model.addSheetIsDirty,
                 confirmDisabled: !model.canSubmitAdd,
                 accessibilityIdentifierPrefix: "sources.add",
+                scrollsBody: true,
+                scrollTarget: AnyHashable(Self.topID),
+                scrollRequest: AnyHashable(model.createErrorScrollRequest),
                 onConfirm: {
                     Task {
                         if let created = await model.create() {
@@ -408,7 +415,7 @@ private struct SourcesAddDialog: ViewModifier {
     private var form: some View {
         VStack(alignment: .leading, spacing: PVSpacing.space6) {
             if let createError = model.createError {
-                PVCallout(tone: .danger, message: createError)
+                PVCallout(tone: .danger, message: createError, announces: true)
                     .accessibilityIdentifier("sources.add.error")
             } else if let loadError = model.loadError, model.types.isEmpty {
                 PVCallout(
@@ -417,20 +424,14 @@ private struct SourcesAddDialog: ViewModifier {
                 )
                 .accessibilityIdentifier("sources.add.loadError")
             }
-            SourceTitleTypeFields(
+            SourceFields(
                 draft: $model.draft,
                 titleError: $model.titleError,
                 typeError: $model.typeError,
                 types: model.types,
                 accessibilityIdentifierPrefix: "sources.add"
             )
-            PVField(
-                label: L10n.Sources.formDescription,
-                hint: L10n.Sources.formDescriptionHint
-            ) {
-                PVInput(text: $model.draft.description)
-                    .accessibilityIdentifier("sources.add.description")
-            }
         }
+        .id(Self.topID)
     }
 }

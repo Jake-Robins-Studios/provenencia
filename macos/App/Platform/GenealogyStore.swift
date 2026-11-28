@@ -1694,12 +1694,15 @@ protocol GenealogyStore: Sendable {
     func getDraftMetadataBoard(projectDir: String, parents: [MetadataOwner], level: Level) async throws
         -> [CatalogMetadataEntry]
     /// Creates a Source in one audited write and returns it with the write's effects.
+    /// A nil `date` is undated; `isPrivate` creates it not public.
     func createSource(
         projectDir: String,
         userID: String,
         sourceTypeID: String,
         title: String,
-        description: String
+        description: String,
+        date: CatalogDateValueInput?,
+        isPrivate: Bool
     ) async throws -> (CatalogSource, CatalogWriteEffects)
     /// Copies a Source in one audited write: a new Source with `title` and
     /// `sourceTypeID`, plus, each only when chosen, the original's description,

@@ -179,7 +179,9 @@ struct GoStore: GenealogyStore {
         userID: String,
         sourceTypeID: String,
         title: String,
-        description: String
+        description: String,
+        date: CatalogDateValueInput?,
+        isPrivate: Bool
     ) async throws -> (CatalogSource, CatalogWriteEffects) {
         var req = Provenencia_Engine_V1_CreateSourceRequest()
         req.projectDir = projectDir
@@ -187,6 +189,8 @@ struct GoStore: GenealogyStore {
         req.sourceTypeID = sourceTypeID
         req.title = title
         req.description_p = description
+        if let date { req.date = Self.mapDateValueToProto(date) }
+        req.isPrivate = isPrivate
         let resp: Provenencia_Engine_V1_CreateSourceResponse = try await provenenciaCall(
             method: CoreMethod.createSource,
             request: req

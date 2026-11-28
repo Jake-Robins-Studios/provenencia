@@ -9,14 +9,15 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | Brief | View | Board | Gates |
 | --- | --- | --- | --- |
 | [S16-D11](S16-D11-web-kit-popup-list.md) | The web kit: a PopupList component (card, row, line, searching line), the ComboBox's open list composed from it, the Omnibar Hit Row as the SearchHitRow component | [agreed 2026-11-21](https://claude.ai/artifact/7AZ8cscWF3f5Wz7gQ39cMe), PopupList, ComboBox, SearchHitRow | — (kit only; S16-D9's board instances it) |
-| [S16-D15](S16-D15-add-source-fields.md) | Add Source sheet: the shared Source fields (Title, Type, Published date, Description, Private) | [agreed 2026-11-28](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK), page "Dialogs", section "Add Source"; Private is a Checkbox (user, after the board) | **S16-73** |
 | S16-D16 | Copy Source sheet: the shared Source fields filled from the original, above the credibility tick and the Artifact checklist | — | **S16-74** |
 | S16-D17 | Copy Source sheet: the original's metadata as an editable board, and a type change | — | **S16-75** |
+| [S16-D20](S16-D20-date-form-condensed.md) | The date form, condensed: in its own dialog and inline in Add Source | — | **S16-83** |
 
 ## Archived
 
 | Brief | View | Board | Built by |
 | --- | --- | --- | --- |
+| [S16-D15](archive/S16-D15-add-source-fields.md) | Add Source sheet: the shared Source fields (Title, Type, Published date, Description, Private) | [agreed 2026-11-28](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK), page "Dialogs", section "Add Source"; Private is a Checkbox (user, after the board) | S16-73 |
 | [S16-D18](archive/S16-D18-family-groups-and-marriages.md) | Person page Family: the siblings grouped by their parents, each group its parents then its children, and each couple's marriage date and place | [agreed 2026-11-27](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ), page "Person Detail - Family", turn "S16-D18 · Sibling groups and marriages": Shared parent(s); "m." between a group's parents and over a partner's group; tiles keep 92 pt | S16-81 |
 | [S16-D14](archive/S16-D14-sources-table.md) | The Sources list as a native table: named, sortable columns, one Source open at a time, one status badge a Source | [agreed 2026-11-24](https://claude.ai/artifact/JDm51QdorUvY79EFoci4cm), page "S2-04 Sources list": TB-7 (a), TB-W1 (a), one badge width, fixed column widths | S16-71 |
 | [S16-D12](archive/S16-D12-sources-list-outline.md) | The Sources list as a native outline: Source rows with Evidence graph rows under them | [agreed 2026-11-24](https://claude.ai/artifact/JDm51QdorUvY79EFoci4cm), page "S2-04 Sources list": one-line 34 pt graph rows, a rule under each Source's group, SO-W1 (b) | S16-66 |

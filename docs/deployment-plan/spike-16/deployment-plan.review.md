@@ -230,3 +230,27 @@ One fresh maintainability reviewer on slice 6g (S16-68, S16-69, S16-70) and its 
 - **K8-8 · nit** — The composer's home. **Fixed:** it stays in `sourcecopy`.
 - **K8-9 · nit** — Date validity in `Draft.validation`; the prefill built at first load; one Private switch view. **Fixed** in the rules and scopes.
 - **K8-10 · nit** — Fan-out lines; S15-71's format added to what Copy reads from the original. **Fixed.**
+
+## Batch 9 — The date form (2026-11-28)
+
+**Verdict:** Fits with changes; two blockers, both fixed in the rules and the scope. **Reviewer:** maintainability (map review).
+
+### To user
+
+- **The order against Batch 8 (K9-5).** S16-83 before S16-74 and S16-D20 before S16-D16, so the Copy sheet is drawn and built on the condensed form. **Answered (user, 2026-11-28): date form first.**
+- **Type-select edge cases (K9-9).** A quick `aa` walks the A's, a table's `11` walks rows starting with 1, `jjo` matches nothing; written into the rule as macOS behaves.
+- **Two calls before the plan (K9-11).** **Answered (user, 2026-11-28):** Remove time keeps clearing the time (later the same day the user made the time fields always visible, so the link goes: rule "The time fields always show"); the range message's timing does not change, and the latest bound instead follows the earliest as it is typed, until the researcher types into it (rules "Remove time clears the time" and "The latest bound follows the earliest until it is typed into").
+
+### Findings
+
+- **K9-1 · blocker** — The Tab loop crosses the host's focus binding and the form's, and the kit cannot. **Fixed:** rule and scope name one `@FocusState` in the form and a new `PVFieldFocus` neighbour operation; Updates name the README Field focus row and `add-ui-component`.
+- **K9-2 · blocker** — The qualifier is four chips with no focus handle. **Fixed:** it becomes a `PVSegmentedControl`; S16-D20's row says so. If the board keeps chips, it goes to the user.
+- **K9-3 · major** — `PVSegmentedControl` ignores Tab neighbours. **Fixed:** its focus target claims Tab when its handle has neighbours, in Ships.
+- **K9-4 · major** — Entry into the loop and leaving it backwards were unspecified. **Fixed:** the field before the form claims Tab into Year (`SourceFields` gains an order); Shift-Tab from Kind and the More fields are open plan calls in the feature doc.
+- **K9-5 · major** — No order against S16-74 and S16-D16. **Fixed:** dependency lines and a prose line; bar 52's Copy half is checked at S16-74.
+- **K9-6 · major** — The matcher rule named callers that do not use it. **Fixed:** the three real callers; bar 53 says select, menu or table.
+- **K9-7 · major** — The range message is shown by the host. **Fixed** in the feature doc; the plan picks one home the host reads.
+- **K9-8 · minor** — Wrong README rows. **Fixed** in Updates.
+- **K9-9 · minor** — Nearby cases of the matcher change. **Fixed:** in the rule, with a test each.
+- **K9-10 · minor** — Deletes, strings, Context and the composer frame. **Fixed** in Ships, Context and S16-D20's row.
+- **K9-11 · minor** — About 11 steps; four open items, not two. **Fixed:** all four named with who decides; the two user calls come before the plan.

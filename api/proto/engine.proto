@@ -517,6 +517,8 @@ message CreateSourceRequest {
   string source_type_id = 3;
   string title = 4; // required (non-empty after trim)
   string description = 5;
+  DateValueInput date = 6; // absent or blank kind: undated
+  bool is_private = 7; // unset: public
 }
 
 message CreateSourceResponse {

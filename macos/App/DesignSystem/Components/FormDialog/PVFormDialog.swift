@@ -57,6 +57,9 @@ struct PVFormDialogCopy {
 enum PVFormDialogControls {
     static func isCancelDisabled(isRunning: Bool) -> Bool { isRunning }
 
+    /// The form body is read-only while the dialog runs, so nothing changes under a write.
+    static func isFormDisabled(isRunning: Bool) -> Bool { isRunning }
+
     static func isConfirmDisabled(isRunning: Bool, confirmDisabled: Bool) -> Bool {
         isRunning || confirmDisabled
     }
@@ -135,6 +138,7 @@ struct PVFormDialogContent<Form: View>: View {
             footerChrome: .sunken
         ) {
             formBody
+                .disabled(PVFormDialogControls.isFormDisabled(isRunning: isRunning))
         } footer: {
             HStack(spacing: PVSpacing.space5) {
                 Spacer(minLength: PVSpacing.space8)
