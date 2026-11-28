@@ -87,7 +87,6 @@ private struct ArtifactSheetForm: View {
                 accessibilityIdentifierPrefix: "\(prefix).copyDetails"
             )
             .id(ArtifactSheetModel.Section.copyDetails)
-            .disabled(model.isSaving)
         }
         .id(ArtifactSheetModel.Section.top)
     }

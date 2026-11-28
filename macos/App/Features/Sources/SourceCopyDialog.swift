@@ -60,7 +60,6 @@ private struct SourceCopyForm: View {
                 types: model.types,
                 accessibilityIdentifierPrefix: "sources.copy"
             )
-            .disabled(model.isSaving)
             PVDivider()
             parts
         }

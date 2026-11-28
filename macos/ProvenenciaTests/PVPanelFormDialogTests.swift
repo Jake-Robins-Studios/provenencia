@@ -83,6 +83,11 @@ struct PVFormDialogControlsTests {
         #expect(PVFormDialogControls.isCancelDisabled(isRunning: true))
     }
 
+    @Test func formIsDisabledWhileRunning() {
+        #expect(PVFormDialogControls.isFormDisabled(isRunning: true))
+        #expect(!PVFormDialogControls.isFormDisabled(isRunning: false))
+    }
+
     @Test func confirmDisabledCoversValidationAndRunning() {
         #expect(!PVFormDialogControls.isConfirmDisabled(isRunning: false, confirmDisabled: false))
         #expect(PVFormDialogControls.isConfirmDisabled(isRunning: false, confirmDisabled: true))

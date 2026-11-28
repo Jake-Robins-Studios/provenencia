@@ -81,7 +81,6 @@ private struct SourceTypeAddForm: View {
                     groupLabel: L10n.SourceTypes.addIconGroupLabel
                 )
             }
-            .disabled(model.isSaving)
         }
     }
 }

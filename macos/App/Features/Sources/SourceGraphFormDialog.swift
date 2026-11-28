@@ -80,7 +80,6 @@ private struct SourceGraphForm: View {
             }
         } right: {
             metadata
-                .disabled(model.isSaving)
         }
         .id(SourceGraphFormModel.Section.top)
     }
