@@ -17,6 +17,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
 	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
+	"github.com/Jake-Robins-Studios/provenencia/core/raster/rastertest"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -532,6 +533,40 @@ func filelessArtifact(t *testing.T) (dir, userID, artifactID string) {
 	var art engine.CreateArtifactResponse
 	mustRPC(t, CreateArtifact, &engine.CreateArtifactRequest{ProjectDir: dir, UserId: userID, SourceId: src.Source.Id, Label: "Page"}, &art)
 	return dir, userID, art.Artifact.Id
+}
+
+// The response says when the file is an image that gets no thumbnail, so the
+// app can say why the Artifact shows no preview.
+func TestIngestArtifactFileThumbnailRefused(t *testing.T) {
+	cut := rastertest.GoFixture(t, "video-001.q50.422.jpeg")
+	for _, tc := range []struct {
+		name, file string
+		write      func(t *testing.T, path string)
+		want       bool
+	}{
+		{"readable png", "page.png", func(t *testing.T, p string) { dbtest.WritePNG(t, p, 8, 8) }, false},
+		{"not an image", "notes.txt", func(t *testing.T, p string) {
+			if err := os.WriteFile(p, []byte("Frank and Gladys"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}, false},
+		{"jpeg cut off mid-data", "half.jpg", func(t *testing.T, p string) {
+			if err := os.WriteFile(p, cut[:len(cut)/2], 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir, userID, artifactID := filelessArtifact(t)
+			path := filepath.Join(t.TempDir(), tc.file)
+			tc.write(t, path)
+			var got engine.IngestArtifactFileResponse
+			mustRPC(t, IngestArtifactFile, &engine.IngestArtifactFileRequest{ProjectDir: dir, UserId: userID, ArtifactId: artifactID, Path: path}, &got)
+			if got.GetThumbnailRefused() != tc.want {
+				t.Fatalf("thumbnail_refused = %v, want %v (thumbnail %q)", got.GetThumbnailRefused(), tc.want, got.Artifact.GetThumbnailRelPath())
+			}
+		})
+	}
 }
 
 func TestIngestStagesBeforeSession(t *testing.T) {
