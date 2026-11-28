@@ -145,6 +145,9 @@ Check: the test passes; scripts/check-pr.sh PASS (localizable included); the use
 ## Manual check 3b — fix
 Head `5315ac60d`. Gate PASS (orchestrator run). F-10 done (`65213460f`): Kind reads Single / Bounded; the two unsavable lines follow; `kindRow` puts both controls at natural width (`fixedSize`) with `Layout.kindGap` 12; `DateValueEditorFormLayoutTests/kindAndQualifierFitTheComposerBox` failed red (224 + 12 + 228 = 464 > 452) and passes green. Orchestrator found `DateValueDraftTests.swift:190` asserting the absence of "Single date" (vacuous after the copy change); fixed to "Single" in `5315ac60d`. Diff read by orchestrator: matches. On screen: the user's look at both hosts.
 
+## Manual check 4 — user request (2026-11-28)
+The user asked for the composer's sunken value box around Add Source's inline Published date, checked by hand with no review round. Done by the orchestrator at the user's request, as a small change: new kit recipe `Recipes/ValueBox/PVValueBox.swift` (a sunken `PVCard`, 14 pt sides, 12 pt top and bottom, full width); the composer's private `inlineValue` and the term box's hand-built copy of the same chrome both move onto it (same-pass cleanup); `SourceFields` wraps `SourceDateEditor` in it (the Source date dialog stays unboxed). README Recipes row added. Gate PASS.
+
 ## Result
 Gate PASS (head `2ccc5fe70`, origin/main unchanged at `6a6854119`) · CI see PR · open: none · follow-ups: MNT-3 → S16-84 on the Spike 16 map (user) · to user: §10 manual check before merge (the only proof of UX-1 in the running app, AC-1.1/1.2/1.6, AC-2.1/2.8/2.9, D-3/D-4/D-6/D-13; watch steps 1 and 4 for the `ViewThatFits` Kind/qualifier focus).
 
