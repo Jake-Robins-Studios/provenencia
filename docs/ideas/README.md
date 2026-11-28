@@ -39,6 +39,7 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 - [`organizations.md`](organizations.md) — Organization as a Subject type; descoped from S11-48
 - [`one-bridge-cardinality.md`](one-bridge-cardinality.md) — one declaration of "one per bridge" that matching and reconciliation both read, once matching knows place containment (from S16-80)
 - [`place-gazetteer-service.md`](place-gazetteer-service.md)
+- [`place-types-and-households.md`](place-types-and-households.md) — a `place_type` Property on places; residences at a Place typed household read as people who lived together
 
 ### Conclusion pages and provenance
 
