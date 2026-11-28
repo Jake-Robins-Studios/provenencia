@@ -6,9 +6,12 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
+	"log"
 	"strings"
+	"sync"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
@@ -33,6 +36,24 @@ var ErrInvalid = apperr.New(apperr.CodeFileDerivativesInvalid, apperr.KindUser)
 // (byte size or declared pixel dimensions over budget, or bytes that are
 // not an allowlisted raster format). The File itself remains valid.
 var ErrUnprocessable = apperr.New(apperr.CodeFileDerivativesUnprocessable, apperr.KindUser)
+
+// refusals holds, for this process, the derivatives whose source bytes cannot
+// be decoded, keyed by the source checksum and the derivative type. The bytes
+// behind a checksum never change, so neither does the answer until the
+// decoder does, which takes an app update. Only ErrUnprocessable is held: a
+// corrupt or missing object is repaired by importing the file again.
+var refusals sync.Map // refusalKey → struct{}
+
+type refusalKey struct{ checksum, derivativeType string }
+
+// refuse records that the derivative of checksum is unprocessable, logs why
+// the first time, and returns ErrUnprocessable.
+func refuse(checksum, derivativeType string, why error) error {
+	if _, held := refusals.LoadOrStore(refusalKey{checksum, derivativeType}, struct{}{}); !held {
+		log.Printf("provenencia: no %s for file %s: %v", derivativeType, checksum, why)
+	}
+	return ErrUnprocessable
+}
 
 // ErrCorruptObject means the object-store bytes do not match the checksum
 // recorded in the catalog, so they were refused before decode.
@@ -110,8 +131,11 @@ func Plan(c *database.Catalog, sourceFileID []byte, spec Spec) (Result, *Job, er
 		return Result{}, nil, err
 	}
 
-	if src.ByteSize > raster.MaxDecodeBytes {
+	if _, held := refusals.Load(refusalKey{src.ChecksumSHA256, spec.Type}); held {
 		return Result{}, nil, ErrUnprocessable
+	}
+	if src.ByteSize > raster.MaxDecodeBytes {
+		return Result{}, nil, refuse(src.ChecksumSHA256, spec.Type, raster.ErrTooLarge)
 	}
 
 	rel, err := files.ReadRelPath(src)
@@ -137,7 +161,9 @@ func Plan(c *database.Catalog, sourceFileID []byte, spec Spec) (Result, *Job, er
 // ingest.Stages.
 func (j *Job) Stage(projectDir string) (*ingest.Staged, error) {
 	derivedJPEG, err := generate(projectDir, j.rel, j.checksum, j.spec.Raster)
-	if err != nil {
+	if errors.Is(err, ErrUnprocessable) {
+		return nil, refuse(j.checksum, j.spec.Type, err)
+	} else if err != nil {
 		return nil, err
 	}
 	s, err := ingest.StageBytes(projectDir, derivedJPEG, "image/jpeg")
@@ -239,7 +265,7 @@ func generate(projectDir, rel, wantChecksum string, opts raster.Options) ([]byte
 	if err != nil {
 		if errors.Is(err, raster.ErrTooLarge) || errors.Is(err, raster.ErrUnsupportedFormat) ||
 			errors.Is(err, raster.ErrUndecodable) {
-			return nil, ErrUnprocessable
+			return nil, fmt.Errorf("%w: %w", ErrUnprocessable, err)
 		}
 		return nil, err
 	}
@@ -269,7 +295,7 @@ func readSourceObject(projectDir, rel, wantChecksum string) ([]byte, error) {
 		return nil, err
 	}
 	if int64(len(raw)) > raster.MaxDecodeBytes {
-		return nil, ErrUnprocessable
+		return nil, fmt.Errorf("%w: %w", ErrUnprocessable, raster.ErrTooLarge)
 	}
 	if sha256Hex(raw) != wantChecksum {
 		return nil, ErrCorruptObject
