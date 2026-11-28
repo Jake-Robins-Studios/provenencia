@@ -1,0 +1,89 @@
+# Ship log — S16-83 The date form is smaller and keyboard-first
+
+**Plan:** [`S16-83-date-form-condensed.md`](S16-83-date-form-condensed.md) · **Branch:** `s16-83-date-form-condensed` · **PR:** #1027
+**State:** ready
+
+## Round 0 — implement
+Head `f49196396`. Gate PASS (orchestrator run, xcode-test included). Report deviations: manual check (§10) and the view-level keyboard evidence (D-3, D-4, D-6, D-13) not run — needs the user's Mac; version 0.53.1 (main already 0.53.0); `monthAndDayCanBeSetWithoutAYear` lost its `applyStartCascade()` call (method deleted); `Field.neighbours` is `@MainActor`; `DateValueDraft.part(_:start:)` is static; old names (`PVInputTabClaim`, `sourceDateReadsAs`, `.date.readsAs`, `hideTime`) left in landed/historical plans and map rows, not rewritten.
+
+## Round 1 — review
+Reviewers: CON, MNT, UX. Skipped: SEC+PRF (no security or performance path, no added SQL or URL code; diff read: UI focus and draft code only, no stored-data loops).
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| UX-1 | UX | blocker | Return on the focused Calendar and phrase link saves the sheet | Fix now → F-1 | verified: `PVButton.focused(_:)` (PVButton.swift:231-238) adds `pvActivatesOnReturn` but never `pvSheetTakesReturn`; `PVFormDialog` keeps `.defaultAction` unless that preference is raised; its one caller is `PVProvenanceRecordTable.swift:81` for exactly this case |
+| CON-1 | CON | major | View-level ACs unchecked; Landed note says "As planned" | Fix now → F-2 (Landed note); §10 goes to the user | verified: ship log Round 0. The §10 run is the user's by the ship-pr loop; the PR body gives each view AC its §10 line and flags the `ViewThatFits` Kind/qualifier duplication for steps 1 and 4 |
+| CON-2 | CON | minor | Host-edge → key-loop rule untested | Fix now → F-3 | code this PR adds; `reachable` is private and has no test |
+| UX-2 | UX | minor | VoiceOver reads the side name twice | Fix now → F-4 | `sideLabel(start:)` Texts not hidden inside a `.contain` group already labelled |
+| MNT-1 | MNT | minor | "Cascade" and "part" name one thing | Fix now → F-5 | files touched; the cascade behaviour is deleted in this diff |
+| MNT-2 | MNT | minor | `claim(_:)` special-cases start Year needlessly | Fix now → F-6 | `ownHandle` already returns the right handle for every field |
+| MNT-3 | MNT | minor | `PVInkLink` has no `focus:` | Follow-up | PR does not add, change or copy `PVInkLink` or the record row's `apply(AnyView…)`; ask user for home |
+| UX-3, UX-4 | UX | nit | Stale translator comments in L10n.swift | Fix now → F-4 | stale comments in a file this PR changes |
+| CON-3, CON-4 | CON | nit | Neighbour table asserts are partial | Fix now → F-3 (rides along) | same test file as F-3 |
+
+Nits (logged): `MNT-4 · PVButton.swift:228 · rename private focused(_:) → withFocusHandle(_:)` · `MNT-5 · DateValueEditorForm.swift:265-267,280-282 · use fieldCaption for Calendar/Phrase captions` · `MNT-6 · DateValueEditorForm.swift:76-80,112-116 · one reclaiming(_:_:) for the Kind/qualifier select closures` · `MNT-7 · DateValueEditorForm.swift:436-446 · String raw value instead of identifierName switch`
+
+### Fix plan 1
+
+**F-1 — A focused kit button takes Return from the sheet's default button** (from UX-1)
+Files: `macos/App/DesignSystem/Components/Button/PVButton.swift`, `macos/App/DesignSystem/README.md` (Button row). Skill: `add-ui-component`.
+Failing test first: none reachable (view preference); evidence is §10 step 1 / AC-2.9 on a dated Source.
+Do: in `PVButton.focused(_:)` add `.pvSheetTakesReturn(focus.isActive())` beside `.pvActivatesOnReturn(when:…)`. Update the PVButton doc (lines 148-149) and the README Button row to say that inside a kit sheet the focused button takes Return from Confirm/Done.
+Check: `rg -n pvSheetTakesReturn macos/App` shows the new PVButton hit; scripts/check-pr.sh PASS.
+
+**F-2 — The Landed note names the unrun manual check** (from CON-1)
+Files: `docs/deployment-plan/spike-16/prs/S16-83-date-form-condensed.md` (Landed line).
+Do: add to the Landed note's exceptions: "§10's manual check (and the view-level evidence for D-3, D-4, D-6, D-13) is the user's, run before merge."
+Check: check-plan-docs 0 errors.
+
+**F-3 — Test the host-edge resolution** (from CON-2, CON-3, CON-4)
+Files: `macos/App/Features/Dates/DateValueEditorForm.swift`, `macos/ProvenenciaTests/DateValueEditorFormTests.swift`. Skill: `add-swift-test`.
+Failing test first: `DateValueEditorFormTests/hostEdgeWithNoNeighbourGoesToTheKeyLoop` — `.hostPrevious` with no host previous resolves to nil; with one, `.hostPrevious`; same for `.hostNext`.
+Do: move the logic of the private `reachable` into a pure static on `Field` (e.g. `Field.resolve(_ target:, hostHasNext:, hostHasPrevious:) -> Target?`) and have `reachable`/`claim` call it. In `neighbourTable`, assert the full range Tab sequence (not only `.last`) and add the range case for `kind.previous == .hostPrevious`.
+Check: the new test passes; scripts/check-pr.sh PASS.
+
+**F-4 — Side labels hidden from VoiceOver; stale translator comments** (from UX-2, UX-3, UX-4)
+Files: `macos/App/Features/Dates/DateValueEditorForm.swift`, `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings` (comments only, if the catalog mirrors them). Skill: `add-localized-string`.
+Do: `.accessibilityHidden(true)` on what `sideLabel(start:)` returns. Rewrite the comments of `dateEarliestHeading` / `dateLatestHeading` (spoken name of a range side's group, not drawn) and `dateLeaveEmptyHint` (hint on the Calendar and phrase link's line).
+Check: scripts/check-pr.sh PASS (localizable included).
+
+**F-5 — "Part" is the one word** (from MNT-1)
+Files: `macos/App/Platform/DateValueDraft.swift`, `macos/App/Features/Dates/DateValueEditorForm.swift`, tests that name them.
+Do: rename `CascadeComponent` → `Part`, `cascadeField` → `partField`, `cascadeFieldError` → `firstPartError`; fix the "cascade field" doc lines.
+Check: `rg -n -i cascade macos/App macos/ProvenenciaTests` prints nothing; scripts/check-pr.sh PASS.
+
+**F-6 — One claim path for every field** (from MNT-2)
+Files: `macos/App/Features/Dates/DateValueEditorForm.swift`.
+Do: `case .field(let field): FocusClaim.claim(ownHandle(field))`; drop the `f == .startYear` branch.
+Check: scripts/check-pr.sh PASS.
+
+## Round 1 — fix
+Head `2ccc5fe70`. Gate PASS (orchestrator run). F-1 to F-6 done. F-5's check as worded was too wide (unrelated delete-impact "cascade" code elsewhere in `macos/App`); over the date files it prints nothing. The F-5 rename is split over two commits; the head compiles.
+MNT read by orchestrator (minors only, no re-review): MNT-1 **Resolved** (`rg -i cascade` over DateValueDraft, Features/Dates and DateValue* tests: no hit); MNT-2 **Resolved** (`DateValueEditorForm.swift:326-327`).
+
+## Round 2 — review
+Reviewers: CON (CON-1 major), UX (UX-1 blocker). Scope `f49196396...2ccc5fe70`.
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| CON-1 | CON | major | (round 1) | Resolved | Landed note names the unrun §10 (aa9437433) |
+| UX-1 | UX | blocker | (round 1) | Resolved | `PVButton.swift:240` `.pvSheetTakesReturn(focus.isActive())`; OR-combined preference read by `PVFormDialog.swift:155`; only `focus:` caller is the date form's link |
+
+No new findings from either reviewer. No Fix plan 2.
+
+## Result
+Gate PASS (head `2ccc5fe70`, origin/main unchanged at `6a6854119`) · CI see PR · open: none · follow-ups: MNT-3 · to user: §10 manual check before merge (the only proof of UX-1 in the running app, AC-1.1/1.2/1.6, AC-2.1/2.8/2.9, D-3/D-4/D-6/D-13; watch steps 1 and 4 for the `ViewThatFits` Kind/qualifier focus).
+
+## Cost
+Plan: 6,346 words (check-plan-docs info line).
+
+| Round | Agent | Model | Tokens |
+| --- | --- | --- | --- |
+| 0 | implementer | sonnet | 215k |
+| 1 | MNT | opus | 118k |
+| 1 | UX | opus | 91k |
+| 1 | CON | opus | 120k |
+| 1 | implementer (fix) | sonnet | 89k |
+| 2 | CON | opus | 39k |
+| 2 | UX | opus | 39k |
+| | **Total** | | **711k** |
