@@ -45,8 +45,8 @@ const (
 )
 
 const (
-	sqlInsert = `INSERT INTO sources (id, ref, source_type_id, title, description)
-		VALUES (?, ?, ?, ?, ?)`
+	sqlInsert = `INSERT INTO sources (id, ref, source_type_id, title, description, is_public)
+		VALUES (?, ?, ?, ?, ?, ?)`
 	sqlUpdate = `UPDATE sources SET source_type_id = ?, title = ?, description = ?
 		WHERE id = ?`
 	sqlSetCover = `UPDATE sources SET cover_mode = ?, primary_artifact_id = ?
@@ -119,6 +119,9 @@ type CreateInput struct {
 	SourceTypeID []byte
 	Title        string
 	Description  string
+	// Private creates the Source not public. The zero value is public, as the
+	// column default is.
+	Private bool
 }
 
 // Create inserts a Source and mints SRC-…. The caller records the returned changes.
@@ -142,7 +145,7 @@ func Create(tx *database.Tx, userID []byte, in CreateInput) (Source, []rowchange
 	idBytes := id[:]
 
 	sourceRef, err := database.InsertWithRef(database.Minter(ref.PrefixSource), func(storedRef string) error {
-		_, err := tx.Exec(sqlInsert, idBytes, storedRef, in.SourceTypeID, in.Title, database.NullString(in.Description))
+		_, err := tx.Exec(sqlInsert, idBytes, storedRef, in.SourceTypeID, in.Title, database.NullString(in.Description), boolInt(!in.Private))
 		return err
 	})
 	if errors.Is(err, database.ErrRefsExhausted) {
@@ -161,6 +164,9 @@ func Create(tx *database.Tx, userID []byte, in CreateInput) (Source, []rowchange
 	if in.Description != "" {
 		fields["description"] = in.Description
 	}
+	if in.Private {
+		fields["is_public"] = 0
+	}
 	_, graphChanges, err := evidencegraphs.CreateDefault(tx, idBytes)
 	if err != nil {
 		return Source{}, nil, err
@@ -173,7 +179,7 @@ func Create(tx *database.Tx, userID []byte, in CreateInput) (Source, []rowchange
 		Title:        in.Title,
 		Description:  in.Description,
 		CoverMode:    CoverModeTypeIcon,
-		IsPublic:     true,
+		IsPublic:     !in.Private,
 	}, changes, nil
 }
 

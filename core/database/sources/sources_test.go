@@ -1186,6 +1186,38 @@ func TestSourcePublic(t *testing.T) {
 	if _, _, err := runSetPublic(c, userID, make([]byte, 16), false); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("unknown source err=%v", err)
 	}
+
+	t.Run("created private", func(t *testing.T) {
+		create := func(in CreateInput) (Source, []rowchange.Change) {
+			t.Helper()
+			var changes []rowchange.Change
+			src, _, err := writes.Run(c, writes.Op{Action: "create_source", UserID: userID},
+				func(tx *database.Tx) (Source, []rowchange.Change, error) {
+					src, ch, err := Create(tx, userID, in)
+					changes = ch
+					return src, ch, err
+				})
+			if err != nil {
+				t.Fatal(err)
+			}
+			return src, changes
+		}
+		private, changes := create(CreateInput{SourceTypeID: typeID, Title: "Private diary", Private: true})
+		if private.IsPublic {
+			t.Fatal("Create returned a public source for Private")
+		}
+		read, err := Get(c, private.ID)
+		if err != nil || read.IsPublic {
+			t.Fatalf("Get %+v err=%v", read, err)
+		}
+		if got, ok := changes[0].Fields["is_public"]; !ok || got.New != 0 {
+			t.Fatalf("created change fields %+v want is_public 0", changes[0].Fields)
+		}
+		_, changes = create(CreateInput{SourceTypeID: typeID, Title: "Public diary"})
+		if _, ok := changes[0].Fields["is_public"]; ok {
+			t.Fatalf("a public create recorded is_public: %+v", changes[0].Fields)
+		}
+	})
 }
 
 func TestDateSortKey(t *testing.T) {
