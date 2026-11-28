@@ -1853,6 +1853,8 @@ message ReconciledValueDetail {
   int32 support = 3; // distinct Sources
   int32 against = 4; // negative records that match it
   ConclusionValue value = 5;
+  // distinct Sources behind this value across every link to the same Place, on a provenance sheet's life row; 0 elsewhere
+  int32 pooled_support = 6;
 }
 
 // ReconcilerOutcomeDetail is what the auto-reconciler did with one

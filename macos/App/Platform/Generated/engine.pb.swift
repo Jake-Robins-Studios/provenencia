@@ -6283,6 +6283,9 @@ public nonisolated struct Provenencia_Engine_V1_ReconciledValueDetail: Sendable 
   /// Clears the value of `value`. Subsequent reads from it will return its default value.
   public mutating func clearValue() {self._value = nil}
 
+  /// distinct Sources behind this value across every link to the same Place, on a provenance sheet's life row; 0 elsewhere
+  public var pooledSupport: Int32 = 0
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
@@ -19612,7 +19615,7 @@ nonisolated extension Provenencia_Engine_V1_ConclusionTerm: SwiftProtobuf.Messag
 
 nonisolated extension Provenencia_Engine_V1_ReconciledValueDetail: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".ReconciledValueDetail"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}rank\0\u{1}reason\0\u{1}support\0\u{1}against\0\u{1}value\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}rank\0\u{1}reason\0\u{1}support\0\u{1}against\0\u{1}value\0\u{3}pooled_support\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -19625,6 +19628,7 @@ nonisolated extension Provenencia_Engine_V1_ReconciledValueDetail: SwiftProtobuf
       case 3: try { try decoder.decodeSingularInt32Field(value: &self.support) }()
       case 4: try { try decoder.decodeSingularInt32Field(value: &self.against) }()
       case 5: try { try decoder.decodeSingularMessageField(value: &self._value) }()
+      case 6: try { try decoder.decodeSingularInt32Field(value: &self.pooledSupport) }()
       default: break
       }
     }
@@ -19650,6 +19654,9 @@ nonisolated extension Provenencia_Engine_V1_ReconciledValueDetail: SwiftProtobuf
     try { if let v = self._value {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
     } }()
+    if self.pooledSupport != 0 {
+      try visitor.visitSingularInt32Field(value: self.pooledSupport, fieldNumber: 6)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -19659,6 +19666,7 @@ nonisolated extension Provenencia_Engine_V1_ReconciledValueDetail: SwiftProtobuf
     if lhs.support != rhs.support {return false}
     if lhs.against != rhs.against {return false}
     if lhs._value != rhs._value {return false}
+    if lhs.pooledSupport != rhs.pooledSupport {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

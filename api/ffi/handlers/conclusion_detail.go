@@ -109,11 +109,12 @@ func conclusionFieldProto(f conclusiondetails.Field) *engine.ConclusionField {
 	}
 	for _, v := range f.Values {
 		pf.Values = append(pf.Values, &engine.ReconciledValueDetail{
-			Rank:    int32(v.Rank),
-			Reason:  v.Reason,
-			Support: int32(v.Support),
-			Against: int32(v.Against),
-			Value:   conclusionValueProto(v.Value, nil),
+			Rank:          int32(v.Rank),
+			Reason:        v.Reason,
+			Support:       int32(v.Support),
+			Against:       int32(v.Against),
+			Value:         conclusionValueProto(v.Value, nil),
+			PooledSupport: int32(v.PooledSupport),
 		})
 	}
 	for _, o := range f.Outcomes {

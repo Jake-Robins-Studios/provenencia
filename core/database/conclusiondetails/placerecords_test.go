@@ -8,7 +8,9 @@ import (
 
 	"github.com/Jake-Robins-Studios/provenencia/core/autoreconcile"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/canonicalentities"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusiondetails"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusionsummaries"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/databasetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs/evidencegraphstest"
@@ -516,6 +518,79 @@ func TestProvenanceSheet(t *testing.T) {
 		handles, graphs, srcs := in.Lists()
 		if len(handles)+len(graphs)+len(srcs) != 0 {
 			t.Fatalf("recorded %x %x %x", handles, graphs, srcs)
+		}
+	})
+}
+
+// TestPoolPlaceSupport: a displayed value on a place owner counts the distinct
+// Sources behind it across every owner on the same Place with the same scalar.
+func TestPoolPlaceSupport(t *testing.T) {
+	place := func(id byte) *conclusionsummaries.ChainedPlace {
+		return &conclusionsummaries.ChainedPlace{Entity: canonicalentities.Entity{ID: []byte{id}}}
+	}
+	owner := func(p *conclusionsummaries.ChainedPlace, name string, reason string, sources ...byte) conclusiondetails.OwnerField {
+		f := conclusiondetails.Field{Values: []conclusiondetails.ReconciledValue{{
+			Rank: 1, Reason: reason, Value: conclusiondetails.Value{Scalar: propertymeta.TextScalar(name)},
+		}}}
+		for _, s := range sources {
+			f.Outcomes = append(f.Outcomes, conclusiondetails.Outcome{SourceID: []byte{s}, GroupRank: 1})
+		}
+		return conclusiondetails.OwnerField{Place: p, Field: f}
+	}
+	supports := func(owners []conclusiondetails.OwnerField) []int {
+		var got []int
+		for _, o := range owners {
+			for _, v := range o.Field.Values {
+				got = append(got, v.PooledSupport)
+			}
+		}
+		return got
+	}
+	york, leeds := place(1), place(2)
+	kept := string(autoreconcile.ReasonKept)
+	tests := []struct {
+		name   string
+		owners []conclusiondetails.OwnerField
+		want   []int
+	}{
+		{"two York links, Sources s1 and s2", []conclusiondetails.OwnerField{owner(york, "York", kept, 1), owner(york, "York", kept, 2)}, []int{2, 2}},
+		{"two York links, one Source twice", []conclusiondetails.OwnerField{owner(york, "York", kept, 1), owner(york, "York", kept, 1)}, []int{1, 1}},
+		{"a Leeds link beside York", []conclusiondetails.OwnerField{owner(york, "York", kept, 1, 2), owner(leeds, "Leeds", kept, 3)}, []int{2, 1}},
+		{"a value not displayed", []conclusiondetails.OwnerField{owner(york, "York", "outvoted", 1)}, []int{0}},
+		{"date owners have no Place", []conclusiondetails.OwnerField{owner(nil, "1820", kept, 1, 2)}, []int{0}},
+		{"two scalars on one Place count apart", []conclusiondetails.OwnerField{owner(york, "York", kept, 1), owner(york, "Eboracum", kept, 2, 3)}, []int{1, 2}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			conclusiondetails.PoolPlaceSupport(tc.owners)
+			if got := supports(tc.owners); !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("pooled support %v, want %v", got, tc.want)
+			}
+		})
+	}
+	t.Run("the sheet's life row carries it, the detail read's does not", func(t *testing.T) {
+		f := newFixture(t)
+		person, birth, swift := f.placedBirth(f.source("Register 1"), "Swift Current", nil, nil, nil)
+		f.placedBirth(f.source("Register 2"), "Swift Current", person, birth, swift)
+		f.placedBirth(f.source("Register 3"), "Swift Current", person, birth, swift)
+		sheet, err := conclusiondetails.ProvenanceSheet(f.C, conclusiondetails.SheetRequest{PersonID: person, Kind: conclusiondetails.DerivedRowBirthPlace}, f.C.Graph().NoPageInputs())
+		must(t, err)
+		if len(sheet.Owners) == 0 {
+			t.Fatal("no owners")
+		}
+		for _, o := range sheet.Owners {
+			for _, v := range o.Field.Values {
+				if v.Displayed() && v.PooledSupport != 3 {
+					t.Fatalf("sheet value %+v, want pooled support 3", v)
+				}
+			}
+		}
+		for _, o := range f.placeRows(person) {
+			for _, v := range o.Field.Values {
+				if v.PooledSupport != 0 {
+					t.Fatalf("detail value %+v, want pooled support 0", v)
+				}
+			}
 		}
 	})
 }

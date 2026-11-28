@@ -36,3 +36,6 @@ func DenialFactsOf(f Field) []Outcome {
 	denialFacts(&f)
 	return f.Outcomes
 }
+
+// PoolPlaceSupport is poolPlaceSupport.
+func PoolPlaceSupport(owners []OwnerField) { poolPlaceSupport(owners) }

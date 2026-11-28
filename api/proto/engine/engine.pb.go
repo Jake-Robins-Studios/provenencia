@@ -14084,12 +14084,14 @@ func (x *ConclusionTerm) GetOrigin() string {
 // ReconciledValueDetail is one auto-reconciled value of a Property: displayed
 // (reason "kept") or not, and why.
 type ReconciledValueDetail struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Rank          int32                  `protobuf:"varint,1,opt,name=rank,proto3" json:"rank,omitempty"`
-	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
-	Support       int32                  `protobuf:"varint,3,opt,name=support,proto3" json:"support,omitempty"` // distinct Sources
-	Against       int32                  `protobuf:"varint,4,opt,name=against,proto3" json:"against,omitempty"` // negative records that match it
-	Value         *ConclusionValue       `protobuf:"bytes,5,opt,name=value,proto3" json:"value,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Rank    int32                  `protobuf:"varint,1,opt,name=rank,proto3" json:"rank,omitempty"`
+	Reason  string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	Support int32                  `protobuf:"varint,3,opt,name=support,proto3" json:"support,omitempty"` // distinct Sources
+	Against int32                  `protobuf:"varint,4,opt,name=against,proto3" json:"against,omitempty"` // negative records that match it
+	Value   *ConclusionValue       `protobuf:"bytes,5,opt,name=value,proto3" json:"value,omitempty"`
+	// distinct Sources behind this value across every link to the same Place, on a provenance sheet's life row; 0 elsewhere
+	PooledSupport int32 `protobuf:"varint,6,opt,name=pooled_support,json=pooledSupport,proto3" json:"pooled_support,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -14157,6 +14159,13 @@ func (x *ReconciledValueDetail) GetValue() *ConclusionValue {
 		return x.Value
 	}
 	return nil
+}
+
+func (x *ReconciledValueDetail) GetPooledSupport() int32 {
+	if x != nil {
+		return x.PooledSupport
+	}
+	return 0
 }
 
 // ReconcilerOutcomeDetail is what the auto-reconciler did with one
@@ -24531,13 +24540,14 @@ const file_engine_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03key\x18\x02 \x01(\tR\x03key\x12\x14\n" +
 	"\x05label\x18\x03 \x01(\tR\x05label\x12\x16\n" +
-	"\x06origin\x18\x04 \x01(\tR\x06origin\"\xb5\x01\n" +
+	"\x06origin\x18\x04 \x01(\tR\x06origin\"\xdc\x01\n" +
 	"\x15ReconciledValueDetail\x12\x12\n" +
 	"\x04rank\x18\x01 \x01(\x05R\x04rank\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\x12\x18\n" +
 	"\asupport\x18\x03 \x01(\x05R\asupport\x12\x18\n" +
 	"\aagainst\x18\x04 \x01(\x05R\aagainst\x12<\n" +
-	"\x05value\x18\x05 \x01(\v2&.provenencia.engine.v1.ConclusionValueR\x05value\"\x94\b\n" +
+	"\x05value\x18\x05 \x01(\v2&.provenencia.engine.v1.ConclusionValueR\x05value\x12%\n" +
+	"\x0epooled_support\x18\x06 \x01(\x05R\rpooledSupport\"\x94\b\n" +
 	"\x17ReconcilerOutcomeDetail\x12%\n" +
 	"\x0eobservation_id\x18\x01 \x01(\tR\robservationId\x12'\n" +
 	"\x0fobservation_ref\x18\x02 \x01(\tR\x0eobservationRef\x12\x16\n" +
