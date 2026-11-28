@@ -1,7 +1,7 @@
 # Ship log — S16-83 The date form is smaller and keyboard-first
 
 **Plan:** [`S16-83-date-form-condensed.md`](S16-83-date-form-condensed.md) · **Branch:** `s16-83-date-form-condensed` · **PR:** #1027
-**State:** ready — awaiting the user's look
+**State:** fixing — manual check 3
 
 ## Round 0 — implement
 Head `f49196396`. Gate PASS (orchestrator run, xcode-test included). Report deviations: manual check (§10) and the view-level keyboard evidence (D-3, D-4, D-6, D-13) not run — needs the user's Mac; version 0.53.1 (main already 0.53.0); `monthAndDayCanBeSetWithoutAYear` lost its `applyStartCascade()` call (method deleted); `Field.neighbours` is `@MainActor`; `DateValueDraft.part(_:start:)` is static; old names (`PVInputTabClaim`, `sourceDateReadsAs`, `.date.readsAs`, `hideTime`) left in landed/historical plans and map rows, not rewritten.
@@ -109,6 +109,20 @@ Check: scripts/check-pr.sh PASS; the user opens Calendar and phrase… in the So
 
 ## Manual check 2 — fix
 Head `fc49ff9aa`. Gate PASS (orchestrator run). F-8 done: `advancedSection` is one `HStack(alignment: .top, spacing: Layout.gap)` of two `PVField`s, Calendar 148 pt (`Layout.calendar`) with its select `size: .sm`, `fillsWidth: true`; Phrase fills the rest with its hint. Diff read by orchestrator: matches. Deviation: `PVField`'s caption style (body, medium) is larger than the date parts' `fieldCaption` (micro), as the plan allowed; the hand-set `pvFieldLabel` on Phrase went (PVField sets it). On screen: the user's look.
+
+## Manual check 3 — user feedback (2026-11-28)
+
+The user: Kind (Single date / Between two bounds) and the qualifier (As stated / About / Before / After) stack on two rows, each stretched across the form; the board puts them on one row.
+
+Board (`DateValueEditor.dc.html` lines 93–101): one row, `flex-wrap: wrap`, gap 12 pt; Kind is a segmented `PVChipGroup` 220 pt wide, the qualifier one 240 pt wide, chips `expands`; 220 + 12 + 240 = 472 pt inside the dialog's 480 pt content (520 − 2 × `PVPanelMetrics.bodyInset` 20). The code (`kindRow`) wraps an `HStack(spacing: space4)` and a stacked `VStack` in `ViewThatFits(in: .horizontal)`, with no width on either control; the controls' ideal widths sum past the 480 pt, so the stacked branch wins and each control stretches to the form's width.
+
+### Fix plan M3
+
+**F-9 — Kind and the qualifier on one row at the board's widths** (user, manual check 3)
+Files: `macos/App/Features/Dates/DateValueEditorForm.swift`, `macos/ProvenenciaTests/DateValueEditorFormTests.swift`. Skill: `add-ui-component`, `add-swift-test`.
+Failing test first: `DateValueEditorFormTests/kindAndQualifierFitOneRow` — `Layout.kind + Layout.kindGap + Layout.qualifier <= 480` (the Source date dialog's content width; name it from `SourceDateForm.dialogWidth - 2 * PVPanelMetrics.bodyInset` if both are reachable from the test target), and each control's label fits its share without truncation: host each `PVSegmentedControl` (the form's real items and `.sm` size) in an `NSHostingView` with no width proposal and assert its `fittingSize.width <= Layout.kind` / `<= Layout.qualifier`. If the fitting widths exceed 220 / 240, **stop** and report the measured widths: the board's widths do not fit the app's type, and that is the user's call.
+Do: add `Layout.kind` 220, `Layout.qualifier` 240, `Layout.kindGap` = `PVSpacing.space5` (12). In `kindRow`'s horizontal branch, `HStack(spacing: Layout.kindGap)` with `kindControl.frame(width: Layout.kind)` and `qualifierControl.frame(width: Layout.qualifier)`. Keep the `ViewThatFits` stacked fallback (the composer's ~440 pt value box is narrower than 472 and stacks, per DF-2 "when the form's width allows"); in the stacked branch keep the controls at the same fixed widths, leading-aligned, not stretched. On a range the Kind control alone keeps 220 pt. Keep the existing focus handling and the `ViewThatFits` duplication exactly as is (D-6). Extend the plan's Landed note's F-7 sentence with: "and Kind and the qualifier sit on one row at 220 and 240 pt".
+Check: the test passes; scripts/check-pr.sh PASS; the user opens the Source date dialog (one row) and the composer (stacked, not stretched).
 
 ## Result
 Gate PASS (head `2ccc5fe70`, origin/main unchanged at `6a6854119`) · CI see PR · open: none · follow-ups: MNT-3 → S16-84 on the Spike 16 map (user) · to user: §10 manual check before merge (the only proof of UX-1 in the running app, AC-1.1/1.2/1.6, AC-2.1/2.8/2.9, D-3/D-4/D-6/D-13; watch steps 1 and 4 for the `ViewThatFits` Kind/qualifier focus).
