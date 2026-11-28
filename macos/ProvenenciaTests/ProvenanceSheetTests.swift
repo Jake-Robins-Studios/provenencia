@@ -7,8 +7,10 @@ struct ProvenanceSheetTests {
     private let en = Locale(identifier: "en_US")
 
     private func row(_ id: String, records: Int) -> ReconciledValueRowModel {
-        let outcomes = (0..<records).map { D.outcome("\(id)-\($0)", "kept") }
-        let field = D.field("single", key: "date", label: "Birth date", valueType: "date", [D.value(1, "kept")], outcomes: outcomes)
+        let field = D.field(
+            "single", key: "date", label: "Birth date", valueType: "date", [D.value(1, "kept")],
+            counts: .init(records: records, sources: 1)
+        )
         var model = ReconciledValueRowModel(field: field, locale: en)
         model.id = id
         return model
@@ -126,22 +128,123 @@ struct ProvenanceSheetTests {
         #expect(PVProvenanceFace(field: text) == .text)
     }
 
-    @Test func aRowBuildsItsContentOnCall() {
+    @Test func aRowCountsFromTheEngine() {
         let row = row("life.birthDate", records: 3)
-        #expect(row.recordCount == 3)
-        let content = row.provenanceContent()
-        #expect(content.records.map(\.id) == ["life.birthDate-0", "life.birthDate-1", "life.birthDate-2"])
-        #expect(content.title == "Birth date" && content.shown == row.shown)
-        #expect(content.summary?.hasSuffix("3 records") == true)
-
+        #expect(row.recordCount == 3 && row.hasRecords)
         let empty = ReconciledValueRowModel.empty(id: "x", label: "X", face: .text, emptyText: "")
-        #expect(empty.recordCount == 0)
-        #expect(empty.provenanceContent().records.isEmpty)
+        #expect(empty.recordCount == 0 && !empty.hasRecords)
+        // A life row sums its owners' counts.
+        let owners = [3, 1].enumerated().map { index, records in
+            CatalogOwnerField(
+                entity: CatalogCanonicalEntity(id: "ev\(index)", ref: "EVT-\(index)", subjectTypeID: "t", label: ""),
+                field: D.field("single", key: "date", valueType: "date", [], counts: .init(records: records, sources: 1))
+            )
+        }
+        let life = ReconciledValueRowModel.derived(
+            id: "life.birthDate", label: "Birth date", face: .date, lead: "1822", emptyText: "", mixed: true,
+            owners: owners, shownOwnerID: "ev0", kind: .birthDate, locale: en
+        )
+        #expect(life.recordCount == 4 && life.hasRecords)
+    }
 
-        // A relabelled row and its sheet cannot disagree.
-        var renamed = row
-        renamed.label = "Born"
-        #expect(renamed.provenanceContent().title == "Born")
+    private func ownerOf(
+        _ link: String, _ outcomes: [CatalogReconcilerOutcome], place: CatalogCanonicalEntity,
+        _ name: String = "York", pooledSupport: Int = 0, counts: Bool = true
+    ) -> CatalogOwnerField {
+        CatalogOwnerField(
+            entity: CatalogCanonicalEntity(id: link, ref: "LOC-\(link)", subjectTypeID: "t", label: ""),
+            event: nil, place: CatalogChainedPlace(entity: place, names: [name]),
+            field: D.field(
+                "single", key: "place", label: "place", valueType: "subject",
+                [D.value(1, "kept", pooledSupport: pooledSupport, .text(name))],
+                outcomes: outcomes, counts: counts ? .init(records: outcomes.count, sources: 1) : .init()
+            )
+        )
+    }
+
+    /// AC-2.1 – AC-2.3 (D-1).
+    @Test func aRowAsksForItsOwnRecords() {
+        let name = D.field("single", [D.value(1, "kept")], counts: .init(records: 1, sources: 1))
+        #expect(ReconciledValueRowModel(field: name, locale: en).provenanceRequest(entityID: "P")
+            == .fields([CatalogProvenancePair(ownerID: "P", propertyID: "p-name")]))
+        let start = D.field("single", key: "start_date", valueType: "date", [], counts: .init(records: 1, sources: 1))
+        let end = D.field("single", key: "end_date", valueType: "date", [], counts: .init(records: 0, sources: 0))
+        let period = ReconciledValueRowModel.spanning(
+            id: "period", label: "Period", lead: "1800 – 1850", emptyText: "", fields: [start, end], locale: en
+        )
+        #expect(period.provenanceRequest(entityID: "L") == .fields([
+            CatalogProvenancePair(ownerID: "L", propertyID: "p-start_date"),
+            CatalogProvenancePair(ownerID: "L", propertyID: "p-end_date"),
+        ]))
+        let birthPlace = ReconciledValueRowModel.derived(
+            id: "life.birthPlace", label: "Birth place", face: .place, lead: "York", emptyText: "", mixed: false,
+            owners: [ownerOf("lk1", [D.outcome("a", "kept")], place: CatalogCanonicalEntity(id: "pl1", ref: "PLC-1", subjectTypeID: "t", label: ""))],
+            shownOwnerID: "pl1", kind: .birthPlace, locale: en
+        )
+        #expect(birthPlace.provenanceRequest(entityID: "P") == .derived(personID: "P", kind: .birthPlace))
+        // An Event's place row has no kind to ask with; an empty row has no records.
+        let placeRow = ReconciledValueRowModel.derived(
+            id: "place", label: "Place", face: .place, lead: "York", emptyText: "", mixed: false,
+            owners: [ownerOf("lk1", [D.outcome("a", "kept")], place: CatalogCanonicalEntity(id: "pl1", ref: "PLC-1", subjectTypeID: "t", label: ""))],
+            shownOwnerID: "pl1", locale: en
+        )
+        #expect(placeRow.provenanceRequest(entityID: "E") == nil)
+        #expect(ReconciledValueRowModel.empty(id: "x", label: "X", face: .text, emptyText: "").provenanceRequest(entityID: "E") == nil)
+    }
+
+    /// AC-2.4, AC-2.5 (D-5, D-6, D-9).
+    @Test func contentTakesRecordsFromTheRead() {
+        let page = D.mergedName
+        let row = ReconciledValueRowModel(field: page, locale: en)
+        let before = row.provenanceContent(records: [])
+        #expect(before.groups.isEmpty && before.records.isEmpty)
+        #expect(before.summary == "merged from 2 Sources · 4 records")
+        #expect(before.title == "Name" && before.shown == row.shown)
+
+        let read = CatalogOwnerField(
+            entity: CatalogCanonicalEntity(id: "P", ref: "PER-1", subjectTypeID: "t", label: ""), field: page
+        )
+        let after = row.provenanceContent(records: [read])
+        #expect(after.records.count == 4 && after.summary == before.summary)
+        // A field the read left out has no records; the owner holds no other field's.
+        let other = CatalogOwnerField(
+            entity: read.entity, field: D.field("single", key: "sex_at_birth", [D.value(1, "kept")], counts: .init(records: 1, sources: 1))
+        )
+        #expect(row.provenanceContent(records: [other]).records.isEmpty)
+
+        // A Period whose read lacks end_date shows start_date's records only.
+        let start = D.field("single", key: "start_date", valueType: "date", [D.value(1, "kept")],
+                            outcomes: [D.outcome("s", "kept")], counts: .init(records: 1, sources: 1))
+        let end = D.field("single", key: "end_date", valueType: "date", [], counts: .init(records: 0, sources: 0))
+        let period = ReconciledValueRowModel.spanning(id: "p", label: "Period", lead: "1800", emptyText: "", fields: [start, end], locale: en)
+        let periodRead = [CatalogOwnerField(entity: read.entity, field: start)]
+        #expect(period.provenanceContent(records: periodRead).records.map(\.id) == ["s"])
+        #expect(period.provenanceContent(records: []).records.isEmpty)
+        #expect(period.provenanceContent(records: []).summary == "1 record")
+    }
+
+    @Test func aLifeRowGroupsTheReadsOwnersShownFirst() {
+        let york = CatalogCanonicalEntity(id: "pl1", ref: "PLC-1", subjectTypeID: "t", label: "")
+        let leeds = CatalogCanonicalEntity(id: "pl2", ref: "PLC-2", subjectTypeID: "t", label: "")
+        let pageOwners = [
+            ownerOf("lk1", [D.outcome("a", "kept")], place: york),
+            ownerOf("lk2", [D.outcome("c", "kept")], place: leeds, "Leeds"),
+        ]
+        let row = ReconciledValueRowModel.derived(
+            id: "life.birthPlace", label: "Birth place", face: .place, lead: "York", emptyText: "", mixed: true,
+            owners: pageOwners, shownOwnerID: "pl1", kind: .birthPlace, locale: en
+        )
+        // The read's owners come in another order; the shown owner leads, two links to one Place pool.
+        let read = [
+            ownerOf("lk2", [D.outcome("c", "kept")], place: leeds, "Leeds"),
+            ownerOf("lk1", [D.outcome("a", "kept")], place: york),
+            ownerOf("lk3", [D.outcome("b", "kept")], place: york),
+        ]
+        let content = row.provenanceContent(records: read)
+        #expect(content.groups.map { $0.owner?.id } == ["pl1", "pl2"])
+        #expect(content.groups[0].records.map(\.id) == ["a", "b"])
+        #expect(content.summary == "2 records from 2 Places")
+        #expect(PVProvenanceSheetContent.ownerGroups(read, shownOwnerID: "pl1").map { $0.map(\.entity.id) } == [["lk1", "lk3"], ["lk2"]])
     }
 
     @Test func aRecordComesFromOneOutcome() {
@@ -156,7 +259,7 @@ struct ProvenanceSheetTests {
         #expect(record.readAsIsPhrase == ReconciledValueDisplay.readAsIsPhrase(outcome, propertyKey: field.propertyKey))
         #expect(!record.counted)
         #expect(record.phrase == ReconciledValueDisplay.outcomePhrase(outcome, in: field, locale: en))
-        #expect(record.mark == ReconciledValueDisplay.outcomeMark(outcome, in: field))
+        #expect(record.mark == ReconciledValueDisplay.outcomeMark(outcome))
         #expect(record.citation == CitationLineDisplay.parts(outcome))
         #expect(record.observationRef == "OBS-bible" && record.subjectRef == "CPR-bible")
     }
@@ -180,7 +283,7 @@ struct ProvenanceSheetTests {
 
     @Test func aGalleryRecordNeedsNoField() {
         let kept = PVProvenanceSheetContent.Record(outcome: D.outcome("k", "kept", title: "Register"), in: nil, locale: en)
-        #expect(ReconciledValueDisplay.counted(kept.outcome, in: nil))
+        #expect(ReconciledValueDisplay.counted(kept.outcome))
         #expect(kept.counted && kept.phrase == "kept" && kept.mark == .check)
         #expect(kept.readAs.isEmpty && !kept.readAsIsPhrase)
         let expected = [kept.citation.line, kept.phrase, kept.observationRef, kept.subjectRef]
@@ -232,85 +335,67 @@ struct ProvenanceSheetTests {
     @Test func placeOwnersEachHoldOneValueWithoutHeadings() {
         let toronto = CatalogCanonicalEntity(id: "pl1", ref: "PLC-1", subjectTypeID: "t", label: "")
         let yorkville = CatalogCanonicalEntity(id: "pl2", ref: "PLC-2", subjectTypeID: "t", label: "")
-        func owner(_ place: CatalogCanonicalEntity, _ name: String, _ id: String, link: String? = nil) -> CatalogOwnerField {
-            CatalogOwnerField(
-                entity: CatalogCanonicalEntity(id: link ?? "lk-\(id)", ref: "LOC-\(id)", subjectTypeID: "t", label: ""),
-                event: nil, place: CatalogChainedPlace(entity: place, names: [name]),
-                field: D.field(
-                    "single", key: "place", label: "place", valueType: "subject", [D.value(1, "kept", .text(name))],
-                    outcomes: [D.outcome(id, "kept")]
-                )
-            )
-        }
+        let owners = [
+            ownerOf("lk-t", [D.outcome("t", "kept")], place: toronto, "Toronto"),
+            ownerOf("lk-y", [D.outcome("y", "kept")], place: yorkville, "Yorkville"),
+        ]
         let row = ReconciledValueRowModel.derived(
             id: "life.deathPlace", label: "Death place", face: .place, lead: "Toronto", emptyText: "", mixed: true,
-            owners: [owner(toronto, "Toronto", "t"), owner(yorkville, "Yorkville", "y")], shownOwnerID: "pl1",
-            kind: .deathPlace, locale: en
+            owners: owners, shownOwnerID: "pl1", kind: .deathPlace, locale: en
         )
-        #expect(row.provenanceContent().groups.count == 2)
-        #expect(row.provenanceContent().groups.allSatisfy { $0.values.count == 1 && $0.values[0].heading == nil })
+        let content = row.provenanceContent(records: owners)
+        #expect(content.groups.count == 2)
+        #expect(content.groups.allSatisfy { $0.values.count == 1 && $0.values[0].heading == nil })
     }
 
     @Test func twoLinksToOnePlaceFormOneGroup() {
         let york = CatalogCanonicalEntity(id: "pl1", ref: "PLC-1", subjectTypeID: "t", label: "")
         let leeds = CatalogCanonicalEntity(id: "pl2", ref: "PLC-2", subjectTypeID: "t", label: "")
-        func owner(_ link: String, _ id: String, place: CatalogCanonicalEntity = york, _ name: String = "York") -> CatalogOwnerField {
-            CatalogOwnerField(
-                entity: CatalogCanonicalEntity(id: link, ref: "LOC-\(link)", subjectTypeID: "t", label: ""),
-                event: nil, place: CatalogChainedPlace(entity: place, names: [name]),
-                field: D.field(
-                    "single", key: "place", label: "place", valueType: "subject", [D.value(1, "kept", .text(name))],
-                    outcomes: [D.outcome(id, "kept")]
-                )
-            )
-        }
         // York is the only Place: no group line, and the summary counts records.
+        let onlyOwners = [ownerOf("lk1", [D.outcome("a", "kept")], place: york), ownerOf("lk2", [D.outcome("b", "kept")], place: york)]
         let only = ReconciledValueRowModel.derived(
             id: "life.birthPlace", label: "Birth place", face: .place, lead: "York", emptyText: "", mixed: false,
-            owners: [owner("lk1", "a"), owner("lk2", "b")], shownOwnerID: "pl1", kind: .birthPlace, locale: en
+            owners: onlyOwners, shownOwnerID: "pl1", kind: .birthPlace, locale: en
         )
-        #expect(only.provenanceContent().groups.count == 1 && only.provenanceContent().groups[0].owner == nil)
-        #expect(only.provenanceContent().groups[0].records.count == 2)
-        #expect(only.provenanceContent().summary == "2 records")
+        let onlyContent = only.provenanceContent(records: onlyOwners)
+        #expect(onlyContent.groups.count == 1 && onlyContent.groups[0].owner == nil)
+        #expect(onlyContent.groups[0].records.count == 2)
+        #expect(onlyContent.summary == "2 records")
 
         // York by two links and Leeds: one group each, York's holding both links' records in link order.
+        let bothOwners = [
+            ownerOf("lk1", [D.outcome("a", "kept")], place: york),
+            ownerOf("lk3", [D.outcome("c", "kept")], place: leeds, "Leeds"),
+            ownerOf("lk2", [D.outcome("b", "kept")], place: york),
+        ]
         let both = ReconciledValueRowModel.derived(
             id: "life.birthPlace", label: "Birth place", face: .place, lead: "York", emptyText: "", mixed: true,
-            owners: [owner("lk1", "a"), owner("lk3", "c", place: leeds, "Leeds"), owner("lk2", "b")],
-            shownOwnerID: "pl1", kind: .birthPlace, locale: en
+            owners: bothOwners, shownOwnerID: "pl1", kind: .birthPlace, locale: en
         )
-        #expect(both.provenanceContent().groups.map { $0.owner?.id } == ["pl1", "pl2"])
-        #expect(both.provenanceContent().groups.map { $0.owner?.title } == ["York", "Leeds"])
-        #expect(both.provenanceContent().groups[0].records.map(\.id) == ["a", "b"])
-        #expect(both.provenanceContent().summary == "3 records from 2 Places")
+        let content = both.provenanceContent(records: bothOwners)
+        #expect(content.groups.map { $0.owner?.id } == ["pl1", "pl2"])
+        #expect(content.groups.map { $0.owner?.title } == ["York", "Leeds"])
+        #expect(content.groups[0].records.map(\.id) == ["a", "b"])
+        #expect(content.summary == "3 records from 2 Places")
     }
 
+    /// AC-3.5 (D-8): the pooled heading counts what Go sent for the value.
     @Test func aPooledPlaceGroupHasOneHeadingPerValue() {
         let york = CatalogCanonicalEntity(id: "pl1", ref: "PLC-1", subjectTypeID: "t", label: "")
         let leeds = CatalogCanonicalEntity(id: "pl2", ref: "PLC-2", subjectTypeID: "t", label: "")
-        func owner(
-            _ link: String, _ outcomes: [CatalogReconcilerOutcome],
-            place: CatalogCanonicalEntity = york, _ name: String = "York"
-        ) -> CatalogOwnerField {
-            CatalogOwnerField(
-                entity: CatalogCanonicalEntity(id: link, ref: "LOC-\(link)", subjectTypeID: "t", label: ""),
-                event: nil, place: CatalogChainedPlace(entity: place, names: [name]),
-                field: D.field(
-                    "single", key: "place", label: "place", valueType: "subject", [D.value(1, "kept", .text(name))],
-                    outcomes: outcomes
-                )
+        func row(pooled: Int) -> PVProvenanceSheetContent {
+            let owners = [
+                ownerOf("lk1", [D.outcome("a", "kept", source: "s1"), D.outcome("d", "lost", rank: nil, source: "s1")], place: york, pooledSupport: pooled),
+                ownerOf("lk2", [D.outcome("b", "kept", source: "s2")], place: york, pooledSupport: pooled),
+                ownerOf("lk3", [D.outcome("c", "kept")], place: leeds, "Leeds", pooledSupport: 1),
+            ]
+            let model = ReconciledValueRowModel.derived(
+                id: "life.birthPlace", label: "Birth place", face: .place, lead: "York", emptyText: "", mixed: true,
+                owners: owners, shownOwnerID: "pl1", kind: .birthPlace, locale: en
             )
+            return model.provenanceContent(records: owners)
         }
-        let row = ReconciledValueRowModel.derived(
-            id: "life.birthPlace", label: "Birth place", face: .place, lead: "York", emptyText: "", mixed: true,
-            owners: [
-                owner("lk1", [D.outcome("a", "kept", source: "s1"), D.outcome("d", "lost", rank: nil, source: "s1")]),
-                owner("lk2", [D.outcome("b", "kept", source: "s2")]),
-                owner("lk3", [D.outcome("c", "kept")], place: leeds, "Leeds"),
-            ],
-            shownOwnerID: "pl1", kind: .birthPlace, locale: en
-        )
-        let values = row.provenanceContent().groups[0].values
+        let values = row(pooled: 2).groups[0].values
         #expect(values.map { $0.records.map(\.id) } == [["a", "b"], ["d"]])
         guard case .value(let heading)? = values[0].heading else {
             Issue.record("expected a value heading")
@@ -319,17 +404,7 @@ struct ProvenanceSheetTests {
         #expect(heading.text == "York" && heading.support == L10n.Conclusions.sourceCount(2))
         #expect(values[1].heading == .otherRecords)
 
-        // Two links whose kept records cite the same Source: one Source, not two.
-        let shared = ReconciledValueRowModel.derived(
-            id: "life.birthPlace", label: "Birth place", face: .place, lead: "York", emptyText: "", mixed: true,
-            owners: [
-                owner("lk1", [D.outcome("a", "kept", source: "s1"), D.outcome("d", "lost", rank: nil, source: "s1")]),
-                owner("lk2", [D.outcome("b", "kept", source: "s1")]),
-                owner("lk3", [D.outcome("c", "kept")], place: leeds, "Leeds"),
-            ],
-            shownOwnerID: "pl1", kind: .birthPlace, locale: en
-        )
-        guard case .value(let sharedHeading)? = shared.provenanceContent().groups[0].values[0].heading else {
+        guard case .value(let sharedHeading)? = row(pooled: 1).groups[0].values[0].heading else {
             Issue.record("expected a value heading")
             return
         }
@@ -339,34 +414,39 @@ struct ProvenanceSheetTests {
     @Test func theSummarySaysOnlyWhatTheRowKnows() {
         let merged = D.field("merged", [
             D.value(1, "kept", support: 3, against: 1, .name(D.jamesRobins)),
-        ], outcomes: (0..<4).map { D.outcome("r\($0)", "kept", source: "s\($0 % 3)") })
-        #expect(ReconciledValueRowModel(field: merged, locale: en).provenanceContent().summary
+        ], counts: .init(records: 4, sources: 3))
+        #expect(ReconciledValueRowModel(field: merged, locale: en).provenanceContent(records: []).summary
             == "merged from 3 Sources · 1 record disagrees · 4 records")
 
         let single = D.field("single", [
             D.value(1, "kept", support: 1, .name(D.jamesRobins)),
-        ], outcomes: [D.outcome("r0", "kept", source: "s0")])
-        #expect(ReconciledValueRowModel(field: single, locale: en).provenanceContent().summary?.hasPrefix("from 1 Source") == true)
+        ], counts: .init(records: 1, sources: 1))
+        #expect(ReconciledValueRowModel(field: single, locale: en).provenanceContent(records: []).summary?.hasPrefix("from 1 Source") == true)
 
         let first = CatalogCanonicalEntity(id: "ev1", ref: "EVT-1", subjectTypeID: "t", label: "")
         let second = CatalogCanonicalEntity(id: "ev2", ref: "EVT-2", subjectTypeID: "t", label: "")
-        func owner(_ entity: CatalogCanonicalEntity, _ ids: [String]) -> CatalogOwnerField {
+        func owner(_ entity: CatalogCanonicalEntity, records: Int) -> CatalogOwnerField {
             CatalogOwnerField(entity: entity, event: nil, field: D.field(
-                "single", key: "date", label: "date", valueType: "date", [], outcomes: ids.map { D.outcome($0, "kept") }
+                "single", key: "date", label: "date", valueType: "date", [], counts: .init(records: records, sources: 1)
             ))
         }
         let two = ReconciledValueRowModel.derived(
             id: "life.birthDate", label: "Birth date", face: .date, lead: "1822", emptyText: "", mixed: true,
-            owners: [owner(first, ["a", "b", "c"]), owner(second, ["d"])], shownOwnerID: "ev1",
+            owners: [owner(first, records: 3), owner(second, records: 1)], shownOwnerID: "ev1",
             kind: .birthDate, locale: en
         )
-        #expect(two.provenanceContent().summary == "4 records from 2 birth events")
+        #expect(two.provenanceContent(records: []).summary == "4 records from 2 birth events")
         let one = ReconciledValueRowModel.derived(
             id: "life.birthDate", label: "Birth date", face: .date, lead: "1822", emptyText: "", mixed: false,
-            owners: [owner(first, ["a", "b"])], shownOwnerID: "ev1", kind: .birthDate, locale: en
+            owners: [owner(first, records: 2)], shownOwnerID: "ev1", kind: .birthDate, locale: en
         )
-        #expect(one.provenanceContent().summary == "2 records")
-        #expect(ReconciledValueRowModel.empty(id: "x", label: "X", face: .text, emptyText: "").provenanceContent().summary == nil)
+        #expect(one.provenanceContent(records: []).summary == "2 records")
+        #expect(ReconciledValueRowModel.empty(id: "x", label: "X", face: .text, emptyText: "").provenanceContent(records: []).summary == nil)
+    }
+
+    @Test func theLoadAreaNamesRecords() {
+        #expect(L10n.string(L10n.ProvenanceSheet.recordsLoading) == "Loading records")
+        #expect(L10n.string(L10n.ProvenanceSheet.recordsFailedTitle) == "Records could not be read")
     }
 
     // MARK: The fold (S15-27)

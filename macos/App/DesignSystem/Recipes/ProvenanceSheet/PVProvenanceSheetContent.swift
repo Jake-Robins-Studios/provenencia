@@ -47,8 +47,8 @@ enum PVProvenanceLink: Equatable {
 }
 
 /// What a provenance sheet says: a value, the records behind it, and how they
-/// group. Pure; built from the wire records by the assembler below, so a caller
-/// holds the wire records and asks for a sheet when one opens (S13-36).
+/// group. Pure; built from a row's header and the records its sheet read, by the
+/// assembler below (S13-36).
 ///
 /// No view code goes in an extension of this type: its nested `Group` shadows
 /// SwiftUI's.
@@ -260,9 +260,9 @@ extension PVProvenanceSheetContent.Record {
             readAsIsPhrase: field.map {
                 ReconciledValueDisplay.readAsIsPhrase(outcome, propertyKey: $0.propertyKey)
             } ?? false,
-            counted: ReconciledValueDisplay.counted(outcome, in: field),
+            counted: ReconciledValueDisplay.counted(outcome),
             phrase: ReconciledValueDisplay.outcomePhrase(outcome, in: field, locale: locale),
-            mark: ReconciledValueDisplay.outcomeMark(outcome, in: field),
+            mark: ReconciledValueDisplay.outcomeMark(outcome),
             observationRef: outcome.observationRef,
             subjectRef: outcome.subjectRef,
             outcome: outcome,
@@ -305,65 +305,58 @@ extension PVProvenanceSheetContent.Shown {
 
 extension PVProvenanceSheetContent {
     /// One field's provenance: its state line, what it counts against, and its
-    /// records in runs by displayed value.
+    /// records in runs by displayed value. The summary reads `field` (the page's, with its
+    /// counts) and `recordCount`; the records and the value headings both read `recordsField`,
+    /// the sheet's read of the field, one snapshot. A nil `recordsField` has no groups yet.
     init(
         field: CatalogConclusionField,
+        recordsField: CatalogConclusionField?,
+        recordCount: Int,
         title: String,
         shown: Shown,
         locale: Locale = .autoupdatingCurrent,
         orders: NameFormatOrders = NameFormatOrders()
     ) {
-        let records = Self.records([field], locale: locale, orders: orders)
+        let records = recordsField.map { Self.records([$0], locale: locale, orders: orders) } ?? []
         self.init(
             title: title,
             shown: shown,
             summary: Self.joinSummary([
                 field.state == .single
-                    ? L10n.ProvenanceSheet.stateSingle(ReconciledValueDisplay.sourceCountLine(ReconciledValueDisplay.sourceCount(field)))
+                    ? L10n.ProvenanceSheet.stateSingle(ReconciledValueDisplay.sourceCountLine(field.recordCounts.sources))
                     : ReconciledValueDisplay.spokenState(field),
                 ReconciledValueDisplay.againstLine(field),
-                records.isEmpty ? nil : L10n.ProvenanceSheet.recordCount(records.count),
+                recordCount > 0 ? L10n.ProvenanceSheet.recordCount(recordCount) : nil,
             ]),
-            groups: [Group(
-                owner: nil,
-                values: Self.valueGroups(records, field: field, locale: locale, orders: orders)
-            )]
+            groups: recordsField.map { recordsField in
+                [Group(owner: nil, values: Self.valueGroups(records, field: recordsField, locale: locale, orders: orders))]
+            } ?? []
         )
     }
 
     /// Every record of several fields in one group with no heading, as a row
-    /// whose value spans them (a start–end date).
+    /// whose value spans them (a start–end date). The summary counts `recordCount`.
     static func spanning(
-        fields: [CatalogConclusionField],
+        recordFields: [CatalogConclusionField],
+        recordCount: Int,
         title: String,
         shown: Shown,
         locale: Locale = .autoupdatingCurrent,
         orders: NameFormatOrders = NameFormatOrders()
     ) -> Self {
-        let records = Self.records(fields, locale: locale, orders: orders)
+        let records = Self.records(recordFields, locale: locale, orders: orders)
         return Self(
             title: title,
             shown: shown,
-            summary: records.isEmpty ? nil : L10n.ProvenanceSheet.recordCount(records.count),
-            groups: [Group(owner: nil, records: records)]
+            summary: recordCount > 0 ? L10n.ProvenanceSheet.recordCount(recordCount) : nil,
+            groups: records.isEmpty ? [] : [Group(owner: nil, records: records)]
         )
     }
 
-    /// A row read off the canonical graph. Its records are the owning handles'
-    /// fields: the shown owner's first, each under a group line when there are
-    /// several or when the group is not the shown owner's, and only the shown
-    /// owner's records in primary ink.
-    static func derived(
-        owners: [CatalogOwnerField],
-        shownOwnerID: String?,
-        kind: CatalogDerivedRowKind?,
-        title: String,
-        shown: Shown,
-        locale: Locale = .autoupdatingCurrent,
-        orders: NameFormatOrders = NameFormatOrders()
-    ) -> Self {
-        // One group per Place (or per other owner): the links to one Place
-        // pool their records, in link order, the shown owner's group first.
+    /// The owners as the sheet groups them: one group per Place (or per other owner), the
+    /// links to one Place pooling their records in link order, the shown owner's group first.
+    /// The one pooling rule, for the header's owner count and the groups.
+    static func ownerGroups(_ owners: [CatalogOwnerField], shownOwnerID: String?) -> [[CatalogOwnerField]] {
         let ordered = owners.filter { $0.ownerID == shownOwnerID } + owners.filter { $0.ownerID != shownOwnerID }
         var ownerIDs: [String] = []
         var membersOf: [String: [CatalogOwnerField]] = [:]
@@ -371,8 +364,27 @@ extension PVProvenanceSheetContent {
             if membersOf[owner.ownerID] == nil { ownerIDs.append(owner.ownerID) }
             membersOf[owner.ownerID, default: []].append(owner)
         }
-        let groups = ownerIDs.map { ownerID in
-            let members = membersOf[ownerID] ?? []
+        return ownerIDs.map { membersOf[$0] ?? [] }
+    }
+
+    /// A row read off the canonical graph. Its records are the sheet's read of the owning
+    /// handles' fields: the shown owner's first, each under a group line when there are several
+    /// or when the group is not the shown owner's, and only the shown owner's records in primary
+    /// ink. The summary says `recordCount` and, from several owners, `ownerCount` of them.
+    static func derived(
+        owners: [CatalogOwnerField],
+        ownerCount: Int,
+        recordCount: Int,
+        shownOwnerID: String?,
+        kind: CatalogDerivedRowKind?,
+        title: String,
+        shown: Shown,
+        locale: Locale = .autoupdatingCurrent,
+        orders: NameFormatOrders = NameFormatOrders()
+    ) -> Self {
+        let owned = Self.ownerGroups(owners, shownOwnerID: shownOwnerID)
+        let groups = owned.map { members in
+            let ownerID = members[0].ownerID
             let memberRecords = members.map { member -> [Record] in
                 var records = Self.records([member.field], locale: locale, orders: orders)
                 if ownerID != shownOwnerID {
@@ -381,9 +393,9 @@ extension PVProvenanceSheetContent {
                 return records
             }
             return Group(
-                owner: ownerIDs.count > 1 || ownerID != shownOwnerID
+                owner: owned.count > 1 || ownerID != shownOwnerID
                     ? Self.ownerLine(
-                        members[0], isShownOwner: ownerIDs.count > 1 && ownerID == shownOwnerID,
+                        members[0], isShownOwner: owned.count > 1 && ownerID == shownOwnerID,
                         locale: locale, orders: orders
                     )
                     : nil,
@@ -394,12 +406,11 @@ extension PVProvenanceSheetContent {
                     )
             )
         }
-        let recordCount = groups.reduce(0) { $0 + $1.records.count }
         let summary: String?
         if recordCount == 0 {
             summary = nil
-        } else if groups.count > 1, let kind {
-            summary = L10n.ProvenanceSheet.recordsFromOwners(records: recordCount, owners: groups.count, kind: kind)
+        } else if ownerCount > 1, let kind {
+            summary = L10n.ProvenanceSheet.recordsFromOwners(records: recordCount, owners: ownerCount, kind: kind)
         } else {
             summary = L10n.ProvenanceSheet.recordCount(recordCount)
         }
@@ -484,41 +495,33 @@ extension PVProvenanceSheetContent {
 
     /// The records of several links to one Place, each link's own runs merged by
     /// displayed value: runs of the same value join in link order under one
-    /// heading counting the distinct Sources of their outcomes, and records under no displayed
+    /// heading with the Source count Go sent for the value, and records under no displayed
     /// value join last under one "other records" heading.
     private static func pooledValueGroups(
         _ members: [(field: CatalogConclusionField, records: [Record])],
         locale: Locale,
         orders: NameFormatOrders
     ) -> [Group.ValueGroup] {
-        var valueRuns: [(value: Value, support: Int, outcomes: [CatalogReconcilerOutcome], records: [Record])] = []
+        var valueRuns: [(value: Value, records: [Record])] = []
         var other: [Record] = []
         for member in members {
-            var counted: Set<String> = []
             for run in Self.runs(of: member.records) {
                 guard run.rank > 0, let value = member.field.displayedValues.first(where: { $0.rank == run.rank }) else {
                     other += run.records
                     continue
                 }
-                let displayed = Self.value(value, propertyKey: member.field.propertyKey, locale: locale, orders: orders)
-                let outcomes = member.field.outcomes.filter { $0.groupRank == run.rank }
+                var displayed = Self.value(value, propertyKey: member.field.propertyKey, locale: locale, orders: orders)
+                displayed.support = ReconciledValueDisplay.sourceCountLine(value.pooledSupport)
                 if let index = valueRuns.firstIndex(where: { $0.value.text == displayed.text }) {
                     valueRuns[index].records += run.records
-                    valueRuns[index].outcomes += outcomes
-                    if counted.insert(displayed.text).inserted { valueRuns[index].support += value.support }
                 } else {
-                    counted.insert(displayed.text)
-                    valueRuns.append((displayed, value.support, outcomes, run.records))
+                    valueRuns.append((displayed, run.records))
                 }
             }
         }
         let showsHeadings = valueRuns.count + (other.isEmpty ? 0 : 1) > 1 || valueRuns.isEmpty
-        var groups = valueRuns.map { run -> Group.ValueGroup in
-            var value = run.value
-            value.support = ReconciledValueDisplay.sourceCountLine(
-                ReconciledValueDisplay.distinctSourceCount(of: run.outcomes, fallback: run.support)
-            )
-            return .init(heading: showsHeadings ? .value(value) : nil, records: run.records)
+        var groups = valueRuns.map { run in
+            Group.ValueGroup(heading: showsHeadings ? .value(run.value) : nil, records: run.records)
         }
         if !other.isEmpty { groups.append(.init(heading: showsHeadings ? .otherRecords : nil, records: other)) }
         return groups

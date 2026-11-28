@@ -17,7 +17,7 @@ struct PersonDetailView: View {
             userID: userID,
             make: { PersonDetailContent(detail: $0, orders: $1) },
             secondary: { PersonDetailLifeLines(lines: $0.lifeLines) },
-            pageSections: { PersonDetailSections(entityId: entityId, userID: userID, content: $0, context: $1) }
+            pageSections: { PersonDetailSections(userID: userID, content: $0, context: $1) }
         )
     }
 }
@@ -25,7 +25,6 @@ struct PersonDetailView: View {
 /// The Person page below its header: the open section (Vitals, Gallery, or a section that
 /// arrives later). The page owns which section is open and passes it in the context.
 private struct PersonDetailSections: View {
-    let entityId: String
     let userID: String
     let content: PersonDetailContent
     let context: ConclusionDetailPageSectionsContext
@@ -37,6 +36,7 @@ private struct PersonDetailSections: View {
         case .vitals:
             ConclusionDetailRowsSection(
                 rows: content.rows,
+                entityId: context.entityId,
                 refreshing: context.refreshing,
                 title: nil
             )
@@ -58,11 +58,11 @@ private struct PersonDetailSections: View {
                 )
             }
         case .family:
-            PersonFamilySection(entityId: entityId, pageIdentifier: context.pageIdentifier)
+            PersonFamilySection(entityId: context.entityId, pageIdentifier: context.pageIdentifier)
         case .timeline:
-            PersonTimelineSection(entityId: entityId, pageIdentifier: context.pageIdentifier)
+            PersonTimelineSection(entityId: context.entityId, pageIdentifier: context.pageIdentifier)
         case .sources:
-            PersonSourcesSection(entityId: entityId, userID: userID, pageIdentifier: context.pageIdentifier)
+            PersonSourcesSection(entityId: context.entityId, userID: userID, pageIdentifier: context.pageIdentifier)
         }
     }
 }

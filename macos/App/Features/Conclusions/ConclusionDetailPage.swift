@@ -120,6 +120,8 @@ extension FocusedValues {
 
 /// What the `pageSections` slot receives beside the content.
 struct ConclusionDetailPageSectionsContext {
+    /// The page's entity.
+    var entityId: String
     var projectDir: String
     var refreshing: Bool
     var pageIdentifier: String
@@ -241,6 +243,7 @@ struct ConclusionDetailDefaultPageSections<Content: ConclusionDetailBody>: View 
     var body: some View {
         ConclusionDetailRowsSection(
             rows: content.rows,
+            entityId: context.entityId,
             refreshing: context.refreshing,
             title: L10n.Conclusions.detailsSection
         )
@@ -347,6 +350,7 @@ private struct ConclusionDetailLoaded<Content: ConclusionDetailBody, Secondary: 
                             pageSections(
                                 content,
                                 ConclusionDetailPageSectionsContext(
+                                    entityId: entityId,
                                     projectDir: projectDir,
                                     refreshing: refreshing,
                                     pageIdentifier: pageIdentifier,

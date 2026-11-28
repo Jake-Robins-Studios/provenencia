@@ -129,7 +129,7 @@ struct PersonDetailContent: ConclusionDetailBody {
                 shownOwnerID: shownOwnerID, kind: kind, locale: locale, orders: orders
             ))
         }
-        for field in fields where field.propertyKey != SeededPropertyKey.name && !field.outcomes.isEmpty {
+        for field in fields where field.propertyKey != SeededPropertyKey.name && field.hasRecords {
             rows.append(ReconciledValueRowModel(field: field, locale: locale, orders: orders))
         }
         return rows

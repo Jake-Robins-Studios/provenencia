@@ -1,11 +1,12 @@
 import SwiftUI
 
-/// A provenance sheet with its citations: it holds the sheet's one cached read (the renders of the
-/// records' Citations) while the sheet is shown, sets each record's render when they arrive, and
-/// releases the read when the sheet goes (`WorkspaceSession.release`). The `PVProvenanceSheet`
-/// recipe names no session, so this snowflake maps the read to its load state.
+/// A provenance sheet with its records: it holds the sheet's one cached read, its row's records with
+/// their citations, while the sheet is shown, and releases the read when the sheet goes
+/// (`WorkspaceSession.release`). The `PVProvenanceSheet` recipe names no session, so this snowflake
+/// maps the read to its load state; the header draws from the row before the read answers.
 struct ProvenanceSheetHost: View {
-    let content: PVProvenanceSheetContent
+    let row: ReconciledValueRowModel
+    let request: CatalogProvenanceRequest
     let columns: PVProvenanceColumns
     let idPrefix: String
     let open: (PVProvenanceSheetContent.Record, PVProvenanceLink) -> Void
@@ -13,7 +14,7 @@ struct ProvenanceSheetHost: View {
     @Environment(WorkspaceSession.self) private var session
 
     private var key: CatalogQueryKey {
-        .provenanceSheet(project: session.projectKey, citationIds: content.records.map(\.outcome.citationID))
+        .provenanceSheet(project: session.projectKey, request: request)
     }
 
     var body: some View {
@@ -21,7 +22,7 @@ struct ProvenanceSheetHost: View {
         // A new key reads nil (loading) at once, with no stale frame.
         let handle: QueryHandle<CatalogProvenanceSheetRead>? = session.queryHandle(key)
         PVProvenanceSheet(
-            content: withRenders(key, handle: handle),
+            content: content(key, handle: handle),
             columns: columns,
             idPrefix: idPrefix,
             open: open,
@@ -33,14 +34,14 @@ struct ProvenanceSheetHost: View {
         .onDisappear { session.release(key) }
     }
 
-    /// The content with each record's render set, built once per change of the key's
-    /// revision or the row's content (`conclusionContent`); the content itself until the read has a value.
-    private func withRenders(
+    /// The content with the read's records and renders, built once per change of the key's
+    /// revision or the row (`conclusionContent`); the row's header alone until the read has a value.
+    private func content(
         _ key: CatalogQueryKey, handle: QueryHandle<CatalogProvenanceSheetRead>?
     ) -> PVProvenanceSheetContent {
-        guard let value = handle?.value else { return content }
-        return session.conclusionContent(key, inputs: [key], extra: content, value: value) { value, content in
-            content.withRenders(value.citations)
+        guard let value = handle?.value else { return row.provenanceContent(records: []) }
+        return session.conclusionContent(key, inputs: [key], extra: row, value: value) { value, row in
+            row.provenanceContent(records: value.owners).withRenders(value.citations)
         }
     }
 }

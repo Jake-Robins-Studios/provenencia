@@ -54,7 +54,7 @@ struct PlaceDetailContent: ConclusionDetailBody {
     static func namesRow(_ field: CatalogConclusionField?, locale: Locale) -> ReconciledValueRowModel {
         let label = L10n.string(L10n.Conclusions.placeNames)
         let empty = L10n.string(L10n.Conclusions.emptyPlaceNames)
-        guard let field, !field.outcomes.isEmpty else {
+        guard let field, field.hasRecords else {
             return .empty(id: "names", label: label, face: .text, emptyText: empty)
         }
         var row = ReconciledValueRowModel(field: field, locale: locale)

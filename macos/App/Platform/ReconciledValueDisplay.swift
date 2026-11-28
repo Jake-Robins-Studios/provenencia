@@ -21,28 +21,9 @@ enum ReconciledValueDisplay {
         }
     }
 
-    /// Sources behind the shown values: the lead value's support, or for a
-    /// mixed field the distinct Sources across every shown value (one Source
-    /// can support two values of a multi-valued Property).
-    static func sourceCount(_ field: CatalogConclusionField) -> Int {
-        let shown = field.displayedValues
-        guard shown.count > 1 else { return shown.first?.support ?? 0 }
-        return distinctSourceCount(
-            of: field.outcomes.filter { $0.groupRank > 0 },
-            fallback: shown.reduce(0) { $0 + $1.support }
-        )
-    }
-
     /// "1 Source", "3 Sources": the count as the recipe and the rows word it.
     static func sourceCountLine(_ count: Int) -> String {
         L10n.Conclusions.sourceCount(count)
-    }
-
-    /// The distinct Sources among these outcomes; `fallback` (summed support)
-    /// when none carries a Source id.
-    static func distinctSourceCount(of outcomes: [CatalogReconcilerOutcome], fallback: Int) -> Int {
-        let sources = Set(outcomes.map(\.sourceID))
-        return sources.isEmpty ? fallback : sources.count
     }
 
     /// "1 Source", "3 Sources", "by you"; nil for an empty field.
@@ -50,7 +31,7 @@ enum ReconciledValueDisplay {
         switch field.state {
         case .empty: nil
         case .concluded: L10n.string(L10n.Conclusions.countConcluded)
-        default: sourceCountLine(sourceCount(field))
+        default: sourceCountLine(field.recordCounts.sources)
         }
     }
 
@@ -136,19 +117,14 @@ enum ReconciledValueDisplay {
     }
 
     /// The records that went into the shown value, read in primary ink; the
-    /// rest are secondary.
-    /// A record with no field (a likeness has none) denies nothing.
-    static func counted(_ outcome: CatalogReconcilerOutcome, in field: CatalogConclusionField?) -> Bool {
+    /// rest are secondary. A negative record counts when the engine says it
+    /// denied a value; a record with no field (a likeness) denies nothing.
+    static func counted(_ outcome: CatalogReconcilerOutcome) -> Bool {
         switch outcome.reason {
         case .kept, .folded: true
-        case .against: deniedSomething(outcome, in: field)
+        case .against: outcome.deniedAValue
         default: false
         }
-    }
-
-    /// A negative record that eliminated a value in this field.
-    static func deniedSomething(_ outcome: CatalogReconcilerOutcome, in field: CatalogConclusionField?) -> Bool {
-        field?.outcomes.contains { $0.deniedByObservationID == outcome.observationID } ?? false
     }
 
     /// What happened to one record, in the field it belongs to (S9-D5):
@@ -183,15 +159,15 @@ enum ReconciledValueDisplay {
                 ? L10n.string(L10n.Conclusions.outcomeWeak)
                 : L10n.Conclusions.outcomeWeakBecause(L10n.list(causes))
         case .denied:
-            let denier = field?.outcomes.first { $0.observationID == outcome.deniedByObservationID }
-            return denier.map { L10n.Conclusions.outcomeDeniedBy($0.sourceTitle) }
-                ?? L10n.string(L10n.Conclusions.outcomeDenied)
+            return outcome.deniedBySourceTitle.isEmpty
+                ? L10n.string(L10n.Conclusions.outcomeDenied)
+                : L10n.Conclusions.outcomeDeniedBy(outcome.deniedBySourceTitle)
         case .provisional:
             return L10n.string(L10n.Conclusions.outcomeProvisional)
         case .noEvidence:
             return L10n.string(L10n.Conclusions.outcomeNoEvidence)
         case .against:
-            return deniedSomething(outcome, in: field)
+            return outcome.deniedAValue
                 ? L10n.string(L10n.Conclusions.outcomeKept)
                 : L10n.string(L10n.Conclusions.outcomeAgainst)
         default:
@@ -201,7 +177,7 @@ enum ReconciledValueDisplay {
 
     /// The outcome's mark: one glyph per phrase, so the provenance table reads without
     /// colour. Decorative beside the phrase.
-    static func outcomeMark(_ outcome: CatalogReconcilerOutcome, in field: CatalogConclusionField?) -> PVSymbol {
+    static func outcomeMark(_ outcome: CatalogReconcilerOutcome) -> PVSymbol {
         switch outcome.reason {
         case .kept: .check
         case .folded: .gitMerge
@@ -209,7 +185,7 @@ enum ReconciledValueDisplay {
         case .weak: .signalLow
         case .denied: .ban
         case .provisional: .circleDashed
-        case .against: deniedSomething(outcome, in: field) ? .check : .circleMinus
+        case .against: outcome.deniedAValue ? .check : .circleMinus
         default: .minus
         }
     }
@@ -226,7 +202,7 @@ enum ReconciledValueDisplay {
     /// The spoken state: "merged from 2 Sources", "single, 1 Source", …;
     /// nil for an empty field.
     static func spokenState(_ field: CatalogConclusionField) -> String? {
-        let sources = sourceCountLine(sourceCount(field))
+        let sources = sourceCountLine(field.recordCounts.sources)
         switch field.state {
         case .single: return L10n.Conclusions.a11ySingle(sources)
         case .merged: return L10n.Conclusions.a11yMerged(sources)
