@@ -62,7 +62,7 @@ Scope `0cc025b12...1845835cf`. Reviewers: MNT (the only lens with a Fix-now majo
 No new blocker. Nits (logged): `MNT-6 · core/database/conclusiondetails/conclusiondetails.go:819 · name the unknown-kind guard as a local`
 
 ## Result
-Gate PASS (`1845835cf`) · CI — · open: none · follow-ups: none · to user: —
+Gate PASS (`1845835cf`) · CI green (Go tests, Localizable strings) · open: none · follow-ups: none · to user: —
 `origin/main` unmoved since the branch was cut (`9550775e3`); no merge needed.
 
 ## Cost
