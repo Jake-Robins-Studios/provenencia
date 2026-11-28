@@ -14,7 +14,7 @@ Reviewers: CON, MNT, UX, SEC+PRF. (route-reviewers ran all four.)
 | MNT-1, CON-4 | MNT, CON | minor | FakeStore's detail still sends outcomes; count rule copied in FakeStore and test `counted`; fake sheet read answers empty | Fix now → F-1 | verified: `FakeStore.swift:2323` and `ReconciledValueDisplayTests.swift:74` each hand-roll `records/sources`; same-pass cleanup (both touched here) |
 | CON-1 | CON | minor | T-15's catalog case never pools two links | Fix now → F-2 | verified: `placerecords_test.go:279-281` reuse `birth` and `swift` handles, so one owner; assertion guarded by `v.Displayed()` only |
 | CON-2 | CON | minor | Relabelled-sheet title check dropped | Fix now → F-3 | verified: no `Born` left in `macos/ProvenenciaTests`; doc comment on `provenanceContent(records:)` still claims it |
-| MNT-2 | MNT | minor | Pooled heading's runs (Swift, by text) and its count (Go, by Place+scalar) use two pool keys | Follow-up | plan Edges "Pool keys" accepts it; no fixture reaches the split; home to user |
+| MNT-2 | MNT | minor | Pooled heading's runs (Swift, by text) and its count (Go, by Place+scalar) use two pool keys | Follow-up → dropped | plan Edges "Pool keys" accepts it; no fixture reaches the split; user dropped it 2026-11-28 |
 | UX-1 | UX | minor | §10 manual check not run | Rejected (as code finding) | no code change; the manual check is the user's step before merge (ship-pr step 8), carried in the report |
 | SEC+PRF | — | — | Clean | — | — |
 
@@ -46,7 +46,7 @@ Orchestrator read the fix commits: MNT-1/CON-4 **Resolved**, CON-1 **Resolved**,
 Merged `origin/main` @ `a39185aab` (docs only); gate PASS at `5f92f8345`.
 
 ## Result
-Gate PASS · CI green · open: none · follow-ups: MNT-2 · to user: — (manual check §10 is the user's)
+Gate PASS · CI green · open: none · follow-ups: MNT-2 (dropped, user) · to user: — (manual check §10 is the user's)
 
 ## Cost
 Plan: 7,640 words (check-plan-docs info line).
