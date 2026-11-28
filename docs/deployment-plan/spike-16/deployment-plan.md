@@ -229,6 +229,7 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | The date form takes too much space, in its own dialog and inline in another form | S16-D20, S16-83 |
 | A select's type-select: J, J, J should walk January, June, July (a kit problem, not the date form's) | S16-83 |
 | The date form's tab order: Year first; Kind and the qualifier reachable behind it | S16-83 |
+| S16-83 review, MNT-3 (2026-11-28): `PVInkLink` has no `focus:`, so its hosts apply the handle by hand with no Tab claim (user: a PR on this map) | S16-84 |
 | [`ideas/date-value-form.md`](date-value-form.md) (moved into the spike as its feature doc, 2026-11-28): Remove time clears or keeps the time; the range message shows before the second bound is typed (S16-73 review) | S16-83 |
 
 **Back in the ideas folder** (user, 2026-11-08) —
@@ -450,6 +451,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-77 | A draft board for a new Source | 8a | Preparatory, Go: `GetDraftMetadataBoard` serves level `source` for a type, seeded from an original Source and a draft through one overlay in `sourcemetadata`, which the copy write also uses | — | S16-76 | — | Scoped |
 | S16-75 | Copy Source edits each metadata value | 8a | Go and Swift: `CopySourceRequest` carries a `MetadataDraft` in place of `copy_metadata`; the Copy sheet hosts the seeded draft board and reads it again on a type change | S16-D17 | S16-74, S16-77, S16-D17 | — | Scoped |
 | S16-83 | The date form is smaller and keyboard-first | 9a | Swift: `DateValueEditorForm` takes S16-D20's condensed layout in every host; its Tab loop starts at Year with Kind and the qualifier (now a segmented control) behind Shift-Tab, through one new `PVFieldFocus` neighbour operation; `PVTypeSelectMatcher` walks a repeated letter's matches; `PVButton` takes a focus handle; Reads as goes | S16-D20 | S16-73, S16-D20 | [plan](prs/S16-83-date-form-condensed.md) | Landed #1027 |
+| S16-84 | A kit link takes the field focus handle | 9a | Swift, kit: `PVInkLink` takes an optional `PVFieldFocus` the way `PVButton(focus:)` does (the handle, `PVFieldTabClaim`, Return, and `pvSheetTakesReturn` while focused); `PVProvenanceRecordRow` moves its citation link onto it and drops its `apply(AnyView…)` wrap | — | S16-83 | — | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -638,7 +640,8 @@ SLICE 8a — The Add and Copy Source sheets           (any time; S16-73 and S16-
 
 SLICE 9a — The date form                             (after S16-73; before S16-74)
   ✎ S16-D20 ──▶ S16-83  The date form is smaller and keyboard-first
-  Check: bar 52 to 54 (bar 52's Copy half at S16-74).
+  S16-84  A kit link takes the field focus handle   (after S16-83)
+  Check: bar 52 to 54 (bar 52's Copy half at S16-74); S16-84 by its own Check.
 
 S16-99 — Batch 9 lands between S16-73 and S16-74 (map review K9-5): S16-74 hosts the date form and folds `SourceTitleTypeFields` into `SourceFields`, which S16-83 gives a focus order, and S16-D16 draws the Copy sheet with the date form S16-D20 replaces.
 
@@ -735,6 +738,7 @@ S16-D17 ──▶ S16-75
 S16-76 ──▶ S15-41, S15-42 (Spike 15)
 S16-73 ──▶ S16-83 ──▶ S16-74
 S16-D20 ──▶ S16-83
+S16-83 ──▶ S16-84
 S16-D20 ──▶ S16-D16
 ```
 
@@ -1387,3 +1391,12 @@ A user request (2026-11-28): the date form takes less space, and typing a date s
 **Not this PR.** The Copy sheet's own fields (S16-74, which inherits the focus order through `SourceFields`); type-select in `PVList`.
 **Check.** Bar 52 to 54.
 **Context.** `DateValueEditorForm.swift`, `SourceDateEditor.swift`, `SourceDateDialog.swift`, `SourceFields.swift`, `CitationComposerAuthoringBox.swift` and `CitationAuthoringNavigation` (an observation date host), `macos/App/Platform/DateValueDraft.swift` (Remove time), `PVFloatingMenuSelection.swift`, `PVTable.swift`, `PVChipGroup`, `PVSelectSession.swift`, `PVSegmentedControl.swift`, `PVFieldFocus.swift`; skills `add-ui-component`, `add-localized-string`, `add-swift-test`, `add-design-brief`.
+
+#### S16-84 — A kit link takes the field focus handle
+
+**Today.** After S16-83, `PVButton(focus:)` applies a host's `PVFieldFocus`: the handle, `PVFieldTabClaim` (Tab and Shift-Tab to the handle's neighbours), Return through `pvActivatesOnReturn`, and `pvSheetTakesReturn` so a kit sheet's Confirm or Done gives Return up while it has focus. `PVInkLink` takes no handle, so `PVProvenanceRecordRow.citationLink` wraps it in `citationFocus.apply(AnyView(link))` and gets no Tab claim; the kit has two ways to put a focus handle on a link-like control (S16-83 review, MNT-3).
+**Ships.** Swift, kit, no new copy: `PVInkLink` gains an optional `focus: PVFieldFocus?` built on the same composition as `PVButton`'s (one shared modifier or helper both use, not a second copy); with no handle it is unchanged. `PVProvenanceRecordRow` passes `citationFocus` to it and drops the `apply(AnyView…)` branch. The record table's own `pvSheetTakesReturn` stays unless the plan shows the link's makes it redundant.
+**Updates.** The kit README's InkLink and Field focus rows; `PVInkLink`'s doc comment; `add-ui-component`'s field-focus line if it names `PVButton` alone.
+**Not this PR.** Other link-like controls; changing the provenance sheet's Tab order.
+**Check.** The provenance sheet's citation links Tab and Shift-Tab as today and Return opens the citation, not Done; `PVProvenanceRecordRow.swift` no longer calls `apply(AnyView…)`.
+**Context.** `PVInkLink.swift`, `PVButton.swift` (`focused(_:)`), `PVFieldFocus.swift`, `PVProvenanceRecordRow.swift`, `PVProvenanceRecordTable.swift`, `PVSheet.swift`; skills `add-ui-component`, `add-swift-test`.

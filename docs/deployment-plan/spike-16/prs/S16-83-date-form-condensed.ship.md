@@ -17,7 +17,7 @@ Reviewers: CON, MNT, UX. Skipped: SEC+PRF (no security or performance path, no a
 | UX-2 | UX | minor | VoiceOver reads the side name twice | Fix now → F-4 | `sideLabel(start:)` Texts not hidden inside a `.contain` group already labelled |
 | MNT-1 | MNT | minor | "Cascade" and "part" name one thing | Fix now → F-5 | files touched; the cascade behaviour is deleted in this diff |
 | MNT-2 | MNT | minor | `claim(_:)` special-cases start Year needlessly | Fix now → F-6 | `ownHandle` already returns the right handle for every field |
-| MNT-3 | MNT | minor | `PVInkLink` has no `focus:` | Follow-up | PR does not add, change or copy `PVInkLink` or the record row's `apply(AnyView…)`; ask user for home |
+| MNT-3 | MNT | minor | `PVInkLink` has no `focus:` | Follow-up → S16-84 (user, 2026-11-28) | PR does not add, change or copy `PVInkLink` or the record row's `apply(AnyView…)` |
 | UX-3, UX-4 | UX | nit | Stale translator comments in L10n.swift | Fix now → F-4 | stale comments in a file this PR changes |
 | CON-3, CON-4 | CON | nit | Neighbour table asserts are partial | Fix now → F-3 (rides along) | same test file as F-3 |
 
@@ -72,7 +72,7 @@ Reviewers: CON (CON-1 major), UX (UX-1 blocker). Scope `f49196396...2ccc5fe70`.
 No new findings from either reviewer. No Fix plan 2.
 
 ## Result
-Gate PASS (head `2ccc5fe70`, origin/main unchanged at `6a6854119`) · CI see PR · open: none · follow-ups: MNT-3 · to user: §10 manual check before merge (the only proof of UX-1 in the running app, AC-1.1/1.2/1.6, AC-2.1/2.8/2.9, D-3/D-4/D-6/D-13; watch steps 1 and 4 for the `ViewThatFits` Kind/qualifier focus).
+Gate PASS (head `2ccc5fe70`, origin/main unchanged at `6a6854119`) · CI see PR · open: none · follow-ups: MNT-3 → S16-84 on the Spike 16 map (user) · to user: §10 manual check before merge (the only proof of UX-1 in the running app, AC-1.1/1.2/1.6, AC-2.1/2.8/2.9, D-3/D-4/D-6/D-13; watch steps 1 and 4 for the `ViewThatFits` Kind/qualifier focus).
 
 ## Cost
 Plan: 6,346 words (check-plan-docs info line).
