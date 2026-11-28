@@ -37,7 +37,7 @@ The property is worth having for more than households: roll-ups ("events in Uppe
 13. **`place_type` is a locked binding on `place`,** so the Properties page can't unbind it while the household rule reads it, as `event_type` is locked on `event` ([`seeded-vocabulary.md`](../seeded-vocabulary.md) §3.3). Add a §3.x terms table.
 14. **The type is optional.** A Place with no `place_type` stays valid everywhere, as today. It just never takes part in household grouping. Residences group only once their place is typed `household` (or another term with the household flag). The pattern shortcuts in [`evidence-graph-structure-shortcuts.md`](evidence-graph-structure-shortcuts.md) (a residence cluster placed in one action) could set `household` for the researcher.
 15. **A seeded `address` Property on `place`.** Free text (`ValueTypeText`), bound on `place` and not locked, since no rule keys into it. It holds the street address or lot a record gives ("12 Mill Street", "Lot 7, Concession 3"), most often on a `household`, but any Place may carry one. It's the physical location the logical household otherwise lacks, without a Place per building. Add it to [`seeded-vocabulary.md`](../seeded-vocabulary.md) §3.2 and §3.3.
-16. **A household's name is the researcher's label, not a Property.** A household rarely has a recorded name. "The Smith homestead" is what the researcher calls it so they can find it again for merges and recognise it on the Places list. It isn't evidence, and a Property value is an Observation that needs a Citation. The model already has the right slot: the Conclusion handle's `label` (`canonical_entities.label`), "an optional researcher working identifier" that "is not a genealogical name" ([`conclusion-layer-data-model.md`](../conclusion-layer-data-model.md) §6). When a record does name the place, that name stays a cited `toponym`, and the toponym wins the title. It's not only for households: any Place without a toponym, or a Person with no recorded name, uses the same label. See [Handle labels](#handle-labels) for what exists and what's missing.
+16. **A household's name is the researcher's label, not a Property.** A household rarely has a recorded name. "The Smith homestead" is what the researcher calls it so they can find it again for merges and recognise it on the Places list. It isn't evidence, and a Property value is an Observation that needs a Citation. The model already has the right slot: the Conclusion handle's `label` (`canonical_entities.label`), "an optional researcher working identifier" that "is not a genealogical name" ([`conclusion-layer-data-model.md`](../conclusion-layer-data-model.md) §6). When a record does name the place, that name stays a cited `toponym`, and the toponym wins the title. It's not only for households: any Place without a toponym, or a Person with no recorded name, uses the same label. What exists and what's missing is in [`handle-labels.md`](handle-labels.md).
 
 ## Still open
 
@@ -46,27 +46,6 @@ The property is worth having for more than households: roll-ups ("events in Uppe
 3. **`address` cardinality.** Single-valued, so two records that disagree read `mixed`, or *multiple* like `toponym`, since a house renumbered or a street renamed carries two true addresses.
 4. **`address` structure.** Plain text, or parts (number, street, lot, concession) like a NameValue. Text is enough to start; parts would help a later gazetteer or geocoding ([`place-gazetteer-service.md`](place-gazetteer-service.md)).
 5. **`address` in matching.** Whether it gets a knob beside `subject.Weights.place.toponym` ([`matching-model.md`](../matching-model.md)), so two households at the same address read as a likely match and different addresses as a conflict.
-## Handle labels
-
-**What exists.** Two labels, both researcher-authored and uncited:
-
-- `subjects.label` on a Source-graph subject, set in the create dialog ("Working label. Cards show the cited name once one is recorded.").
-- `canonical_entities.label` on a Conclusion handle. It's already read: a Place with no toponym takes it as its title, shown in italic (`placeTitle`, `core/database/conclusionsummaries/order.go`; `PlaceTitleDisplay.titleSource`, `macos/App/Platform/PlaceTitleDisplay.swift`), a nameless Person sorts by it (`personSortKey`), and the omnibar searches it (`core/database/searchindex/handles.go`).
-
-**What's missing.** Nothing writes the handle's label. `canonicalentities` has no update, Promote mints handles with an empty label (`core/database/promote/promote.go`, `core/database/identityclaims/bridgefile.go`), and no RPC or screen sets it. A promoted household with no toponym is titled by its ref.
-
-**Wanted:**
-
-1. **Edit the label on the Conclusion page.** An audited update in `canonicalentities` ([`add-catalog-query`](../../.agents/skills/add-catalog-query/SKILL.md), [`add-audit-scope`](../../.agents/skills/add-audit-scope/SKILL.md)), an FFI handler ([`add-ffi-handler`](../../.agents/skills/add-ffi-handler/SKILL.md)), and an editable title on the Place (and Person) page. The graph cache and the search index already read the column, so the write's effects must reach both.
-2. **Carry the subject's working label into Promote.** When a new handle is minted from a subject that has a working label, start the handle with it. Joining an existing handle leaves that handle's label alone.
-
-**Open:**
-
-1. **Merge.** Which label survives when two handles merge: the survivor's, the one that's set, or a choice in the merge flow.
-2. **Uniqueness.** Labels aren't unique. Two "Smith homestead" households are allowed; the ref and the `part_of` chain tell them apart. Decide whether the editor warns on a duplicate.
-3. **Wording.** The page needs to show that the label is the researcher's name for the place, not a recorded one. The italic title already does this on lists.
-
-
 ## Alternatives considered
 
 - **Dates on the participation connection.** One shared residence event, with each person's participation carrying its own `start_date` / `end_date`. There's precedent: `place_relationship` already has dates. Set aside because it gives two answers to "when". Timeline placement, Conclusion ordering, `subject.Weights.event.date`, the as-of bounds and lifespan would each need a rule for which date wins. Records also rarely give different spans for members of one household, since different spans usually come from different records. Revisit if real evidence keeps doing it (a household register with each member's arrival and departure), probably on a dated household event.
@@ -77,4 +56,4 @@ The property is worth having for more than households: roll-ups ("events in Uppe
 
 ## First slice
 
-The `place_type` property, its terms, the household flag (with its migration), the binding and the matching knob, and the `address` property, with no grouping. Editing the handle label can ship on its own, before any of it. Grouping and the derived co-residence fact come after, once real places have been typed.
+The `place_type` property, its terms, the household flag (with its migration), the binding and the matching knob, and the `address` property, with no grouping. Editing the handle label ([`handle-labels.md`](handle-labels.md)) can ship on its own, before any of it. Grouping and the derived co-residence fact come after, once real places have been typed.
