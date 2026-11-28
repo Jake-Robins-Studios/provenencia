@@ -54,12 +54,16 @@ Today the system order decides. Without Full Keyboard Access, Kind, the chips an
 - **Leaving backwards:** whether Shift-Tab from Kind goes to the host's previous field.
 - **More open:** where the Calendar select and the Phrase input sit in the loop.
 
-## Remove time clears the time, or keeps it
+## Remove time clears the time
 
-S16-73 renamed the time link from "Hide time" to "Remove time". It clears that side's hour, minute, second, millisecond and time zone (`DateValueDraft.hideTime(start:)`). Before, the link only hid the fields and left the values in the draft. A hidden time zone could then keep a date from saving, and the message pointed at a field you couldn't see.
+Decided (user, 2026-11-28): S16-73's behaviour stays. Remove time erases that side's hour, minute, second, millisecond and time zone (`DateValueDraft.hideTime(start:)`), so no hidden value can keep a date from saving. The other way, keeping the values and showing the time fields whenever they hold anything, was turned down. (From S16-73 round 3, UX-1 and UX-2.)
 
-The other way out is to keep the values, and to show the time fields whenever they hold anything, so the link only hides an empty block. Then a researcher can't lose a saved 09:30 by tidying the form. The choice applies to every host, and it is the user's to make in S16-83's plan. (From S16-73 round 3, UX-1 and UX-2.)
+## The latest bound follows the earliest
 
-## The range message shows before the second bound is typed
+Today, on Between two bounds, typing the earliest year shows "Add the latest bound, or choose Single date." before the researcher has had a chance to type the latest one (S16-73's review, UX-5).
 
-On Between two bounds, as soon as the earliest year is typed, the form shows "Add the latest bound, or choose Single date." That is before the researcher has had a chance to type the latest bound. The line is true, but it comes early on the usual path. It could wait until the latest bound's fields lose focus, or until Create is pressed. `DateValueDraft.unsavableError` decides the text, and the host shows it: Add Source reads it through `SourcesModel.Draft.validation` (`SourcesModel.swift:50`) and draws it as the date field's error in `SourceFields`; the form itself never shows it. So the timing needs one home the host's validation reads (draft state in `DateValueDraft`, or something the form reports), not a second rule in the form (map review K9-7). The condensed layout and the new Tab loop change where focus goes, so the timing is decided in the same plan. (From S16-73's review, UX-5.)
+Decided (user, 2026-11-28): nothing about focus or timing changes. Instead the latest bound fills itself in. As the researcher types the earliest year, month, day or time, the matching latest field takes the same value, until the researcher types into that latest field. A latest field already filled in, whether typed by the researcher or loaded from a saved range, keeps its value. A range typed from the earliest side is then whole at every keystroke: 1880 to 1880, then June 1880 to June 1880. The researcher moves on to the latest side and changes only what differs. "Add the latest bound…" shows only when a researcher clears the latest side.
+
+`DateValueDraft` keeps which latest fields were typed, so the rule is the draft's and every host gets it. The host still shows `unsavableError` (Add Source reads it through `SourcesModel.Draft.validation`; the form never shows it), and that does not change (map review K9-7).
+
+**For the plan:** whether "typed into" is per field (the reading above) or per side, and what clearing a latest field does: whether it starts following the earliest again.
