@@ -66,7 +66,7 @@ struct PVFormColumns<Left: View, Right: View>: View {
     PVFormColumns(
         saveError: "The type was not added.",
         saveErrorTitle: "Could not add",
-        saveErrorIdentifier: "preview.error",
+        saveErrorIdentifier: "preview.error"
     ) {
         Text(verbatim: "Left column")
     } right: {

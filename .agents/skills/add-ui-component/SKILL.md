@@ -97,7 +97,7 @@ A control that owns an open edit inside a sheet raises `.pvSheetInnerEdit(isOpen
 Kit components announce themselves: a toast speaks its title and message, and an error callout or error line passes `announces: true`; no call site posts its own. A sheet's content closes its sheet through `@Environment(\.pvSheetClose)`, and a form that asks "Discard changes?" before a step holds the step in a `PVDiscardGate`. A sheet's content that must raise a toast reads `@Environment(\.pvSheetToasts)` and hands it to its model (`ConclusionLeadModel.viewerOpened(toasts:)`); a workspace model adds to `WorkspaceSession.toasts`.
 
 macOS sheets: **no scrim/dim**, no redrawing window corner radius/shadow on panel content.
-Dismissal for async work stays on the caller binding (`isRunning` can show). `PVFormDialog` disables its form body while `isRunning`: kit controls that read `isEnabled` (`PVCheckbox`, `PVSwitch`) need no `.disabled(model.isSaving)` or `isDisabled: model.isSaving` from the host; `PVRadio` and `PVArtifactChecklist` still dim only on their own parameter, so their hosts keep passing it. See
+Dismissal for async work stays on the caller binding (`isRunning` can show). `PVFormDialog` disables its form body while `isRunning`: kit controls that read `isEnabled` (`PVCheckbox`, and `PVCopyPartTick`, which wraps it) need no `.disabled(model.isSaving)` or `isDisabled: model.isSaving` from the host; `PVSwitch`, `PVRadio` and `PVArtifactChecklist` still dim only on their own parameter, so their hosts keep passing it. See
 `PVConfirm.swift` / DesignSystem README “Confirmations are system chrome.”
 
 ## Anti-patterns

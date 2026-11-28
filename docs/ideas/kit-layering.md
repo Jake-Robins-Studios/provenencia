@@ -32,7 +32,7 @@ The combo box's row padding and `PVSearchHitRow`'s own both apply, so a hit row 
 
 ## The other toggles do not dim under `.disabled(_:)`
 
-`PVFormDialog` disables its form body while it runs, and `PVCheckbox` dims then (S16-73). `PVSwitch`, `PVRadio` and `PVCopyPartTick` still dim only on their own parameter, so inside a running form they refuse clicks and keep full strength; their disabled opacity is 0.5 where `PVHoverEffect`'s is 0.45. Read `\.isEnabled` in each, and pick one disabled opacity. (S16-73)
+`PVFormDialog` disables its form body while it runs, and `PVCheckbox` dims then (S16-73). `PVSwitch`, `PVRadio` and `PVArtifactChecklist` still dim only on their own parameter, so inside a running form they refuse clicks and keep full strength; their disabled opacity is 0.5 where `PVHoverEffect`'s is 0.45. Read `\.isEnabled` in each, and pick one disabled opacity. (S16-73)
 
 ## The table writes its own movement keys
 
