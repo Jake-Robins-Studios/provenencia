@@ -11,6 +11,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts/artifactstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citationrender"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusiondetails"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/databasetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/observations"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/observations/observationstest"
@@ -34,6 +35,7 @@ func researchedPerson(t *testing.T, sources, perSource int) (dir, entityID, name
 		_, subjectID := namedPersonOnNewSource(t, dir, userID, typeID, "James Robins", "male", observations.PolarityPositive)
 		subjectIDs = append(subjectIDs, subjectID)
 	}
+	var nameID []byte
 	if err := withProjectCatalog(dir, func(c *database.Catalog) error {
 		db, err := c.DB()
 		if err != nil {
@@ -43,6 +45,7 @@ func researchedPerson(t *testing.T, sources, perSource int) (dir, entityID, name
 		if err != nil {
 			return err
 		}
+		nameID = name.ID
 		for _, subjectID := range subjectIDs {
 			subject := uuid.MustParse(subjectID)
 			var sourceID, graphID []byte
@@ -69,7 +72,7 @@ func researchedPerson(t *testing.T, sources, perSource int) (dir, entityID, name
 	for _, subjectID := range subjectIDs[1:] {
 		promoteInDir(t, dir, userID, subjectID, database.UUIDString(handle.Entity.ID))
 	}
-	return dir, database.UUIDString(handle.Entity.ID), propertyIDByKey(t, dir, "name")
+	return dir, database.UUIDString(handle.Entity.ID), database.UUIDString(nameID)
 }
 
 func provenanceFields(owner, property string) *engine.GetProvenanceRecordsRequest_Fields {
@@ -183,7 +186,11 @@ func TestGetProvenanceRecords(t *testing.T) {
 					t.Fatalf("owner %+v, %d citations", o, len(got.GetCitations()))
 				}
 				person := req.(*engine.GetProvenanceRecordsRequest).GetDerived().GetPersonId()
-				wantInputs(t, got.GetInputs(), []string{person, o.GetEntity().GetId()}, nil, nil)
+				var graphs, srcs []string
+				for _, out := range o.GetField().GetOutcomes() {
+					graphs, srcs = append(graphs, out.GetGraphId()), append(srcs, out.GetSourceId())
+				}
+				wantInputs(t, got.GetInputs(), []string{person, o.GetEntity().GetId()}, graphs, srcs)
 			},
 		},
 		{
@@ -304,5 +311,15 @@ func TestGetProvenanceRecordsWarmReadsNoRecordSQL(t *testing.T) {
 	}
 	if !bytes.Equal(first, second) {
 		t.Error("the second read answers other bytes")
+	}
+}
+
+// TestDerivedRowKindsCoverEveryLifeRow: each life row kind the catalog reads has
+// a wire kind, so a new kind cannot answer as unspecified.
+func TestDerivedRowKindsCoverEveryLifeRow(t *testing.T) {
+	for _, k := range conclusiondetails.DerivedRowKinds {
+		if derivedRowKinds[k] == engine.DerivedRowKind_DERIVED_ROW_KIND_UNSPECIFIED {
+			t.Errorf("no wire kind for %q", k)
+		}
 	}
 }

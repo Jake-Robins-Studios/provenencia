@@ -426,6 +426,21 @@ func TestPersonDerivedRow(t *testing.T) {
 	}
 }
 
+// TestPersonDerivedRowUnknownKind: a kind that is not a life row reads and
+// records nothing, even for a real Person.
+func TestPersonDerivedRowUnknownKind(t *testing.T) {
+	f := newFixture(t)
+	person, _ := f.birthAt(f.source("Register"), text("York"))
+	in := f.C.Graph().PageInputs()
+	if _, ok, err := conclusiondetails.PersonDerivedRow(f.C, person, "nonsense", in); err != nil || ok {
+		t.Fatalf("an unknown kind: %v %v", ok, err)
+	}
+	handles, graphs, srcs := in.Lists()
+	if len(handles)+len(graphs)+len(srcs) != 0 {
+		t.Fatalf("recorded %x %x %x", handles, graphs, srcs)
+	}
+}
+
 // TestProvenanceSheet: the sheet read is the owners of its row with each
 // record's Citation rendered once.
 func TestProvenanceSheet(t *testing.T) {
@@ -476,6 +491,18 @@ func TestProvenanceSheet(t *testing.T) {
 		if !reflect.DeepEqual(sheet.Owners, row.Owners) || len(sheet.Citations) != len(cited(row.Owners)) || len(sheet.Citations) == 0 {
 			t.Fatalf("sheet %+v, want owners %+v", sheet, row.Owners)
 		}
+		in := f.C.Graph().PageInputs()
+		_, err = conclusiondetails.ProvenanceSheet(f.C, conclusiondetails.SheetRequest{PersonID: person, Kind: conclusiondetails.DerivedRowBirthDate}, in)
+		must(t, err)
+		var graphs, srcs [][]byte
+		for _, o := range row.Owners {
+			for _, out := range o.Field.Outcomes {
+				graphs, srcs = append(graphs, out.GraphID), append(srcs, out.SourceID)
+			}
+		}
+		_, gotGraphs, gotSrcs := in.Lists()
+		holdsIDs(t, "graphs", gotGraphs, true, graphs...)
+		holdsIDs(t, "sources", gotSrcs, true, srcs...)
 	})
 	t.Run("neither", func(t *testing.T) {
 		in := f.C.Graph().PageInputs()

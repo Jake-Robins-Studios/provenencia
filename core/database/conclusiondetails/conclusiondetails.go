@@ -673,6 +673,9 @@ const (
 	DerivedRowDeathPlace DerivedRowKind = "death_place"
 )
 
+// DerivedRowKinds is every life row kind, in the order a Person's rows list.
+var DerivedRowKinds = []DerivedRowKind{DerivedRowBirthDate, DerivedRowBirthPlace, DerivedRowDeathDate, DerivedRowDeathPlace}
+
 // OwnerField is the field a derived row reads off the entity that owns it.
 // Event is the owner's summary when the owner is an Event. Place is the Place
 // a place row's owner (an event–place link's association) holds on its place
@@ -694,6 +697,15 @@ type DerivedRow struct {
 // Pair names one field of one handle: an owner and a Property.
 type Pair struct{ OwnerID, PropertyID []byte }
 
+// key is the pair's map key: the owner's id then the Property's (both 16 bytes,
+// so no key collides); false when either id is not 16 bytes.
+func (p Pair) key() (string, bool) {
+	if len(p.OwnerID) != 16 || len(p.PropertyID) != 16 {
+		return "", false
+	}
+	return string(p.OwnerID) + string(p.PropertyID), true
+}
+
 // fieldsByPair composes the fields the pairs name, the one step that turns
 // (owner, Property) pairs into fields for every read of named fields. It
 // returns the fields keyed by string(owner)+string(property) (ids are 16 bytes,
@@ -705,7 +717,7 @@ func fieldsByPair(c *database.Catalog, pairs []Pair, in *graphcache.PageInputs) 
 	var ids [][]byte
 	only := map[string]map[string]bool{}
 	for _, p := range pairs {
-		if len(p.OwnerID) != 16 || len(p.PropertyID) != 16 {
+		if _, ok := p.key(); !ok {
 			continue
 		}
 		ids = append(ids, p.OwnerID)
@@ -767,10 +779,10 @@ func FieldRecords(c *database.Catalog, pairs []Pair, in *graphcache.PageInputs) 
 	var out []OwnerField
 	seen := map[string]bool{}
 	for _, p := range pairs {
-		if len(p.OwnerID) != 16 || len(p.PropertyID) != 16 {
+		key, ok := p.key()
+		if !ok {
 			continue
 		}
-		key := string(p.OwnerID) + string(p.PropertyID)
 		f, ok := fields[key]
 		if !ok || seen[key] {
 			continue
@@ -787,7 +799,7 @@ func FieldRecords(c *database.Catalog, pairs []Pair, in *graphcache.PageInputs) 
 // merged or gone, or without the field the row reads, is dropped. It records
 // on in the Person, each owner it reads and the place a place owner holds.
 func PersonDerivedRows(c *database.Catalog, personID []byte, in *graphcache.PageInputs) ([]DerivedRow, error) {
-	return personDerivedRows(c, personID, []DerivedRowKind{DerivedRowBirthDate, DerivedRowBirthPlace, DerivedRowDeathDate, DerivedRowDeathPlace}, in)
+	return personDerivedRows(c, personID, DerivedRowKinds, in)
 }
 
 // PersonDerivedRow returns the records behind one of a Person's life rows; false
@@ -802,9 +814,9 @@ func PersonDerivedRow(c *database.Catalog, personID []byte, kind DerivedRowKind,
 }
 
 // personDerivedRows reads the life rows of the kinds given, in the order of
-// the four kinds.
+// DerivedRowKinds. A call with no known kind reads nothing and records nothing.
 func personDerivedRows(c *database.Catalog, personID []byte, kinds []DerivedRowKind, in *graphcache.PageInputs) ([]DerivedRow, error) {
-	if c == nil || c.Graph() == nil || len(personID) != 16 {
+	if c == nil || c.Graph() == nil || len(personID) != 16 || !slices.ContainsFunc(kinds, func(k DerivedRowKind) bool { return slices.Contains(DerivedRowKinds, k) }) {
 		return nil, nil
 	}
 	in.AddHandles(personID)
@@ -816,18 +828,19 @@ func personDerivedRows(c *database.Catalog, personID []byte, kinds []DerivedRowK
 		return nil, nil
 	}
 	birth, death := people[0].Birth.Owners, people[0].Death.Owners
-	all := []struct {
+	type list struct {
 		kind   DerivedRowKind
 		owners []conclusionsummaries.FieldOwner
 		events bool // the owners are Events, so each carries its summary
-	}{
-		{DerivedRowBirthDate, birth.Dates, true}, {DerivedRowBirthPlace, birth.Places, false},
-		{DerivedRowDeathDate, death.Dates, true}, {DerivedRowDeathPlace, death.Places, false},
 	}
-	lists := all[:0:0]
-	for _, l := range all {
-		if slices.Contains(kinds, l.kind) {
-			lists = append(lists, l)
+	all := map[DerivedRowKind]list{
+		DerivedRowBirthDate: {DerivedRowBirthDate, birth.Dates, true}, DerivedRowBirthPlace: {DerivedRowBirthPlace, birth.Places, false},
+		DerivedRowDeathDate: {DerivedRowDeathDate, death.Dates, true}, DerivedRowDeathPlace: {DerivedRowDeathPlace, death.Places, false},
+	}
+	var lists []list
+	for _, k := range DerivedRowKinds {
+		if slices.Contains(kinds, k) {
+			lists = append(lists, all[k])
 		}
 	}
 	var pairs []Pair
@@ -862,7 +875,11 @@ func personDerivedRows(c *database.Catalog, personID []byte, kinds []DerivedRowK
 	for _, l := range lists {
 		row := DerivedRow{Kind: l.kind}
 		for _, o := range l.owners {
-			f, ok := fields[string(o.ID)+string(o.PropertyID)]
+			key, ok := Pair{OwnerID: o.ID, PropertyID: o.PropertyID}.key()
+			if !ok {
+				continue
+			}
+			f, ok := fields[key]
 			if !ok {
 				continue
 			}
@@ -906,7 +923,7 @@ func ProvenanceSheet(c *database.Catalog, req SheetRequest, in *graphcache.PageI
 	switch {
 	case len(req.Pairs) > 0:
 		sheet.Owners, err = FieldRecords(c, req.Pairs, in)
-	case len(req.PersonID) > 0 && slices.Contains([]DerivedRowKind{DerivedRowBirthDate, DerivedRowBirthPlace, DerivedRowDeathDate, DerivedRowDeathPlace}, req.Kind):
+	case len(req.PersonID) > 0:
 		var row DerivedRow
 		var ok bool
 		if row, ok, err = PersonDerivedRow(c, req.PersonID, req.Kind, in); ok {
