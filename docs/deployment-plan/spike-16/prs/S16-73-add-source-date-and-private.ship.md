@@ -174,8 +174,51 @@ Check: `rg -n "labelHidden" macos` prints nothing; `rg -n "pvFieldControl" macos
 
 Head `9b98c4abd`. Gate PASS (orchestrator re-run). F-10 done; orchestrator read the `PVField` guide and `SourceFields` diff: `labelHidden` and the fixed height are gone, the Private row sets the guide. The Check's `rg L10n.` over `HelpIcon` still lists `PVHelpIcon.body`'s `L10n.string` resolver calls, which are the kit's resolver, not feature copy; accepted. MNT-1, UX-1, MNT-3 (round 4) **Resolved**.
 
+## Round 6 — user-directed: the help icon takes focus
+The user, 2026-11-28, on round 4's To user item: "Make the icon focusable and the space command, and let's do it all in this PR." The board's promise ("hover or focus shows it", `privHelp`'s `tabIndex: 0`) is kept by the kit, for both callers (Add Source's Private, the Source page's Metadata heading).
+
+### Fix plan 6
+
+**F-11 — `PVHelpIcon` is a Tab stop; Space opens its help** (from the user; round 4 UX-1, MNT-3)
+Files: `macos/App/DesignSystem/Components/HelpIcon/PVHelpIcon.swift`, `macos/App/DesignSystem/README.md` (HelpIcon row), tests under `macos/ProvenenciaTests` if the open/close rule is a value type. Skills: `add-ui-component`, `add-swift-test`.
+Failing test first: if the open/close rule lands as a small value type (for example `PVHelpIconState` with `toggle()`, `close()`), `PVHelpIconTests` covers Space toggling and Escape closing; otherwise none, and say so.
+Do:
+1. The icon joins the key loop as `PVSegmentedControl`'s focus target does: `.focusable()`, a `@FocusState`, and the kit focus ring (`pvFocusRing(isFocused, cornerRadius: PVRadius.full)` or the ring `PVFocusRingButtonStyle` draws), always applied, opacity only (README "Interaction state").
+2. Space (`.onKeyPress(.space)`) and a click toggle a small help card anchored below the icon: the `help` text in `PVFont.body(size: PVTypeScale.bodySmall)`, `PVColor.textSecondary`, max width 260 pt (the board's tooltip width), on the kit's popup surface. Present it the way the kit already presents an anchored popup (`PVContextMenu`'s child-panel presenter, closed through `.pvPopup`), so Escape, a click outside and the window losing key close it. Read `PVPopup.swift` and `PVContextMenu.swift` first; reuse a presenter, do not copy one. If no kit presenter can show a non-menu card without a copy, stop and report which one is closest and what it lacks.
+3. Escape closes the card first. Inside a sheet (Add Source) Escape must close only the card, not the sheet: raise `.pvSheetInnerEdit(isOpen)` while it is open if the popup does not already keep Escape from the sheet (README § sheets). Tab away closes it.
+4. Hover still shows `.help(help)` as today. VoiceOver: keep the label and hint, add `.accessibilityAddTraits(.isButton)` and an `.accessibilityAction` that toggles the card, and `pvExpandedState(isOpen)` as `PVSelect` does.
+5. Doc and README row: "Tab reaches it; Space or a click opens its help in a small card, Escape or a click outside closes it; hover shows the same text as a tooltip; VoiceOver reads it as the hint." Remove the "cannot take keyboard focus" sentence.
+6. The Source page's Metadata heading gets the same behaviour through the shared control; no change at its call site.
+Check: `rg -n "cannot take keyboard focus" macos` prints nothing; `rg -n "\\.popover\\(" macos/App` prints nothing; scripts/check-pr.sh PASS. The plan's §10 step 1 adds: Tab to the info icon by Private, press Space, read the help, press Escape: the card closes and the sheet stays open.
+
+### Round 6 — fix and review
+Head `e30ab2e0e`. Gate PASS (orchestrator re-run). F-11 done through `pvContextMenu` + `PVContextMenuPanel(width: 260)`, no new presenter; `.pvSheetInnerEdit` raised unconditionally; no unit test (reuses `PVContextMenuState`). Reviewer (fresh): UX, scope `9b98c4abd...e30ab2e0e`. Traced and holding: Tab reaches the icon, Space and one click toggle, Escape closes only the card (the watcher consumes it), a click outside and Tab away close it, VoiceOver traits and action.
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| UX-1 (r6) | UX | minor | Return does nothing while the card is open; the inner-edit signal isn't needed for Escape | Fix now → F-12 | traced: `pvSheetInnerEdit` raises `pvSheetTakesReturn`, Create loses its shortcut, the keyboard-less presenter ignores Return; the watcher already consumes Escape |
+| UX-2 (r6) | UX | minor | Focus ring drawn inside the 15 pt glyph; system focus effect not off | Fix now → F-12 | `PVIcon` frames at size × size and `strokeBorder` insets; kit `.focusable()` views with their own ring add `.focusEffectDisabled()` |
+| UX-3 (r6) | UX | minor | In Add Source the 260 pt card hangs right from an icon at the sheet's right edge | Fix now (call-site edge) → F-12; screen clamp in `PVContextMenuPlacement.panelFrame` → Follow-up | `present(at: x: 0)`; icon is the Type row's last item |
+
+Nits (logged): `UX-4 (r6) · tooltip shows over the open card` (rides along in F-12) · `UX-5 (r6) · .focusable() takes focus on click; .activate would act more like a button` (kept: the user asked for a Tab stop, and `.activate` leaves the key loop without Full Keyboard Access).
+
+### Fix plan 7
+
+**F-12 — The help card leaves Return alone, rings the glyph, and opens inward** (from UX-1, UX-2, UX-3, UX-4 of round 6)
+Files: `macos/App/DesignSystem/Components/HelpIcon/PVHelpIcon.swift`, `macos/App/Features/Sources/SourceFields.swift`, `macos/App/DesignSystem/README.md` (HelpIcon row), the plan §10 step 1.
+Failing test first: none (view wiring).
+Do:
+1. Remove `.pvSheetInnerEdit(card.isPresented)`; the popup watcher already keeps Escape from the sheet.
+2. Pad the icon by `PVSpacing.space1` (or the nearest token that gives about 3 pt) before `.contentShape(Circle())` and `.pvFocusRing`, so the ring circles the glyph; add `.focusEffectDisabled()` after `.focusable()`. Keep the visual size at 15 pt and adjust the card's y offset for the padding.
+3. `PVHelpIcon` gains `cardEdge: HorizontalEdge = .leading`. `.trailing` places the card's trailing edge at the icon's trailing edge (`x: iconFrame - cardWidth`). `SourceFields` passes `.trailing`; the Metadata heading keeps the default.
+4. Drop `.help(help)` while `card.isPresented` is true.
+5. README row names `cardEdge`. Plan §10 step 1 adds: with the card open, press Return: the Source is created.
+Check: `rg -n "pvSheetInnerEdit" macos/App/DesignSystem/Components/HelpIcon` prints nothing; scripts/check-pr.sh PASS.
+
+Head `3c632e297`. Gate PASS (orchestrator re-run). F-12 done; orchestrator read the `PVHelpIcon` diff: no inner-edit signal, 4 pt ring padding (`space2`, the nearest token) with `.focusEffectDisabled()`, `cardEdge` with `.trailing` from `SourceFields`, tooltip empty while the card is open. The padding also widens the Metadata heading's icon by 8 pt. UX-1 to UX-4 (round 6) **Resolved**; not seen in the app.
+
 ## Result
-Gate PASS · CI green at `a299eafb3`, re-run on push · open: none · follow-ups: CON-2/UX-3 (round 1) focus restore after a failed form-dialog save · to user: keyboard-reachable help for `PVHelpIcon` (round 4 UX-1) · UX-2 (round 1) fixed in round 3 · to user: —
+Gate PASS · CI green at `a299eafb3`, re-run on push · open: none · follow-ups: CON-2/UX-3 (round 1) focus restore after a failed form-dialog save · UX-3 (round 6) clamp popup panels to the screen · UX-2 (round 1) fixed in round 3 · to user: —
 
 ## Cost
 Plan: 6,277 words (check-plan-docs info line).
@@ -199,4 +242,7 @@ Plan: 6,277 words (check-plan-docs info line).
 | 4 | UX | opus | 49k |
 | 4 | MNT | opus | 67k |
 | 5 | implementer fix | sonnet | 82k |
-| | **Total** | | **1,336k** |
+| 6 | implementer fix | sonnet | 99k |
+| 6 | UX | opus | 86k |
+| 7 | implementer fix | sonnet | 72k |
+| | **Total** | | **1,593k** |
