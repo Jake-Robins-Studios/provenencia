@@ -1,7 +1,7 @@
 # Ship log — S16-83 The date form is smaller and keyboard-first
 
 **Plan:** [`S16-83-date-form-condensed.md`](S16-83-date-form-condensed.md) · **Branch:** `s16-83-date-form-condensed` · **PR:** #1027
-**State:** fixing — manual check
+**State:** ready — awaiting the user's §10 re-run
 
 ## Round 0 — implement
 Head `f49196396`. Gate PASS (orchestrator run, xcode-test included). Report deviations: manual check (§10) and the view-level keyboard evidence (D-3, D-4, D-6, D-13) not run — needs the user's Mac; version 0.53.1 (main already 0.53.0); `monthAndDayCanBeSetWithoutAYear` lost its `applyStartCascade()` call (method deleted); `Field.neighbours` is `@MainActor`; `DateValueDraft.part(_:start:)` is static; old names (`PVInputTabClaim`, `sourceDateReadsAs`, `.date.readsAs`, `hideTime`) left in landed/historical plans and map rows, not rewritten.
@@ -90,7 +90,9 @@ Failing test first: `DateValueEditorFormTests/dayAndMsShareARightEdge` — with 
 Do: name the widths once (e.g. `private enum Layout { static let gap: CGFloat = PVSpacing.space4; year 64; month 124; day 48; timePart 57; zoneMax 160 }`, internal enough for the test) and use them in `dateRow`, `timeRow`, `partField` and `monthSelect`; both rows `HStack(alignment: .bottom, spacing: Layout.gap)`. `monthSelect`: `fillsWidth: true` so the select fills its 124 pt column, flush with its caption. `zoneField`: `.frame(minWidth: 0, maxWidth: Layout.zoneMax, alignment: .leading)` (board `minmax(0,160px)`); in the composer's range (about 440 pt box, 86 pt side column) Time zone keeps about 94 pt. Caption-to-control spacing `PVSpacing.space1` (2 pt) in `partField`, `zoneField` and `monthSelect`. Keep `sideLabelWidth` 86 (board 76 + 10 gap). Update the plan's Landed note: "the rows follow the board's grid (S16-D20): fields 57 pt, gaps 8 pt, Month fills its column, Time zone capped at 160 pt; the round-0 widths drifted from the board (user's manual check)".
 Check: the test passes; scripts/check-pr.sh PASS; the user re-runs §10 step 1 and step 4 (composer range: Time zone readable).
 
-## Result
+## Manual check — fix
+Head `65feca208`. Gate PASS (orchestrator run). F-7 done: `DateValueEditorForm.Layout` (gap 8, year 64, month 124, day 48, time parts 57, zone max 160); Month `fillsWidth: true`; captions 2 pt over their controls; `dayAndMsShareARightEdge` added red first (did not compile), green at head. Diff read by orchestrator against Fix plan M: matches. On screen: the user's §10 steps 1 and 4.
+
 Gate PASS (head `2ccc5fe70`, origin/main unchanged at `6a6854119`) · CI see PR · open: none · follow-ups: MNT-3 → S16-84 on the Spike 16 map (user) · to user: §10 manual check before merge (the only proof of UX-1 in the running app, AC-1.1/1.2/1.6, AC-2.1/2.8/2.9, D-3/D-4/D-6/D-13; watch steps 1 and 4 for the `ViewThatFits` Kind/qualifier focus).
 
 ## Cost
@@ -105,4 +107,5 @@ Plan: 6,346 words (check-plan-docs info line).
 | 1 | implementer (fix) | sonnet | 89k |
 | 2 | CON | opus | 39k |
 | 2 | UX | opus | 39k |
-| | **Total** | | **711k** |
+| M | implementer (fix) | sonnet | 80k |
+| | **Total** | | **791k** |
