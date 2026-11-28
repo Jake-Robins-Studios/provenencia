@@ -57,11 +57,13 @@ struct SourceFields: View {
                 hint: L10n.Sources.formPublishedDateHint,
                 error: draft.validation.dateError
             ) {
-                SourceDateEditor(
-                    draft: $draft.date,
-                    accessibilityIdentifierPrefix: "\(accessibilityIdentifierPrefix).date",
-                    yearFocus: PVFieldFocus($focus, equals: .date, in: Self.order)
-                )
+                PVValueBox {
+                    SourceDateEditor(
+                        draft: $draft.date,
+                        accessibilityIdentifierPrefix: "\(accessibilityIdentifierPrefix).date",
+                        yearFocus: PVFieldFocus($focus, equals: .date, in: Self.order)
+                    )
+                }
             }
         }
     }
