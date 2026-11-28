@@ -25,7 +25,7 @@ The property is worth having for more than households: roll-ups ("events in Uppe
 5. **A farm is a household.** "The Smith family farm" is a `household` Place; there is no separate `farm` or `homestead` term.
 6. **A household is a logical place, and membership needs no dates.** A `household` Place is the people's shared accommodation, not the building: "the Smith family farm", which stops being that place when the Smiths move out. Anyone whose residence links to it is a member, whatever their dates. This is because residence evidence is mostly single `as_of` days (an obituary's "of Town Y", a directory's year). Under the S16 bounds ([`event-as-of.md`](../deployment-plan/spike-16/event-as-of.md)), two people's as-ofs almost never prove that their residences overlapped, so a proven-overlap rule would almost never group anyone. Consequences:
    - **Successive occupants are different Places.** When the Joneses move into the Smiths' farm, that's a new `household` Place, as a township becoming a city is (decision 9). Which household a record's address belongs to is the researcher's judgment, recorded by the Location they draw.
-   - **The building stays reachable.** Link the household `part_of` the address, farm lot or town, so maps, roll-ups and "events in this town" still work through the chain.
+   - **The building stays reachable.** The household carries its street address in `address` (decision 15) and links `part_of` its town or township, so maps, roll-ups and "events in this town" still work through the chain. No separate Place is needed for the building.
    - **An exception to one convention.** [`conclusion-layer-data-model.md`](../conclusion-layer-data-model.md) §8 says a Place is one geographic feature at one grain. A `household` is a place whose existence ends when its people leave. Note the exception there when this ships.
    - **The Place's period can say when the household existed.** Its `start_date` / `end_date` are optional, and the grouping doesn't read them.
 7. **The grouping reads the Conclusion value.** Group when a Place's reconciled `place_type` (`single`, `merged`, or `concluded` by the researcher; [`conclusion-reconciliation.md`](../conclusion-reconciliation.md)) carries the household flag. When it's `mixed` and the researcher hasn't concluded it, don't group. This is the "later Property (nature, grain, …)" that `conclusion-reconciliation.md` §place chains anticipated.
@@ -36,11 +36,15 @@ The property is worth having for more than households: roll-ups ("events in Uppe
 12. **Wording says what the evidence says, with each member's own dates as context.** "Also in this household: Mary (as of 1990), John (as of 2015)", not "Lived with Mary". The dates let the reader judge; the rule doesn't test them. Copy goes through [`add-localized-string`](../../.agents/skills/add-localized-string/SKILL.md).
 13. **`place_type` is a locked binding on `place`,** so the Properties page can't unbind it while the household rule reads it, as `event_type` is locked on `event` ([`seeded-vocabulary.md`](../seeded-vocabulary.md) §3.3). Add a §3.x terms table.
 14. **The type is optional.** A Place with no `place_type` stays valid everywhere, as today. It just never takes part in household grouping. Residences group only once their place is typed `household` (or another term with the household flag). The pattern shortcuts in [`evidence-graph-structure-shortcuts.md`](evidence-graph-structure-shortcuts.md) (a residence cluster placed in one action) could set `household` for the researcher.
+15. **A seeded `address` Property on `place`.** Free text (`ValueTypeText`), bound on `place` and not locked, since no rule keys into it. It holds the street address or lot a record gives ("12 Mill Street", "Lot 7, Concession 3"), most often on a `household`, but any Place may carry one. It's the physical location the logical household otherwise lacks, without a Place per building. Add it to [`seeded-vocabulary.md`](../seeded-vocabulary.md) §3.2 and §3.3.
 
 ## Still open
 
 1. **Neighbouring types in matching.** Whether town and city, or village and parish, count as a conflict or compare as unknown. An untyped place compares as unknown against any type.
 2. **The full seeded term list.** Which of `country`, `state`, `province`, `region`, `county`, `township`, `city`, `town`, `village`, `parish` and `household` ship.
+3. **`address` cardinality.** Single-valued, so two records that disagree read `mixed`, or *multiple* like `toponym`, since a house renumbered or a street renamed carries two true addresses.
+4. **`address` structure.** Plain text, or parts (number, street, lot, concession) like a NameValue. Text is enough to start; parts would help a later gazetteer or geocoding ([`place-gazetteer-service.md`](place-gazetteer-service.md)).
+5. **`address` in matching.** Whether it gets a knob beside `subject.Weights.place.toponym` ([`matching-model.md`](../matching-model.md)), so two households at the same address read as a likely match and different addresses as a conflict.
 
 ## Alternatives considered
 
@@ -52,4 +56,4 @@ The property is worth having for more than households: roll-ups ("events in Uppe
 
 ## First slice
 
-The `place_type` property, its terms, the household flag (with its migration), the binding and the matching knob, with no grouping. Grouping and the derived co-residence fact come after, once real places have been typed.
+The `place_type` property, its terms, the household flag (with its migration), the binding and the matching knob, and the `address` property, with no grouping. Grouping and the derived co-residence fact come after, once real places have been typed.
