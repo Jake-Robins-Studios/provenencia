@@ -6417,10 +6417,34 @@ enum L10n {
             comment: "Uppercase heading for range end side"
         )
 
-        static let datePointHeading = LocalizedStringResource(
-            "sources.page.datePointHeading",
-            defaultValue: "Date",
-            comment: "Uppercase heading for point date cascade"
+        static let dateEarliestShort = LocalizedStringResource(
+            "sources.page.dateEarliestShort",
+            defaultValue: "Earliest",
+            comment: "Label for a range's start side, over its note"
+        )
+
+        static let dateEarliestNote = LocalizedStringResource(
+            "sources.page.dateEarliestNote",
+            defaultValue: "not before",
+            comment: "Note under the Earliest label on a range's start side"
+        )
+
+        static let dateLatestShort = LocalizedStringResource(
+            "sources.page.dateLatestShort",
+            defaultValue: "Latest",
+            comment: "Label for a range's end side, over its note"
+        )
+
+        static let dateLatestNote = LocalizedStringResource(
+            "sources.page.dateLatestNote",
+            defaultValue: "not after",
+            comment: "Note under the Latest label on a range's end side"
+        )
+
+        static let dateTimeZonePrompt = LocalizedStringResource(
+            "sources.page.dateTimeZonePrompt",
+            defaultValue: "Europe/London, +01:00…",
+            comment: "Placeholder for the DateValue time zone field"
         )
 
         static let dateLeaveEmptyHint = LocalizedStringResource(
@@ -6542,18 +6566,6 @@ enum L10n {
             "sources.page.dateTimeZone",
             defaultValue: "Time zone",
             comment: "DateValue free-text timezone label"
-        )
-
-        static let dateAddTime = LocalizedStringResource(
-            "sources.page.dateAddTime",
-            defaultValue: "Add time…",
-            comment: "Link to reveal optional time fields"
-        )
-
-        static let dateHideTime = LocalizedStringResource(
-            "sources.page.dateHideTime",
-            defaultValue: "Remove time",
-            comment: "Link that clears the optional time fields on one side"
         )
 
         static let dateShowAdvanced = LocalizedStringResource(

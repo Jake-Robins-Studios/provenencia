@@ -26,9 +26,6 @@ struct DateValueDraft: Equatable, Sendable {
     var endMillisecond: Int32?
     var endTZ: String
 
-    /// UI: clock fields revealed after “Add time”.
-    var showStartTime: Bool
-    var showEndTime: Bool
     /// UI: calendar + phrase section.
     var showAdvanced: Bool
 
@@ -54,27 +51,9 @@ struct DateValueDraft: Equatable, Sendable {
             endSecond: nil,
             endMillisecond: nil,
             endTZ: "",
-            showStartTime: false,
-            showEndTime: false,
             showAdvanced: false
         )
     }
-
-    // MARK: Cascade UI helpers
-
-    var canSetStartMonth: Bool { startYear != nil }
-    var canSetStartDay: Bool { startMonth != nil }
-    var canSetStartHour: Bool { startDay != nil }
-    var canSetStartMinute: Bool { startHour != nil }
-    var canSetStartSecond: Bool { startMinute != nil }
-    var canSetStartMillisecond: Bool { startSecond != nil }
-
-    var canSetEndMonth: Bool { endYear != nil }
-    var canSetEndDay: Bool { endMonth != nil }
-    var canSetEndHour: Bool { endDay != nil }
-    var canSetEndMinute: Bool { endHour != nil }
-    var canSetEndSecond: Bool { endMinute != nil }
-    var canSetEndMillisecond: Bool { endSecond != nil }
 
     /// No civil fields and no phrase. A transcription prefill may fill this.
     var isBlank: Bool {
@@ -90,58 +69,23 @@ struct DateValueDraft: Equatable, Sendable {
     var isPoint: Bool { kind == "point" }
     var isRange: Bool { kind == "range" }
 
-    /// Day is set on the start cascade — time fields may be revealed.
-    var hasFullStartDay: Bool { startYear != nil && startMonth != nil && startDay != nil }
-    /// Day is set on the end cascade — time fields may be revealed.
-    var hasFullEndDay: Bool { endYear != nil && endMonth != nil && endDay != nil }
-
-    /// Bindings still call this after each edit; components are independent
-    /// so there is nothing to wipe.
-    mutating func applyStartCascade() {}
-
-    mutating func applyEndCascade() {}
-
     /// Switching to range clears qualifier (Between is the hedge). Switching to point clears end_*.
     mutating func setKind(_ newKind: String) {
         kind = newKind
         if newKind == "range" {
             qualifier = ""
         } else {
-            endYear = nil
-            endMonth = nil
-            endDay = nil
-            endHour = nil
-            endMinute = nil
-            endSecond = nil
-            endMillisecond = nil
+            for component in CascadeComponent.allCases {
+                self[keyPath: Self.part(component, start: false)] = nil
+            }
             endTZ = ""
-            showEndTime = false
-        }
-    }
-
-    /// Hiding a side's time block clears its clock fields and zone, so no hidden value is saved.
-    mutating func hideTime(start: Bool) {
-        if start {
-            startHour = nil
-            startMinute = nil
-            startSecond = nil
-            startMillisecond = nil
-            startTZ = ""
-            showStartTime = false
-        } else {
-            endHour = nil
-            endMinute = nil
-            endSecond = nil
-            endMillisecond = nil
-            endTZ = ""
-            showEndTime = false
         }
     }
 
     // MARK: Validation
 
-    /// Civil component that can show an out-of-range field error.
-    enum CascadeComponent: Equatable, Sendable {
+    /// Civil component that can show an out-of-range field error, in the order the form shows them.
+    enum CascadeComponent: CaseIterable, Equatable, Sendable {
         case year, month, day, hour, minute, second, millisecond
     }
 
@@ -153,31 +97,44 @@ struct DateValueDraft: Equatable, Sendable {
         return L10n.string(L10n.Sources.dateRangeOrderError)
     }
 
+    /// The one mapping from a part of a side to its stored field.
+    static func part(_ component: CascadeComponent, start: Bool) -> WritableKeyPath<DateValueDraft, Int32?> {
+        switch (component, start) {
+        case (.year, true): \.startYear
+        case (.year, false): \.endYear
+        case (.month, true): \.startMonth
+        case (.month, false): \.endMonth
+        case (.day, true): \.startDay
+        case (.day, false): \.endDay
+        case (.hour, true): \.startHour
+        case (.hour, false): \.endHour
+        case (.minute, true): \.startMinute
+        case (.minute, false): \.endMinute
+        case (.second, true): \.startSecond
+        case (.second, false): \.endSecond
+        case (.millisecond, true): \.startMillisecond
+        case (.millisecond, false): \.endMillisecond
+        }
+    }
+
     /// Out-of-range message for one cascade field, if its stored value is invalid.
     func fieldError(_ component: CascadeComponent, start: Bool) -> String? {
-        let side = start ? startSide : endSide
+        guard let value = self[keyPath: Self.part(component, start: start)].map(Int.init) else { return nil }
         switch component {
         case .year:
-            guard let y = side.year else { return nil }
-            return (1...9999).contains(y) ? nil : L10n.string(L10n.Sources.dateYearOutOfRange)
+            return (1...9999).contains(value) ? nil : L10n.string(L10n.Sources.dateYearOutOfRange)
         case .month:
-            guard let m = side.month else { return nil }
-            return (1...12).contains(m) ? nil : L10n.string(L10n.Sources.dateMonthOutOfRange)
+            return (1...12).contains(value) ? nil : L10n.string(L10n.Sources.dateMonthOutOfRange)
         case .day:
-            guard let d = side.day else { return nil }
-            return (1...31).contains(d) ? nil : L10n.string(L10n.Sources.dateDayOutOfRange)
+            return (1...31).contains(value) ? nil : L10n.string(L10n.Sources.dateDayOutOfRange)
         case .hour:
-            guard let h = side.hour else { return nil }
-            return (0...23).contains(h) ? nil : L10n.string(L10n.Sources.dateHourOutOfRange)
+            return (0...23).contains(value) ? nil : L10n.string(L10n.Sources.dateHourOutOfRange)
         case .minute:
-            guard let mi = side.minute else { return nil }
-            return (0...59).contains(mi) ? nil : L10n.string(L10n.Sources.dateMinuteOutOfRange)
+            return (0...59).contains(value) ? nil : L10n.string(L10n.Sources.dateMinuteOutOfRange)
         case .second:
-            guard let s = side.second else { return nil }
-            return (0...59).contains(s) ? nil : L10n.string(L10n.Sources.dateSecondOutOfRange)
+            return (0...59).contains(value) ? nil : L10n.string(L10n.Sources.dateSecondOutOfRange)
         case .millisecond:
-            guard let ms = side.millisecond else { return nil }
-            return (0...999).contains(ms) ? nil : L10n.string(L10n.Sources.dateMillisecondOutOfRange)
+            return (0...999).contains(value) ? nil : L10n.string(L10n.Sources.dateMillisecondOutOfRange)
         }
     }
 
@@ -187,8 +144,7 @@ struct DateValueDraft: Equatable, Sendable {
 
     /// First out-of-range message on a side (Y/M/D then time), for group-level display.
     func cascadeFieldError(start: Bool) -> String? {
-        let order: [CascadeComponent] = [.year, .month, .day, .hour, .minute, .second, .millisecond]
-        for component in order {
+        for component in CascadeComponent.allCases {
             if let message = fieldError(component, start: start) {
                 return message
             }
@@ -287,27 +243,22 @@ struct DateValueDraft: Equatable, Sendable {
 
     // MARK: Private sides
 
-    private var startSide: Side {
-        Side(
-            year: startYear.map(Int.init),
-            month: startMonth.map(Int.init),
-            day: startDay.map(Int.init),
-            hour: startHour.map(Int.init),
-            minute: startMinute.map(Int.init),
-            second: startSecond.map(Int.init),
-            millisecond: startMillisecond.map(Int.init)
-        )
-    }
+    private var startSide: Side { side(start: true) }
 
-    private var endSide: Side {
-        Side(
-            year: endYear.map(Int.init),
-            month: endMonth.map(Int.init),
-            day: endDay.map(Int.init),
-            hour: endHour.map(Int.init),
-            minute: endMinute.map(Int.init),
-            second: endSecond.map(Int.init),
-            millisecond: endMillisecond.map(Int.init)
+    private var endSide: Side { side(start: false) }
+
+    private func side(start: Bool) -> Side {
+        func value(_ component: CascadeComponent) -> Int? {
+            self[keyPath: Self.part(component, start: start)].map(Int.init)
+        }
+        return Side(
+            year: value(.year),
+            month: value(.month),
+            day: value(.day),
+            hour: value(.hour),
+            minute: value(.minute),
+            second: value(.second),
+            millisecond: value(.millisecond)
         )
     }
 
@@ -383,10 +334,6 @@ extension DateValueDraft {
             endSecond: input.endSecond,
             endMillisecond: input.endMillisecond,
             endTZ: input.endTZ,
-            showStartTime: input.startHour != nil || input.startMinute != nil
-                || input.startSecond != nil || input.startMillisecond != nil || !input.startTZ.isEmpty,
-            showEndTime: input.endHour != nil || input.endMinute != nil
-                || input.endSecond != nil || input.endMillisecond != nil || !input.endTZ.isEmpty,
             showAdvanced: !input.phrase.isEmpty
                 || (!input.calendar.isEmpty && input.calendar != "gregorian")
         )

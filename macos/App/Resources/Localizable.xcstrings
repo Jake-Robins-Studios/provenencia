@@ -8614,18 +8614,6 @@
         }
       }
     },
-    "sources.page.dateAddTime": {
-      "comment": "Link to reveal optional time fields",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add time…"
-          }
-        }
-      }
-    },
     "sources.page.dateCalendar": {
       "comment": "DateValue calendar picker label",
       "extractionState": "manual",
@@ -8722,6 +8710,30 @@
         }
       }
     },
+    "sources.page.dateEarliestNote": {
+      "comment": "Note under the Earliest label on a range's start side",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "not before"
+          }
+        }
+      }
+    },
+    "sources.page.dateEarliestShort": {
+      "comment": "Label for a range's start side, over its note",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Earliest"
+          }
+        }
+      }
+    },
     "sources.page.dateHideAdvanced": {
       "comment": "Link to hide calendar and phrase",
       "extractionState": "manual",
@@ -8730,18 +8742,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hide calendar and phrase"
-          }
-        }
-      }
-    },
-    "sources.page.dateHideTime": {
-      "comment": "Link that clears the optional time fields on one side",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remove time"
           }
         }
       }
@@ -8766,6 +8766,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hour must be between 0 and 23."
+          }
+        }
+      }
+    },
+    "sources.page.dateLatestNote": {
+      "comment": "Note under the Latest label on a range's end side",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "not after"
+          }
+        }
+      }
+    },
+    "sources.page.dateLatestShort": {
+      "comment": "Label for a range's end side, over its note",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latest"
+          }
+        }
+      }
+    },
+    "sources.page.dateTimeZonePrompt": {
+      "comment": "Placeholder for the DateValue time zone field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Europe/London, +01:00…"
           }
         }
       }
@@ -9510,18 +9546,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Michaelmas term"
-          }
-        }
-      }
-    },
-    "sources.page.datePointHeading": {
-      "comment": "Uppercase heading for point date cascade",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Date"
           }
         }
       }
