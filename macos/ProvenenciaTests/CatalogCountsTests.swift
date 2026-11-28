@@ -160,7 +160,8 @@ struct CatalogCountsTests {
         await store.workspaceNavCountsHold.untilSuspended(1)
         store.workspaceNavCountsHold.isOn = false
         _ = try await store.createSource(
-            projectDir: projectDir, userID: "u", sourceTypeID: "t1", title: "New", description: ""
+            projectDir: projectDir, userID: "u", sourceTypeID: "t1", title: "New", description: "",
+            date: nil, isPrivate: false
         )
 
         await counts.refreshAll()

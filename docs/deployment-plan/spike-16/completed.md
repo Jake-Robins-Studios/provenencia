@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-73 — Add Source takes the Published date and Private
+
+**Landed 2026-11-28** in [#1019](https://github.com/Jake-Robins-Studios/provenencia/pull/1019). Add Source shows Title, Type with Private beside it (a checkbox, its help behind an info icon), Description and Published date (the date form, blank means undated, with a "Reads as" line) in a 560 pt dialog, and Create writes the Source with its date and Private in its one `create_source` write: `CreateSourceRequest` gains `date` and `is_private`, `sources.CreateInput` gains `Private`, and `CreateSource` goes through `sourcecopy.CreateFromDraft`. A date that is typed into but not usable shows a line naming what keeps it from saving and disables Create, and Remove time clears that side's time; a date or Private alone counts as an edit to discard. `SourceFields` and `SourceDateEditor` are the shared views the Copy sheet (S16-74) will use. Every `PVFormDialog` now disables its form while it runs (the eight host copies are gone), and `PVCheckbox` dims when disabled. Version 0.52.0.
+
 ## S16-81 — Family groups siblings by their parents and shows each couple's marriage
 
 **Landed 2026-11-27** in [#1013](https://github.com/Jake-Robins-Studios/provenencia/pull/1013). The Family section draws the person's siblings in groups by the parents each shares with them, each group its parents then its children indented under one line that stays inside the group, a parent in two groups drawn in each. Each couple the page shows carries a line per marriage ("m. 12 Jun 1841 · Hamburg"), between a group's parents or under a partner's tile, each starting where a tile's text starts, named when a group has more than two parents, spoken after the second parent. A person's b. and d. lines and a marriage line share one `L10n.LifeLine` table of whole phrases drawn by one `PVDatePlaceLine(_ line:)`; the wire lost `origin_siblings` and the parents and siblings units. In the right column a partner's first child sits 18 pt below their last marriage line. Version 0.50.0.

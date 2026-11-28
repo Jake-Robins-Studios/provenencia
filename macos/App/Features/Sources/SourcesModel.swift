@@ -37,14 +37,18 @@ final class SourcesModel {
         var sourceTypeID: String
         var title: String
         var description: String = ""
+        var date: DateValueDraft = .empty()
+        var isPrivate = false
 
         var trimmedTitle: String { title.trimmingCharacters(in: .whitespacesAndNewlines) }
 
-        /// The shared title and type rule for Add Source and Copy Source.
+        /// The shared title, type and date rule for Add Source and Copy Source.
         var validation: SourceDraftValidation {
             SourceDraftValidation(
                 titleError: trimmedTitle.isEmpty ? L10n.string(L10n.Sources.titleRequired) : nil,
-                typeError: sourceTypeID.isEmpty ? L10n.string(L10n.Sources.typeRequired) : nil
+                typeError: sourceTypeID.isEmpty ? L10n.string(L10n.Sources.typeRequired) : nil,
+                dateError: date.unsavableError,
+                dateParses: date.isBlank || date.isValid
             )
         }
     }
@@ -52,8 +56,12 @@ final class SourcesModel {
     struct SourceDraftValidation: Equatable {
         var titleError: String?
         var typeError: String?
+        /// The line under the date form for a date that can't be saved; nil when the form shows its own error.
+        var dateError: String?
+        /// The date is blank or reads as a date. A month of 13 parses not, and has no `dateError`.
+        var dateParses = true
 
-        var isValid: Bool { titleError == nil && typeError == nil }
+        var isValid: Bool { titleError == nil && typeError == nil && dateParses }
     }
 
     /// Sort, type (`source_types.id`, empty for all), evidence status, and
@@ -72,6 +80,8 @@ final class SourcesModel {
     var titleError: String?
     /// FFI / store failure on Create Source (not field validation).
     var createError: String?
+    /// Changes each time a failed create asks the Add Source body to scroll back up to `createError`.
+    private(set) var createErrorScrollRequest = 0
     private(set) var isSaving = false
 
     var pageProjectDir: String { session.projectKey.projectDir }
@@ -408,6 +418,7 @@ final class SourcesModel {
         let title = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
         let description = draft.description.trimmingCharacters(in: .whitespacesAndNewlines)
         if !title.isEmpty || !description.isEmpty { return true }
+        if draft.date.value != nil || draft.isPrivate { return true }
         if types.count == 1 { return false }
         return !draft.sourceTypeID.isEmpty
     }
@@ -467,7 +478,9 @@ final class SourcesModel {
                 userID: userID,
                 sourceTypeID: draft.sourceTypeID,
                 title: draft.trimmedTitle,
-                description: draft.description.trimmingCharacters(in: .whitespacesAndNewlines)
+                description: draft.description.trimmingCharacters(in: .whitespacesAndNewlines),
+                date: draft.date.value,
+                isPrivate: draft.isPrivate
             )
             session.apply(effects, .createdSource(created))
             isAdding = false
@@ -482,6 +495,7 @@ final class SourcesModel {
             return created
         } catch {
             createError = L10n.Errors.message(for: error)
+            createErrorScrollRequest += 1
             return nil
         }
     }

@@ -241,6 +241,110 @@ func TestCreateSourceAndWorkspace(t *testing.T) {
 			},
 		},
 	})
+
+	create := func(t *testing.T, dir, userID, typeID string, date *engine.DateValueInput, private bool) (*engine.CreateSourceResponse, error) {
+		t.Helper()
+		var resp engine.CreateSourceResponse
+		err := rpc(t, CreateSource, &engine.CreateSourceRequest{
+			ProjectDir: dir, UserId: userID, SourceTypeId: typeID, Title: "Register", Date: date, IsPrivate: private,
+		}, &resp)
+		return &resp, err
+	}
+	workspace := func(t *testing.T, dir, id string) *engine.Source {
+		t.Helper()
+		var ws engine.GetSourceWorkspaceResponse
+		mustRPC(t, GetSourceWorkspace, &engine.GetSourceWorkspaceRequest{ProjectDir: dir, SourceId: id}, &ws)
+		return ws.Source
+	}
+	t.Run("undated and public", func(t *testing.T) {
+		t.Cleanup(func() { _ = catalogsession.CloseAll() })
+		dir, userID, typeID := sourceFixture(t)
+		resp, err := create(t, dir, userID, typeID, nil, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		src := workspace(t, dir, resp.Source.Id)
+		if !src.GetIsPublic() || src.GetDate() != nil {
+			t.Fatalf("workspace source %+v", src)
+		}
+		got := latestRevisionTypes(t, dir)
+		slices.Sort(got)
+		if want := []string{"evidence_graph create", "source create"}; !slices.Equal(got, want) {
+			t.Fatalf("changes %v want %v", got, want)
+		}
+	})
+	t.Run("dated and private", func(t *testing.T) {
+		t.Cleanup(func() { _ = catalogsession.CloseAll() })
+		dir, userID, typeID := sourceFixture(t)
+		resp, err := create(t, dir, userID, typeID, pointDate(1880, 0, 0), true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if resp.Source.GetIsPublic() || resp.Source.GetDate().GetStartYear() != 1880 || resp.Source.DateSortKey == nil {
+			t.Fatalf("response source %+v", resp.Source)
+		}
+		src := workspace(t, dir, resp.Source.Id)
+		if src.GetIsPublic() || src.GetDate().GetStartYear() != 1880 || src.DateSortKey == nil {
+			t.Fatalf("workspace source %+v", src)
+		}
+		assertLatestAuditAction(t, dir, "create_source")
+		got := latestRevisionTypes(t, dir)
+		slices.Sort(got)
+		want := []string{"date_value create", "evidence_graph create", "source create", "source update"}
+		if !slices.Equal(got, want) {
+			t.Fatalf("changes %v want %v", got, want)
+		}
+		err = catalogsession.Do(dir, func(c *database.Catalog) error {
+			_, changes := dbtest.LatestRevision(t, dbtest.MustDB(t, c))
+			if got := changes[0].Fields["is_public"].New; changes[0].EntityType != "source" || got != float64(0) {
+				t.Fatalf("source create fields %+v", changes[0].Fields)
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("range", func(t *testing.T) {
+		t.Cleanup(func() { _ = catalogsession.CloseAll() })
+		dir, userID, typeID := sourceFixture(t)
+		start, end := int32(1879), int32(1880)
+		resp, err := create(t, dir, userID, typeID, &engine.DateValueInput{Kind: datevalue.KindRange, StartYear: &start, EndYear: &end}, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		d := workspace(t, dir, resp.Source.Id).GetDate()
+		if d.GetKind() != datevalue.KindRange || d.GetStartYear() != 1879 || d.GetEndYear() != 1880 {
+			t.Fatalf("date %+v", d)
+		}
+	})
+	t.Run("blank kind is undated", func(t *testing.T) {
+		t.Cleanup(func() { _ = catalogsession.CloseAll() })
+		dir, userID, typeID := sourceFixture(t)
+		resp, err := create(t, dir, userID, typeID, &engine.DateValueInput{}, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if workspace(t, dir, resp.Source.Id).GetDate() != nil || countCatalogRows(t, dir, "date_values") != 0 {
+			t.Fatal("a blank kind stored a date")
+		}
+	})
+	t.Run("invalid date creates nothing", func(t *testing.T) {
+		t.Cleanup(func() { _ = catalogsession.CloseAll() })
+		dir, userID, typeID := sourceFixture(t)
+		rev := latestRevision(t, dir)
+		var before engine.ListSourcesResponse
+		mustRPC(t, ListSources, &engine.ListSourcesRequest{ProjectDir: dir}, &before)
+		_, err := create(t, dir, userID, typeID, pointDate(1880, 13, 0), false)
+		if !errors.Is(err, datevalue.ErrInvalid) {
+			t.Fatalf("err = %v want datevalue.ErrInvalid", err)
+		}
+		var after engine.ListSourcesResponse
+		mustRPC(t, ListSources, &engine.ListSourcesRequest{ProjectDir: dir}, &after)
+		if latestRevision(t, dir) != rev || len(after.Sources) != len(before.Sources) {
+			t.Fatalf("revision %d -> %d, sources %d -> %d", rev, latestRevision(t, dir), len(before.Sources), len(after.Sources))
+		}
+	})
 }
 
 func TestSourceNotes(t *testing.T) {

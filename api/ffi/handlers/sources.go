@@ -145,15 +145,20 @@ func CreateSource(in []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	draft := sourcecopy.Draft{
+		Source: sources.CreateInput{
+			SourceTypeID: typeID,
+			Title:        req.GetTitle(),
+			Description:  req.GetDescription(),
+			Private:      req.GetIsPrivate(),
+		},
+		Date: valuecodec.OptionalDateFromProto(req.GetDate()),
+	}
 	var out *engine.CreateSourceResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
 		s, res, err := writes.Run(c, writes.Op{Action: "create_source", UserID: userID},
 			func(tx *database.Tx) (sources.Source, []rowchange.Change, error) {
-				return sources.Create(tx, userID, sources.CreateInput{
-					SourceTypeID: typeID,
-					Title:        req.GetTitle(),
-					Description:  req.GetDescription(),
-				})
+				return sourcecopy.CreateFromDraft(tx, userID, draft)
 			})
 		if err != nil {
 			return err

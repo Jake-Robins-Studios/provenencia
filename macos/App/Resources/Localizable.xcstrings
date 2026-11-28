@@ -7704,6 +7704,30 @@
         }
       }
     },
+    "sources.add.formPublishedDate": {
+      "comment": "Add Source form label: published date",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Published date"
+          }
+        }
+      }
+    },
+    "sources.add.formPublishedDateHint": {
+      "comment": "Hint under the optional published date on Add Source",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Optional — leave blank for an undated Source"
+          }
+        }
+      }
+    },
     "sources.add.formTitle": {
       "comment": "Add Source form label: title",
       "extractionState": "manual",
@@ -8711,13 +8735,13 @@
       }
     },
     "sources.page.dateHideTime": {
-      "comment": "Link to hide optional time fields",
+      "comment": "Link that clears the optional time fields on one side",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hide time"
+            "value": "Remove time"
           }
         }
       }
@@ -8742,6 +8766,90 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hour must be between 0 and 23."
+          }
+        }
+      }
+    },
+    "sources.page.dateUnsavableRangeBoth": {
+      "comment": "Line under the date form when a Between date has no date or time on either bound",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Between two bounds needs an earliest and a latest bound. Add both, or choose Single date."
+          }
+        }
+      }
+    },
+    "sources.page.dateUnsavableRangeStart": {
+      "comment": "Line under the date form when a Between date has no date or time on its earliest bound",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add the earliest bound."
+          }
+        }
+      }
+    },
+    "sources.page.dateUnsavableRangeEnd": {
+      "comment": "Line under the date form when a Between date has no date or time on its latest bound",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add the latest bound, or choose Single date."
+          }
+        }
+      }
+    },
+    "sources.page.dateUnsavableZone": {
+      "comment": "Line under the date form when a single date has a time zone but no date or time",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A time zone needs a date or a time. Add one, or clear the time zone."
+          }
+        }
+      }
+    },
+    "sources.page.dateUnsavableZoneAndMillisecond": {
+      "comment": "Line under the date form when a single date has a time zone and a millisecond but no date or time",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A time zone and a millisecond need a date or a time. Add one, or clear them."
+          }
+        }
+      }
+    },
+    "sources.page.dateUnsavableMillisecond": {
+      "comment": "Line under the date form when a single date has a millisecond but no date or time",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A millisecond needs a date or a time. Add one, or clear the millisecond."
+          }
+        }
+      }
+    },
+    "sources.page.dateUnsavableOther": {
+      "comment": "Line under the date form when a typed date cannot be saved and no other line applies",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This date can't be saved as typed. Check its fields, or clear them."
           }
         }
       }
@@ -8982,6 +9090,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Private Sources will be kept out of sharing. Nothing else changes yet."
+          }
+        }
+      }
+    },
+    "sources.page.private.helpLabel": {
+      "comment": "VoiceOver label for the help icon beside the Private checkbox in Add Source",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About Private"
           }
         }
       }

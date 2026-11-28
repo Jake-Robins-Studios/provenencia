@@ -71,8 +71,7 @@ private struct ArtifactSheetForm: View {
         PVFormColumns(
             saveError: model.saveError,
             saveErrorTitle: L10n.Sources.artifactCardSaveErrorTitle,
-            saveErrorIdentifier: "\(prefix).saveError",
-            isSaving: model.isSaving
+            saveErrorIdentifier: "\(prefix).saveError"
         ) {
             if model.isCreate {
                 fileField
@@ -87,7 +86,6 @@ private struct ArtifactSheetForm: View {
                 accessibilityIdentifierPrefix: "\(prefix).copyDetails"
             )
             .id(ArtifactSheetModel.Section.copyDetails)
-            .disabled(model.isSaving)
         }
         .id(ArtifactSheetModel.Section.top)
     }

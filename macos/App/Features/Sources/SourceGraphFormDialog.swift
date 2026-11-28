@@ -64,8 +64,7 @@ private struct SourceGraphForm: View {
         PVFormColumns(
             saveError: model.saveError,
             saveErrorTitle: L10n.Sources.graphFormSaveErrorTitle,
-            saveErrorIdentifier: "sources.graphForm.error",
-            isSaving: model.isSaving
+            saveErrorIdentifier: "sources.graphForm.error"
         ) {
             fields
             PVFormLoadArea(
@@ -80,7 +79,6 @@ private struct SourceGraphForm: View {
             }
         } right: {
             metadata
-                .disabled(model.isSaving)
         }
         .id(SourceGraphFormModel.Section.top)
     }

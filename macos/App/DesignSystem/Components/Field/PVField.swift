@@ -6,6 +6,9 @@ import SwiftUI
 /// `Features/Onboarding/` screens, so this isn't a new
 /// pattern for the codebase, just this file's version of it.
 ///
+/// Sets `.pvFieldControl` on its content, so a control placed beside a field
+/// lines up with that field's control: `HStack(alignment: .pvFieldControl)`.
+///
 /// See `DesignSystem/README.md` / `PVButton.swift` for the component
 /// pattern this follows.
 struct PVField<Content: View>: View {
@@ -64,6 +67,7 @@ struct PVField<Content: View>: View {
 
             content
                 .environment(\.pvFieldLabel, label)
+                .alignmentGuide(.pvFieldControl) { $0[VerticalAlignment.center] }
 
             if let error {
                 PVErrorText(error, announces: announcesError)
@@ -74,6 +78,18 @@ struct PVField<Content: View>: View {
             }
         }
     }
+}
+
+extension VerticalAlignment {
+    private enum PVFieldControl: AlignmentID {
+        static func defaultValue(in context: ViewDimensions) -> CGFloat {
+            context[VerticalAlignment.center]
+        }
+    }
+
+    /// The centre of a ``PVField``'s control. Lines up a control placed beside
+    /// a field with that field's control.
+    static let pvFieldControl = VerticalAlignment(PVFieldControl.self)
 }
 
 private struct PVFieldLabelKey: EnvironmentKey {

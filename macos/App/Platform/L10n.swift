@@ -5797,6 +5797,18 @@ enum L10n {
             comment: "Hint under the optional description field on Add Source"
         )
 
+        static let formPublishedDate = LocalizedStringResource(
+            "sources.add.formPublishedDate",
+            defaultValue: "Published date",
+            comment: "Add Source form label: published date"
+        )
+
+        static let formPublishedDateHint = LocalizedStringResource(
+            "sources.add.formPublishedDateHint",
+            defaultValue: "Optional — leave blank for an undated Source",
+            comment: "Hint under the optional published date on Add Source"
+        )
+
         static let createAction = LocalizedStringResource(
             "sources.add.create",
             defaultValue: "Create source",
@@ -6305,6 +6317,12 @@ enum L10n {
             comment: "Label of the switch that marks a Source private"
         )
 
+        static let privateHelpLabel = LocalizedStringResource(
+            "sources.page.private.helpLabel",
+            defaultValue: "About Private",
+            comment: "VoiceOver label for the help icon beside the Private checkbox in Add Source"
+        )
+
         static let privateSwitchHelp = LocalizedStringResource(
             "sources.page.private.help",
             defaultValue: "Private Sources will be kept out of sharing. Nothing else changes yet.",
@@ -6534,8 +6552,8 @@ enum L10n {
 
         static let dateHideTime = LocalizedStringResource(
             "sources.page.dateHideTime",
-            defaultValue: "Hide time",
-            comment: "Link to hide optional time fields"
+            defaultValue: "Remove time",
+            comment: "Link that clears the optional time fields on one side"
         )
 
         static let dateShowAdvanced = LocalizedStringResource(
@@ -6602,6 +6620,48 @@ enum L10n {
             "sources.page.dateRangeOrderError",
             defaultValue: "The latest bound falls before the earliest bound. The date has to sit inside the window.",
             comment: "Inline error when range end precedes start"
+        )
+
+        static let dateUnsavableRangeBoth = LocalizedStringResource(
+            "sources.page.dateUnsavableRangeBoth",
+            defaultValue: "Between two bounds needs an earliest and a latest bound. Add both, or choose Single date.",
+            comment: "Line under the date form when a Between date has no date or time on either bound"
+        )
+
+        static let dateUnsavableRangeStart = LocalizedStringResource(
+            "sources.page.dateUnsavableRangeStart",
+            defaultValue: "Add the earliest bound.",
+            comment: "Line under the date form when a Between date has no date or time on its earliest bound"
+        )
+
+        static let dateUnsavableRangeEnd = LocalizedStringResource(
+            "sources.page.dateUnsavableRangeEnd",
+            defaultValue: "Add the latest bound, or choose Single date.",
+            comment: "Line under the date form when a Between date has no date or time on its latest bound"
+        )
+
+        static let dateUnsavableZone = LocalizedStringResource(
+            "sources.page.dateUnsavableZone",
+            defaultValue: "A time zone needs a date or a time. Add one, or clear the time zone.",
+            comment: "Line under the date form when a single date has a time zone but no date or time"
+        )
+
+        static let dateUnsavableZoneAndMillisecond = LocalizedStringResource(
+            "sources.page.dateUnsavableZoneAndMillisecond",
+            defaultValue: "A time zone and a millisecond need a date or a time. Add one, or clear them.",
+            comment: "Line under the date form when a single date has a time zone and a millisecond but no date or time"
+        )
+
+        static let dateUnsavableMillisecond = LocalizedStringResource(
+            "sources.page.dateUnsavableMillisecond",
+            defaultValue: "A millisecond needs a date or a time. Add one, or clear the millisecond.",
+            comment: "Line under the date form when a single date has a millisecond but no date or time"
+        )
+
+        static let dateUnsavableOther = LocalizedStringResource(
+            "sources.page.dateUnsavableOther",
+            defaultValue: "This date can't be saved as typed. Check its fields, or clear them.",
+            comment: "Line under the date form when a typed date cannot be saved and no other line applies"
         )
 
         static let dateYearOutOfRange = LocalizedStringResource(

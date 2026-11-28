@@ -60,7 +60,6 @@ private struct SourceCopyForm: View {
                 types: model.types,
                 accessibilityIdentifierPrefix: "sources.copy"
             )
-            .disabled(model.isSaving)
             PVDivider()
             parts
         }
@@ -103,8 +102,7 @@ private struct SourceCopyForm: View {
                 hint: model.dateLine ?? "",
                 absentHint: absentHint,
                 isChecked: $model.choices.includeDate,
-                isAvailable: model.dateAvailable,
-                isDisabled: model.isSaving
+                isAvailable: model.dateAvailable
             )
             .accessibilityIdentifier("sources.copy.date")
             PVCopyPartTick(
@@ -112,8 +110,7 @@ private struct SourceCopyForm: View {
                 hint: L10n.string(L10n.Sources.copySourceDescriptionHint),
                 absentHint: absentHint,
                 isChecked: $model.choices.includeDescription,
-                isAvailable: model.descriptionAvailable,
-                isDisabled: model.isSaving
+                isAvailable: model.descriptionAvailable
             )
             .accessibilityIdentifier("sources.copy.description")
             PVCopyPartTick(
@@ -121,8 +118,7 @@ private struct SourceCopyForm: View {
                 hint: L10n.string(L10n.Sources.copySourceMetadataHint),
                 absentHint: absentHint,
                 isChecked: $model.choices.includeMetadata,
-                isAvailable: model.metadataAvailable,
-                isDisabled: model.isSaving
+                isAvailable: model.metadataAvailable
             )
             .accessibilityIdentifier("sources.copy.metadata")
             PVCopyPartTick(
@@ -130,8 +126,7 @@ private struct SourceCopyForm: View {
                 hint: L10n.string(L10n.Sources.copySourceCredibilityHint),
                 absentHint: absentHint,
                 isChecked: $model.choices.includeCredibility,
-                isAvailable: model.credibilityAvailable,
-                isDisabled: model.isSaving
+                isAvailable: model.credibilityAvailable
             )
             .accessibilityIdentifier("sources.copy.credibility")
         }
