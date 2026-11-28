@@ -540,6 +540,12 @@ func TestForEntityEvidence(t *testing.T) {
 	if o := outcomeOf(name, denied.ID); o.Reason != "denied" || !bytes.Equal(o.DeniedBy, negative.ID) {
 		t.Fatalf("denied outcome %+v", o)
 	}
+	if o := outcomeOf(name, denied.ID); o.DeniedBySourceTitle != "Gazette" || o.DeniedAValue {
+		t.Fatalf("denied outcome's denial facts %+v", o)
+	}
+	if o := outcomeOf(name, negative.ID); !o.DeniedAValue || o.DeniedBySourceTitle != "" {
+		t.Fatalf("negative outcome's denial facts %+v", o)
+	}
 	if o := outcomeOf(name, negative.ID); o.Reason != "against" || o.CredibilityKey != "high_trust" || o.Provenance.Credibility <= 0 {
 		t.Fatalf("negative outcome %+v", o)
 	}
@@ -1065,4 +1071,208 @@ func TestForEntityRecordsInputs(t *testing.T) {
 		holdsIDs(t, "graphs", graphs, true, evidencegraphstest.SoleGraph(t, f.C, src.ID).ID)
 		holdsIDs(t, "sources", srcs, true, src.ID)
 	})
+}
+
+func valueOf(rank, support int, reason string) conclusiondetails.ReconciledValue {
+	return conclusiondetails.ReconciledValue{Rank: rank, Support: support, Reason: reason}
+}
+
+// TestRecordCounts: a field's record and Source counts follow the rule the
+// rows state: none shown 0, one shown its Support, several the distinct Sources
+// counted under them or else the summed Support.
+func TestRecordCounts(t *testing.T) {
+	kept := string(autoreconcile.ReasonKept)
+	folded := string(autoreconcile.ReasonFolded)
+	counted := func(source string, group int) conclusiondetails.Outcome {
+		return conclusiondetails.Outcome{Reason: kept, SourceID: []byte(source), GroupRank: group, ValueRank: group}
+	}
+	for _, tc := range []struct {
+		name string
+		f    conclusiondetails.Field
+		want conclusiondetails.FieldRecordCounts
+	}{
+		{"no displayed value", conclusiondetails.Field{
+			Values:   []conclusiondetails.ReconciledValue{valueOf(1, 2, "weak")},
+			Outcomes: []conclusiondetails.Outcome{{Reason: "weak"}},
+		}, conclusiondetails.FieldRecordCounts{Records: 1}},
+		{"one displayed, support 2", conclusiondetails.Field{
+			Values:   []conclusiondetails.ReconciledValue{valueOf(1, 2, kept)},
+			Outcomes: []conclusiondetails.Outcome{counted("a", 1), {Reason: folded, SourceID: []byte("b"), GroupRank: 1}},
+		}, conclusiondetails.FieldRecordCounts{Records: 2, Sources: 2}},
+		{"two displayed, counted from sources A, A, B", conclusiondetails.Field{
+			Values:   []conclusiondetails.ReconciledValue{valueOf(1, 2, kept), valueOf(2, 1, kept)},
+			Outcomes: []conclusiondetails.Outcome{counted("a", 1), counted("a", 1), counted("b", 2)},
+		}, conclusiondetails.FieldRecordCounts{Records: 3, Sources: 2}},
+		{"two displayed, nothing counted", conclusiondetails.Field{
+			Values:   []conclusiondetails.ReconciledValue{valueOf(1, 3, kept), valueOf(2, 1, kept)},
+			Outcomes: []conclusiondetails.Outcome{{Reason: "weak"}},
+		}, conclusiondetails.FieldRecordCounts{Records: 1, Sources: 4}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := conclusiondetails.RecordCountsOf(tc.f); got != tc.want {
+				t.Fatalf("counts %+v, want %+v", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestDenialFacts: a negative that eliminated a value says so, and a denied
+// record names its denier's Source when the denier is in the field.
+func TestDenialFacts(t *testing.T) {
+	denied := string(autoreconcile.ReasonDenied)
+	f := conclusiondetails.Field{Outcomes: []conclusiondetails.Outcome{
+		{ObservationID: []byte("neg"), Reason: "against", SourceTitle: "Gazette"},
+		{ObservationID: []byte("lone"), Reason: "against", SourceTitle: "Nobody"},
+		{ObservationID: []byte("hit"), Reason: denied, DeniedBy: []byte("neg"), SourceTitle: "Register"},
+		{ObservationID: []byte("gone"), Reason: denied, DeniedBy: []byte("dropped"), SourceTitle: "Census"},
+		{ObservationID: []byte("kept"), Reason: string(autoreconcile.ReasonKept), SourceTitle: "Census"},
+	}}
+	got := map[string]conclusiondetails.Outcome{}
+	for _, o := range conclusiondetails.DenialFactsOf(f) {
+		got[string(o.ObservationID)] = o
+	}
+	for _, tc := range []struct {
+		id     string
+		denied bool
+		title  string
+	}{
+		{"neg", true, ""}, {"lone", false, ""}, {"hit", false, "Gazette"}, {"gone", false, ""}, {"kept", false, ""},
+	} {
+		if o := got[tc.id]; o.DeniedAValue != tc.denied || o.DeniedBySourceTitle != tc.title {
+			t.Errorf("%s: denied-a-value %v, denier %q; want %v, %q", tc.id, o.DeniedAValue, o.DeniedBySourceTitle, tc.denied, tc.title)
+		}
+	}
+}
+
+// TestForEntityRecordCounts: the counts the detail read carries.
+func TestForEntityRecordCounts(t *testing.T) {
+	t.Run("one Source with two names", func(t *testing.T) {
+		f := newFixture(t)
+		src := f.source("Register")
+		p := f.personOn(src)
+		f.cite(p, f.nameIn(p, "given=James|surname=Robins"))
+		f.cite(p, f.nameIn(p, "given=Kenneth|surname=Robins"))
+		h := f.promote(p, nil)
+		if got := field(f.detail(h), "name").RecordCounts; got != (conclusiondetails.FieldRecordCounts{Records: 2, Sources: 1}) {
+			t.Fatalf("counts %+v", got)
+		}
+	})
+	t.Run("two Sources with the same name", func(t *testing.T) {
+		f := newFixture(t)
+		a, b := f.personOn(f.source("Register")), f.personOn(f.source("Census"))
+		f.cite(a, f.nameIn(a, "given=James|surname=Robins"))
+		f.cite(b, f.nameIn(b, "given=James|surname=Robins"))
+		h := f.promote(a, nil)
+		f.promote(b, h)
+		if got := field(f.detail(h), "name").RecordCounts; got != (conclusiondetails.FieldRecordCounts{Records: 2, Sources: 2}) {
+			t.Fatalf("counts %+v", got)
+		}
+	})
+}
+
+// TestFieldRecords: the fields the pairs name, with their records, and what
+// they leave out.
+func TestFieldRecords(t *testing.T) {
+	t.Run("one pair is the detail's field", func(t *testing.T) {
+		f := newFixture(t)
+		register := f.source("Register")
+		p := f.personOn(register)
+		f.cite(p, f.nameIn(p, "given=James|surname=Robins"))
+		f.cite(p, f.nameIn(p, "given=Ann|surname=Lee"))
+		h := f.promote(p, nil)
+		in := f.C.Graph().PageInputs()
+		got, err := conclusiondetails.FieldRecords(f.C, []conclusiondetails.Pair{{OwnerID: h, PropertyID: f.name.ID}}, in)
+		must(t, err)
+		if len(got) != 1 || !bytes.Equal(got[0].Entity.ID, h) || got[0].Event != nil || got[0].Place != nil ||
+			!reflect.DeepEqual(got[0].Field, field(f.detail(h), "name")) {
+			t.Fatalf("owners %+v", got)
+		}
+		handles, graphs, srcs := in.Lists()
+		holdsIDs(t, "handles", handles, true, h)
+		holdsIDs(t, "graphs", graphs, true, p.GraphID)
+		holdsIDs(t, "sources", srcs, true, register.ID)
+	})
+	t.Run("a Property with no records is left out", func(t *testing.T) {
+		f := newFixture(t)
+		s := f.subjectOn(f.source("Directory"), "event")
+		f.cite(s, f.asOfIn(s, datevaluetest.YMD(1820, 0, 0)))
+		h := f.promote(s, nil)
+		got, err := conclusiondetails.FieldRecords(f.C, []conclusiondetails.Pair{{h, f.asOf.ID}, {h, f.date.ID}}, f.C.Graph().NoPageInputs())
+		must(t, err)
+		if len(got) != 1 || got[0].Field.PropertyKey != "as_of" {
+			t.Fatalf("owners %+v", got)
+		}
+	})
+	t.Run("a repeat is one, in first-request order", func(t *testing.T) {
+		f := newFixture(t)
+		p := f.personOn(f.source("Register"))
+		f.cite(p, f.nameIn(p, "given=Ann|surname=Lee"))
+		f.cite(p, observations.Input{SubjectID: p.ID, PropertyID: f.sex.ID, ValueTermID: f.Term("sex_at_birth", "female").ID})
+		h := f.promote(p, nil)
+		got, err := conclusiondetails.FieldRecords(f.C, []conclusiondetails.Pair{{h, f.sex.ID}, {h, f.name.ID}, {h, f.sex.ID}}, f.C.Graph().NoPageInputs())
+		must(t, err)
+		if len(got) != 2 || got[0].Field.PropertyKey != "sex_at_birth" || got[1].Field.PropertyKey != "name" {
+			t.Fatalf("owners %+v", got)
+		}
+	})
+	t.Run("an unknown owner, a merged owner, no pairs", func(t *testing.T) {
+		f := newFixture(t)
+		first := f.promote(f.personOn(f.source("Register")), nil)
+		other := f.personOn(f.source("Census"))
+		f.cite(other, f.nameIn(other, "given=Ann|surname=Lee"))
+		merged := f.promote(other, nil)
+		db, err := f.C.DB()
+		must(t, err)
+		_, err = db.Exec(`UPDATE canonical_entities SET merged_into_id = ? WHERE id = ?`, first, merged)
+		must(t, err)
+		f.C.Graph().Drop()
+		unknown := bytes.Repeat([]byte{7}, 16)
+		got, err := conclusiondetails.FieldRecords(f.C, []conclusiondetails.Pair{{unknown, f.name.ID}, {merged, f.name.ID}, {[]byte("short"), f.name.ID}}, f.C.Graph().NoPageInputs())
+		must(t, err)
+		if len(got) != 0 {
+			t.Fatalf("owners %+v", got)
+		}
+		in := f.C.Graph().PageInputs()
+		got, err = conclusiondetails.FieldRecords(f.C, nil, in)
+		must(t, err)
+		handles, graphs, srcs := in.Lists()
+		if got != nil || len(handles)+len(graphs)+len(srcs) != 0 {
+			t.Fatalf("no pairs read %+v %x %x %x", got, handles, graphs, srcs)
+		}
+	})
+}
+
+// TestFieldRecordsMatchesTheDetail: every field the sheet read gives is the
+// detail's, counts and denial facts included.
+func TestFieldRecordsMatchesTheDetail(t *testing.T) {
+	f := newFixture(t)
+	baptisms, burials := f.source("Baptisms"), f.source("Burials")
+	a, b := f.personOn(baptisms), f.personOn(burials)
+	f.cite(a, f.nameIn(a, "given=Ada|surname=Lee"))
+	f.cite(a, observations.Input{SubjectID: a.ID, PropertyID: f.sex.ID, ValueTermID: f.Term("sex_at_birth", "female").ID})
+	f.cite(b, f.nameIn(b, "given=Ada|surname=Lee"))
+	f.cite(b, f.nameIn(b, "given=Ada|surname=Lea"))
+	neg := f.nameIn(b, "given=Ada|surname=Lea")
+	neg.Polarity = observations.PolarityNegative
+	f.cite(b, neg)
+	h := f.promote(a, nil)
+	f.promote(b, h)
+	d := f.detail(h)
+	if len(d.Fields) < 2 {
+		t.Fatalf("fields %+v", d.Fields)
+	}
+	var pairs []conclusiondetails.Pair
+	for _, fld := range d.Fields {
+		pairs = append(pairs, conclusiondetails.Pair{OwnerID: h, PropertyID: fld.PropertyID})
+	}
+	got, err := conclusiondetails.FieldRecords(f.C, pairs, f.C.Graph().NoPageInputs())
+	must(t, err)
+	if len(got) != len(d.Fields) {
+		t.Fatalf("%d owners, want %d", len(got), len(d.Fields))
+	}
+	for i, o := range got {
+		if !reflect.DeepEqual(o.Field, d.Fields[i]) {
+			t.Fatalf("field %s:\nsheet  %+v\ndetail %+v", d.Fields[i].PropertyKey, o.Field, d.Fields[i])
+		}
+	}
 }

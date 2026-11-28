@@ -83,6 +83,9 @@ func TestGetConclusionDetail(t *testing.T) {
 				if len(name.Outcomes) != 2 {
 					t.Fatalf("outcomes %+v", name.Outcomes)
 				}
+				if name.GetRecordCounts().GetRecords() != 2 || name.GetRecordCounts().GetSources() != 1 {
+					t.Fatalf("record counts %+v", name.GetRecordCounts())
+				}
 				var graphs, srcs []string
 				for _, o := range name.Outcomes {
 					graphs, srcs = append(graphs, o.GetGraphId()), append(srcs, o.GetSourceId())
@@ -625,7 +628,7 @@ func TestGetConclusionDetailCarriesDerivedRows(t *testing.T) {
 	if owner.GetPlace() != nil {
 		t.Fatalf("a date owner holds a Place: %+v", owner.GetPlace())
 	}
-	if owner.GetField().GetPropertyKey() != "date" || len(owner.GetField().GetOutcomes()) != 2 {
+	if owner.GetField().GetPropertyKey() != "date" || len(owner.GetField().GetOutcomes()) != 2 || owner.GetField().GetRecordCounts().GetRecords() != 2 {
 		t.Fatalf("owner field %+v", owner.GetField())
 	}
 }

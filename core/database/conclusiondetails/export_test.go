@@ -23,3 +23,16 @@ func FieldsOf(c *database.Catalog, ids [][]byte, only map[string]map[string]bool
 	fields, _, err := fieldsOf(c.Graph(), v, nodes, nil, only, c.Graph().NoPageInputs())
 	return fields, err
 }
+
+// RecordCountsOf is the record and Source counts finish sets on f.
+func RecordCountsOf(f Field) FieldRecordCounts {
+	recordCounts(&f)
+	return f.RecordCounts
+}
+
+// DenialFactsOf is f's outcomes with the denial facts finish sets.
+func DenialFactsOf(f Field) []Outcome {
+	f.Outcomes = append([]Outcome(nil), f.Outcomes...)
+	denialFacts(&f)
+	return f.Outcomes
+}

@@ -2,8 +2,11 @@
 // the catalog graph. For every Property its members' records speak to, it
 // returns the state, every auto-reconciled value (displayed or not, with its
 // reason), and the auto-reconciler's outcome for each Observation it
-// considered, joined to the record's Source: the records a detail page's
-// provenance sheet shows.
+// considered, joined to the record's Source. FieldRecords, PersonDerivedRow and
+// ProvenanceSheet read one provenance sheet's fields with their records; each
+// field carries its record and Source counts and each outcome its denial facts,
+// so a page row needs no records. ProvenanceSheet also renders the records'
+// citations, from SQL, through citationrender.
 //
 // Field values are the node's auto-reconciler ranks, and the sheet's reconciler
 // half (reason, value rank, denied by, vote) is the node's outcome rows. Term
@@ -23,7 +26,6 @@
 package conclusiondetails
 
 import (
-	"bytes"
 	"fmt"
 	"slices"
 	"sort"
@@ -32,6 +34,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/autoreconcile"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/canonicalentities"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/citationrender"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusionsummaries"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/gallery"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
@@ -99,6 +102,19 @@ type Outcome struct {
 	// to the default grades; Provenance.Weak says whether it is weak, and
 	// each part says why.
 	Provenance autoreconcile.Provenance
+	// DeniedAValue is set on a negative record that eliminated a value in its
+	// field: some outcome of the field names it in DeniedBy.
+	DeniedAValue bool
+	// DeniedBySourceTitle is, for a "denied" outcome, the Source title of the
+	// field's outcome that denied it; "" when that outcome is not in the field.
+	DeniedBySourceTitle string
+}
+
+// FieldRecordCounts is what a field's row shows without its records: how many
+// records sit behind it and how many Sources its row names.
+type FieldRecordCounts struct {
+	Records int // the field's outcomes
+	Sources int // no displayed value: 0; one: its Support; several: the distinct Sources counted under them, else the summed Support
 }
 
 // Field is one Property of the handle.
@@ -111,6 +127,8 @@ type Field struct {
 	cardinality string
 	Values      []ReconciledValue // rank order; a multiple date field's in date order (autoreconcile.SortKey), ties by rank
 	Outcomes    []Outcome         // by group rank (none last), value rank (none last), then Observation id
+	// RecordCounts is the record and Source counts a row shows (recordCounts).
+	RecordCounts FieldRecordCounts
 }
 
 // PictureTile is one picture a gallery shows: its image, and the outcome of
@@ -311,6 +329,66 @@ func finish(f *Field) {
 		}
 		return string(f.Outcomes[i].ObservationID) < string(f.Outcomes[j].ObservationID)
 	})
+	recordCounts(f)
+	denialFacts(f)
+}
+
+// recordCounts sets a field's record and Source counts over its composed
+// outcomes. With one displayed value the Sources are its Support; with several
+// they are the distinct Sources among the outcomes counted under a displayed
+// value, or the summed Support when none is counted.
+func recordCounts(f *Field) {
+	f.RecordCounts = FieldRecordCounts{Records: len(f.Outcomes)}
+	var shown []ReconciledValue
+	for _, v := range f.Values {
+		if v.Displayed() {
+			shown = append(shown, v)
+		}
+	}
+	switch len(shown) {
+	case 0:
+	case 1:
+		f.RecordCounts.Sources = shown[0].Support
+	default:
+		sources := map[string]bool{}
+		for _, o := range f.Outcomes {
+			if o.GroupRank > 0 {
+				sources[string(o.SourceID)] = true
+			}
+		}
+		if len(sources) > 0 {
+			f.RecordCounts.Sources = len(sources)
+			return
+		}
+		for _, v := range shown {
+			f.RecordCounts.Sources += v.Support
+		}
+	}
+}
+
+// denialFacts sets, on each outcome of a field, whether it eliminated a value
+// in the field and, for a denied record, the Source title of its denier.
+func denialFacts(f *Field) {
+	denier := map[string]*Outcome{}
+	for i := range f.Outcomes {
+		denier[string(f.Outcomes[i].ObservationID)] = &f.Outcomes[i]
+	}
+	denying := map[string]bool{}
+	for i := range f.Outcomes {
+		if d := f.Outcomes[i].DeniedBy; len(d) > 0 {
+			denying[string(d)] = true
+		}
+	}
+	for i := range f.Outcomes {
+		o := &f.Outcomes[i]
+		o.DeniedAValue = denying[string(o.ObservationID)]
+		o.DeniedBySourceTitle = ""
+		if o.Reason == string(autoreconcile.ReasonDenied) && len(o.DeniedBy) > 0 {
+			if d, ok := denier[string(o.DeniedBy)]; ok {
+				o.DeniedBySourceTitle = d.SourceTitle
+			}
+		}
+	}
 }
 
 // orderDates puts a multiple date field's values in date order
@@ -595,6 +673,9 @@ const (
 	DerivedRowDeathPlace DerivedRowKind = "death_place"
 )
 
+// DerivedRowKinds is every life row kind, in the order a Person's rows list.
+var DerivedRowKinds = []DerivedRowKind{DerivedRowBirthDate, DerivedRowBirthPlace, DerivedRowDeathDate, DerivedRowDeathPlace}
+
 // OwnerField is the field a derived row reads off the entity that owns it.
 // Event is the owner's summary when the owner is an Event. Place is the Place
 // a place row's owner (an event–place link's association) holds on its place
@@ -613,15 +694,132 @@ type DerivedRow struct {
 	Owners []OwnerField
 }
 
+// Pair names one field of one handle: an owner and a Property.
+type Pair struct{ OwnerID, PropertyID []byte }
+
+// key is the pair's map key: the owner's id then the Property's (both 16 bytes,
+// so no key collides); false when either id is not 16 bytes.
+func (p Pair) key() (string, bool) {
+	if len(p.OwnerID) != 16 || len(p.PropertyID) != 16 {
+		return "", false
+	}
+	return string(p.OwnerID) + string(p.PropertyID), true
+}
+
+// fieldsByPair composes the fields the pairs name, the one step that turns
+// (owner, Property) pairs into fields for every read of named fields. It
+// returns the fields keyed by string(owner)+string(property) (ids are 16 bytes,
+// so no key collides) and the owners' nodes keyed by owner. A pair whose ids
+// are not 16 bytes is skipped, an unknown or merged owner has no node entry,
+// and a pair with no composed field has no field entry.
+func fieldsByPair(c *database.Catalog, pairs []Pair, in *graphcache.PageInputs) (map[string]Field, map[string]*graphcache.Node, error) {
+	g := c.Graph()
+	var ids [][]byte
+	only := map[string]map[string]bool{}
+	for _, p := range pairs {
+		if _, ok := p.key(); !ok {
+			continue
+		}
+		ids = append(ids, p.OwnerID)
+		if only[string(p.OwnerID)] == nil {
+			only[string(p.OwnerID)] = map[string]bool{}
+		}
+		only[string(p.OwnerID)][string(p.PropertyID)] = true
+	}
+	ids = database.UniqueBlobIDs(ids)
+	nodeOf := map[string]*graphcache.Node{}
+	if len(ids) == 0 {
+		return map[string]Field{}, nodeOf, nil
+	}
+	if err := g.Nodes(ids); err != nil {
+		return nil, nil, err
+	}
+	nodes := make([]*graphcache.Node, 0, len(ids))
+	for _, id := range ids {
+		n, err := in.Node(id)
+		if err != nil {
+			return nil, nil, err
+		}
+		nodes = append(nodes, n)
+		if n != nil {
+			nodeOf[string(id)] = n
+		}
+	}
+	v, err := g.Vocabulary()
+	if err != nil {
+		return nil, nil, err
+	}
+	composed, _, err := fieldsOf(g, v, nodes, nil, only, in)
+	if err != nil {
+		return nil, nil, err
+	}
+	fields := map[string]Field{}
+	for owner, fs := range composed {
+		for _, f := range fs {
+			fields[owner+string(f.PropertyID)] = f
+		}
+	}
+	return fields, nodeOf, nil
+}
+
+// FieldRecords composes the fields the pairs name, each with its records, one
+// OwnerField per distinct pair in first-request order (two pairs on one owner
+// are two OwnerFields with the same entity). An owner that is unknown or merged
+// and a pair with no records are left out. A nil catalog or graph, or no pairs,
+// is nil and reads nothing. It records the owners, and the graphs and Sources of
+// their records, on in.
+func FieldRecords(c *database.Catalog, pairs []Pair, in *graphcache.PageInputs) ([]OwnerField, error) {
+	if c == nil || c.Graph() == nil || len(pairs) == 0 {
+		return nil, nil
+	}
+	fields, nodes, err := fieldsByPair(c, pairs, in)
+	if err != nil {
+		return nil, err
+	}
+	var out []OwnerField
+	seen := map[string]bool{}
+	for _, p := range pairs {
+		key, ok := p.key()
+		if !ok {
+			continue
+		}
+		f, ok := fields[key]
+		if !ok || seen[key] {
+			continue
+		}
+		seen[key] = true
+		out = append(out, OwnerField{Entity: canonicalentities.FromNode(nodes[string(p.OwnerID)]), Field: f})
+	}
+	return out, nil
+}
+
 // PersonDerivedRows returns the records behind a Person's birth date, birth
 // place, death date and death place rows, in that order. The owners come from
 // the Person's summary row. A row with no owners is not returned. An owner
 // merged or gone, or without the field the row reads, is dropped. It records
-// on in each owner it reads and the place a place owner holds.
+// on in the Person, each owner it reads and the place a place owner holds.
 func PersonDerivedRows(c *database.Catalog, personID []byte, in *graphcache.PageInputs) ([]DerivedRow, error) {
-	if c == nil || c.Graph() == nil || len(personID) != 16 {
+	return personDerivedRows(c, personID, DerivedRowKinds, in)
+}
+
+// PersonDerivedRow returns the records behind one of a Person's life rows; false
+// when the Person has no such row (or is not a Person). It records what
+// PersonDerivedRows does for that row.
+func PersonDerivedRow(c *database.Catalog, personID []byte, kind DerivedRowKind, in *graphcache.PageInputs) (DerivedRow, bool, error) {
+	rows, err := personDerivedRows(c, personID, []DerivedRowKind{kind}, in)
+	if err != nil || len(rows) == 0 {
+		return DerivedRow{}, false, err
+	}
+	return rows[0], true, nil
+}
+
+// personDerivedRows reads the life rows of the kinds given, in the order of
+// DerivedRowKinds. A call with no known kind reads nothing and records nothing.
+func personDerivedRows(c *database.Catalog, personID []byte, kinds []DerivedRowKind, in *graphcache.PageInputs) ([]DerivedRow, error) {
+	if c == nil || c.Graph() == nil || len(personID) != 16 || !slices.ContainsFunc(kinds, func(k DerivedRowKind) bool { return slices.Contains(DerivedRowKinds, k) }) {
 		return nil, nil
 	}
+	in.AddHandles(personID)
 	people, err := conclusionsummaries.PersonsByIDs(c, [][]byte{personID})
 	if err != nil {
 		return nil, err
@@ -630,18 +828,26 @@ func PersonDerivedRows(c *database.Catalog, personID []byte, in *graphcache.Page
 		return nil, nil
 	}
 	birth, death := people[0].Birth.Owners, people[0].Death.Owners
-	lists := []struct {
+	type list struct {
 		kind   DerivedRowKind
 		owners []conclusionsummaries.FieldOwner
 		events bool // the owners are Events, so each carries its summary
-	}{
-		{DerivedRowBirthDate, birth.Dates, true}, {DerivedRowBirthPlace, birth.Places, false},
-		{DerivedRowDeathDate, death.Dates, true}, {DerivedRowDeathPlace, death.Places, false},
 	}
-	var all, eventIDs [][]byte
+	all := map[DerivedRowKind]list{
+		DerivedRowBirthDate: {DerivedRowBirthDate, birth.Dates, true}, DerivedRowBirthPlace: {DerivedRowBirthPlace, birth.Places, false},
+		DerivedRowDeathDate: {DerivedRowDeathDate, death.Dates, true}, DerivedRowDeathPlace: {DerivedRowDeathPlace, death.Places, false},
+	}
+	var lists []list
+	for _, k := range DerivedRowKinds {
+		if slices.Contains(kinds, k) {
+			lists = append(lists, all[k])
+		}
+	}
+	var pairs []Pair
+	var eventIDs [][]byte
 	for _, l := range lists {
 		for _, o := range l.owners {
-			all = append(all, o.ID)
+			pairs = append(pairs, Pair{OwnerID: o.ID, PropertyID: o.PropertyID})
 			if o.Place != nil {
 				in.AddHandles(o.Place.Entity.ID)
 			}
@@ -650,38 +856,10 @@ func PersonDerivedRows(c *database.Catalog, personID []byte, in *graphcache.Page
 			}
 		}
 	}
-	ids := database.UniqueBlobIDs(all)
-	if len(ids) == 0 {
+	if len(pairs) == 0 {
 		return nil, nil
 	}
-	g := c.Graph()
-	if err := g.Nodes(ids); err != nil {
-		return nil, err
-	}
-	nodes := make([]*graphcache.Node, 0, len(ids))
-	nodeOf := map[string]*graphcache.Node{}
-	for _, id := range ids {
-		n, err := in.Node(id)
-		if err != nil {
-			return nil, err
-		}
-		nodes = append(nodes, n)
-		nodeOf[string(id)] = n
-	}
-	v, err := g.Vocabulary()
-	if err != nil {
-		return nil, err
-	}
-	only := map[string]map[string]bool{}
-	for _, l := range lists {
-		for _, o := range l.owners {
-			if only[string(o.ID)] == nil {
-				only[string(o.ID)] = map[string]bool{}
-			}
-			only[string(o.ID)][string(o.PropertyID)] = true
-		}
-	}
-	fields, _, err := fieldsOf(g, v, nodes, nil, only, in)
+	fields, nodeOf, err := fieldsByPair(c, pairs, in)
 	if err != nil {
 		return nil, err
 	}
@@ -697,25 +875,74 @@ func PersonDerivedRows(c *database.Catalog, personID []byte, in *graphcache.Page
 	for _, l := range lists {
 		row := DerivedRow{Kind: l.kind}
 		for _, o := range l.owners {
-			node := nodeOf[string(o.ID)]
-			for _, f := range fields[string(o.ID)] {
-				if !bytes.Equal(f.PropertyID, o.PropertyID) {
-					continue
-				}
-				owner := OwnerField{Entity: canonicalentities.FromNode(node), Place: copyPlace(o.Place), Field: f}
-				ownerVerdict(o, &owner.Field)
-				if l.events {
-					owner.Event = eventOf[string(o.ID)]
-				}
-				row.Owners = append(row.Owners, owner)
-				break
+			key, ok := Pair{OwnerID: o.ID, PropertyID: o.PropertyID}.key()
+			if !ok {
+				continue
 			}
+			f, ok := fields[key]
+			if !ok {
+				continue
+			}
+			owner := OwnerField{Entity: canonicalentities.FromNode(nodeOf[string(o.ID)]), Place: copyPlace(o.Place), Field: f}
+			ownerVerdict(o, &owner.Field)
+			if l.events {
+				owner.Event = eventOf[string(o.ID)]
+			}
+			row.Owners = append(row.Owners, owner)
 		}
 		if len(row.Owners) > 0 {
 			out = append(out, row)
 		}
 	}
 	return out, nil
+}
+
+// SheetRequest names one provenance sheet's row: the (owner, Property) pairs
+// of a field row, or a Person's life row by kind. Pairs, when any, win.
+type SheetRequest struct {
+	Pairs    []Pair
+	PersonID []byte
+	Kind     DerivedRowKind
+}
+
+// Sheet is one provenance sheet's read: the owners' fields with their records,
+// and those records' citations rendered, each Citation once.
+type Sheet struct {
+	Owners    []OwnerField
+	Citations []citationrender.RenderedCitation
+}
+
+// ProvenanceSheet reads one sheet: FieldRecords for pairs, or PersonDerivedRow's
+// owners for a Person and a life row kind; any other request, and a row the
+// Person lacks, is an empty sheet. It renders the Citations of the owners'
+// records, in owner then outcome order. It records on in what its reads do, and
+// the Evidence graphs and Sources of the Citations it rendered.
+func ProvenanceSheet(c *database.Catalog, req SheetRequest, in *graphcache.PageInputs) (Sheet, error) {
+	var sheet Sheet
+	var err error
+	switch {
+	case len(req.Pairs) > 0:
+		sheet.Owners, err = FieldRecords(c, req.Pairs, in)
+	case len(req.PersonID) > 0:
+		var row DerivedRow
+		var ok bool
+		if row, ok, err = PersonDerivedRow(c, req.PersonID, req.Kind, in); ok {
+			sheet.Owners = row.Owners
+		}
+	}
+	if err != nil {
+		return Sheet{}, err
+	}
+	var ids [][]byte
+	for _, o := range sheet.Owners {
+		for _, out := range o.Field.Outcomes {
+			ids = append(ids, out.CitationID)
+		}
+	}
+	if sheet.Citations, err = citationrender.RenderAll(c, ids, in); err != nil {
+		return Sheet{}, err
+	}
+	return sheet, nil
 }
 
 // ownerVerdict lays what a vote did to an owner over its field: with the

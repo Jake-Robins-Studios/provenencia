@@ -27,20 +27,26 @@ func RenderCitations(in []byte) ([]byte, error) {
 		if err != nil {
 			return err
 		}
-		out = &engine.RenderCitationsResponse{Inputs: pageInputsProto(inputs)}
-		for _, r := range got {
-			out.Citations = append(out.Citations, &engine.RenderedCitation{
-				CitationId: database.UUIDString(r.CitationID),
-				Full:       citationRenderProto(r.Full),
-				Short:      citationRenderProto(r.Short),
-			})
-		}
+		out = &engine.RenderCitationsResponse{Citations: renderedCitationsProto(got), Inputs: pageInputsProto(inputs)}
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	return proto.Marshal(out)
+}
+
+// renderedCitationsProto maps rendered Citations.
+func renderedCitationsProto(got []citationrender.RenderedCitation) []*engine.RenderedCitation {
+	var out []*engine.RenderedCitation
+	for _, r := range got {
+		out = append(out, &engine.RenderedCitation{
+			CitationId: database.UUIDString(r.CitationID),
+			Full:       citationRenderProto(r.Full),
+			Short:      citationRenderProto(r.Short),
+		})
+	}
+	return out
 }
 
 // RenderCitationPreview renders one form against one Citation or one Source,

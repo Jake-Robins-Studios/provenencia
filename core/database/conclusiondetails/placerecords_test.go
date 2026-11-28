@@ -3,6 +3,7 @@ package conclusiondetails_test
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/autoreconcile"
@@ -377,4 +378,144 @@ func TestPlaceLinkWriteLeavesOnePlaceRowsAlone(t *testing.T) {
 			t.Fatalf("reprojected %x, a row the write did not move (all %x)", id, got)
 		}
 	}
+}
+
+// TestPersonDerivedRow: one life row reads as the row PersonDerivedRows gives,
+// the vote's verdict on its owners with their counts, and records the Person.
+func TestPersonDerivedRow(t *testing.T) {
+	f := newFixture(t)
+	person, shown, other := func() ([]byte, []byte, []byte) {
+		p, birth, swift := f.placedBirth(f.source("Register 1"), "Swift Current", nil, nil, nil)
+		f.placedBirth(f.source("Register 2"), "Swift Current", p, birth, swift)
+		f.placedBirth(f.source("Register 3"), "Swift Current", p, birth, swift)
+		_, _, england := f.placedBirth(f.source("Gazette"), "England", p, birth, nil)
+		return p, swift, england
+	}()
+	all, err := conclusiondetails.PersonDerivedRows(f.C, person, f.C.Graph().NoPageInputs())
+	must(t, err)
+	var want conclusiondetails.DerivedRow
+	for _, r := range all {
+		if r.Kind == conclusiondetails.DerivedRowBirthPlace {
+			want = r
+		}
+	}
+	in := f.C.Graph().PageInputs()
+	got, ok, err := conclusiondetails.PersonDerivedRow(f.C, person, conclusiondetails.DerivedRowBirthPlace, in)
+	must(t, err)
+	if !ok || !reflect.DeepEqual(got, want) || len(got.Owners) != 2 {
+		t.Fatalf("row %+v (%v), want %+v", got, ok, want)
+	}
+	for _, o := range got.Owners {
+		counts := conclusiondetails.FieldRecordCounts{Records: 1, Sources: 1}
+		if bytes.Equal(o.Place.Entity.ID, shown) {
+			counts = conclusiondetails.FieldRecordCounts{Records: 3, Sources: 3}
+		} else if !bytes.Equal(o.Place.Entity.ID, other) {
+			t.Fatalf("owner holds place %x", o.Place.Entity.ID)
+		}
+		if o.Field.RecordCounts != counts {
+			t.Errorf("owner of %x: counts %+v, want %+v", o.Place.Entity.ID, o.Field.RecordCounts, counts)
+		}
+	}
+	handles, _, _ := in.Lists()
+	holdsIDs(t, "handles", handles, false, person)
+	if _, ok, err := conclusiondetails.PersonDerivedRow(f.C, person, conclusiondetails.DerivedRowDeathPlace, f.C.Graph().NoPageInputs()); err != nil || ok {
+		t.Fatalf("a death place row: %v %v", ok, err)
+	}
+	if _, ok, err := conclusiondetails.PersonDerivedRow(f.C, shown, conclusiondetails.DerivedRowBirthPlace, f.C.Graph().NoPageInputs()); err != nil || ok {
+		t.Fatalf("a non-Person: %v %v", ok, err)
+	}
+}
+
+// TestPersonDerivedRowUnknownKind: a kind that is not a life row reads and
+// records nothing, even for a real Person.
+func TestPersonDerivedRowUnknownKind(t *testing.T) {
+	f := newFixture(t)
+	person, _ := f.birthAt(f.source("Register"), text("York"))
+	in := f.C.Graph().PageInputs()
+	if _, ok, err := conclusiondetails.PersonDerivedRow(f.C, person, "nonsense", in); err != nil || ok {
+		t.Fatalf("an unknown kind: %v %v", ok, err)
+	}
+	handles, graphs, srcs := in.Lists()
+	if len(handles)+len(graphs)+len(srcs) != 0 {
+		t.Fatalf("recorded %x %x %x", handles, graphs, srcs)
+	}
+}
+
+// TestProvenanceSheet: the sheet read is the owners of its row with each
+// record's Citation rendered once.
+func TestProvenanceSheet(t *testing.T) {
+	f := newFixture(t)
+	register := f.source("Register")
+	p := f.personOn(register)
+	f.cite(p, f.nameIn(p, "given=James|surname=Robins"))
+	f.cite(p, f.nameIn(p, "given=Kenneth|surname=Robins"))
+	h := f.promote(p, nil)
+	cited := func(owners []conclusiondetails.OwnerField) [][]byte {
+		var ids [][]byte
+		for _, o := range owners {
+			for _, out := range o.Field.Outcomes {
+				ids = append(ids, out.CitationID)
+			}
+		}
+		return database.UniqueBlobIDs(ids)
+	}
+	t.Run("pairs", func(t *testing.T) {
+		in := f.C.Graph().PageInputs()
+		sheet, err := conclusiondetails.ProvenanceSheet(f.C, conclusiondetails.SheetRequest{Pairs: []conclusiondetails.Pair{{OwnerID: h, PropertyID: f.name.ID}}}, in)
+		must(t, err)
+		want, err := conclusiondetails.FieldRecords(f.C, []conclusiondetails.Pair{{OwnerID: h, PropertyID: f.name.ID}}, f.C.Graph().NoPageInputs())
+		must(t, err)
+		if !reflect.DeepEqual(sheet.Owners, want) || len(sheet.Citations) != len(cited(want)) || len(sheet.Citations) != 2 {
+			t.Fatalf("sheet %+v, want owners %+v", sheet, want)
+		}
+		for i, id := range cited(want) {
+			if !bytes.Equal(sheet.Citations[i].CitationID, id) {
+				t.Fatalf("rendered Citation %d is %x, want %x", i, sheet.Citations[i].CitationID, id)
+			}
+		}
+		_, graphs, srcs := in.Lists()
+		holdsIDs(t, "graphs", graphs, true, p.GraphID)
+		holdsIDs(t, "sources", srcs, true, register.ID)
+	})
+	t.Run("a Person's life row", func(t *testing.T) {
+		baptisms := f.source("Baptisms")
+		person, _ := f.birthAt(baptisms, text("York"))
+		f.datedBirth(person, baptisms, 1820)
+		row, ok, err := conclusiondetails.PersonDerivedRow(f.C, person, conclusiondetails.DerivedRowBirthDate, f.C.Graph().NoPageInputs())
+		must(t, err)
+		if !ok {
+			t.Fatal("no birth date row")
+		}
+		sheet, err := conclusiondetails.ProvenanceSheet(f.C, conclusiondetails.SheetRequest{PersonID: person, Kind: conclusiondetails.DerivedRowBirthDate}, f.C.Graph().NoPageInputs())
+		must(t, err)
+		if !reflect.DeepEqual(sheet.Owners, row.Owners) || len(sheet.Citations) != len(cited(row.Owners)) || len(sheet.Citations) == 0 {
+			t.Fatalf("sheet %+v, want owners %+v", sheet, row.Owners)
+		}
+		in := f.C.Graph().PageInputs()
+		_, err = conclusiondetails.ProvenanceSheet(f.C, conclusiondetails.SheetRequest{PersonID: person, Kind: conclusiondetails.DerivedRowBirthDate}, in)
+		must(t, err)
+		var graphs, srcs [][]byte
+		for _, o := range row.Owners {
+			for _, out := range o.Field.Outcomes {
+				graphs, srcs = append(graphs, out.GraphID), append(srcs, out.SourceID)
+			}
+		}
+		_, gotGraphs, gotSrcs := in.Lists()
+		holdsIDs(t, "graphs", gotGraphs, true, graphs...)
+		holdsIDs(t, "sources", gotSrcs, true, srcs...)
+	})
+	t.Run("neither", func(t *testing.T) {
+		in := f.C.Graph().PageInputs()
+		for _, req := range []conclusiondetails.SheetRequest{{}, {PersonID: h}, {PersonID: h, Kind: "nonsense"}} {
+			sheet, err := conclusiondetails.ProvenanceSheet(f.C, req, in)
+			must(t, err)
+			if len(sheet.Owners) != 0 || len(sheet.Citations) != 0 {
+				t.Fatalf("sheet %+v for %+v", sheet, req)
+			}
+		}
+		handles, graphs, srcs := in.Lists()
+		if len(handles)+len(graphs)+len(srcs) != 0 {
+			t.Fatalf("recorded %x %x %x", handles, graphs, srcs)
+		}
+	})
 }
