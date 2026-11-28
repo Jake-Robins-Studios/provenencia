@@ -24,6 +24,14 @@ struct DateValueEditorFormTests {
         return seen
     }
 
+    @Test func dayAndMsShareARightEdge() {
+        typealias L = DateValueEditorForm.Layout
+        let dateRow = L.year + L.month + L.day + 2 * L.gap
+        let timeRow = 4 * L.timePart + 3 * L.gap
+        #expect(dateRow == timeRow)
+        #expect(dateRow == 252)
+    }
+
     @Test func neighbourTable() {
         #expect(Field.order(isRange: false, isAdvancedOpen: false) == parts(start: true) + [.advancedToggle])
         #expect(Field.order(isRange: false, isAdvancedOpen: true)

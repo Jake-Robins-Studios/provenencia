@@ -18,6 +18,17 @@ struct DateValueEditorForm: View {
     /// Width of the column that names a range's side.
     private static let sideLabelWidth: CGFloat = 86
 
+    /// The date form's grid (board S16-D20): the date row and the time row end on one right edge,
+    /// `year + month + day + 2 gaps == 4 time parts + 3 gaps`.
+    enum Layout {
+        static let gap: CGFloat = PVSpacing.space4
+        static let year: CGFloat = 64
+        static let month: CGFloat = 124
+        static let day: CGFloat = 48
+        static let timePart: CGFloat = 57
+        static let zoneMax: CGFloat = 160
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: PVSpacing.space5) {
             kindRow
@@ -159,19 +170,19 @@ struct DateValueEditorForm: View {
     }
 
     private func dateRow(start: Bool) -> some View {
-        HStack(alignment: .bottom, spacing: PVSpacing.space3) {
-            partField(.year, start: start, width: 64)
+        HStack(alignment: .bottom, spacing: Layout.gap) {
+            partField(.year, start: start, width: Layout.year)
             monthSelect(start: start)
-            partField(.day, start: start, width: 48)
+            partField(.day, start: start, width: Layout.day)
         }
     }
 
     private func timeRow(start: Bool) -> some View {
-        HStack(alignment: .bottom, spacing: PVSpacing.space3) {
-            partField(.hour, start: start, width: 48)
-            partField(.minute, start: start, width: 48)
-            partField(.second, start: start, width: 48)
-            partField(.millisecond, start: start, width: 52)
+        HStack(alignment: .bottom, spacing: Layout.gap) {
+            partField(.hour, start: start, width: Layout.timePart)
+            partField(.minute, start: start, width: Layout.timePart)
+            partField(.second, start: start, width: Layout.timePart)
+            partField(.millisecond, start: start, width: Layout.timePart)
             zoneField(start: start)
         }
     }
@@ -183,7 +194,7 @@ struct DateValueEditorForm: View {
         width: CGFloat
     ) -> some View {
         let isInvalid = draft.isFieldInvalid(component, start: start)
-        return VStack(alignment: .leading, spacing: PVSpacing.space2) {
+        return VStack(alignment: .leading, spacing: PVSpacing.space1) {
             fieldCaption(component.label, isInvalid: isInvalid)
             PVInput(
                 text: partBinding(component, start: start),
@@ -199,7 +210,7 @@ struct DateValueEditorForm: View {
     }
 
     private func zoneField(start: Bool) -> some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space2) {
+        VStack(alignment: .leading, spacing: PVSpacing.space1) {
             fieldCaption(L10n.Sources.dateTimeZone, isInvalid: false)
             PVInput(
                 text: start ? $draft.startTZ : $draft.endTZ,
@@ -210,11 +221,11 @@ struct DateValueEditorForm: View {
             .environment(\.pvFieldLabel, L10n.Sources.dateTimeZone)
             .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(start ? "start" : "end").timezone")
         }
-        .frame(minWidth: 96, maxWidth: .infinity, alignment: .leading)
+        .frame(minWidth: 0, maxWidth: Layout.zoneMax, alignment: .leading)
     }
 
     private func monthSelect(start: Bool) -> some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space2) {
+        VStack(alignment: .leading, spacing: PVSpacing.space1) {
             fieldCaption(
                 L10n.Sources.dateMonth,
                 isInvalid: draft.isFieldInvalid(.month, start: start)
@@ -224,13 +235,13 @@ struct DateValueEditorForm: View {
                 options: DateValueSelectOptions.months,
                 size: .sm,
                 menuWidth: 160,
-                fillsWidth: false,
+                fillsWidth: true,
                 isInvalid: draft.isFieldInvalid(.month, start: start),
                 accessibilityLabel: L10n.Sources.dateMonth,
                 accessibilityIdentifier: "\(accessibilityIdentifierPrefix).\(start ? "start" : "end").month",
                 focus: handle(.part(.month, start: start))
             )
-            .frame(width: 124)
+            .frame(width: Layout.month)
         }
     }
 
