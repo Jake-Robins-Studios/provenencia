@@ -27,6 +27,7 @@ struct DateValueEditorForm: View {
         static let day: CGFloat = 48
         static let timePart: CGFloat = 57
         static let zoneMax: CGFloat = 160
+        static let calendar: CGFloat = 148
     }
 
     var body: some View {
@@ -273,38 +274,30 @@ struct DateValueEditorForm: View {
     }
 
     private var advancedSection: some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space5) {
-            VStack(alignment: .leading, spacing: PVSpacing.space2) {
-                Text(L10n.Sources.dateCalendar)
-                    .font(PVFont.body(size: PVTypeScale.micro))
-                    .foregroundStyle(PVColor.textSecondary)
+        HStack(alignment: .top, spacing: Layout.gap) {
+            PVField(label: L10n.Sources.dateCalendar) {
                 PVSelect(
                     selection: $draft.calendar,
                     options: DateValueSelectOptions.calendars,
+                    size: .sm,
                     menuWidth: 220,
-                    fillsWidth: false,
+                    fillsWidth: true,
                     accessibilityLabel: L10n.Sources.dateCalendar,
                     accessibilityIdentifier: "\(accessibilityIdentifierPrefix).calendar",
                     focus: handle(.calendar)
                 )
-                .frame(width: 220)
             }
-            VStack(alignment: .leading, spacing: PVSpacing.space2) {
-                Text(L10n.Sources.datePhrase)
-                    .font(PVFont.body(size: PVTypeScale.micro))
-                    .foregroundStyle(PVColor.textSecondary)
+            .frame(width: Layout.calendar)
+            PVField(label: L10n.Sources.datePhrase, hint: L10n.Sources.datePhraseHint) {
                 PVInput(
                     text: $draft.phrase,
                     size: .sm,
                     prompt: L10n.Sources.datePhrasePrompt,
                     focus: handle(.phrase)
                 )
-                .environment(\.pvFieldLabel, L10n.Sources.datePhrase)
                 .accessibilityIdentifier("\(accessibilityIdentifierPrefix).phrase")
-                Text(L10n.Sources.datePhraseHint)
-                    .font(PVFont.body(size: PVTypeScale.micro, italic: true))
-                    .foregroundStyle(PVColor.textMuted)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
