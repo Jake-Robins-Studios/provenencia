@@ -1,30 +1,45 @@
 import SwiftUI
 
-/// Shared DateValue create/edit form body (kind, qualifier, cascade, time, phrase).
+/// Shared DateValue create/edit form body: Kind and the qualifier on one row,
+/// each side's date row and time row, and Calendar and phrase behind a link.
+/// Every host shows this one form. The form shows its own field errors; the
+/// host shows any other line.
 struct DateValueEditorForm: View {
     @Binding var draft: DateValueDraft
     /// Prefix for control identifiers (default matches the Source page date dialog).
     var accessibilityIdentifierPrefix: String = "sources.page.date"
-    /// Host focus for the year field. The form does not take focus on its own.
+    /// The host's handle on the earliest Year, where Tab from the host's last field lands. The
+    /// form's Tab loop (`Field`) takes its place: Shift-Tab from Kind and Tab from the last
+    /// field go on to the handle's own neighbours. The form does not take focus on its own.
     var yearFocus: PVFieldFocus? = nil
 
-    @FocusState private var startHourFocused: Bool
-    @FocusState private var endHourFocused: Bool
+    @FocusState private var focus: Field?
+
+    /// Width of the column that names a range's side.
+    private static let sideLabelWidth: CGFloat = 86
+
+    /// The date form's grid (board S16-D20): the date row and the time row end on one right edge,
+    /// `year + month + day + 2 gaps == 4 time parts + 3 gaps`.
+    enum Layout {
+        static let gap: CGFloat = PVSpacing.space4
+        static let year: CGFloat = 64
+        static let month: CGFloat = 124
+        static let day: CGFloat = 48
+        static let timePart: CGFloat = 57
+        static let zoneMax: CGFloat = 160
+        static let calendar: CGFloat = 148
+        /// Between Kind and the qualifier (the board's 12 pt).
+        static let kindGap: CGFloat = PVSpacing.space5
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space7) {
-            kindSection
-            if draft.isPoint {
-                qualifierSection
-            }
-            PVDivider()
-            cascadeSection(start: true)
+        VStack(alignment: .leading, spacing: PVSpacing.space5) {
+            kindRow
+            side(start: true)
             if draft.isRange {
-                PVDivider()
-                cascadeSection(start: false)
+                side(start: false)
             }
-            PVDivider()
-            advancedToggle
+            hintLine
             if draft.showAdvanced {
                 advancedSection
             }
@@ -32,28 +47,20 @@ struct DateValueEditorForm: View {
         .environment(\.pvFieldLabel, nil)
     }
 
-    private var kindSection: some View {
+    // MARK: Kind and qualifier
+
+    private var kindRow: some View {
         VStack(alignment: .leading, spacing: PVSpacing.space3) {
-            Text(L10n.Sources.dateKindLabel)
-                .font(PVFont.body(size: PVTypeScale.caption, weight: PVFontWeight.medium))
-                .foregroundStyle(PVColor.textSecondary)
-            PVSegmentedControl(
-                L10n.Sources.dateKindLabel,
-                items: [
-                    .init(
-                        L10n.Sources.dateKindPoint,
-                        value: "point",
-                        accessibilityIdentifier: "\(accessibilityIdentifierPrefix).kind.point"
-                    ),
-                    .init(
-                        L10n.Sources.dateKindRange,
-                        value: "range",
-                        accessibilityIdentifier: "\(accessibilityIdentifierPrefix).kind.range"
-                    ),
-                ],
-                selection: draft.kind,
-                select: { draft.setKind($0) }
-            )
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Layout.kindGap) {
+                    kindControl.fixedSize(horizontal: true, vertical: false)
+                    if draft.isPoint { qualifierControl.fixedSize(horizontal: true, vertical: false) }
+                }
+                VStack(alignment: .leading, spacing: PVSpacing.space3) {
+                    kindControl.fixedSize(horizontal: true, vertical: false)
+                    if draft.isPoint { qualifierControl.fixedSize(horizontal: true, vertical: false) }
+                }
+            }
             if draft.isRange {
                 Text(L10n.Sources.dateKindRangeHint)
                     .font(PVFont.body(size: PVTypeScale.micro, italic: true))
@@ -62,394 +69,405 @@ struct DateValueEditorForm: View {
         }
     }
 
-    private var qualifierSection: some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space3) {
-            Text(L10n.Sources.dateQualifierLabel)
-                .font(PVFont.body(size: PVTypeScale.caption, weight: PVFontWeight.medium))
-                .foregroundStyle(PVColor.textSecondary)
-            PVChipGroup(style: .loose) {
-                PVChip(
-                    L10n.Sources.dateQualifierAsStated,
-                    isSelected: draft.qualifier == "",
-                    tone: .accent,
-                    action: { draft.qualifier = "" }
-                )
-                .accessibilityIdentifier("\(accessibilityIdentifierPrefix).qualifier.exact")
-                PVChip(
-                    L10n.Sources.dateQualifierAbout,
-                    isSelected: draft.qualifier == "ABT",
-                    tone: .accent,
-                    action: { draft.qualifier = "ABT" }
-                )
-                .accessibilityIdentifier("\(accessibilityIdentifierPrefix).qualifier.abt")
-                PVChip(
-                    L10n.Sources.dateQualifierBefore,
-                    isSelected: draft.qualifier == "BEF",
-                    tone: .accent,
-                    action: { draft.qualifier = "BEF" }
-                )
-                .accessibilityIdentifier("\(accessibilityIdentifierPrefix).qualifier.bef")
-                PVChip(
-                    L10n.Sources.dateQualifierAfter,
-                    isSelected: draft.qualifier == "AFT",
-                    tone: .accent,
-                    action: { draft.qualifier = "AFT" }
-                )
-                .accessibilityIdentifier("\(accessibilityIdentifierPrefix).qualifier.aft")
+    var kindControl: some View {
+        PVSegmentedControl(
+            L10n.Sources.dateKindLabel,
+            items: [
+                .init(
+                    L10n.Sources.dateKindPoint,
+                    value: "point",
+                    accessibilityIdentifier: "\(accessibilityIdentifierPrefix).kind.point"
+                ),
+                .init(
+                    L10n.Sources.dateKindRange,
+                    value: "range",
+                    accessibilityIdentifier: "\(accessibilityIdentifierPrefix).kind.range"
+                ),
+            ],
+            selection: draft.kind,
+            size: .sm,
+            focus: handle(.kind),
+            select: { value in
+                let wasFocused = focus == .kind
+                draft.setKind(value)
+                if wasFocused { FocusClaim.claim($focus, .kind) }
             }
-        }
+        )
     }
 
-    @ViewBuilder
-    private func cascadeSection(start: Bool) -> some View {
-        let heading: LocalizedStringResource = start
-            ? (draft.isRange ? L10n.Sources.dateEarliestHeading : L10n.Sources.datePointHeading)
-            : L10n.Sources.dateLatestHeading
-        VStack(alignment: .leading, spacing: PVSpacing.space5) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(heading)
-                    .pvMicroCaps()
-                    .foregroundStyle(PVColor.textMuted)
-                Spacer()
-                if start {
-                    Text(L10n.Sources.dateLeaveEmptyHint)
-                        .font(PVFont.body(size: PVTypeScale.micro, italic: true))
-                        .foregroundStyle(PVColor.textFaint)
-                }
+    var qualifierControl: some View {
+        PVSegmentedControl(
+            L10n.Sources.dateQualifierLabel,
+            items: [
+                .init(
+                    L10n.Sources.dateQualifierAsStated,
+                    value: "",
+                    accessibilityIdentifier: "\(accessibilityIdentifierPrefix).qualifier.exact"
+                ),
+                .init(
+                    L10n.Sources.dateQualifierAbout,
+                    value: DateQualifier.about,
+                    accessibilityIdentifier: "\(accessibilityIdentifierPrefix).qualifier.abt"
+                ),
+                .init(
+                    L10n.Sources.dateQualifierBefore,
+                    value: DateQualifier.before,
+                    accessibilityIdentifier: "\(accessibilityIdentifierPrefix).qualifier.bef"
+                ),
+                .init(
+                    L10n.Sources.dateQualifierAfter,
+                    value: DateQualifier.after,
+                    accessibilityIdentifier: "\(accessibilityIdentifierPrefix).qualifier.aft"
+                ),
+            ],
+            selection: draft.qualifier,
+            size: .sm,
+            focus: handle(.qualifier),
+            select: { value in
+                let wasFocused = focus == .qualifier
+                draft.qualifier = value
+                if wasFocused { FocusClaim.claim($focus, .qualifier) }
             }
-            HStack(alignment: .bottom, spacing: PVSpacing.space4) {
-                cascadeField(
-                    L10n.Sources.dateYear,
-                    text: yearBinding(start),
-                    width: 92,
-                    mono: true,
-                    isInvalid: draft.isFieldInvalid(.year, start: start),
-                    accessibilityIdentifier: "\(accessibilityIdentifierPrefix).\(start ? "start" : "end").year",
-                    equalsFocus: start ? yearFocus : nil
-                )
-                monthSelect(start: start)
-                cascadeField(
-                    L10n.Sources.dateDay,
-                    text: dayBinding(start),
-                    width: 76,
-                    mono: true,
-                    isInvalid: draft.isFieldInvalid(.day, start: start),
-                    accessibilityIdentifier: "\(accessibilityIdentifierPrefix).\(start ? "start" : "end").day"
-                )
+        )
+    }
+
+    // MARK: A side
+
+    private func side(start: Bool) -> some View {
+        let name = start ? "start" : "end"
+        return VStack(alignment: .leading, spacing: PVSpacing.space3) {
+            HStack(alignment: .top, spacing: 0) {
+                if draft.isRange {
+                    sideLabel(start: start)
+                        .frame(width: Self.sideLabelWidth, alignment: .leading)
+                }
+                VStack(alignment: .leading, spacing: PVSpacing.space3) {
+                    dateRow(start: start)
+                    timeRow(start: start)
+                }
             }
             if let error = draft.shownError(start: start) {
                 PVErrorText(error)
-                    .accessibilityIdentifier(start ? "\(accessibilityIdentifierPrefix).start.fieldError" : "\(accessibilityIdentifierPrefix).end.fieldError")
+                    .padding(.leading, draft.isRange ? Self.sideLabelWidth : 0)
+                    .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(name).fieldError")
             }
-            if start ? draft.showStartTime : draft.showEndTime {
-                timeBlock(start: start)
-            }
-            Button {
-                if start {
-                    if draft.showStartTime {
-                        draft.hideTime(start: true)
-                    } else {
-                        draft.showStartTime.toggle()
-                        DispatchQueue.main.async { startHourFocused = true }
-                    }
-                } else {
-                    if draft.showEndTime {
-                        draft.hideTime(start: false)
-                    } else {
-                        draft.showEndTime.toggle()
-                        DispatchQueue.main.async { endHourFocused = true }
-                    }
-                }
-            } label: {
-                Text(start
-                    ? (draft.showStartTime ? L10n.Sources.dateHideTime : L10n.Sources.dateAddTime)
-                    : (draft.showEndTime ? L10n.Sources.dateHideTime : L10n.Sources.dateAddTime)
-                )
-                .font(PVFont.body(size: PVTypeScale.caption))
-                .foregroundStyle(PVColor.textLink)
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(start ? "start" : "end").timeToggle")
+        }
+        .modifier(DateSideGroup(heading: draft.isRange
+            ? (start ? L10n.Sources.dateEarliestHeading : L10n.Sources.dateLatestHeading)
+            : nil))
+    }
+
+    private func sideLabel(start: Bool) -> some View {
+        VStack(alignment: .leading, spacing: PVSpacing.space1) {
+            Text(start ? L10n.Sources.dateEarliestShort : L10n.Sources.dateLatestShort)
+                .font(PVFont.body(size: PVTypeScale.caption, weight: PVFontWeight.medium))
+                .foregroundStyle(PVColor.textSecondary)
+            Text(start ? L10n.Sources.dateEarliestNote : L10n.Sources.dateLatestNote)
+                .font(PVFont.body(size: PVTypeScale.micro, italic: true))
+                .foregroundStyle(PVColor.textMuted)
+        }
+        // The side's group already carries its spoken name; the label is only drawn.
+        .accessibilityHidden(true)
+        // The fields' captions sit above their inputs; the label starts level with the inputs.
+        .padding(.top, PVSpacing.space6)
+    }
+
+    private func dateRow(start: Bool) -> some View {
+        HStack(alignment: .bottom, spacing: Layout.gap) {
+            partField(.year, start: start, width: Layout.year)
+            monthSelect(start: start)
+            partField(.day, start: start, width: Layout.day)
         }
     }
 
-    private func timeBlock(start: Bool) -> some View {
-        let side = start ? "start" : "end"
-        return VStack(alignment: .leading, spacing: PVSpacing.space4) {
-            HStack(alignment: .bottom, spacing: PVSpacing.space3) {
-                cascadeField(
-                    L10n.Sources.dateHour,
-                    text: hourBinding(start),
-                    width: 62,
-                    mono: true,
-                    isInvalid: draft.isFieldInvalid(.hour, start: start),
-                    accessibilityIdentifier: "\(accessibilityIdentifierPrefix).\(side).hour",
-                    focused: start ? $startHourFocused : $endHourFocused
-                )
-                cascadeField(
-                    L10n.Sources.dateMinute,
-                    text: minuteBinding(start),
-                    width: 62,
-                    mono: true,
-                    isInvalid: draft.isFieldInvalid(.minute, start: start),
-                    accessibilityIdentifier: "\(accessibilityIdentifierPrefix).\(side).minute"
-                )
-                if start {
-                    cascadeField(
-                        L10n.Sources.dateSecond,
-                        text: secondBinding(start: true),
-                        width: 62,
-                        mono: true,
-                        isInvalid: draft.isFieldInvalid(.second, start: true),
-                        accessibilityIdentifier: "\(accessibilityIdentifierPrefix).start.second"
-                    )
-                    cascadeField(
-                        L10n.Sources.dateMillisecond,
-                        text: millisecondBinding(start: true),
-                        width: 70,
-                        mono: true,
-                        isInvalid: draft.isFieldInvalid(.millisecond, start: true),
-                        accessibilityIdentifier: "\(accessibilityIdentifierPrefix).start.millisecond"
-                    )
-                }
-                cascadeField(
-                    L10n.Sources.dateTimeZone,
-                    text: tzBinding(start),
-                    width: nil,
-                    mono: false,
-                    accessibilityIdentifier: "\(accessibilityIdentifierPrefix).\(side).timezone"
-                )
-            }
-        }
-        .padding(PVSpacing.space5)
-        .background(PVColor.surfaceSunken)
-        .clipShape(RoundedRectangle(cornerRadius: PVRadius.sm, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: PVRadius.sm, style: .continuous)
-                .stroke(PVColor.borderSubtle, lineWidth: 1)
-        )
-    }
-
-    private var advancedToggle: some View {
-        Button {
-            draft.showAdvanced.toggle()
-        } label: {
-            Text(draft.showAdvanced ? L10n.Sources.dateHideAdvanced : L10n.Sources.dateShowAdvanced)
-                .font(PVFont.body(size: PVTypeScale.caption))
-                .foregroundStyle(PVColor.textLink)
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("\(accessibilityIdentifierPrefix).advancedToggle")
-    }
-
-    private var advancedSection: some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space5) {
-            VStack(alignment: .leading, spacing: PVSpacing.space2) {
-                Text(L10n.Sources.dateCalendar)
-                    .font(PVFont.body(size: PVTypeScale.micro))
-                    .foregroundStyle(PVColor.textSecondary)
-                PVSelect(
-                    selection: $draft.calendar,
-                    options: DateValueSelectOptions.calendars,
-                    menuWidth: 220,
-                    fillsWidth: false,
-                    accessibilityLabel: L10n.Sources.dateCalendar,
-                    accessibilityIdentifier: "\(accessibilityIdentifierPrefix).calendar"
-                )
-                .frame(width: 220)
-            }
-            VStack(alignment: .leading, spacing: PVSpacing.space2) {
-                Text(L10n.Sources.datePhrase)
-                    .font(PVFont.body(size: PVTypeScale.micro))
-                    .foregroundStyle(PVColor.textSecondary)
-                PVInput(text: $draft.phrase, size: .sm, prompt: L10n.Sources.datePhrasePrompt)
-                .environment(\.pvFieldLabel, L10n.Sources.datePhrase)
-                .accessibilityIdentifier("\(accessibilityIdentifierPrefix).phrase")
-                Text(L10n.Sources.datePhraseHint)
-                    .font(PVFont.body(size: PVTypeScale.micro, italic: true))
-                    .foregroundStyle(PVColor.textMuted)
-            }
+    private func timeRow(start: Bool) -> some View {
+        HStack(alignment: .bottom, spacing: Layout.gap) {
+            partField(.hour, start: start, width: Layout.timePart)
+            partField(.minute, start: start, width: Layout.timePart)
+            partField(.second, start: start, width: Layout.timePart)
+            partField(.millisecond, start: start, width: Layout.timePart)
+            zoneField(start: start)
         }
     }
 
-    private func cascadeField(
-        _ label: LocalizedStringResource,
-        text: Binding<String>,
-        width: CGFloat?,
-        mono: Bool,
-        disabled: Bool = false,
-        isInvalid: Bool = false,
-        accessibilityIdentifier: String? = nil,
-        focused: FocusState<Bool>.Binding? = nil,
-        equalsFocus: PVFieldFocus? = nil,
-        activateOnAppear: Bool = false
+    /// A part's caption over its input.
+    private func partField(
+        _ component: DateValueDraft.Part,
+        start: Bool,
+        width: CGFloat
     ) -> some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space2) {
-            Text(label)
-                .font(PVFont.body(size: PVTypeScale.micro))
-                .foregroundStyle(isInvalid ? PVColor.danger : PVColor.textSecondary)
+        let isInvalid = draft.isFieldInvalid(component, start: start)
+        return VStack(alignment: .leading, spacing: PVSpacing.space1) {
+            fieldCaption(component.label, isInvalid: isInvalid)
             PVInput(
-                text: text,
+                text: partBinding(component, start: start),
                 size: .sm,
-                mono: mono,
+                mono: true,
                 isInvalid: isInvalid,
-                focused: focused,
-                focus: equalsFocus,
-                activateOnAppear: activateOnAppear
+                focus: handle(.part(component, start: start))
             )
-                .environment(\.pvFieldLabel, label)
-                .frame(width: width)
-                .disabled(disabled)
-                .opacity(disabled ? 0.42 : 1)
-                .modifier(DateOptionalAccessibilityIdentifier(identifier: accessibilityIdentifier))
+            .environment(\.pvFieldLabel, component.label)
+            .frame(width: width)
+            .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(start ? "start" : "end").\(component.identifierName)")
         }
-        .frame(maxWidth: width == nil ? .infinity : nil, alignment: .leading)
+    }
+
+    private func zoneField(start: Bool) -> some View {
+        VStack(alignment: .leading, spacing: PVSpacing.space1) {
+            fieldCaption(L10n.Sources.dateTimeZone, isInvalid: false)
+            PVInput(
+                text: start ? $draft.startTZ : $draft.endTZ,
+                size: .sm,
+                prompt: L10n.Sources.dateTimeZonePrompt,
+                focus: handle(.zone(start: start))
+            )
+            .environment(\.pvFieldLabel, L10n.Sources.dateTimeZone)
+            .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(start ? "start" : "end").timezone")
+        }
+        .frame(minWidth: 0, maxWidth: Layout.zoneMax, alignment: .leading)
     }
 
     private func monthSelect(start: Bool) -> some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space2) {
-            Text(L10n.Sources.dateMonth)
-                .font(PVFont.body(size: PVTypeScale.micro))
-                .foregroundStyle(PVColor.textSecondary)
-            PVSelect(
-                selection: monthBinding(start),
-                options: DateValueSelectOptions.months,
-                fillsWidth: false,
-                accessibilityLabel: L10n.Sources.dateMonth,
-                accessibilityIdentifier: "\(accessibilityIdentifierPrefix).\(start ? "start" : "end").month"
+        VStack(alignment: .leading, spacing: PVSpacing.space1) {
+            fieldCaption(
+                L10n.Sources.dateMonth,
+                isInvalid: draft.isFieldInvalid(.month, start: start)
             )
-            .frame(width: 136)
+            PVSelect(
+                selection: partBinding(.month, start: start),
+                options: DateValueSelectOptions.months,
+                size: .sm,
+                menuWidth: 160,
+                fillsWidth: true,
+                isInvalid: draft.isFieldInvalid(.month, start: start),
+                accessibilityLabel: L10n.Sources.dateMonth,
+                accessibilityIdentifier: "\(accessibilityIdentifierPrefix).\(start ? "start" : "end").month",
+                focus: handle(.part(.month, start: start))
+            )
+            .frame(width: Layout.month)
         }
     }
 
-    private func yearBinding(_ start: Bool) -> Binding<String> {
-        intFieldBinding(
-            get: { start ? draft.startYear : draft.endYear },
-            set: { value in
-                if start {
-                    draft.startYear = value
-                    draft.applyStartCascade()
-                } else {
-                    draft.endYear = value
-                    draft.applyEndCascade()
-                }
+    private func fieldCaption(_ label: LocalizedStringResource, isInvalid: Bool) -> some View {
+        Text(label)
+            .font(PVFont.body(size: PVTypeScale.micro))
+            .foregroundStyle(isInvalid ? PVColor.danger : PVColor.textSecondary)
+    }
+
+    // MARK: Hint and Calendar and phrase
+
+    private var hintLine: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(L10n.Sources.dateLeaveEmptyHint)
+                .font(PVFont.body(size: PVTypeScale.micro, italic: true))
+                .foregroundStyle(PVColor.textFaint)
+            Spacer()
+            PVButton(
+                draft.showAdvanced ? L10n.Sources.dateHideAdvanced : L10n.Sources.dateShowAdvanced,
+                variant: .link,
+                size: .sm,
+                focus: handle(.advancedToggle)
+            ) {
+                draft.showAdvanced.toggle()
             }
-        )
+            .pvExpandedState(draft.showAdvanced)
+            .accessibilityIdentifier("\(accessibilityIdentifierPrefix).advancedToggle")
+        }
     }
 
-    private func monthBinding(_ start: Bool) -> Binding<String> {
-        Binding(
-            get: {
-                let value = start ? draft.startMonth : draft.endMonth
-                return value.map(String.init) ?? ""
-            },
-            set: { raw in
-                let value = Int32(raw)
-                if start {
-                    draft.startMonth = value
-                    draft.applyStartCascade()
-                } else {
-                    draft.endMonth = value
-                    draft.applyEndCascade()
-                }
+    private var advancedSection: some View {
+        HStack(alignment: .top, spacing: Layout.gap) {
+            PVField(label: L10n.Sources.dateCalendar) {
+                PVSelect(
+                    selection: $draft.calendar,
+                    options: DateValueSelectOptions.calendars,
+                    size: .sm,
+                    menuWidth: 220,
+                    fillsWidth: true,
+                    accessibilityLabel: L10n.Sources.dateCalendar,
+                    accessibilityIdentifier: "\(accessibilityIdentifierPrefix).calendar",
+                    focus: handle(.calendar)
+                )
             }
-        )
-    }
-
-    private func dayBinding(_ start: Bool) -> Binding<String> {
-        intFieldBinding(
-            get: { start ? draft.startDay : draft.endDay },
-            set: { value in
-                if start {
-                    draft.startDay = value
-                    draft.applyStartCascade()
-                } else {
-                    draft.endDay = value
-                    draft.applyEndCascade()
-                }
+            .frame(width: Layout.calendar)
+            PVField(label: L10n.Sources.datePhrase, hint: L10n.Sources.datePhraseHint) {
+                PVInput(
+                    text: $draft.phrase,
+                    size: .sm,
+                    prompt: L10n.Sources.datePhrasePrompt,
+                    focus: handle(.phrase)
+                )
+                .accessibilityIdentifier("\(accessibilityIdentifierPrefix).phrase")
             }
-        )
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
-    private func hourBinding(_ start: Bool) -> Binding<String> {
-        intFieldBinding(
-            get: { start ? draft.startHour : draft.endHour },
-            set: { value in
-                if start {
-                    draft.startHour = value
-                    draft.applyStartCascade()
-                } else {
-                    draft.endHour = value
-                    draft.applyEndCascade()
-                }
-            }
-        )
+    // MARK: Tab loop
+
+    /// The handle for `field`: its own focus on the form's `FocusState` (the host's handle for
+    /// the earliest Year), with the neighbours `Field.neighbours` names.
+    private func handle(_ field: Field) -> PVFieldFocus {
+        let neighbours = Field.neighbours(of: field, isRange: draft.isRange, isAdvancedOpen: draft.showAdvanced)
+        let claims = PVFieldFocus.claims(
+            next: reachable(neighbours.next),
+            previous: reachable(neighbours.previous)
+        ) { claim($0) }
+        return ownHandle(field).replacingNeighbours(next: claims.next, previous: claims.previous)
     }
 
-    private func minuteBinding(_ start: Bool) -> Binding<String> {
-        intFieldBinding(
-            get: { start ? draft.startMinute : draft.endMinute },
-            set: { value in
-                if start {
-                    draft.startMinute = value
-                    draft.applyStartCascade()
-                } else {
-                    draft.endMinute = value
-                    draft.applyEndCascade()
-                }
-            }
-        )
+    private func ownHandle(_ field: Field) -> PVFieldFocus {
+        if field == .startYear, let yearFocus { return yearFocus }
+        return PVFieldFocus($focus, equals: field)
     }
 
-    private func secondBinding(start: Bool) -> Binding<String> {
-        intFieldBinding(
-            get: { start ? draft.startSecond : draft.endSecond },
-            set: { value in
-                if start {
-                    draft.startSecond = value
-                    draft.applyStartCascade()
-                } else {
-                    draft.endSecond = value
-                    draft.applyEndCascade()
-                }
-            }
-        )
+    /// A target that has somewhere to go: a host edge with no host neighbour is left to the key loop.
+    private func reachable(_ target: Field.Target?) -> Field.Target? {
+        Field.resolve(target, hostHasNext: yearFocus?.next != nil, hostHasPrevious: yearFocus?.previous != nil)
     }
 
-    private func millisecondBinding(start: Bool) -> Binding<String> {
-        intFieldBinding(
-            get: { start ? draft.startMillisecond : draft.endMillisecond },
-            set: { value in
-                if start {
-                    draft.startMillisecond = value
-                    draft.applyStartCascade()
-                } else {
-                    draft.endMillisecond = value
-                    draft.applyEndCascade()
-                }
-            }
-        )
+    /// Resolved when the key is pressed, so no handle is built to look at it.
+    private func claim(_ target: Field.Target) {
+        switch target {
+        case .field(let field):
+            FocusClaim.claim(ownHandle(field))
+        case .hostNext:
+            yearFocus?.next?()
+        case .hostPrevious:
+            yearFocus?.previous?()
+        }
     }
 
-    private func tzBinding(_ start: Bool) -> Binding<String> {
-        start ? $draft.startTZ : $draft.endTZ
-    }
+    // MARK: Bindings
 
-    private func intFieldBinding(
-        get: @escaping () -> Int32?,
-        set: @escaping (Int32?) -> Void
-    ) -> Binding<String> {
-        Binding(
-            get: { get().map(String.init) ?? "" },
+    /// The text of one part of one side: empty is nil, a number is the part, anything else is left as it was.
+    private func partBinding(_ component: DateValueDraft.Part, start: Bool) -> Binding<String> {
+        let part = DateValueDraft.part(component, start: start)
+        return Binding(
+            get: { draft[keyPath: part].map(String.init) ?? "" },
             set: { raw in
                 let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
                 if trimmed.isEmpty {
-                    set(nil)
+                    draft[keyPath: part] = nil
                 } else if let value = Int32(trimmed) {
-                    set(value)
+                    draft[keyPath: part] = value
                 }
             }
         )
+    }
+}
+
+extension DateValueEditorForm {
+    /// What the form's Tab loop visits. It never names a host's field: the host's neighbours
+    /// are the `Target`s `.hostNext` and `.hostPrevious`.
+    enum Field: Hashable {
+        case kind, qualifier
+        case part(DateValueDraft.Part, start: Bool)
+        case zone(start: Bool)
+        case advancedToggle, calendar, phrase
+
+        /// Where Tab or Shift-Tab goes from a field.
+        enum Target: Equatable {
+            case field(Field)
+            case hostNext, hostPrevious
+        }
+
+        static var startYear: Field { .part(.year, start: true) }
+
+        /// A target that has somewhere to go: a host edge with no host neighbour is left to the key loop.
+        static func resolve(_ target: Target?, hostHasNext: Bool, hostHasPrevious: Bool) -> Target? {
+            switch target {
+            case .hostNext where !hostHasNext: nil
+            case .hostPrevious where !hostHasPrevious: nil
+            default: target
+            }
+        }
+
+        /// The fields Tab walks from the earliest Year on: each side's parts then its time zone,
+        /// the earliest side then the latest on a range, then the Calendar and phrase link and,
+        /// while open, Calendar and Phrase. Kind and the qualifier sit before Year, off this list.
+        static func order(isRange: Bool, isAdvancedOpen: Bool) -> [Field] {
+            var fields: [Field] = []
+            for start in isRange ? [true, false] : [true] {
+                fields += DateValueDraft.Part.allCases.map { .part($0, start: start) }
+                fields.append(.zone(start: start))
+            }
+            fields.append(.advancedToggle)
+            if isAdvancedOpen { fields += [.calendar, .phrase] }
+            return fields
+        }
+
+        /// The kit's neighbours in `order`, with the form's own edges: Year's Shift-Tab goes to the
+        /// qualifier (Single date) or Kind (range), Kind and the qualifier Tab to Year, Kind's
+        /// Shift-Tab goes to the host, and the last field's Tab goes to the host.
+        @MainActor
+        static func neighbours(
+            of field: Field,
+            isRange: Bool,
+            isAdvancedOpen: Bool
+        ) -> (next: Target?, previous: Target?) {
+            let fields = order(isRange: isRange, isAdvancedOpen: isAdvancedOpen)
+            let base = PVFieldFocus.neighbours(of: field, in: fields)
+            var next = base.next.map(Target.field)
+            var previous = base.previous.map(Target.field)
+            if field == fields.last { next = .hostNext }
+            switch field {
+            case .kind:
+                next = .field(startYear)
+                previous = .hostPrevious
+            case .qualifier:
+                next = .field(startYear)
+                previous = .field(.kind)
+            case startYear:
+                previous = .field(isRange ? .kind : .qualifier)
+            default:
+                break
+            }
+            return (next, previous)
+        }
+    }
+}
+
+private extension DateValueDraft.Part {
+    var label: LocalizedStringResource {
+        switch self {
+        case .year: L10n.Sources.dateYear
+        case .month: L10n.Sources.dateMonth
+        case .day: L10n.Sources.dateDay
+        case .hour: L10n.Sources.dateHour
+        case .minute: L10n.Sources.dateMinute
+        case .second: L10n.Sources.dateSecond
+        case .millisecond: L10n.Sources.dateMillisecond
+        }
+    }
+
+    /// The last word of the part's accessibility identifier.
+    var identifierName: String {
+        switch self {
+        case .year: "year"
+        case .month: "month"
+        case .day: "day"
+        case .hour: "hour"
+        case .minute: "minute"
+        case .second: "second"
+        case .millisecond: "millisecond"
+        }
+    }
+}
+
+/// A range's side reads as one group named by its full heading; a Single date's side has no group.
+private struct DateSideGroup: ViewModifier {
+    let heading: LocalizedStringResource?
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if let heading {
+            content
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel(Text(heading))
+        } else {
+            content
+        }
     }
 }
 
@@ -483,17 +501,5 @@ enum DateValueSelectOptions {
             ("11", L10n.Sources.dateMonthNovember),
             ("12", L10n.Sources.dateMonthDecember),
         ].map { PVSelectOption(value: $0.0, label: L10n.string($0.1)) }
-    }
-}
-
-private struct DateOptionalAccessibilityIdentifier: ViewModifier {
-    let identifier: String?
-
-    func body(content: Content) -> some View {
-        if let identifier {
-            content.accessibilityIdentifier(identifier)
-        } else {
-            content
-        }
     }
 }

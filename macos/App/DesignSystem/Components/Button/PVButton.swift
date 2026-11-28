@@ -144,6 +144,13 @@ private struct PVMenuRowButtonBody: View {
 ///
 /// `iconTint` inks the leading glyph only (a copy button's green check); the title keeps the button's ink.
 ///
+/// `focus` takes the kit's field focus handle: the button is then focusable
+/// without Full Keyboard Access, takes the handle's Tab neighbours, and Return
+/// activates it (`pvActivatesOnReturn`) while Space stays the `Button`'s own.
+/// Inside a kit sheet the focused button takes Return from Confirm and Done
+/// (`pvSheetTakesReturn`).
+/// With no handle the button is as it was.
+///
 /// `iconOnly` draws the same chrome as a square glyph button. The title is
 /// not shown; it is the accessibility label and the help tooltip, because
 /// `PVIcon` is hidden from assistive technologies. Pass an `icon`.
@@ -157,6 +164,7 @@ struct PVButton: View {
     private let iconOnly: Bool
     private let flushLeading: Bool
     private let iconTint: Color?
+    private let focus: PVFieldFocus?
     private let action: () -> Void
 
     init(
@@ -169,6 +177,7 @@ struct PVButton: View {
         iconOnly: Bool = false,
         flushLeading: Bool = false,
         iconTint: Color? = nil,
+        focus: PVFieldFocus? = nil,
         action: @escaping () -> Void
     ) {
         self.title = title.pvText
@@ -180,11 +189,12 @@ struct PVButton: View {
         self.iconOnly = iconOnly
         self.flushLeading = flushLeading
         self.iconTint = iconTint
+        self.focus = focus
         self.action = action
     }
 
     var body: some View {
-        let control = Button(action: action) {
+        let button = Button(action: action) {
             HStack(spacing: PVSpacing.space3) {
                 if loading {
                     ProgressView()
@@ -207,6 +217,7 @@ struct PVButton: View {
         .buttonStyle(.pv(variant, size: size, iconOnly: iconOnly))
         .disabled(loading)
 
+        let control = focused(button)
         if iconOnly {
             control
                 .accessibilityLabel(title)
@@ -215,6 +226,19 @@ struct PVButton: View {
             control
                 .padding(.leading, flushLeading ? -size.horizontalPadding : 0)
         }
+    }
+
+    /// The button with the host's focus handle, Tab claim and Return rule; the
+    /// button itself when it has no handle.
+    private func focused(_ button: some View) -> AnyView {
+        guard let focus else { return AnyView(button) }
+        return focus.apply(AnyView(
+            button
+                .focusable()
+                .modifier(PVFieldTabClaim(focus: focus))
+                .pvActivatesOnReturn(when: focus.isActive(), action)
+                .pvSheetTakesReturn(focus.isActive())
+        ))
     }
 }
 

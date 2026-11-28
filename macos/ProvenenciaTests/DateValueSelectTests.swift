@@ -26,11 +26,10 @@ struct DateValueSelectTests {
         #expect(DateValueSelectOptions.months[12].label == L10n.string(L10n.Sources.dateMonthDecember))
     }
 
-    @Test func applyingAMonthOptionStillCascadesTheDraft() {
+    @Test func applyingAMonthOptionKeepsTheDraftValid() {
         var draft = DateValueDraft.empty()
         draft.startYear = 1880
         draft.startMonth = 3
-        draft.applyStartCascade()
         #expect(draft.startMonth == 3)
         #expect(draft.isValid)
     }
@@ -39,7 +38,6 @@ struct DateValueSelectTests {
         var draft = DateValueDraft.empty()
         draft.startMonth = 3
         draft.startDay = 14
-        draft.applyStartCascade()
         #expect(draft.startMonth == 3)
         #expect(draft.startDay == 14)
         #expect(draft.isValid)

@@ -48,7 +48,7 @@ struct DateValueDraftTests {
         #expect(d.endError != nil)
     }
 
-    @Test func cascadeGapIsValid() {
+    @Test func partGapIsValid() {
         var d = DateValueDraft.empty()
         d.startYear = 1900
         d.startDay = 5
@@ -84,18 +84,6 @@ struct DateValueDraftTests {
         #expect(input.endYear == nil)
     }
 
-    @Test func applyStartCascadeDoesNotWipeIndependentFields() {
-        var d = DateValueDraft.empty()
-        d.startYear = 2000
-        d.startMonth = 4
-        d.startDay = 10
-        d.startHour = 8
-        d.startDay = nil
-        d.applyStartCascade()
-        #expect(d.startMonth == 4)
-        #expect(d.startHour == 8)
-    }
-
     @Test func dayOutOfRangeShowsFieldError() {
         var d = DateValueDraft.empty()
         d.startYear = 1890
@@ -103,7 +91,7 @@ struct DateValueDraftTests {
         d.startDay = 1890
         #expect(d.isFieldInvalid(.day, start: true))
         #expect(d.fieldError(.day, start: true) != nil)
-        #expect(d.cascadeFieldError(start: true) != nil)
+        #expect(d.firstPartError(start: true) != nil)
         #expect(!d.isValid)
     }
 
@@ -199,41 +187,36 @@ struct DateValueDraftTests {
         d.setKind("range")
         d.endYear = 1880
         #expect(d.unsavableError == L10n.string(L10n.Sources.dateUnsavableRangeStart))
-        #expect(d.unsavableError?.contains("Single date") == false)
+        #expect(d.unsavableError?.contains("Single") == false)
     }
 
-    @Test func hidingTimeClearsIt() {
-        var d = DateValueDraft.empty()
-        d.setKind("range")
-        d.showStartTime = true
-        d.startHour = 9
-        d.startMinute = 30
-        d.startSecond = 15
-        d.startMillisecond = 5
-        d.startTZ = "America/Chicago"
-        d.showEndTime = true
-        d.endHour = 10
-        d.endMinute = 45
-        d.endSecond = 20
-        d.endMillisecond = 7
-        d.endTZ = "Europe/London"
-        d.hideTime(start: true)
-        #expect(d.startHour == nil && d.startMinute == nil && d.startSecond == nil && d.startMillisecond == nil)
-        #expect(d.startTZ.isEmpty)
-        #expect(!d.showStartTime)
-        #expect(d.endHour == 10 && d.showEndTime)
-        d.hideTime(start: false)
-        #expect(d.endHour == nil && d.endMinute == nil && d.endSecond == nil && d.endMillisecond == nil)
-        #expect(d.endTZ.isEmpty)
-        #expect(!d.showEndTime)
-    }
-
-    @Test func loadShowsTimeWithZoneOnly() {
+    @Test func loadKeepsTimeAndNothingFillsIn() {
         var input = DateValueDraft.empty().toInput()
-        input.startYear = 1880
-        input.startTZ = "America/Chicago"
-        let d = DateValueDraft(from: input)
-        #expect(d.showStartTime)
-        #expect(!d.showEndTime)
+        input.startTZ = "Europe/London"
+        let zoneOnly = DateValueDraft(from: input)
+        #expect(zoneOnly.startTZ == "Europe/London")
+        #expect(!zoneOnly.isValid)
+
+        var d = DateValueDraft.empty()
+        d.startYear = 1880
+        d.setKind("range")
+        #expect(d.endYear == nil)
+
+        d.endMonth = 4
+        #expect(d[keyPath: DateValueDraft.part(.month, start: false)] == 4)
+        d[keyPath: DateValueDraft.part(.month, start: false)] = 5
+        #expect(d.endMonth == 5)
+
+        d.endDay = 32
+        #expect(d.fieldError(.day, start: false) == L10n.string(L10n.Sources.dateDayOutOfRange))
+
+        d.endYear = 1881
+        d.endHour = 9
+        d.endTZ = "Europe/London"
+        d.setKind("point")
+        for component in DateValueDraft.Part.allCases {
+            #expect(d[keyPath: DateValueDraft.part(component, start: false)] == nil)
+        }
+        #expect(d.endTZ.isEmpty)
     }
 }

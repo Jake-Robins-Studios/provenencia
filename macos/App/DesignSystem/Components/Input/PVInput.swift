@@ -65,23 +65,6 @@ struct PVInputChrome: ViewModifier {
     }
 }
 
-/// Claims Tab and Shift-Tab for the neighbour a field's handle names. With no
-/// neighbour the field adds nothing, so the key loop keeps the key.
-private struct PVInputTabClaim: ViewModifier {
-    let focus: PVFieldFocus?
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if let focus, focus.hasNeighbour {
-            content.onKeyPress(keys: [.tab, .backTab], phases: .down) { press in
-                focus.claimTab(shift: press.key == .backTab)
-            }
-        } else {
-            content
-        }
-    }
-}
-
 /// Convenience field with optional leading icon, trailing suffix, read-only
 /// rendering, and owned or externally driven focus state. `activateOnAppear`
 /// focuses the field on the next turn so an inserting action (and its Space
@@ -146,7 +129,7 @@ struct PVInput: View {
             } else {
                 TextField(text: $text, prompt: prompt.map { Text($0) }) { EmptyView() }
                     .textFieldStyle(.plain)
-                    .modifier(PVInputTabClaim(focus: equalsFocus))
+                    .modifier(PVFieldTabClaim(focus: equalsFocus))
                     .modifier(PVFieldFocusModifier(host: equalsFocus, own: ownBinding))
                     .modifier(chrome(isFocused: equalsFocus.isActive(own: ownBinding.wrappedValue)))
             }

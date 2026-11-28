@@ -405,7 +405,7 @@ struct CitationPropertyFields: View {
                     }
                 }
             case .name:
-                inlineValue {
+                PVValueBox {
                     NameValueEditorForm(
                         draft: nameBinding,
                         accessibilityIdentifierPrefix: "\(identifierPrefix).name",
@@ -413,7 +413,7 @@ struct CitationPropertyFields: View {
                     )
                 }
             case .date:
-                inlineValue {
+                PVValueBox {
                     DateValueEditorForm(
                         draft: dateBinding,
                         accessibilityIdentifierPrefix: "\(identifierPrefix).date",
@@ -452,19 +452,6 @@ struct CitationPropertyFields: View {
                 .disabled(true)
             }
         }
-    }
-
-    private func inlineValue<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        content()
-            .padding(.horizontal, 14)
-            .padding(.vertical, PVSpacing.space5)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(PVColor.surfaceSunken)
-            .clipShape(RoundedRectangle(cornerRadius: PVRadius.md, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: PVRadius.md, style: .continuous)
-                    .stroke(PVColor.borderSubtle, lineWidth: 1)
-            )
     }
 
     private func claimTab(
@@ -658,42 +645,35 @@ struct CitationBridgeSentence: View {
     var termIdentifierPrefix: String = "citationComposer.draft.term"
 
     var body: some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space4) {
-            HStack(spacing: PVSpacing.space3) {
-                PVMark(ready.markKey, size: 14, decorative: true)
-                Text(verbatim: ready.kindLabel)
-                    .pvMicroCaps()
-                    .foregroundStyle(PVColor.textSecondary)
-                Spacer(minLength: 0)
-                if canSwap {
-                    PVButton(L10n.CitationComposer.swap, variant: .ghost, size: .sm, icon: .swap) {
-                        onSwap()
+        PVValueBox {
+            VStack(alignment: .leading, spacing: PVSpacing.space4) {
+                HStack(spacing: PVSpacing.space3) {
+                    PVMark(ready.markKey, size: 14, decorative: true)
+                    Text(verbatim: ready.kindLabel)
+                        .pvMicroCaps()
+                        .foregroundStyle(PVColor.textSecondary)
+                    Spacer(minLength: 0)
+                    if canSwap {
+                        PVButton(L10n.CitationComposer.swap, variant: .ghost, size: .sm, icon: .swap) {
+                            onSwap()
+                        }
                     }
                 }
-            }
-            PVFlowLayout(spacing: PVSpacing.space4, lineSpacing: PVSpacing.space3) {
-                ForEach(pieces) { piece in
-                    pieceView(piece)
+                PVFlowLayout(spacing: PVSpacing.space4, lineSpacing: PVSpacing.space3) {
+                    ForEach(pieces) { piece in
+                        pieceView(piece)
+                    }
                 }
-            }
-            if ready.termProperty != nil {
-                HStack {
-                    Spacer(minLength: 0)
-                    PVButton(L10n.CitationComposer.addCustomTerm, variant: .ghost, size: .sm, icon: .plus) {
-                        onAddTerm()
+                if ready.termProperty != nil {
+                    HStack {
+                        Spacer(minLength: 0)
+                        PVButton(L10n.CitationComposer.addCustomTerm, variant: .ghost, size: .sm, icon: .plus) {
+                            onAddTerm()
+                        }
                     }
                 }
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, PVSpacing.space5)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(PVColor.surfaceSunken)
-        .clipShape(RoundedRectangle(cornerRadius: PVRadius.md, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: PVRadius.md, style: .continuous)
-                .stroke(PVColor.borderSubtle, lineWidth: 1)
-        )
         .accessibilityElement(children: .contain)
     }
 

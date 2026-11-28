@@ -6305,12 +6305,6 @@ enum L10n {
             comment: "Caption under Clear date in the published date dialog once the form is emptied"
         )
 
-        static let sourceDateReadsAs = LocalizedStringResource(
-            "sources.page.sourceDate.readsAs",
-            defaultValue: "Reads as",
-            comment: "Micro-caps label above the date as the page will show it, in the published date dialog"
-        )
-
         static let privateSwitch = LocalizedStringResource(
             "sources.page.private.switch",
             defaultValue: "Private",
@@ -6359,13 +6353,13 @@ enum L10n {
 
         static let dateKindPoint = LocalizedStringResource(
             "sources.page.dateKindPoint",
-            defaultValue: "Single date",
+            defaultValue: "Single",
             comment: "DateValue kind: point"
         )
 
         static let dateKindRange = LocalizedStringResource(
             "sources.page.dateKindRange",
-            defaultValue: "Between two bounds",
+            defaultValue: "Bounded",
             comment: "DateValue kind: range"
         )
 
@@ -6408,25 +6402,49 @@ enum L10n {
         static let dateEarliestHeading = LocalizedStringResource(
             "sources.page.dateEarliestHeading",
             defaultValue: "Earliest — not before",
-            comment: "Uppercase heading for range start side"
+            comment: "Spoken name of the earliest side's group on a range; not drawn"
         )
 
         static let dateLatestHeading = LocalizedStringResource(
             "sources.page.dateLatestHeading",
             defaultValue: "Latest — not after",
-            comment: "Uppercase heading for range end side"
+            comment: "Spoken name of the latest side's group on a range; not drawn"
         )
 
-        static let datePointHeading = LocalizedStringResource(
-            "sources.page.datePointHeading",
-            defaultValue: "Date",
-            comment: "Uppercase heading for point date cascade"
+        static let dateEarliestShort = LocalizedStringResource(
+            "sources.page.dateEarliestShort",
+            defaultValue: "Earliest",
+            comment: "Label for a range's start side, over its note"
+        )
+
+        static let dateEarliestNote = LocalizedStringResource(
+            "sources.page.dateEarliestNote",
+            defaultValue: "not before",
+            comment: "Note under the Earliest label on a range's start side"
+        )
+
+        static let dateLatestShort = LocalizedStringResource(
+            "sources.page.dateLatestShort",
+            defaultValue: "Latest",
+            comment: "Label for a range's end side, over its note"
+        )
+
+        static let dateLatestNote = LocalizedStringResource(
+            "sources.page.dateLatestNote",
+            defaultValue: "not after",
+            comment: "Note under the Latest label on a range's end side"
+        )
+
+        static let dateTimeZonePrompt = LocalizedStringResource(
+            "sources.page.dateTimeZonePrompt",
+            defaultValue: "Europe/London, +01:00…",
+            comment: "Placeholder for the DateValue time zone field"
         )
 
         static let dateLeaveEmptyHint = LocalizedStringResource(
             "sources.page.dateLeaveEmptyHint",
             defaultValue: "Leave a part empty when the record does not say",
-            comment: "Hint beside date cascade heading"
+            comment: "Hint on the Calendar and phrase link's line"
         )
 
         static let dateYear = LocalizedStringResource(
@@ -6544,18 +6562,6 @@ enum L10n {
             comment: "DateValue free-text timezone label"
         )
 
-        static let dateAddTime = LocalizedStringResource(
-            "sources.page.dateAddTime",
-            defaultValue: "Add time…",
-            comment: "Link to reveal optional time fields"
-        )
-
-        static let dateHideTime = LocalizedStringResource(
-            "sources.page.dateHideTime",
-            defaultValue: "Remove time",
-            comment: "Link that clears the optional time fields on one side"
-        )
-
         static let dateShowAdvanced = LocalizedStringResource(
             "sources.page.dateShowAdvanced",
             defaultValue: "Calendar and phrase…",
@@ -6624,7 +6630,7 @@ enum L10n {
 
         static let dateUnsavableRangeBoth = LocalizedStringResource(
             "sources.page.dateUnsavableRangeBoth",
-            defaultValue: "Between two bounds needs an earliest and a latest bound. Add both, or choose Single date.",
+            defaultValue: "A bounded date needs an earliest and a latest bound. Add both, or choose Single.",
             comment: "Line under the date form when a Between date has no date or time on either bound"
         )
 
@@ -6636,7 +6642,7 @@ enum L10n {
 
         static let dateUnsavableRangeEnd = LocalizedStringResource(
             "sources.page.dateUnsavableRangeEnd",
-            defaultValue: "Add the latest bound, or choose Single date.",
+            defaultValue: "Add the latest bound, or choose Single.",
             comment: "Line under the date form when a Between date has no date or time on its latest bound"
         )
 

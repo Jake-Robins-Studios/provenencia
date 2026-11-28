@@ -20,7 +20,7 @@ private struct SourceDateDialogModifier: ViewModifier {
                 confirm: L10n.Sources.sourceDateSave,
                 cancel: L10n.Sources.cancelAction
             ),
-            width: SourceFields.dialogWidth,
+            width: SourceDateForm.dialogWidth,
             isRunning: model?.isSaving ?? false,
             isDirty: model?.isDirty ?? false,
             confirmDisabled: !(model?.canSave ?? false),
@@ -31,9 +31,12 @@ private struct SourceDateDialogModifier: ViewModifier {
     }
 }
 
-/// The dialog body: the refused-date Callout, the shared date form, what the date reads as,
-/// and Clear date (only for a Source that has a date).
+/// The dialog body: the refused-date Callout, the shared date form, and Clear date (only for a
+/// Source that has a date).
 private struct SourceDateForm: View {
+    /// The date dialog is narrower than the Add Source sheet: the form fits it.
+    static let dialogWidth: CGFloat = 520
+
     @Bindable var model: SourceDateFormModel
     private enum Field: Hashable { case year }
     @FocusState private var focus: Field?

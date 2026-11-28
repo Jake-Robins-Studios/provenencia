@@ -101,6 +101,51 @@ struct PVFloatingMenuSelectionTests {
         #expect(typed.advance("u", from: 1, in: names, now: start.addingTimeInterval(0.1)) == 1)
     }
 
+    @Test func repeatedLetterWalksItsMatches() {
+        let months = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December",
+        ]
+        let start = Date(timeIntervalSince1970: 1_000)
+        var matcher = PVTypeSelectMatcher()
+        var current = 0
+        var hits: [Int] = []
+        for step in 0..<4 {
+            current = matcher.advance("j", from: current, in: months, now: start.addingTimeInterval(Double(step) * 0.1))
+            hits.append(current)
+        }
+        #expect(hits == [5, 6, 0, 5])
+
+        let names = ["Aaron", "Abel", "Adam"]
+        var named = PVTypeSelectMatcher()
+        let first = named.advance("a", from: -1, in: names, now: start)
+        let second = named.advance("a", from: first, in: names, now: start.addingTimeInterval(0.1))
+        #expect(first == 0)
+        #expect(second == 1)
+
+        let numbers = ["10", "11", "12"]
+        var numeric = PVTypeSelectMatcher()
+        let one = numeric.advance("1", from: 0, in: numbers, now: start)
+        let two = numeric.advance("1", from: one, in: numbers, now: start.addingTimeInterval(0.1))
+        #expect(one == 1)
+        #expect(two == 2)
+    }
+
+    @Test func mixedLettersStayAPrefixSearch() {
+        let start = Date(timeIntervalSince1970: 1_000)
+        var matcher = PVTypeSelectMatcher()
+        let titles = ["January", "June", "July"]
+        var current = matcher.advance("j", from: -1, in: titles, now: start)
+        current = matcher.advance("j", from: current, in: titles, now: start.addingTimeInterval(0.1))
+        #expect(matcher.advance("o", from: current, in: titles, now: start.addingTimeInterval(0.2)) == -1)
+
+        var names = PVTypeSelectMatcher()
+        let people = ["Jane", "Jones"]
+        let first = names.advance("j", from: -1, in: people, now: start)
+        #expect(first == 0)
+        #expect(names.advance("o", from: first, in: people, now: start.addingTimeInterval(0.1)) == 1)
+    }
+
     @Test func typeSelectCharacters() {
         #expect(PVTypeSelectMatcher.isTypeSelectCharacter("a"))
         #expect(PVTypeSelectMatcher.isTypeSelectCharacter("7"))
