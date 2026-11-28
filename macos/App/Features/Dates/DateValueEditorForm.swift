@@ -8,8 +8,12 @@ struct DateValueEditorForm: View {
     @Binding var draft: DateValueDraft
     /// Prefix for control identifiers (default matches the Source page date dialog).
     var accessibilityIdentifierPrefix: String = "sources.page.date"
-    /// Host focus for the earliest year field. The form does not take focus on its own.
+    /// The host's handle on the earliest Year, where Tab from the host's last field lands. The
+    /// form's Tab loop (`Field`) takes its place: Shift-Tab from Kind and Tab from the last
+    /// field go on to the handle's own neighbours. The form does not take focus on its own.
     var yearFocus: PVFieldFocus? = nil
+
+    @FocusState private var focus: Field?
 
     /// Width of the column that names a range's side.
     private static let sideLabelWidth: CGFloat = 86
@@ -68,7 +72,12 @@ struct DateValueEditorForm: View {
             ],
             selection: draft.kind,
             size: .sm,
-            select: { draft.setKind($0) }
+            focus: handle(.kind),
+            select: { value in
+                let wasFocused = focus == .kind
+                draft.setKind(value)
+                if wasFocused { FocusClaim.claim($focus, .kind) }
+            }
         )
     }
 
@@ -99,7 +108,12 @@ struct DateValueEditorForm: View {
             ],
             selection: draft.qualifier,
             size: .sm,
-            select: { draft.qualifier = $0 }
+            focus: handle(.qualifier),
+            select: { value in
+                let wasFocused = focus == .qualifier
+                draft.qualifier = value
+                if wasFocused { FocusClaim.claim($focus, .qualifier) }
+            }
         )
     }
 
@@ -144,7 +158,7 @@ struct DateValueEditorForm: View {
 
     private func dateRow(start: Bool) -> some View {
         HStack(alignment: .bottom, spacing: PVSpacing.space3) {
-            cascadeField(.year, start: start, width: 64, focus: start ? yearFocus : nil)
+            cascadeField(.year, start: start, width: 64)
             monthSelect(start: start)
             cascadeField(.day, start: start, width: 48)
         }
@@ -164,8 +178,7 @@ struct DateValueEditorForm: View {
     private func cascadeField(
         _ component: DateValueDraft.CascadeComponent,
         start: Bool,
-        width: CGFloat,
-        focus: PVFieldFocus? = nil
+        width: CGFloat
     ) -> some View {
         let isInvalid = draft.isFieldInvalid(component, start: start)
         return VStack(alignment: .leading, spacing: PVSpacing.space2) {
@@ -175,7 +188,7 @@ struct DateValueEditorForm: View {
                 size: .sm,
                 mono: true,
                 isInvalid: isInvalid,
-                focus: focus
+                focus: handle(.part(component, start: start))
             )
             .environment(\.pvFieldLabel, component.label)
             .frame(width: width)
@@ -189,7 +202,8 @@ struct DateValueEditorForm: View {
             PVInput(
                 text: start ? $draft.startTZ : $draft.endTZ,
                 size: .sm,
-                prompt: L10n.Sources.dateTimeZonePrompt
+                prompt: L10n.Sources.dateTimeZonePrompt,
+                focus: handle(.zone(start: start))
             )
             .environment(\.pvFieldLabel, L10n.Sources.dateTimeZone)
             .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(start ? "start" : "end").timezone")
@@ -211,7 +225,8 @@ struct DateValueEditorForm: View {
                 fillsWidth: false,
                 isInvalid: draft.isFieldInvalid(.month, start: start),
                 accessibilityLabel: L10n.Sources.dateMonth,
-                accessibilityIdentifier: "\(accessibilityIdentifierPrefix).\(start ? "start" : "end").month"
+                accessibilityIdentifier: "\(accessibilityIdentifierPrefix).\(start ? "start" : "end").month",
+                focus: handle(.part(.month, start: start))
             )
             .frame(width: 124)
         }
@@ -234,7 +249,8 @@ struct DateValueEditorForm: View {
             PVButton(
                 draft.showAdvanced ? L10n.Sources.dateHideAdvanced : L10n.Sources.dateShowAdvanced,
                 variant: .link,
-                size: .sm
+                size: .sm,
+                focus: handle(.advancedToggle)
             ) {
                 draft.showAdvanced.toggle()
             }
@@ -255,7 +271,8 @@ struct DateValueEditorForm: View {
                     menuWidth: 220,
                     fillsWidth: false,
                     accessibilityLabel: L10n.Sources.dateCalendar,
-                    accessibilityIdentifier: "\(accessibilityIdentifierPrefix).calendar"
+                    accessibilityIdentifier: "\(accessibilityIdentifierPrefix).calendar",
+                    focus: handle(.calendar)
                 )
                 .frame(width: 220)
             }
@@ -263,13 +280,61 @@ struct DateValueEditorForm: View {
                 Text(L10n.Sources.datePhrase)
                     .font(PVFont.body(size: PVTypeScale.micro))
                     .foregroundStyle(PVColor.textSecondary)
-                PVInput(text: $draft.phrase, size: .sm, prompt: L10n.Sources.datePhrasePrompt)
+                PVInput(
+                    text: $draft.phrase,
+                    size: .sm,
+                    prompt: L10n.Sources.datePhrasePrompt,
+                    focus: handle(.phrase)
+                )
                 .environment(\.pvFieldLabel, L10n.Sources.datePhrase)
                 .accessibilityIdentifier("\(accessibilityIdentifierPrefix).phrase")
                 Text(L10n.Sources.datePhraseHint)
                     .font(PVFont.body(size: PVTypeScale.micro, italic: true))
                     .foregroundStyle(PVColor.textMuted)
             }
+        }
+    }
+
+    // MARK: Tab loop
+
+    /// The handle for `field`: its own focus on the form's `FocusState` (the host's handle for
+    /// the earliest Year), with the neighbours `Field.neighbours` names.
+    private func handle(_ field: Field) -> PVFieldFocus {
+        let neighbours = Field.neighbours(of: field, isRange: draft.isRange, isAdvancedOpen: draft.showAdvanced)
+        let claims = PVFieldFocus.claims(
+            next: reachable(neighbours.next),
+            previous: reachable(neighbours.previous)
+        ) { claim($0) }
+        return ownHandle(field).replacingNeighbours(next: claims.next, previous: claims.previous)
+    }
+
+    private func ownHandle(_ field: Field) -> PVFieldFocus {
+        if field == .startYear, let yearFocus { return yearFocus }
+        return PVFieldFocus($focus, equals: field)
+    }
+
+    /// A target that has somewhere to go: a host edge with no host neighbour is left to the key loop.
+    private func reachable(_ target: Field.Target?) -> Field.Target? {
+        switch target {
+        case .hostNext where yearFocus?.next == nil: nil
+        case .hostPrevious where yearFocus?.previous == nil: nil
+        default: target
+        }
+    }
+
+    /// Resolved when the key is pressed, so no handle is built to look at it.
+    private func claim(_ target: Field.Target) {
+        switch target {
+        case .field(let field):
+            if field == .startYear {
+                FocusClaim.claim(ownHandle(field))
+            } else {
+                FocusClaim.claim($focus, field)
+            }
+        case .hostNext:
+            yearFocus?.next?()
+        case .hostPrevious:
+            yearFocus?.previous?()
         }
     }
 
@@ -289,6 +354,68 @@ struct DateValueEditorForm: View {
                 }
             }
         )
+    }
+}
+
+extension DateValueEditorForm {
+    /// What the form's Tab loop visits. It never names a host's field: the host's neighbours
+    /// are the `Target`s `.hostNext` and `.hostPrevious`.
+    enum Field: Hashable {
+        case kind, qualifier
+        case part(DateValueDraft.CascadeComponent, start: Bool)
+        case zone(start: Bool)
+        case advancedToggle, calendar, phrase
+
+        /// Where Tab or Shift-Tab goes from a field.
+        enum Target: Equatable {
+            case field(Field)
+            case hostNext, hostPrevious
+        }
+
+        static var startYear: Field { .part(.year, start: true) }
+
+        /// The fields Tab walks from the earliest Year on: each side's parts then its time zone,
+        /// the earliest side then the latest on a range, then the Calendar and phrase link and,
+        /// while open, Calendar and Phrase. Kind and the qualifier sit before Year, off this list.
+        static func order(isRange: Bool, isAdvancedOpen: Bool) -> [Field] {
+            var fields: [Field] = []
+            for start in isRange ? [true, false] : [true] {
+                fields += DateValueDraft.CascadeComponent.allCases.map { .part($0, start: start) }
+                fields.append(.zone(start: start))
+            }
+            fields.append(.advancedToggle)
+            if isAdvancedOpen { fields += [.calendar, .phrase] }
+            return fields
+        }
+
+        /// The kit's neighbours in `order`, with the form's own edges: Year's Shift-Tab goes to the
+        /// qualifier (Single date) or Kind (range), Kind and the qualifier Tab to Year, Kind's
+        /// Shift-Tab goes to the host, and the last field's Tab goes to the host.
+        @MainActor
+        static func neighbours(
+            of field: Field,
+            isRange: Bool,
+            isAdvancedOpen: Bool
+        ) -> (next: Target?, previous: Target?) {
+            let fields = order(isRange: isRange, isAdvancedOpen: isAdvancedOpen)
+            let base = PVFieldFocus.neighbours(of: field, in: fields)
+            var next = base.next.map(Target.field)
+            var previous = base.previous.map(Target.field)
+            if field == fields.last { next = .hostNext }
+            switch field {
+            case .kind:
+                next = .field(startYear)
+                previous = .hostPrevious
+            case .qualifier:
+                next = .field(startYear)
+                previous = .field(.kind)
+            case startYear:
+                previous = .field(isRange ? .kind : .qualifier)
+            default:
+                break
+            }
+            return (next, previous)
+        }
     }
 }
 
