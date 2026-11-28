@@ -38,6 +38,7 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 - [`kinship-view.md`](kinship-view.md) — family trees reading every kinship shape as one fact, and patterns beyond spouse, parent and grandparent
 - [`organizations.md`](organizations.md) — Organization as a Subject type; descoped from S11-48
 - [`place-gazetteer-service.md`](place-gazetteer-service.md)
+- [`place-types-and-households.md`](place-types-and-households.md) — a `place_type` Property on places; residences that overlap at a dwelling read as a household
 
 ### Conclusion pages and provenance
 
