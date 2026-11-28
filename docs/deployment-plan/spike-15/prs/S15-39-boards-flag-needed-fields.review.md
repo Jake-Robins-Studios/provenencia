@@ -19,3 +19,22 @@ Plan: [`S15-39-boards-flag-needed-fields.md`](S15-39-boards-flag-needed-fields.m
 | X-5 | minor | Row layout left to the board | Fixed in part: § 6 macOS Label row (VStack, `mark:` default nil, inherited label stays hidden, Badge at rest and in edit); spacing waits for the board |
 | X-6 | minor | Parity file edit only partly given | Fixed: D-8 names the exact clause and the decoded field |
 | X-7 | nit | Fixture flags for T-3 | Fixed: T-3 builds with `suggested: true` |
+
+## Round 1 — maintainability (verdict: Fits with changes)
+
+| ID | Severity | Finding | Answer |
+| --- | --- | --- | --- |
+| M-1 | blocker | D-3's alternative check copies the engine's met-elsewhere rule lossily (one head can head several chains; the wire flattens alternatives) | To user → the engine re-annotates drafts (user, 2026-11-28). New preparatory PR S15-74 in the map; D-3 now reads only `requirement` and `hasValue`; D-10 re-reads a draft board's requirements after each change; T-6, T-7 |
+| M-2 | blocker | The rule on `MetadataBoardModel` makes S15-40 and S15-42 copy it | Fixed: D-3 is `CatalogCitationRequirement.mark(hasValue:)` in Platform, `CatalogMetadataEntry.citationMark` calls it; T-2 is a pure table |
+| M-3 | minor | `CitationNeed` belongs in `CitationFormatVocabulary.swift` | Fixed: Codebase fit, STEP-1 |
+| M-4 | minor | The mark's associated alternatives duplicate `requirement.alternatives` | Fixed: `CitationMark` is `.needed` / `.used`; the hint reads `entry.requirement?.alternatives` |
+| M-5 | minor | The dismiss check sits in three places | Fixed: D-4 `CatalogMetadataEntry.isDismissible`; the rows take an optional `onDismiss` |
+| M-6 | minor | `missingJoin`'s comments go false | Fixed: D-6 widens both comments |
+| M-7 | minor | Decisions repeat the Design tables | Fixed: D-1, D-2, D-5, D-8 trimmed to the choice and point at Codebase fit, § 6 macOS and Deletes |
+| M-8 | nit | Next adds leaves out S15-42 | Fixed: Next adds and the Out row name it |
+
+**Brief.** NF-5's sheet clause stands: S15-74 makes it the engine's answer. The brief's **Depends on** names S15-74.
+
+## Verdict
+
+Round 1 answered; no open blocker. Round 2 runs when S15-74 lands and the plan is refreshed against its store method (D-10's Current state), with the agreed board.

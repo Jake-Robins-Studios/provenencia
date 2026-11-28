@@ -154,7 +154,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-37 | Metadata values can be marked unknown or supplied | 4 | Go: one migration (the two facts on the three value tables, `unknown_text` on fields); `sourcemetadata` and `metadatafields` writes and reads, FFI, Copy Source, audit | — | S15-08, S15-14 | [plan](prs/S15-37-metadata-value-marks.md) | Landed #879 |
 | S15-53 | A metadata value never reads a mark it cannot have | 4 | Go: `valuemark.Settle` makes a stored pair valid for the value read; `sourcemetadata`'s read and `sources.settleDate` call it. No visible change (S15-43 review SEC-3, user 2026-11-19) | — | — | quick-pr | Landed #902 |
 | S15-38 | Boards carry their citation's requirements | 4 | Go: `listWorkspaces` annotates each entry needed, used or none and met elsewhere; `DismissSuggestion` refuses a needed field; a draft board read; the date's and page's requirements | — | S15-14, S15-15, S15-37 | [plan](prs/S15-38-board-requirements.md) | Landed #910 |
-| S15-39 | Metadata boards flag needed fields | 9 | Swift: every board (Source page, Artifact sheet in both modes, graph form, the composer's Citation board) draws needed and used entries; a needed row offers no dismiss | [S15-D20](design/S15-D20-boards-flag-needed-fields.md) | S15-38, S15-34, S15-11, S15-56, S15-D20, S16-61 | [plan](prs/S15-39-boards-flag-needed-fields.md) | Blocked — on board S15-D20 |
+| S15-39 | Metadata boards flag needed fields | 9 | Swift: every board (Source page, Artifact sheet in both modes, graph form, the composer's Citation board) draws needed and used entries; a needed row offers no dismiss | [S15-D20](design/S15-D20-boards-flag-needed-fields.md) | S15-38, S15-34, S15-11, S15-56, S15-74, S15-D20, S16-61 | [plan](prs/S15-39-boards-flag-needed-fields.md) | Blocked — on S15-74 and board S15-D20 |
 | S15-40 | The Artifact list marks a missing citation field | 9 | Swift: an Artifact list entry with a needed field empty carries a mark that opens the sheet at Copy details | S15-D21 | S15-39, S15-35, S15-D21 | — | Scoped |
 | S15-41 | A metadata row can be marked unknown or supplied | 9 | Swift: the Unknown and Supplied control, built once; on every board's row, the composer's Citation board (and so the printed page) included | S15-D22 | S15-37, S15-39, S15-56, S15-D22, S16-61, S16-76 (Spike 16) | — | Scoped |
 | S15-42 | The Source date can be unknown, supplied or flagged | 9 | Swift: the date dialog's No date and Supplied (S15-41's control); the header shows them and flags an empty date the type needs | S15-D23 | S15-43, S15-38, S15-41, S15-D23, S16-76 (Spike 16) | — | Scoped |
@@ -167,6 +167,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-49 | The Source types list is redesigned | 2 | Swift: a sortable Used by column; at Wide the list centers in the Sources list's band and adds Description | [S15-D28](design/archive/S15-D28-source-types-list.md) | S15-48, S15-D28 | [plan](prs/S15-49-source-types-list.md) | Landed #852 |
 | S15-51 | Board rows reorder by keyboard and VoiceOver | 10 | Swift: `PVReorderableList` and a focusable `PVReorderHandle` take ⌥↑ / ⌥↓ and the Move up and Move down actions through `onMove`; the move is announced; a board's moves wait for its previous reorder write | — | — | — | Scoped |
 | S15-73 | Board fields explain themselves and Return saves | 10 | Swift: an ⓘ beside each described field's name with the description on hover, and as the input's VoiceOver hint; the Add field picker's own row shows each field's description; Return on a suggested row saves and focuses the next suggested row's input (board-held `MetadataBoardFocus`, the model's `saveSuggestion` answer); Return saves an inline value edit, ⌥Return a line break, through a kit `PVTextArea` `onReturn` | S15-D40 | S15-D40 | — | Scoped |
+| S15-74 | A draft board is annotated against its draft | 9 | Preparatory, Go and Swift store: `GetDraftMetadataBoard` takes an existing owner (edit mode) and the sheet's `MetadataDraft`, lays the draft over the owner's stored values through one overlay in `sourcemetadata`, and annotates every entry against the result; the store method takes both, its callers unchanged in behaviour | — | S15-38, S15-64 | — | Scoped |
 | S15-54 | Citations hold metadata | 11 | Go: migration (`citation_metadata`, `citation_metadata_layout`); `MetadataLevels` and S15-61's list gain the Citation, first in the nearest-level order, so `{meta.key}` reads it; values in the Citation writes; delete, audit and effects entries; FFI. **Re-scoped (2026-11-22, later):** no fourth suggestion list (S15-63), so no chrome and no brief | — | S15-24, S15-61, S15-62, S15-63 | [plan](prs/S15-54-citations-hold-metadata.md) | Landed #965 |
 | S15-55 | Boards read every level above | 11 | Go, and Swift's draft-board store call: each level's ancestors from S15-61's list; board and draft reads load every ancestor's values in one batched read; a requirement is met at the owner or above; the draft read names its would-be parents; requirements at the Citation level | — | S15-54 | [plan](prs/S15-55-boards-read-every-level-above.md) | Landed #970 |
 | S15-56 | The composer edits a Citation's metadata | 11 | Go and Swift: the Citation's board in the composer (draft or saved, with inherited values), saved with the Citation; the Printed page input goes; `graphfill` and `conclusiondetails` show the Citation's own page | S15-D29 | S15-55, S15-60, S15-64, S15-D29 | [plan](prs/S15-56-composer-citation-metadata.md) | Landed #982 |
@@ -321,6 +322,7 @@ SLICE 8 — Provenance loading                         (after S16-07, S16-09, S1
   Check: bar 10.
 
 SLICE 9 — Needed fields, unknown and supplied values   (after slices 2, 3, 4 and 11; S15-23 after S15-21)
+  S15-74  A draft board is annotated against its draft
   ✎ S15-D20 ──▶ S15-39  Metadata boards flag needed fields
   ✎ S15-D21 ──▶ S15-40  The Artifact list marks a missing citation field
   ✎ S15-D22 ──▶ S15-41  A metadata row can be marked unknown or supplied
@@ -359,6 +361,7 @@ S15-52 ──▶ S15-19
 S15-43 ──▶ S15-16, S15-42      S15-44 ──▶ S15-16
 S15-53 ──▶ S15-16
 S15-38 ──▶ S15-39, S15-42
+S15-38, S15-64 ──▶ S15-74 ──▶ S15-39
 S15-39 ──▶ S15-40, S15-41 ──▶ S15-42
 S15-16 ──▶ S15-17, S15-21, S15-23
 S15-21 ──▶ S15-23
@@ -846,6 +849,14 @@ Runs after slice 7, before slice 8 (user, 2026-11-22). Re-cut later the same day
 **Check.** Bar 4's boards: a census Source with no jurisdiction shows "Jurisdiction" flagged; a book Source with no author shows "Author sort" flagged with a hint naming Author; a census Artifact with no URL shows "URL" as used, not flagged; filling each clears its flag. (The seed needs no Artifact or graph field; user, 2026-11-19.)
 **Shared with Spike 16.** If S16-75 has landed, the Copy Source sheet's board is a draft board read from `GetDraftMetadataBoard` (S16-77), so it carries requirements and gets the flags with the other boards.
 **Context.** If S15-73 has landed, the chain hint joins the field's description through its board hint helper (rule "A field's description is behind an ⓘ"). S15-D20; rules "Boards flag needed fields; the engine decides the rows", "One metadata board"; `macos/App/Features/MetadataBoard/` (`MetadataBoardView.swift`, `MetadataBoardModel.swift`, `MetadataDraftHost.swift`). Add mode already reads `GetDraftMetadataBoard` (S15-64).
+
+#### S15-74 — A draft board is annotated against its draft
+
+**Ships.** Preparatory (user, 2026-11-28, S15-39 plan review: the engine, not Swift, decides whether a chain is met while a sheet is being typed in). `GetDraftMetadataBoardRequest` gains an optional `owner` (an existing Artifact, graph or Citation: its stored values and layout are the seed) and an optional `draft` (`MetadataDraft`, laid over the seed by one pure overlay function in `sourcemetadata`, the same reading of a draft `Apply` writes). Every entry's requirement, `met_elsewhere` included, is computed against the overlaid values, so a value typed in Pages meets Page before the sheet's Save, and clearing a stored Pages in the draft unmeets it. Swift's `getDraftMetadataBoard` takes `owner` and `draft` (both optional); its two callers pass neither and behave as today. A handler test times the read at the map's Scale.
+**Not this PR.** Calling it after each row change and drawing the marks (S15-39); level `source` and a seed Source (S16-77, which reuses this overlay).
+**Check.** Handler tests: a Court report Citation's draft holding Pages → Page needed with `met_elsewhere`; an Artifact owner with a stored value and a draft clearing it → its head not met; a draft dismissing a suggestion → no entry for it; no owner and no draft → today's board.
+**Shared with Spike 16.** S16-77's "one overlay in `sourcemetadata`" is this PR's function: if S15-74 lands first, S16-77 extends it with level `source`; if S16-77 lands first, this PR reuses its overlay and adds the owner.
+**Context.** Rule "Boards flag needed fields; the engine decides the rows"; `core/database/sourcemetadata/sourcemetadata.go` (`ListDraftWorkspace`, `Apply`), `core/database/sourcemetadata/annotation.go` (`annotate`), `api/ffi/handlers/metadata.go`; skills `add-ffi-handler`, `add-catalog-query`.
 
 #### S15-40 — The Artifact list marks a missing citation field
 
