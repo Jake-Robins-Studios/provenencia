@@ -39,7 +39,7 @@ Most of the time a researcher tabs into the date and types it. Sometimes they go
 The loop the user chose (2026-11-28):
 
 1. Tab into the form lands on Year.
-2. Tab goes on to Month and Day, then the time fields when they show, then leaves the form.
+2. Tab goes on to Month and Day, then the time fields, then leaves the form.
 3. Shift-Tab from Year goes to the qualifier (on a Single date), then to Kind.
 4. Tab from Kind comes back to Year.
 
@@ -50,19 +50,23 @@ Today the system order decides. Without Full Keyboard Access, Kind, the chips an
 **Still open for the plan:**
 
 - **The end side of a range:** where its Year, Month and Day sit in the loop. Straight after the start side's Day is the natural answer.
-- **The links:** whether Add time and Calendar and phrase are Tab stops, and where.
+- **The link:** whether Calendar and phrase is a Tab stop, and where.
 - **Leaving backwards:** whether Shift-Tab from Kind goes to the host's previous field.
 - **More open:** where the Calendar select and the Phrase input sit in the loop.
 
-## Remove time clears the time
+## The time fields always show
 
-Decided (user, 2026-11-28): S16-73's behaviour stays. Remove time erases that side's hour, minute, second, millisecond and time zone (`DateValueDraft.hideTime(start:)`), so no hidden value can keep a date from saving. The other way, keeping the values and showing the time fields whenever they hold anything, was turned down. (From S16-73 round 3, UX-1 and UX-2.)
+Decided (user, 2026-11-28), to make the form simpler: every side's time fields (Hour, Min, Sec, Ms and Time zone) are always on the form, and the latest side gets the same fields as the earliest. So there is no Add time or Remove time link, and no time value is ever hidden. An empty time field means no time, as an empty day means no day.
+
+This replaces what S16-73 shipped. S16-73 made Remove time clear the time so that a hidden time zone could not keep a date from saving. With nothing hidden, that problem is gone. `DateValueDraft.hideTime(start:)`, the `showStartTime` and `showEndTime` flags, the toggle and its two strings go. The latest bound always has a visible field for the earliest bound's time to follow into.
+
+Earlier the same day the user had kept Remove time clearing the time. Showing the time fields all the time replaces that call.
 
 ## The latest bound follows the earliest
 
 Today, on Between two bounds, typing the earliest year shows "Add the latest bound, or choose Single date." before the researcher has had a chance to type the latest one (S16-73's review, UX-5).
 
-Decided (user, 2026-11-28): nothing about focus or timing changes. Instead the latest bound fills itself in. As the researcher types the earliest year, month, day or time, the matching latest field takes the same value, until the researcher types into that latest field. A latest field already filled in, whether typed by the researcher or loaded from a saved range, keeps its value. A range typed from the earliest side is then whole at every keystroke: 1880 to 1880, then June 1880 to June 1880. The researcher moves on to the latest side and changes only what differs. "Add the latest bound…" shows only when a researcher clears the latest side.
+Decided (user, 2026-11-28): nothing about focus or timing changes. Instead the latest bound fills itself in. As the researcher types the earliest year, month, day, or any time field, the matching latest field takes the same value, until the researcher types into that latest field. A latest field already filled in, whether typed by the researcher or loaded from a saved range, keeps its value. A range typed from the earliest side is then whole at every keystroke: 1880 to 1880, then June 1880 to June 1880. The researcher moves on to the latest side and changes only what differs. "Add the latest bound…" shows only when a researcher clears the latest side.
 
 `DateValueDraft` keeps which latest fields were typed, so the rule is the draft's and every host gets it. The host still shows `unsavableError` (Add Source reads it through `SourcesModel.Draft.validation`; the form never shows it), and that does not change (map review K9-7).
 

@@ -239,7 +239,7 @@ One fresh maintainability reviewer on slice 6g (S16-68, S16-69, S16-70) and its 
 
 - **The order against Batch 8 (K9-5).** S16-83 before S16-74 and S16-D20 before S16-D16, so the Copy sheet is drawn and built on the condensed form. **Answered (user, 2026-11-28): date form first.**
 - **Type-select edge cases (K9-9).** A quick `aa` walks the A's, a table's `11` walks rows starting with 1, `jjo` matches nothing; written into the rule as macOS behaves.
-- **Two calls before the plan (K9-11).** **Answered (user, 2026-11-28):** Remove time keeps clearing the time; the range message's timing does not change, and the latest bound instead follows the earliest as it is typed, until the researcher types into it (rules "Remove time clears the time" and "The latest bound follows the earliest until it is typed into").
+- **Two calls before the plan (K9-11).** **Answered (user, 2026-11-28):** Remove time keeps clearing the time (later the same day the user made the time fields always visible, so the link goes: rule "The time fields always show"); the range message's timing does not change, and the latest bound instead follows the earliest as it is typed, until the researcher types into it (rules "Remove time clears the time" and "The latest bound follows the earliest until it is typed into").
 
 ### Findings
 
