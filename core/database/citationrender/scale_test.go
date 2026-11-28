@@ -151,7 +151,7 @@ func TestRenderScale(t *testing.T) {
 				t.Fatalf("seeded %d Citations, want %d", len(ids), tt.citations)
 			}
 			render := func() []RenderedCitation {
-				got, err := Render(w.c, ids, w.c.Graph().PageInputs())
+				got, err := RenderAll(w.c, ids, w.c.Graph().PageInputs())
 				if err != nil {
 					t.Fatal(err)
 				}

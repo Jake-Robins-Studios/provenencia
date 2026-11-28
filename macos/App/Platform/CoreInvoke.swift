@@ -100,7 +100,6 @@ enum CoreMethod {
     static let createSourceType = Int32(Provenencia_Engine_V1_Method.createSourceType.rawValue)
     static let copySourceType = Int32(Provenencia_Engine_V1_Method.copySourceType.rawValue)
     static let getCitationFormats = Int32(Provenencia_Engine_V1_Method.getCitationFormats.rawValue)
-    static let renderCitations = Int32(Provenencia_Engine_V1_Method.renderCitations.rawValue)
     static let getProvenanceRecords = Int32(Provenencia_Engine_V1_Method.getProvenanceRecords.rawValue)
     static let renderCitationPreview = Int32(Provenencia_Engine_V1_Method.renderCitationPreview.rawValue)
     static let listCitationPlaceholders = Int32(Provenencia_Engine_V1_Method.listCitationPlaceholders.rawValue)

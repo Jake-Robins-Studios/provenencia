@@ -58,7 +58,6 @@ const (
 	MethodGetCitationFormats                = int32(engine.Method_METHOD_GET_CITATION_FORMATS)
 	MethodCopySourceType                    = int32(engine.Method_METHOD_COPY_SOURCE_TYPE)
 	MethodGetDraftMetadataBoard             = int32(engine.Method_METHOD_GET_DRAFT_METADATA_BOARD)
-	MethodRenderCitations                   = int32(engine.Method_METHOD_RENDER_CITATIONS)
 	MethodRenderCitationPreview             = int32(engine.Method_METHOD_RENDER_CITATION_PREVIEW)
 	MethodListCitationPlaceholders          = int32(engine.Method_METHOD_LIST_CITATION_PLACEHOLDERS)
 	MethodGetSourceMoveImpact               = int32(engine.Method_METHOD_GET_SOURCE_MOVE_IMPACT)
@@ -238,8 +237,6 @@ func route(method int32, in []byte) ([]byte, error) {
 		return handlers.CopySourceType(in)
 	case MethodGetDraftMetadataBoard:
 		return handlers.GetDraftMetadataBoard(in)
-	case MethodRenderCitations:
-		return handlers.RenderCitations(in)
 	case MethodRenderCitationPreview:
 		return handlers.RenderCitationPreview(in)
 	case MethodListCitationPlaceholders:

@@ -6,8 +6,11 @@ import (
 
 	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
 	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/citationrender"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
 	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/google/uuid"
 )
 
@@ -127,119 +130,42 @@ func newRenderWorld(t *testing.T) renderWorld {
 	return w
 }
 
-func renderCitations(t *testing.T, dir string, ids ...string) (*engine.RenderCitationsResponse, error) {
-	t.Helper()
-	var out engine.RenderCitationsResponse
-	err := rpc(t, RenderCitations, &engine.RenderCitationsRequest{ProjectDir: dir, CitationIds: ids}, &out)
-	return &out, err
-}
+// resolvedValues answers each target with the text it was given.
+type resolvedValues map[citationformat.Target]citationformat.Value
 
-func TestRenderCitations(t *testing.T) {
-	w := newRenderWorld(t)
-	render := func(t *testing.T, ids ...string) []*engine.RenderedCitation {
+func (v resolvedValues) Resolve(t citationformat.Target) citationformat.Value { return v[t] }
+
+// TestRenderedCitationsProto: a rendered Citation's wire form carries its id, the runs of its full and
+// short forms with the italic run marked, and the plain text of both. Rendering itself is core's test.
+func TestRenderedCitationsProto(t *testing.T) {
+	title := citationformat.Target{Level: vocabkey.LevelSource, Builtin: "title"}
+	resolver := resolvedValues{title: {Text: "Calder register"}}
+	parse := func(text string, form citationformat.Form) *citationformat.Template {
 		t.Helper()
-		out, err := renderCitations(t, w.dir, ids...)
-		if err != nil {
-			t.Fatal(err)
+		tpl, diags := citationformat.Parse(text, form)
+		if len(diags) > 0 {
+			t.Fatalf("Parse(%q) = %v", text, diags)
 		}
-		return out.GetCitations()
+		return tpl
 	}
-
-	t.Run("AC-1.1 the full and short forms, the runs and the inputs", func(t *testing.T) {
-		out, err := renderCitations(t, w.dir, w.citation)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(out.GetCitations()) != 1 {
-			t.Fatalf("got %d citations", len(out.GetCitations()))
-		}
-		got := out.GetCitations()[0]
-		if got.GetCitationId() != w.citation || got.GetFull().GetPlain() != renderFull || got.GetShort().GetPlain() != renderShort {
-			t.Errorf("citation = %v", got)
-		}
-		runs := got.GetFull().GetRuns()
-		if len(runs) != 3 || runs[0].GetItalic() || !runs[1].GetItalic() || runs[1].GetText() != "Westmark Archive" || runs[2].GetItalic() ||
-			runs[0].GetText()+runs[1].GetText()+runs[2].GetText() != renderFull {
-			t.Errorf("runs = %v", runs)
-		}
-		if !slices.Equal(out.GetInputs().GetEvidenceGraphs(), []string{w.graph}) || !slices.Equal(out.GetInputs().GetSources(), []string{w.source}) {
-			t.Errorf("inputs = %v", out.GetInputs())
-		}
-	})
-
-	t.Run("AC-1.3 a value answers at the nearest level that holds it", func(t *testing.T) {
-		src := w.newSource(t, "Loose leaves", pointDate(1880, 0, 0))
-		setValues(t, w.dir, w.userID, w.fields, "source", src, map[string]string{"ledger": "Calder ledger", "keeper": "Westmark Archive"})
-		art, graph := newArtifact(t, w.dir, w.userID, src, "Loose leaf")
-		setValues(t, w.dir, w.userID, w.fields, "graph", graph, map[string]string{"entrant": "Ben Robins", "leaf": "3"})
-		shared1 := newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator)
-		shared2 := newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator)
-		own := newCitation(t, w.dir, w.userID, art, graph, depictionvaluetest.Locator)
-		setValues(t, w.dir, w.userID, w.fields, "citation", own, map[string]string{"leaf": "4"})
-		c := render(t, shared1, shared2, own)
-		const graphLeaf = "Calder ledger, Ben Robins, leaf 3; Westmark Archive, 1880."
-		if c[0].GetFull().GetPlain() != graphLeaf || c[1].GetFull().GetPlain() != graphLeaf {
-			t.Errorf("graph's leaf: %q %q", c[0].GetFull().GetPlain(), c[1].GetFull().GetPlain())
-		}
-		if got := c[2].GetFull().GetPlain(); got != "Calder ledger, Ben Robins, leaf 4; Westmark Archive, 1880." {
-			t.Errorf("own leaf = %q", got)
-		}
-		if got := render(t, w.citation)[0].GetFull().GetPlain(); got != renderFull {
-			t.Errorf("w.citation = %q", got)
-		}
-	})
-
-	t.Run("an id that is not in the catalog is left out", func(t *testing.T) {
-		absent := uuid.Must(uuid.NewV7()).String()
-		out, err := renderCitations(t, w.dir, absent, w.citation)
-		if err != nil || len(out.GetCitations()) != 1 || out.GetCitations()[0].GetCitationId() != w.citation {
-			t.Fatalf("got %v, %v", out, err)
-		}
-	})
-
-	runRPC(t, RenderCitations, []rpcTest{{
-		name: "a malformed id",
-		req:  &engine.RenderCitationsRequest{ProjectDir: w.dir, CitationIds: []string{"nope"}}, wantErr: true, wantErrIs: errInvalidID,
+	id := []byte{0: 7, 15: 9}
+	got := renderedCitationsProto([]citationrender.RenderedCitation{{
+		CitationID: id,
+		Full:       citationformat.Render(parse("*Ancestry*, {source.title}", citationformat.FormFull), resolver),
+		Short:      citationformat.Render(parse("{source.title}", citationformat.FormShort), resolver),
 	}})
-
-	t.Run("AC-1.6 unknown and supplied values", func(t *testing.T) {
-		var ty engine.CreateSourceTypeResponse
-		mustRPC(t, CreateSourceType, &engine.CreateSourceTypeRequest{ProjectDir: w.dir, UserId: w.userID, Label: "Pamphlet"}, &ty)
-		formats := setFormats(t, w.dir, w.userID, ty.GetType().GetId(), &engine.CitationFormats{
-			Full: "{meta.press}; {source.date}; leaf {meta.leaf}.",
-		})
-		if len(formats.GetDiagnostics()) != 0 {
-			t.Fatalf("diagnostics %v", formats.GetDiagnostics())
-		}
-		made := func(title, press string, pressMark *engine.ValueMark, date *engine.DateValueInput, dateMark *engine.ValueMark, leaf string, leafMark *engine.ValueMark) string {
-			var src engine.CreateSourceResponse
-			mustRPC(t, CreateSource, &engine.CreateSourceRequest{
-				ProjectDir: w.dir, UserId: w.userID, SourceTypeId: ty.GetType().GetId(), Title: title,
-			}, &src)
-			id := src.GetSource().GetId()
-			setMark(t, w.dir, w.userID, w.fields["press"], "source", id, press, pressMark)
-			mustRPC(t, SetSourceDate, &engine.SetSourceDateRequest{
-				ProjectDir: w.dir, UserId: w.userID, SourceId: id, Date: date, Mark: dateMark,
-			}, &engine.SetSourceDateResponse{})
-			art, graph := newArtifact(t, w.dir, w.userID, id, "Scan")
-			cit := newCitation(t, w.dir, w.userID, art, graph, `{"version":1,"selectors":[{"type":"artifact"}]}`)
-			setMark(t, w.dir, w.userID, w.fields["leaf"], "citation", cit, leaf, leafMark)
-			return cit
-		}
-		unknown, supplied := &engine.ValueMark{Unknown: true}, &engine.ValueMark{Supplied: true}
-		a := made("A", "", unknown, nil, unknown, "", unknown)
-		b := made("B", "Ashby Press", supplied, qualifiedDate("ABT", 1880, 0, 0), supplied, "23", supplied)
-		c := render(t, a, b)
-		if len(c) != 2 {
-			t.Fatalf("got %d citations", len(c))
-		}
-		if got := c[0].GetFull().GetPlain(); got != "n.p.; n.d.; leaf unfoliated." {
-			t.Errorf("A = %q", got)
-		}
-		if got := c[1].GetFull().GetPlain(); got != "[Ashby Press]; [ca. 1880]; leaf [23]." {
-			t.Errorf("B = %q", got)
-		}
-	})
+	if len(got) != 1 || got[0].GetCitationId() != database.UUIDString(id) {
+		t.Fatalf("got %v", got)
+	}
+	full, short := got[0].GetFull(), got[0].GetShort()
+	if full.GetPlain() != "Ancestry, Calder register" || len(full.GetRuns()) != 2 ||
+		full.GetRuns()[0].GetText() != "Ancestry" || !full.GetRuns()[0].GetItalic() ||
+		full.GetRuns()[1].GetText() != ", Calder register" || full.GetRuns()[1].GetItalic() {
+		t.Errorf("full = %v", full)
+	}
+	if short.GetPlain() != "Calder register" || len(short.GetRuns()) != 1 || short.GetRuns()[0].GetItalic() {
+		t.Errorf("short = %v", short)
+	}
 }
 
 func TestRenderCitationPreview(t *testing.T) {

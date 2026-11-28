@@ -9,33 +9,6 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// RenderCitations renders the full and short citation of each Citation named,
-// and the Evidence graphs and Sources the read used.
-func RenderCitations(in []byte) ([]byte, error) {
-	var req engine.RenderCitationsRequest
-	if err := proto.Unmarshal(in, &req); err != nil {
-		return nil, unmarshalErr("render_citations", err)
-	}
-	ids, err := parseIDs(req.GetCitationIds())
-	if err != nil {
-		return nil, err
-	}
-	var out *engine.RenderCitationsResponse
-	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		inputs := c.Graph().PageInputs()
-		got, err := citationrender.Render(c, ids, inputs)
-		if err != nil {
-			return err
-		}
-		out = &engine.RenderCitationsResponse{Citations: renderedCitationsProto(got), Inputs: pageInputsProto(inputs)}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return proto.Marshal(out)
-}
-
 // renderedCitationsProto maps rendered Citations.
 func renderedCitationsProto(got []citationrender.RenderedCitation) []*engine.RenderedCitation {
 	var out []*engine.RenderedCitation

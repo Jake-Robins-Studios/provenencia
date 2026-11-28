@@ -19,19 +19,6 @@ struct CatalogSessionStoreTests {
         #expect(store.heldCatalogProjectDir == projectDir)
     }
 
-    @Test func renderCitationsAnswersTheAskedIds() async throws {
-        let store = FakeStore()
-        store.renderCitationsReplies = [
-            "a": renderedCitation("a", full: ""), "b": renderedCitation("b", full: ""),
-        ]
-        let reply = try await store.renderCitations(projectDir: projectDir, citationIDs: ["a", "b", "c"])
-        #expect(reply.citations.map(\.citationID) == ["a", "b"])
-        #expect(store.renderCitationsCalls == [["a", "b", "c"]])
-        let empty = try await store.renderCitations(projectDir: projectDir, citationIDs: [])
-        #expect(empty == CatalogRenderedCitations())
-        #expect(store.renderCitationsCalls.count == 1)
-    }
-
     @Test func provenanceRecordsAnswersTheAskedRequest() async throws {
         let store = FakeStore()
         let asked = CatalogProvenanceRequest.fields([CatalogProvenancePair(ownerID: "P", propertyID: "p-name")])

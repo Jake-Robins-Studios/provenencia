@@ -1431,12 +1431,6 @@ enum CatalogProvenanceRequest: Sendable, Hashable {
     case derived(personID: String, kind: CatalogDerivedRowKind)
 }
 
-/// A batch of rendered Citations in the engine's reply order, and what they read.
-struct CatalogRenderedCitations: Sendable, Equatable {
-    var citations: [CatalogRenderedCitation] = []
-    var inputs: CatalogPageInputs = .init()
-}
-
 /// What a provenance sheet reads while it is shown: its row's owners with their
 /// records, those records' Citations' renders by Citation id, and what they read.
 struct CatalogProvenanceSheetRead: Sendable, Equatable {
@@ -1448,11 +1442,6 @@ struct CatalogProvenanceSheetRead: Sendable, Equatable {
         self.owners = owners
         self.citations = citations
         self.inputs = inputs
-    }
-
-    init(_ reply: CatalogRenderedCitations) {
-        citations = Dictionary(reply.citations.map { ($0.citationID, $0) }, uniquingKeysWith: { first, _ in first })
-        inputs = reply.inputs
     }
 }
 
@@ -1960,9 +1949,6 @@ protocol GenealogyStore: Sendable {
         iconKey: String,
         formats: CatalogCitationFormats?
     ) async throws -> (CatalogSourceType, CatalogCitationFormatsReply?, CatalogWriteEffects)
-    /// The full and short citations of these Citations, in the asked order, for
-    /// those that exist. Empty `citationIDs` answers empty without a call.
-    func renderCitations(projectDir: String, citationIDs: [String]) async throws -> CatalogRenderedCitations
     /// One provenance sheet's read: the owners of the row `request` names, each
     /// field with its records, their Citations rendered, and what the read used.
     func getProvenanceRecords(projectDir: String, request: CatalogProvenanceRequest) async throws

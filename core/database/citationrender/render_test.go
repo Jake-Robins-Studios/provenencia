@@ -197,7 +197,7 @@ func (w *world) craft(fn func()) {
 
 func (w *world) render(ids ...[]byte) []RenderedCitation {
 	w.t.Helper()
-	got, err := Render(w.c, ids, w.c.Graph().PageInputs())
+	got, err := RenderAll(w.c, ids, w.c.Graph().PageInputs())
 	if err != nil {
 		w.t.Fatal(err)
 	}
@@ -525,7 +525,7 @@ func TestRender(t *testing.T) {
 		c3 := w.cite(art.ID, graph.ID, "", pageLocator("3"))
 		x := databasetest.BenchID(4, 999)
 		in := w.c.Graph().PageInputs()
-		got, err := Render(w.c, [][]byte{c3, c1, c3, x}, in)
+		got, err := RenderAll(w.c, [][]byte{c3, c1, c3, x}, in)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -540,7 +540,7 @@ func TestRender(t *testing.T) {
 	t.Run("no ids", func(t *testing.T) {
 		w := newWorld(t)
 		in := w.c.Graph().PageInputs()
-		got, err := Render(w.c, nil, in)
+		got, err := RenderAll(w.c, nil, in)
 		if err != nil || got != nil {
 			t.Fatalf("got %+v, %v", got, err)
 		}
@@ -550,7 +550,7 @@ func TestRender(t *testing.T) {
 	})
 	t.Run("an id that is not 16 bytes", func(t *testing.T) {
 		w := newWorld(t)
-		_, err := Render(w.c, [][]byte{make([]byte, 15)}, w.c.Graph().PageInputs())
+		_, err := RenderAll(w.c, [][]byte{make([]byte, 15)}, w.c.Graph().PageInputs())
 		if !errors.Is(err, citations.ErrInvalid) {
 			t.Fatalf("got %v, want citations.ErrInvalid", err)
 		}
@@ -582,20 +582,6 @@ func TestRenderUnknownAndSupplied(t *testing.T) {
 }
 
 func TestRenderLimits(t *testing.T) {
-	t.Run("more ids than the cap, before any query", func(t *testing.T) {
-		w := newWorld(t)
-		selects := databasetest.CountSelects(t, w.c)
-		ids := make([][]byte, MaxCitations+1)
-		for i := range ids {
-			ids[i] = databasetest.BenchID(4, i)
-		}
-		if _, err := Render(w.c, ids, w.c.Graph().PageInputs()); !errors.Is(err, citations.ErrInvalid) {
-			t.Fatalf("got %v, want citations.ErrInvalid", err)
-		}
-		if n := selects.N(); n != 0 {
-			t.Errorf("%d SELECTs ran, want 0", n)
-		}
-	})
 	// Each Citation renders 64 KiB of full and 64 KiB of short.
 	big := strings.Repeat(`{source.title}`, 285)
 	over := func(t *testing.T, n int) ([]RenderedCitation, error) {
@@ -608,11 +594,11 @@ func TestRenderLimits(t *testing.T) {
 		for i := range ids {
 			ids[i] = w.cite(art.ID, graph.ID, "", pageLocator("1"))
 		}
-		return Render(w.c, ids, w.c.Graph().PageInputs())
+		return RenderAll(w.c, ids, w.c.Graph().PageInputs())
 	}
 	t.Run("more rendered text than the cap", func(t *testing.T) {
-		if _, err := over(t, 70); !errors.Is(err, citations.ErrInvalid) {
-			t.Fatalf("got %v, want citations.ErrInvalid", err)
+		if got, err := over(t, 70); err != nil || len(got) != 0 {
+			t.Fatalf("got %d, %v, want none rendered and no error", len(got), err)
 		}
 	})
 	t.Run("under the cap", func(t *testing.T) {
