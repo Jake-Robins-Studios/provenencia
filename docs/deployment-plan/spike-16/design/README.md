@@ -11,7 +11,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | [S16-D11](S16-D11-web-kit-popup-list.md) | The web kit: a PopupList component (card, row, line, searching line), the ComboBox's open list composed from it, the Omnibar Hit Row as the SearchHitRow component | [agreed 2026-11-21](https://claude.ai/artifact/7AZ8cscWF3f5Wz7gQ39cMe), PopupList, ComboBox, SearchHitRow | — (kit only; S16-D9's board instances it) |
 | S16-D16 | Copy Source sheet: the shared Source fields filled from the original, above the credibility tick and the Artifact checklist | — | **S16-74** |
 | S16-D17 | Copy Source sheet: the original's metadata as an editable board, and a type change | — | **S16-75** |
-| [S16-D20](S16-D20-date-form-condensed.md) | The date form, condensed: in its own dialog and inline in Add Source | — | **S16-83** |
+| [S16-D20](S16-D20-date-form-condensed.md) | The date form, condensed: in its own dialog and inline in Add Source | [agreed 2026-11-28](https://claude.ai/artifact/7AZ8cscWF3f5Wz7gQ39cMe), template "DateValue editor" | **S16-83** |
 
 ## Archived
 
