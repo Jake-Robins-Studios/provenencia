@@ -43,7 +43,7 @@ The prompt's condition is "this handle's title would fall back to its ref", whic
 
 ## Open questions
 
-1. **Wording.** The page needs to show that the label is the researcher's name, not a recorded one. The italic title already does this on lists. Copy goes through [`add-localized-string`](../../.agents/skills/add-localized-string/SKILL.md).
+1. **For the design brief: showing that a label isn't a recorded name.** The Conclusion page has to make clear that the title is the researcher's label, not a name a record gave. The italic title already does this on lists. The brief should ask the designer how the page, the editor and the Promote check show it. Copy then goes through [`add-localized-string`](../../.agents/skills/add-localized-string/SKILL.md).
 
 ## First slice
 
