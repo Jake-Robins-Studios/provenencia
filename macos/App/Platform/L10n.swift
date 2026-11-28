@@ -6305,12 +6305,6 @@ enum L10n {
             comment: "Caption under Clear date in the published date dialog once the form is emptied"
         )
 
-        static let sourceDateReadsAs = LocalizedStringResource(
-            "sources.page.sourceDate.readsAs",
-            defaultValue: "Reads as",
-            comment: "Micro-caps label above the date as the page will show it, in the published date dialog"
-        )
-
         static let privateSwitch = LocalizedStringResource(
             "sources.page.private.switch",
             defaultValue: "Private",

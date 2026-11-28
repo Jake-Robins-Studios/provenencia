@@ -2,10 +2,10 @@ import SwiftUI
 
 /// The Source fields of the Add Source sheet (Copy takes them in S16-74), in order: Title, Type with Private
 /// beside it (its help behind an info icon), Description, Published date. The sheet owns the draft, the two field errors and the save; this
-/// view draws them. Identifiers are `<prefix>.title`, `.type`, `.date`, `.date.readsAs`,
+/// view draws them. Identifiers are `<prefix>.title`, `.type`, `.date`,
 /// `.description`, `.private` and `.privateHelp`. The sheet disables it while it saves (`PVFormDialog` does).
 struct SourceFields: View {
-    /// The width of the Add Source sheet and the Source date dialog.
+    /// The width of the Add Source sheet.
     static let dialogWidth: CGFloat = 560
 
     @Binding var draft: SourcesModel.Draft
@@ -13,6 +13,12 @@ struct SourceFields: View {
     @Binding var typeError: String?
     let types: [CatalogSourceType]
     let accessibilityIdentifierPrefix: String
+
+    /// The fields Tab moves between here: Description, then the date's Year. Title and Type stay
+    /// outside this order.
+    private enum Field: Hashable { case description, date }
+    private static let order: [Field] = [.description, .date]
+    @FocusState private var focus: Field?
 
     var body: some View {
         VStack(alignment: .leading, spacing: PVSpacing.space6) {
@@ -40,7 +46,10 @@ struct SourceFields: View {
                 label: L10n.Sources.formDescription,
                 hint: L10n.Sources.formDescriptionHint
             ) {
-                PVInput(text: $draft.description)
+                PVInput(
+                    text: $draft.description,
+                    focus: PVFieldFocus($focus, equals: .description, in: Self.order)
+                )
                     .accessibilityIdentifier("\(accessibilityIdentifierPrefix).description")
             }
             PVField(
@@ -50,7 +59,8 @@ struct SourceFields: View {
             ) {
                 SourceDateEditor(
                     draft: $draft.date,
-                    accessibilityIdentifierPrefix: "\(accessibilityIdentifierPrefix).date"
+                    accessibilityIdentifierPrefix: "\(accessibilityIdentifierPrefix).date",
+                    yearFocus: PVFieldFocus($focus, equals: .date, in: Self.order)
                 )
             }
         }
@@ -95,7 +105,7 @@ private func previewDraft(_ edit: (inout SourcesModel.Draft) -> Void = { _ in })
     SourceFieldsPreview(previewDraft())
 }
 
-#Preview("Filled, Private, Reads as: frame 2") {
+#Preview("Filled, Private: frame 2") {
     SourceFieldsPreview(previewDraft {
         $0.title = "1880 census, Ward 4, Altona"
         $0.sourceTypeID = "census"

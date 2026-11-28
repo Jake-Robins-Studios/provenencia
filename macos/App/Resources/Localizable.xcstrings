@@ -9094,18 +9094,6 @@
         }
       }
     },
-    "sources.page.sourceDate.readsAs": {
-      "comment": "Micro-caps label above the date as the page will show it, in the published date dialog",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reads as"
-          }
-        }
-      }
-    },
     "sources.page.private.switch": {
       "comment": "Label of the switch that marks a Source private",
       "extractionState": "manual",
