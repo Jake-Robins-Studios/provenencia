@@ -46,7 +46,7 @@ Orchestrator read the fix commits: MNT-1/CON-4 **Resolved**, CON-1 **Resolved**,
 Merged `origin/main` @ `a39185aab` (docs only); gate PASS at `5f92f8345`.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: MNT-2 · to user: — (manual check §10 is the user's)
+Gate PASS · CI green · open: none · follow-ups: MNT-2 · to user: — (manual check §10 is the user's)
 
 ## Cost
 Plan: 7,640 words (check-plan-docs info line).
