@@ -867,7 +867,7 @@ Runs after slice 7, before slice 8 (user, 2026-11-22). Re-cut later the same day
 **Also (structural debt, 2026-11-17).** The shared date form's strings move from `L10n.Sources` (`date*`, the `sources.page.date…` keys) to `L10n.Dates`, with no copy change; the Source date dialog's own `sourceDate*` copy stays. (`SourcesRowDate`'s rename is done by S15-05: `SourceDateText` in `Platform/`, drawn by the recipe `PVPublishedDate`.)
 **Not this PR.** The shared date form itself, unchanged.
 **Check.** Bar 11's date half: an undated letter dated from its postmark, marked supplied, cites "[12 March 1880]"; one marked no date cites "n.d." and is not flagged.
-**Context.** S15-D23; rule "A value can be marked unknown or supplied"; S15-43, S15-38, S15-41; `add-date-value`. **Shared with Spike 16:** builds on S16-76 (`CatalogSource.dateMark`, and the create and copy requests' `date_mark`). If S16-73 or S16-74 has landed, the Add and Copy Source sheets show the shared date form inline and get the control, and the empty-date flag, there too.
+**Context.** S15-D23; rule "A value can be marked unknown or supplied"; S15-43, S15-38, S15-41; `add-date-value`. **Shared with Spike 16:** builds on S16-76 (`CatalogSource.dateMark`) and S16-74 (the copy request's `date_mark`). For the Add sheet this PR adds `ValueMark date_mark` to `CreateSourceRequest` itself (read into `sourcecopy.Draft.DateMark`), with the mark in `SourcesModel.Draft` and `GenealogyStore.createSource`: S16-73 sends none (user, 2026-11-28). If S16-73 or S16-74 has landed, the Add and Copy Source sheets show the shared date form inline and get the control, and the empty-date flag, there too.
 
 #### S15-45 — The composer marks and flags the printed page
 
