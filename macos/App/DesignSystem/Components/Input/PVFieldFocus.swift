@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The one focus handle every kit field takes (`PVInput`, `PVTextArea`,
-/// `PVComboBox`, `PVSelect`, `PVSegmentedControl`). The field applies `.focused($binding, equals:)`
+/// `PVComboBox`, `PVSelect`, `PVSegmentedControl`, `PVButton`). The field applies `.focused($binding, equals:)`
 /// itself, so a write to the host's `FocusState` lands in the field. A handle
 /// may also carry a Tab neighbour: the field to move to on Tab (`next`) and on
 /// Shift-Tab (`previous`). With no neighbour a field leaves Tab to the key loop.
@@ -64,6 +64,23 @@ struct PVFieldFocus {
         self.init(binding, equals: value, next: neighbours.next, previous: neighbours.previous)
     }
 
+    /// A copy of this handle whose Tab neighbours are `next` and `previous`
+    /// (nil clears one). A host's handle joins a form's loop this way: the
+    /// handle keeps its focus binding and takes the form's neighbours.
+    func replacingNeighbours(
+        next: (@MainActor () -> Void)?,
+        previous: (@MainActor () -> Void)?
+    ) -> PVFieldFocus {
+        PVFieldFocus(
+            isActive: isActive,
+            focus: focus,
+            resign: resign,
+            apply: apply,
+            next: next,
+            previous: previous
+        )
+    }
+
     /// The claim a Tab press takes: `previous` for Shift-Tab, else `next`.
     /// Nil leaves the key to the key loop.
     func tabClaim(shift: Bool) -> (@MainActor () -> Void)? {
@@ -117,6 +134,25 @@ extension KeyEquivalent {
     /// AppKit reports Shift-Tab as this character (U+0019), not as `.tab` with
     /// Shift, so `.onKeyPress(.tab)` never sees it.
     static let backTab = KeyEquivalent("\u{19}")
+}
+
+/// Claims Tab and Shift-Tab for the neighbour a field's handle names: the claim
+/// for kit fields with no key handler of their own (`PVInput`,
+/// `PVSegmentedControl`, `PVButton`). With no neighbour the field adds nothing,
+/// so the key loop keeps the key.
+struct PVFieldTabClaim: ViewModifier {
+    let focus: PVFieldFocus?
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if let focus, focus.hasNeighbour {
+            content.onKeyPress(keys: [.tab, .backTab], phases: .down) { press in
+                focus.claimTab(shift: press.key == .backTab)
+            }
+        } else {
+            content
+        }
+    }
 }
 
 /// Applies a host's `PVFieldFocus` to a field, or the field's own focus when

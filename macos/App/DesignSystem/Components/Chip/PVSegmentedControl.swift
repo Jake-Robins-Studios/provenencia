@@ -14,9 +14,9 @@ import SwiftUI
 /// (no wrap), as a native segmented control does. The control does not claim
 /// focus after a choice: a host whose handle follows the selection re-claims
 /// it, so while the keyboard is on the control (the handle is focused) Space,
-/// an arrow or a ⌘ shortcut keep focus on the newly selected segment. The
-/// control does not read the handle's `next` / `previous` neighbours. With no
-/// handle it adds no Tab stop (as today).
+/// an arrow or a ⌘ shortcut keep focus on the newly selected segment. With
+/// a handle that names Tab neighbours the control claims Tab and Shift-Tab for
+/// them (`PVFieldTabClaim`). With no handle it adds no Tab stop (as today).
 ///
 /// Meaning-free like `PVChip`: the options and what choosing one does belong
 /// to the caller.
@@ -147,6 +147,7 @@ struct PVSegmentedControl<Value: Hashable>: View {
             focus.apply(AnyView(
                 chip(item)
                     .focusable()
+                    .modifier(PVFieldTabClaim(focus: focus))
                     .onKeyPress(.space) {
                         select(item.value)
                         return .handled
