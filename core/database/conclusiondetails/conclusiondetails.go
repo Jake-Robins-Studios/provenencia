@@ -99,6 +99,19 @@ type Outcome struct {
 	// to the default grades; Provenance.Weak says whether it is weak, and
 	// each part says why.
 	Provenance autoreconcile.Provenance
+	// DeniedAValue is set on a negative record that eliminated a value in its
+	// field: some outcome of the field names it in DeniedBy.
+	DeniedAValue bool
+	// DeniedBySourceTitle is, for a "denied" outcome, the Source title of the
+	// field's outcome that denied it; "" when that outcome is not in the field.
+	DeniedBySourceTitle string
+}
+
+// FieldRecordCounts is what a field's row shows without its records: how many
+// records sit behind it and how many Sources its row names.
+type FieldRecordCounts struct {
+	Records int // the field's outcomes
+	Sources int // no displayed value: 0; one: its Support; several: the distinct Sources counted under them, else the summed Support
 }
 
 // Field is one Property of the handle.
@@ -111,6 +124,8 @@ type Field struct {
 	cardinality string
 	Values      []ReconciledValue // rank order; a multiple date field's in date order (autoreconcile.SortKey), ties by rank
 	Outcomes    []Outcome         // by group rank (none last), value rank (none last), then Observation id
+	// RecordCounts is the record and Source counts a row shows (recordCounts).
+	RecordCounts FieldRecordCounts
 }
 
 // PictureTile is one picture a gallery shows: its image, and the outcome of
@@ -311,6 +326,66 @@ func finish(f *Field) {
 		}
 		return string(f.Outcomes[i].ObservationID) < string(f.Outcomes[j].ObservationID)
 	})
+	recordCounts(f)
+	denialFacts(f)
+}
+
+// recordCounts sets a field's record and Source counts over its composed
+// outcomes. With one displayed value the Sources are its Support; with several
+// they are the distinct Sources among the outcomes counted under a displayed
+// value, or the summed Support when none is counted.
+func recordCounts(f *Field) {
+	f.RecordCounts = FieldRecordCounts{Records: len(f.Outcomes)}
+	var shown []ReconciledValue
+	for _, v := range f.Values {
+		if v.Displayed() {
+			shown = append(shown, v)
+		}
+	}
+	switch len(shown) {
+	case 0:
+	case 1:
+		f.RecordCounts.Sources = shown[0].Support
+	default:
+		sources := map[string]bool{}
+		for _, o := range f.Outcomes {
+			if o.GroupRank > 0 {
+				sources[string(o.SourceID)] = true
+			}
+		}
+		if len(sources) > 0 {
+			f.RecordCounts.Sources = len(sources)
+			return
+		}
+		for _, v := range shown {
+			f.RecordCounts.Sources += v.Support
+		}
+	}
+}
+
+// denialFacts sets, on each outcome of a field, whether it eliminated a value
+// in the field and, for a denied record, the Source title of its denier.
+func denialFacts(f *Field) {
+	denier := map[string]*Outcome{}
+	for i := range f.Outcomes {
+		denier[string(f.Outcomes[i].ObservationID)] = &f.Outcomes[i]
+	}
+	denying := map[string]bool{}
+	for i := range f.Outcomes {
+		if d := f.Outcomes[i].DeniedBy; len(d) > 0 {
+			denying[string(d)] = true
+		}
+	}
+	for i := range f.Outcomes {
+		o := &f.Outcomes[i]
+		o.DeniedAValue = denying[string(o.ObservationID)]
+		o.DeniedBySourceTitle = ""
+		if o.Reason == string(autoreconcile.ReasonDenied) && len(o.DeniedBy) > 0 {
+			if d, ok := denier[string(o.DeniedBy)]; ok {
+				o.DeniedBySourceTitle = d.SourceTitle
+			}
+		}
+	}
 }
 
 // orderDates puts a multiple date field's values in date order

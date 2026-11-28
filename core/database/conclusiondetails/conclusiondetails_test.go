@@ -540,6 +540,12 @@ func TestForEntityEvidence(t *testing.T) {
 	if o := outcomeOf(name, denied.ID); o.Reason != "denied" || !bytes.Equal(o.DeniedBy, negative.ID) {
 		t.Fatalf("denied outcome %+v", o)
 	}
+	if o := outcomeOf(name, denied.ID); o.DeniedBySourceTitle != "Gazette" || o.DeniedAValue {
+		t.Fatalf("denied outcome's denial facts %+v", o)
+	}
+	if o := outcomeOf(name, negative.ID); !o.DeniedAValue || o.DeniedBySourceTitle != "" {
+		t.Fatalf("negative outcome's denial facts %+v", o)
+	}
 	if o := outcomeOf(name, negative.ID); o.Reason != "against" || o.CredibilityKey != "high_trust" || o.Provenance.Credibility <= 0 {
 		t.Fatalf("negative outcome %+v", o)
 	}
@@ -1064,5 +1070,102 @@ func TestForEntityRecordsInputs(t *testing.T) {
 		holdsIDs(t, "handles", handles, true, event)
 		holdsIDs(t, "graphs", graphs, true, evidencegraphstest.SoleGraph(t, f.C, src.ID).ID)
 		holdsIDs(t, "sources", srcs, true, src.ID)
+	})
+}
+
+func valueOf(rank, support int, reason string) conclusiondetails.ReconciledValue {
+	return conclusiondetails.ReconciledValue{Rank: rank, Support: support, Reason: reason}
+}
+
+// TestRecordCounts: a field's record and Source counts follow the rule the
+// rows state: none shown 0, one shown its Support, several the distinct Sources
+// counted under them or else the summed Support.
+func TestRecordCounts(t *testing.T) {
+	kept := string(autoreconcile.ReasonKept)
+	folded := string(autoreconcile.ReasonFolded)
+	counted := func(source string, group int) conclusiondetails.Outcome {
+		return conclusiondetails.Outcome{Reason: kept, SourceID: []byte(source), GroupRank: group, ValueRank: group}
+	}
+	for _, tc := range []struct {
+		name string
+		f    conclusiondetails.Field
+		want conclusiondetails.FieldRecordCounts
+	}{
+		{"no displayed value", conclusiondetails.Field{
+			Values:   []conclusiondetails.ReconciledValue{valueOf(1, 2, "weak")},
+			Outcomes: []conclusiondetails.Outcome{{Reason: "weak"}},
+		}, conclusiondetails.FieldRecordCounts{Records: 1}},
+		{"one displayed, support 2", conclusiondetails.Field{
+			Values:   []conclusiondetails.ReconciledValue{valueOf(1, 2, kept)},
+			Outcomes: []conclusiondetails.Outcome{counted("a", 1), {Reason: folded, SourceID: []byte("b"), GroupRank: 1}},
+		}, conclusiondetails.FieldRecordCounts{Records: 2, Sources: 2}},
+		{"two displayed, counted from sources A, A, B", conclusiondetails.Field{
+			Values:   []conclusiondetails.ReconciledValue{valueOf(1, 2, kept), valueOf(2, 1, kept)},
+			Outcomes: []conclusiondetails.Outcome{counted("a", 1), counted("a", 1), counted("b", 2)},
+		}, conclusiondetails.FieldRecordCounts{Records: 3, Sources: 2}},
+		{"two displayed, nothing counted", conclusiondetails.Field{
+			Values:   []conclusiondetails.ReconciledValue{valueOf(1, 3, kept), valueOf(2, 1, kept)},
+			Outcomes: []conclusiondetails.Outcome{{Reason: "weak"}},
+		}, conclusiondetails.FieldRecordCounts{Records: 1, Sources: 4}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := conclusiondetails.RecordCountsOf(tc.f); got != tc.want {
+				t.Fatalf("counts %+v, want %+v", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestDenialFacts: a negative that eliminated a value says so, and a denied
+// record names its denier's Source when the denier is in the field.
+func TestDenialFacts(t *testing.T) {
+	denied := string(autoreconcile.ReasonDenied)
+	f := conclusiondetails.Field{Outcomes: []conclusiondetails.Outcome{
+		{ObservationID: []byte("neg"), Reason: "against", SourceTitle: "Gazette"},
+		{ObservationID: []byte("lone"), Reason: "against", SourceTitle: "Nobody"},
+		{ObservationID: []byte("hit"), Reason: denied, DeniedBy: []byte("neg"), SourceTitle: "Register"},
+		{ObservationID: []byte("gone"), Reason: denied, DeniedBy: []byte("dropped"), SourceTitle: "Census"},
+		{ObservationID: []byte("kept"), Reason: string(autoreconcile.ReasonKept), SourceTitle: "Census"},
+	}}
+	got := map[string]conclusiondetails.Outcome{}
+	for _, o := range conclusiondetails.DenialFactsOf(f) {
+		got[string(o.ObservationID)] = o
+	}
+	for _, tc := range []struct {
+		id     string
+		denied bool
+		title  string
+	}{
+		{"neg", true, ""}, {"lone", false, ""}, {"hit", false, "Gazette"}, {"gone", false, ""}, {"kept", false, ""},
+	} {
+		if o := got[tc.id]; o.DeniedAValue != tc.denied || o.DeniedBySourceTitle != tc.title {
+			t.Errorf("%s: denied-a-value %v, denier %q; want %v, %q", tc.id, o.DeniedAValue, o.DeniedBySourceTitle, tc.denied, tc.title)
+		}
+	}
+}
+
+// TestForEntityRecordCounts: the counts the detail read carries.
+func TestForEntityRecordCounts(t *testing.T) {
+	t.Run("one Source with two names", func(t *testing.T) {
+		f := newFixture(t)
+		src := f.source("Register")
+		p := f.personOn(src)
+		f.cite(p, f.nameIn(p, "given=James|surname=Robins"))
+		f.cite(p, f.nameIn(p, "given=Kenneth|surname=Robins"))
+		h := f.promote(p, nil)
+		if got := field(f.detail(h), "name").RecordCounts; got != (conclusiondetails.FieldRecordCounts{Records: 2, Sources: 1}) {
+			t.Fatalf("counts %+v", got)
+		}
+	})
+	t.Run("two Sources with the same name", func(t *testing.T) {
+		f := newFixture(t)
+		a, b := f.personOn(f.source("Register")), f.personOn(f.source("Census"))
+		f.cite(a, f.nameIn(a, "given=James|surname=Robins"))
+		f.cite(b, f.nameIn(b, "given=James|surname=Robins"))
+		h := f.promote(a, nil)
+		f.promote(b, h)
+		if got := field(f.detail(h), "name").RecordCounts; got != (conclusiondetails.FieldRecordCounts{Records: 2, Sources: 2}) {
+			t.Fatalf("counts %+v", got)
+		}
 	})
 }
