@@ -129,7 +129,7 @@ What stays: the dialog's title, subtitle, buttons and the Callouts; Title and Ty
 | AS-1 | **Order.** The dialog shows, under the subtitle and any Callout: **Title**, **Type**, **Published date**, **Description**, **Private**, in that order, each as a kit Field (Private as a kit Switch). These five are one shared block; annotate it "Source fields (shared with Copy Source)". |
 | AS-2 | **Width.** The dialog is as wide as the Source date dialog (560 pt), so the date form sits in it at its drawn width. Title, Type and Description take the dialog's field width. |
 | AS-3 | **Published date.** A Field labelled **Published date** with the hint "Optional — leave blank for an undated Source", holding the shared date form inline, empty on open (Kind Point, no qualifier, empty fields, More options closed). Draw it at the same size as in the date dialog. The form takes no focus on open: Title keeps it. |
-| AS-4 | **Reads as.** Pick one: **(A)** the date dialog's "Reads as" strip shows under the form once the date parses, and is hidden while the date is blank or does not parse; **(B)** no strip on Add Source. Recommendation: **A**, the same strip as the date dialog, so the researcher sees the date as the page will show it. |
+| AS-4 | **Reads as.** Pick one: **(A)** the date dialog's "Reads as" strip shows under the form, inside the Published date Field, once the date parses (a range too), and is hidden while the date is blank or does not parse; **(B)** no strip on Add Source. Recommendation: **A**, the same strip as the date dialog, so the researcher sees the date as the page will show it. |
 | AS-5 | **A date that does not parse.** The form's own field errors show as they do today. When the date does not parse and no field error shows, one line under the form says why Create is disabled: **"This date isn't complete. Finish it or clear its fields."** (the Field's error, danger ink). Create is disabled while the date does not parse, whatever Title and Type say. The line follows the same display rule as Title and Type: not on open. |
 | AS-6 | **Description** keeps today's field, label and hint, now after the date. |
 | AS-7 | **Private.** The Source page header's switch, drawn the same way: a kit Switch labelled **Private**, its help as the tooltip ("Private Sources will be kept out of sharing. Nothing else changes yet."), off on open, at the leading edge under Description. It is one piece shared with the header (the same label, help and look), not a copy. |
@@ -157,7 +157,7 @@ Draw over the Sources list at Regular (pane 1102 × 900), the list dimmed behind
 | 3 | AS-3 | A range: Kind Range, from 1879 to 1880, the end row shown |
 | 4 | AS-5 | A date that does not parse with a field error: month 13, the form's own error under the month, Create disabled |
 | 5 | AS-5 | A date that does not parse with no field to blame: the phrase "Spring 1880" and a time zone in More options, no year; the AS-5 line under the form, Create disabled |
-| 6 | AS-8 | The new Source's page header after Create from frame 2: "Published 1 Jun 1880" and Private on (draw only the header row, as S15-D1 frame 1a has it) |
+| 6 | AS-8 | The new Source's page header after Create from frame 2: the calendar icon and "1 Jun 1880", and Private on (draw only the header row, as S15-D1 frame 1a has it) |
 | 7 | AS-9 | Cancel with Private on and nothing else entered: the kit's discard confirm |
 | 8 | AS-2, AS-3 | More options open on a range: the dialog body scrolling inside the window at Regular |
 
