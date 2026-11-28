@@ -8813,7 +8813,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Between two bounds needs an earliest and a latest bound. Add both, or choose Single date."
+            "value": "A bounded date needs an earliest and a latest bound. Add both, or choose Single."
           }
         }
       }
@@ -8837,7 +8837,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add the latest bound, or choose Single date."
+            "value": "Add the latest bound, or choose Single."
           }
         }
       }
@@ -9221,7 +9221,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Single date"
+            "value": "Single"
           }
         }
       }
@@ -9233,7 +9233,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Between two bounds"
+            "value": "Bounded"
           }
         }
       }

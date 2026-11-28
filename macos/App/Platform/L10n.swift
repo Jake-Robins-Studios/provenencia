@@ -6353,13 +6353,13 @@ enum L10n {
 
         static let dateKindPoint = LocalizedStringResource(
             "sources.page.dateKindPoint",
-            defaultValue: "Single date",
+            defaultValue: "Single",
             comment: "DateValue kind: point"
         )
 
         static let dateKindRange = LocalizedStringResource(
             "sources.page.dateKindRange",
-            defaultValue: "Between two bounds",
+            defaultValue: "Bounded",
             comment: "DateValue kind: range"
         )
 
@@ -6630,7 +6630,7 @@ enum L10n {
 
         static let dateUnsavableRangeBoth = LocalizedStringResource(
             "sources.page.dateUnsavableRangeBoth",
-            defaultValue: "Between two bounds needs an earliest and a latest bound. Add both, or choose Single date.",
+            defaultValue: "A bounded date needs an earliest and a latest bound. Add both, or choose Single.",
             comment: "Line under the date form when a Between date has no date or time on either bound"
         )
 
@@ -6642,7 +6642,7 @@ enum L10n {
 
         static let dateUnsavableRangeEnd = LocalizedStringResource(
             "sources.page.dateUnsavableRangeEnd",
-            defaultValue: "Add the latest bound, or choose Single date.",
+            defaultValue: "Add the latest bound, or choose Single.",
             comment: "Line under the date form when a Between date has no date or time on its latest bound"
         )
 

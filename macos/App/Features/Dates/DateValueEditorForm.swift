@@ -28,6 +28,8 @@ struct DateValueEditorForm: View {
         static let timePart: CGFloat = 57
         static let zoneMax: CGFloat = 160
         static let calendar: CGFloat = 148
+        /// Between Kind and the qualifier (the board's 12 pt).
+        static let kindGap: CGFloat = PVSpacing.space5
     }
 
     var body: some View {
@@ -50,13 +52,13 @@ struct DateValueEditorForm: View {
     private var kindRow: some View {
         VStack(alignment: .leading, spacing: PVSpacing.space3) {
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: PVSpacing.space4) {
-                    kindControl
-                    if draft.isPoint { qualifierControl }
+                HStack(spacing: Layout.kindGap) {
+                    kindControl.fixedSize(horizontal: true, vertical: false)
+                    if draft.isPoint { qualifierControl.fixedSize(horizontal: true, vertical: false) }
                 }
                 VStack(alignment: .leading, spacing: PVSpacing.space3) {
-                    kindControl
-                    if draft.isPoint { qualifierControl }
+                    kindControl.fixedSize(horizontal: true, vertical: false)
+                    if draft.isPoint { qualifierControl.fixedSize(horizontal: true, vertical: false) }
                 }
             }
             if draft.isRange {
@@ -67,7 +69,7 @@ struct DateValueEditorForm: View {
         }
     }
 
-    private var kindControl: some View {
+    var kindControl: some View {
         PVSegmentedControl(
             L10n.Sources.dateKindLabel,
             items: [
@@ -93,7 +95,7 @@ struct DateValueEditorForm: View {
         )
     }
 
-    private var qualifierControl: some View {
+    var qualifierControl: some View {
         PVSegmentedControl(
             L10n.Sources.dateQualifierLabel,
             items: [
