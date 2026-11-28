@@ -1,6 +1,7 @@
 # S16-73 — Add Source takes the Published date and Private
 
-**Status:** Planned
+**Status:** Landed in [#1019](https://github.com/Jake-Robins-Studios/provenencia/pull/1019) (2026-11-28)
+**Landed:** As planned, except: the version bump is to 0.52.0 (main was already 0.51.1) and all four `MARKETING_VERSION` lines moved; T-2 is a subtest of `TestSourcePublic`; STEP-8 names the brief at `design/archive/`; the date form's range-order message now carries the `end.fieldError` identifier too; `rg "\.disabled\(model\.isSaving\)"` also lists `PromoteView` (a page, not a dialog).
 **Spike / slice:** Spike 16 · Slice 8a — The Add and Copy Source sheets
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S16-D15](../design/archive/S16-D15-add-source-fields.md), board agreed 2026-11-28
