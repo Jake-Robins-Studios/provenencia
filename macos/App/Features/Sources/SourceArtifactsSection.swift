@@ -194,6 +194,7 @@ final class SourceArtifactsSection {
                 title: L10n.Sources.toastFileAttachedTitle,
                 message: L10n.Sources.toastFileAttachedBody(name: ingested.file.originalFilename)
             )
+            context.noteThumbnailRefused(ingested.thumbnailRefused, filename: ingested.file.originalFilename)
         } catch {
             // A refused file keeps the dialog open with the refusal under the row.
             if !attachDraft.file.refuse(ifIngestRefusal: error), context.showFailure(error) {

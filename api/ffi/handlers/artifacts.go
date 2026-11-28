@@ -9,6 +9,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
 	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
+	"github.com/Jake-Robins-Studios/provenencia/core/raster"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 	"google.golang.org/protobuf/proto"
@@ -258,6 +259,8 @@ func IngestArtifactFile(in []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	// The pass ran: an image the engine thumbnails that has no path was refused.
+	out.ThumbnailRefused = raster.Supported(out.File.GetMediaType()) && out.Artifact.GetThumbnailRelPath() == ""
 	return proto.Marshal(out)
 }
 

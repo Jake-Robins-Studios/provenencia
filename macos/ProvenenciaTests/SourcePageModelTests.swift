@@ -790,6 +790,27 @@ struct SourcePageModelTests {
         #expect(model.artifacts.items.first?.fileID.isEmpty == false)
     }
 
+    /// Adding an Artifact with an image file that gets no thumbnail warns after the created toast.
+    @Test func anAddWithNoThumbnailWarns() async throws {
+        let store = makeStore()
+        store.ingestArtifactFileThumbnailRefused = true
+        let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
+        let model = makeModel(store: store, session: session)
+        await model.warmFromSession()
+        let sheet = try await openAddSheet(model)
+        sheet.draft.label = "Scan"
+        let url = try ArtifactFileFixtures.writeStubPNG()
+        sheet.file.choose(url)
+
+        let saved = await sheet.save()
+
+        #expect(saved)
+        #expect(session.toasts.cards.map(\.tone) == [.warning, .success])
+        #expect(session.toasts.cards.first == ToastCard(
+            .warning, L10n.Sources.toastNoPreviewTitle, L10n.Sources.toastNoPreviewBody(name: url.lastPathComponent)
+        ))
+    }
+
     @Test func ingestMissingFileSurfacesIngestInvalid() async throws {
         let store = makeStore()
         store.ingestArtifactFileError = CoreInvokeError.coded(
@@ -843,6 +864,55 @@ struct SourcePageModelTests {
 
         #expect(!model.artifacts.isAttaching)
         #expect(!session.toasts.cards.isEmpty)
+    }
+
+    /// An image file that gets no thumbnail says so in a warning toast after the attach toast.
+    @Test func anAttachWithNoThumbnailWarns() async throws {
+        let url = try ArtifactFileFixtures.writeStubPNG()
+        let store = makeStore(
+            artifacts: [
+                CatalogArtifact(
+                    id: "a1", ref: "ART-AAAAA", sourceID: sourceID, fileID: "",
+                    label: "Front", description: "", file: nil
+                ),
+            ]
+        )
+        store.ingestArtifactFileThumbnailRefused = true
+        let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
+        let model = makeModel(store: store, session: session)
+        await model.warmFromSession()
+        model.artifacts.openAttach(to: "a1")
+        model.artifacts.attachDraft.file.choose(url)
+
+        await model.artifacts.confirmAttach()
+
+        let name = url.lastPathComponent
+        #expect(session.toasts.cards == [
+            ToastCard(.warning, L10n.Sources.toastNoPreviewTitle, L10n.Sources.toastNoPreviewBody(name: name)),
+            ToastCard(.success, L10n.Sources.toastFileAttachedTitle, L10n.Sources.toastFileAttachedBody(name: name)),
+        ])
+    }
+
+    /// A readable image gets only the attach toast.
+    @Test func anAttachWithAThumbnailDoesNotWarn() async throws {
+        let url = try ArtifactFileFixtures.writeStubPNG()
+        let store = makeStore(
+            artifacts: [
+                CatalogArtifact(
+                    id: "a1", ref: "ART-AAAAA", sourceID: sourceID, fileID: "",
+                    label: "Front", description: "", file: nil
+                ),
+            ]
+        )
+        let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
+        let model = makeModel(store: store, session: session)
+        await model.warmFromSession()
+        model.artifacts.openAttach(to: "a1")
+        model.artifacts.attachDraft.file.choose(url)
+
+        await model.artifacts.confirmAttach()
+
+        #expect(session.toasts.cards.map(\.tone) == [.success])
     }
 
     @Test func ingestThenRejectSecondAttach() async throws {

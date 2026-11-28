@@ -155,6 +155,26 @@ func TestEncodeJPEGOversized(t *testing.T) {
 	}
 }
 
+// A progressive JPEG cut off inside a later pass, which image/jpeg refuses,
+// still gets a thumbnail from the reduced decode.
+func TestEncodeJPEGCutOffProgressive(t *testing.T) {
+	src := cutInScan(t, rastertest.GoFixture(t, "video-001.progressive.jpeg"), -1)
+	if _, err := jpeg.Decode(bytes.NewReader(src)); err == nil {
+		t.Fatal("image/jpeg decoded the cut file; the test no longer reaches the fallback")
+	}
+	out, err := EncodeJPEG(src, Options{MaxEdge: 256})
+	if err != nil {
+		t.Fatalf("EncodeJPEG err = %v", err)
+	}
+	cfg, _, err := image.DecodeConfig(bytes.NewReader(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Width != 19 || cfg.Height != 13 {
+		t.Fatalf("got %dx%d, want 19x13", cfg.Width, cfg.Height)
+	}
+}
+
 func TestEncodeJPEGOversizedHeaderAllocation(t *testing.T) {
 	src := rastertest.JPEGHeader(60000, 60000, 1, make([]byte, 16))
 	var before, after runtime.MemStats

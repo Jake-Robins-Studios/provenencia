@@ -377,6 +377,30 @@ func TestEnsureThumbnailRejectsUnsafeSources(t *testing.T) {
 	}
 }
 
+// A File whose bytes cannot be decoded is decoded once: the next Plan returns
+// the refusal with no Job, so a list read does not decode it again.
+func TestPlanRemembersUndecodable(t *testing.T) {
+	c, err := database.Create(t.TempDir(), "t.provenencia")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	b := rastertest.GoFixture(t, "video-001.q50.444.jpeg")
+	srcID := installSourceFile(t, c, b[:len(b)/2], "image/jpeg", "half.jpg")
+
+	_, job, err := Plan(c, srcID, ThumbnailSpec())
+	if err != nil || job == nil {
+		t.Fatalf("first Plan: job %v err %v, want a job", job, err)
+	}
+	if _, err := job.Stage(c.Dir()); !errors.Is(err, ErrUnprocessable) {
+		t.Fatalf("Stage err = %v, want ErrUnprocessable", err)
+	}
+	_, job, err = Plan(c, srcID, ThumbnailSpec())
+	if job != nil || !errors.Is(err, ErrUnprocessable) {
+		t.Fatalf("second Plan: job %v err %v, want no job and ErrUnprocessable", job, err)
+	}
+}
+
 func TestEnsureRejectsMaxEdgeOverLimit(t *testing.T) {
 	c, err := database.Create(t.TempDir(), "t.provenencia")
 	if err != nil {

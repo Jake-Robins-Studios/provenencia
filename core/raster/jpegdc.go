@@ -114,6 +114,12 @@ func newHuffTable(p []byte, dc bool) (*huffTable, int, error) {
 
 var errTruncated = jpegErr("scan data ends early")
 
+// errEndsInSkippedScan is decodeScan's word that the file ends inside a
+// progressive AC scan, which the reduced decode never reads. decodeJPEGDC
+// finishes the image from the DC it has; finish refuses it if a component
+// was never decoded.
+var errEndsInSkippedScan = errors.New("raster: file ends in a skipped scan")
+
 // bitReader reads entropy-coded bits (T.81 B.1.1.5): a stuffed 0xFF00 is one
 // 0xFF byte; any other 0xFF xx is a marker, where reading stops.
 type bitReader struct {
@@ -362,7 +368,9 @@ func decodeJPEGDC(src []byte, maxPixels int64) (image.Image, error) {
 			if err != nil {
 				return nil, err
 			}
-			if err := d.decodeScan(sc); err != nil {
+			if err := d.decodeScan(sc); errors.Is(err, errEndsInSkippedScan) {
+				return d.finish()
+			} else if err != nil {
 				return nil, err
 			}
 		default:
@@ -656,7 +664,7 @@ func (d *dcDecoder) decodeScan(sc *dcScan) error {
 	if sc.kind == scanACSkip {
 		idx, _, _, ok := markerAt(d.src, d.pos, true)
 		if !ok {
-			return errTruncated
+			return errEndsInSkippedScan
 		}
 		d.pos = idx
 		return nil

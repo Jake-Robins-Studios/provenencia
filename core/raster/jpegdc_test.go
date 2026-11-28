@@ -234,6 +234,51 @@ func (p headerParts) build(scan []byte) []byte {
 
 func clone(b []byte) []byte { return append([]byte(nil), b...) }
 
+// cutInScan returns src cut a few bytes into the entropy data of its nth scan
+// (0-based; -1 is the last), with no end-of-image marker after.
+func cutInScan(t *testing.T, src []byte, nth int) []byte {
+	t.Helper()
+	var sos []int
+	for i := 0; i+1 < len(src); i++ {
+		if src[i] == 0xFF && src[i+1] == 0xDA {
+			sos = append(sos, i)
+		}
+	}
+	if nth < 0 {
+		nth += len(sos)
+	}
+	if nth < 0 || nth >= len(sos) {
+		t.Fatalf("scan %d of %d", nth, len(sos))
+	}
+	at := sos[nth]
+	n := int(src[at+2])<<8 | int(src[at+3])
+	return clone(src[:at+2+n+8])
+}
+
+// A progressive JPEG whose file ends inside a pass the reduced decode skips
+// decodes as if the file were whole: those bytes were never read.
+func TestDecodeJPEGDCEndsInSkippedScan(t *testing.T) {
+	for _, name := range []string{"video-001.progressive.jpeg", "video-001.q50.420.progressive.jpeg"} {
+		t.Run(name, func(t *testing.T) {
+			src := rastertest.GoFixture(t, name)
+			if got, want := reducedPix(t, cutInScan(t, src, -1)), reducedPix(t, src); !bytes.Equal(got, want) {
+				t.Fatal("pixels differ from the whole file's")
+			}
+		})
+	}
+	// Cut before the DC refinement pass, the DC lacks its last bit: the image
+	// decodes a few levels off the whole file's.
+	t.Run("before the dc refinement", func(t *testing.T) {
+		src := rastertest.GoFixture(t, "video-001.progressive.jpeg")
+		got, want := reducedPix(t, src[:len(src)/2]), reducedPix(t, src)
+		for i := range got {
+			if d := int(got[i]) - int(want[i]); d < -8 || d > 8 {
+				t.Fatalf("pixel byte %d = %d, want within 8 of %d", i, got[i], want[i])
+			}
+		}
+	})
+}
+
 func TestDecodeJPEGDCRefuses(t *testing.T) {
 	scan := bytes.Repeat([]byte{0}, 32)
 	patch := func(f func(p *headerParts)) []byte {
@@ -303,9 +348,8 @@ func TestDecodeJPEGDCRefuses(t *testing.T) {
 			end := len(b) - 2
 			return append(append(b[:end:end], extra...), 0x00, 0xFF, 0xD9)
 		}},
-		{"truncated/progressive-half", func(t *testing.T) []byte {
-			b := rastertest.GoFixture(t, "video-001.progressive.jpeg")
-			return b[:len(b)/2]
+		{"truncated/progressive-in-first-dc-scan", func(t *testing.T) []byte {
+			return cutInScan(t, rastertest.GoFixture(t, "video-001.progressive.jpeg"), 0)
 		}},
 		{"truncated/baseline-half", func(t *testing.T) []byte {
 			b := rastertest.GoFixture(t, "video-001.jpeg")
@@ -330,6 +374,21 @@ func TestDecodeJPEGDCRefuses(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("truncated/progressive-before-a-component's-dc-scan", func(t *testing.T) {
+		// Y's DC scan, then a Y AC scan the file ends in: Cb and Cr were
+		// never decoded, so finish refuses the image.
+		p := defaultParts(3)
+		p.sofMarker = 0xC2
+		p.sos = []byte{1, 1, 0x00, 0, 0, 0}
+		b := p.build(make([]byte, 8))
+		b = append(b, rastertest.JPEGSegment(0xDA, []byte{1, 1, 0x00, 1, 63, 0})...)
+		b = append(b, make([]byte, 8)...)
+		_, err := decodeJPEGDC(b, MaxDecodePixels)
+		if err == nil || err.Error() != jpegErr("a component was never decoded").Error() {
+			t.Fatalf("err = %v, want a component was never decoded", err)
+		}
+	})
 
 	t.Run("header/frame-over-budget", func(t *testing.T) {
 		_, err := decodeJPEGDC(rastertest.JPEGHeader(65535, 65535, 1, nil), MaxDecodePixels)

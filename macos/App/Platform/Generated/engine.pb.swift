@@ -3853,6 +3853,14 @@ public nonisolated struct Provenencia_Engine_V1_IngestArtifactFileResponse: @unc
   /// Clears the value of `effects`. Subsequent reads from it will return its default value.
   public mutating func clearEffects() {_uniqueStorage()._effects = nil}
 
+  /// The file is an image the engine makes thumbnails of, but its bytes could
+  /// not be read for one (damaged, cut off, or over the decode budget): the
+  /// Artifact shows no preview. False for a file that is not such an image.
+  public var thumbnailRefused: Bool {
+    get {_storage._thumbnailRefused}
+    set {_uniqueStorage()._thumbnailRefused = newValue}
+  }
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
@@ -14858,13 +14866,14 @@ nonisolated extension Provenencia_Engine_V1_IngestArtifactFileRequest: SwiftProt
 
 nonisolated extension Provenencia_Engine_V1_IngestArtifactFileResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".IngestArtifactFileResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}artifact\0\u{1}file\0\u{1}reused\0\u{1}effects\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}artifact\0\u{1}file\0\u{1}reused\0\u{1}effects\0\u{3}thumbnail_refused\0")
 
   fileprivate class _StorageClass {
     var _artifact: Provenencia_Engine_V1_Artifact? = nil
     var _file: Provenencia_Engine_V1_SourceFileRef? = nil
     var _reused: Bool = false
     var _effects: Provenencia_Engine_V1_WriteEffects? = nil
+    var _thumbnailRefused: Bool = false
 
       // This property is used as the initial default value for new instances of the type.
       // The type itself is protecting the reference to its storage via CoW semantics.
@@ -14879,6 +14888,7 @@ nonisolated extension Provenencia_Engine_V1_IngestArtifactFileResponse: SwiftPro
       _file = source._file
       _reused = source._reused
       _effects = source._effects
+      _thumbnailRefused = source._thumbnailRefused
     }
   }
 
@@ -14901,6 +14911,7 @@ nonisolated extension Provenencia_Engine_V1_IngestArtifactFileResponse: SwiftPro
         case 2: try { try decoder.decodeSingularMessageField(value: &_storage._file) }()
         case 3: try { try decoder.decodeSingularBoolField(value: &_storage._reused) }()
         case 4: try { try decoder.decodeSingularMessageField(value: &_storage._effects) }()
+        case 5: try { try decoder.decodeSingularBoolField(value: &_storage._thumbnailRefused) }()
         default: break
         }
       }
@@ -14925,6 +14936,9 @@ nonisolated extension Provenencia_Engine_V1_IngestArtifactFileResponse: SwiftPro
       try { if let v = _storage._effects {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
       } }()
+      if _storage._thumbnailRefused != false {
+        try visitor.visitSingularBoolField(value: _storage._thumbnailRefused, fieldNumber: 5)
+      }
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -14938,6 +14952,7 @@ nonisolated extension Provenencia_Engine_V1_IngestArtifactFileResponse: SwiftPro
         if _storage._file != rhs_storage._file {return false}
         if _storage._reused != rhs_storage._reused {return false}
         if _storage._effects != rhs_storage._effects {return false}
+        if _storage._thumbnailRefused != rhs_storage._thumbnailRefused {return false}
         return true
       }
       if !storagesAreEqual {return false}

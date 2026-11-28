@@ -8180,13 +8180,17 @@ func (x *IngestArtifactFileRequest) GetPath() string {
 }
 
 type IngestArtifactFileResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Artifact      *Artifact              `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
-	File          *SourceFileRef         `protobuf:"bytes,2,opt,name=file,proto3" json:"file,omitempty"`
-	Reused        bool                   `protobuf:"varint,3,opt,name=reused,proto3" json:"reused,omitempty"`
-	Effects       *WriteEffects          `protobuf:"bytes,4,opt,name=effects,proto3" json:"effects,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Artifact *Artifact              `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
+	File     *SourceFileRef         `protobuf:"bytes,2,opt,name=file,proto3" json:"file,omitempty"`
+	Reused   bool                   `protobuf:"varint,3,opt,name=reused,proto3" json:"reused,omitempty"`
+	Effects  *WriteEffects          `protobuf:"bytes,4,opt,name=effects,proto3" json:"effects,omitempty"`
+	// The file is an image the engine makes thumbnails of, but its bytes could
+	// not be read for one (damaged, cut off, or over the decode budget): the
+	// Artifact shows no preview. False for a file that is not such an image.
+	ThumbnailRefused bool `protobuf:"varint,5,opt,name=thumbnail_refused,json=thumbnailRefused,proto3" json:"thumbnail_refused,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *IngestArtifactFileResponse) Reset() {
@@ -8245,6 +8249,13 @@ func (x *IngestArtifactFileResponse) GetEffects() *WriteEffects {
 		return x.Effects
 	}
 	return nil
+}
+
+func (x *IngestArtifactFileResponse) GetThumbnailRefused() bool {
+	if x != nil {
+		return x.ThumbnailRefused
+	}
+	return false
 }
 
 type ListSourceCredibilityGradesRequest struct {
@@ -23643,12 +23654,13 @@ const file_engine_proto_rawDesc = "" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1f\n" +
 	"\vartifact_id\x18\x03 \x01(\tR\n" +
 	"artifactId\x12\x12\n" +
-	"\x04path\x18\x04 \x01(\tR\x04path\"\xea\x01\n" +
+	"\x04path\x18\x04 \x01(\tR\x04path\"\x97\x02\n" +
 	"\x1aIngestArtifactFileResponse\x12;\n" +
 	"\bartifact\x18\x01 \x01(\v2\x1f.provenencia.engine.v1.ArtifactR\bartifact\x128\n" +
 	"\x04file\x18\x02 \x01(\v2$.provenencia.engine.v1.SourceFileRefR\x04file\x12\x16\n" +
 	"\x06reused\x18\x03 \x01(\bR\x06reused\x12=\n" +
-	"\aeffects\x18\x04 \x01(\v2#.provenencia.engine.v1.WriteEffectsR\aeffects\"E\n" +
+	"\aeffects\x18\x04 \x01(\v2#.provenencia.engine.v1.WriteEffectsR\aeffects\x12+\n" +
+	"\x11thumbnail_refused\x18\x05 \x01(\bR\x10thumbnailRefused\"E\n" +
 	"\"ListSourceCredibilityGradesRequest\x12\x1f\n" +
 	"\vproject_dir\x18\x01 \x01(\tR\n" +
 	"projectDir\"l\n" +

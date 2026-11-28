@@ -1041,6 +1041,10 @@ message IngestArtifactFileResponse {
   SourceFileRef file = 2;
   bool reused = 3;
   WriteEffects effects = 4;
+  // The file is an image the engine makes thumbnails of, but its bytes could
+  // not be read for one (damaged, cut off, or over the decode budget): the
+  // Artifact shows no preview. False for a file that is not such an image.
+  bool thumbnail_refused = 5;
 }
 
 message ListSourceCredibilityGradesRequest {

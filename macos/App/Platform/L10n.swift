@@ -7584,6 +7584,20 @@ enum L10n {
             ), name)
         }
 
+        static let toastNoPreviewTitle = L10n.string(LocalizedStringResource(
+            "sources.page.toastNoPreviewTitle",
+            defaultValue: "No preview for this file",
+            comment: "Warning toast title after attaching an image file whose thumbnail could not be made"
+        ))
+
+        static func toastNoPreviewBody(name: String) -> String {
+            return L10n.format(LocalizedStringResource(
+                "sources.page.toastNoPreviewBody",
+                defaultValue: "%@ is attached, but no thumbnail could be made from it. The image may be damaged, cut off, or too large.",
+                comment: "Warning toast body after attaching an image file whose thumbnail could not be made; argument is original filename"
+            ), name)
+        }
+
         static let coverBadge = LocalizedStringResource(
             "sources.page.coverBadge",
             defaultValue: "Cover",

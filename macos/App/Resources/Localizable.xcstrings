@@ -10400,6 +10400,30 @@
         }
       }
     },
+    "sources.page.toastNoPreviewBody": {
+      "comment": "Warning toast body after attaching an image file whose thumbnail could not be made; argument is original filename",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is attached, but no thumbnail could be made from it. The image may be damaged, cut off, or too large."
+          }
+        }
+      }
+    },
+    "sources.page.toastNoPreviewTitle": {
+      "comment": "Warning toast title after attaching an image file whose thumbnail could not be made",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No preview for this file"
+          }
+        }
+      }
+    },
     "sources.page.toastThumbnailUpdatedArtifactBody": {
       "comment": "Toast body after pinning an Artifact; argument is ART- ref",
       "extractionState": "manual",

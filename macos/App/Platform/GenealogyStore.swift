@@ -1815,7 +1815,10 @@ protocol GenealogyStore: Sendable {
         userID: String,
         artifactID: String,
         path: String
-    ) async throws -> (artifact: CatalogArtifact, file: CatalogFileRef, reused: Bool, effects: CatalogWriteEffects)
+    ) async throws -> (
+        artifact: CatalogArtifact, file: CatalogFileRef, reused: Bool, effects: CatalogWriteEffects,
+        thumbnailRefused: Bool
+    )
     /// The project's graphs, or one Source's when `sourceID` is set.
     func listEvidenceGraphs(projectDir: String, sourceID: String?) async throws -> [CatalogEvidenceGraph]
     /// `metadata` nil sends none (a new graph holds none); otherwise the graph's stored values and
