@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-83 — The date form is smaller and keyboard-first
+
+**Landed 2026-11-28** in [#1027](https://github.com/Jake-Robins-Studios/provenencia/pull/1027). The shared date form takes less height in every host: Kind and the qualifier are two segmented controls on one row, Year / Month / Day and the time fields (always shown, on both sides) are two rows, and a range labels its sides "Earliest, not before" and "Latest, not after"; Calendar and phrase… is a link button on the hint line, the Reads as card is gone, and the Source date dialog is 520 pt. The form's Tab loop starts at Year, with Kind and the qualifier one Shift-Tab behind it, and Add Source's Description Tabs into Year, through `PVFieldFocus.replacingNeighbours`, one `FocusClaim` core, `PVFieldTabClaim` (now also on `PVSegmentedControl` and `PVButton`) and `PVButton(focus:)`. In any kit select, menu or table a repeated letter walks the options that start with it. Version 0.53.1.
+
 ## S16-73 — Add Source takes the Published date and Private
 
 **Landed 2026-11-28** in [#1019](https://github.com/Jake-Robins-Studios/provenencia/pull/1019). Add Source shows Title, Type with Private beside it (a checkbox, its help behind an info icon), Description and Published date (the date form, blank means undated, with a "Reads as" line) in a 560 pt dialog, and Create writes the Source with its date and Private in its one `create_source` write: `CreateSourceRequest` gains `date` and `is_private`, `sources.CreateInput` gains `Private`, and `CreateSource` goes through `sourcecopy.CreateFromDraft`. A date that is typed into but not usable shows a line naming what keeps it from saving and disables Create, and Remove time clears that side's time; a date or Private alone counts as an edit to discard. `SourceFields` and `SourceDateEditor` are the shared views the Copy sheet (S16-74) will use. Every `PVFormDialog` now disables its form while it runs (the eight host copies are gone), and `PVCheckbox` dims when disabled. Version 0.52.0.

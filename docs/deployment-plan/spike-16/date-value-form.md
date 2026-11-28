@@ -1,8 +1,8 @@
 # The date form
 
-**Batch 9 design** (user, 2026-11-28). Opened as an idea file during S16-73's review and moved into the spike when the user scheduled it. The PR is [S16-83](deployment-plan.md#s16-83--the-date-form-is-smaller-and-keyboard-first) and its brief is S16-D20. The rules that bind it are the map's Batch 9 working rules.
+**Batch 9 design** (user, 2026-11-28); shipped in S16-83 ([#1027](https://github.com/Jake-Robins-Studios/provenencia/pull/1027)). Opened as an idea file during S16-73's review and moved into the spike when the user scheduled it. The PR is [S16-83](deployment-plan.md#s16-83--the-date-form-is-smaller-and-keyboard-first) and its brief is S16-D20. The rules that bind it are the map's Batch 9 working rules.
 
-The shared date form is `DateValueEditorForm` and `DateValueDraft`, and `SourceDateEditor` adds Reads as under it (Reads as goes in S16-83: working rule "The date form shows no Reads as"; the block stays for S15-42's marks control). Every host draws it: the Source date dialog, Add Source, the Copy sheet from S16-74, and the observation dates in the Citation composer. So a change here lands in all of them.
+The shared date form is `DateValueEditorForm` and `DateValueDraft`, and `SourceDateEditor` is the Source date block around it (S16-83 dropped its Reads as card: working rule "The date form shows no Reads as"; the block stays for S15-42's marks control). Every host draws it: the Source date dialog, Add Source, the Copy sheet from S16-74, and the observation dates in the Citation composer. So a change here lands in all of them.
 
 ## It takes less space
 

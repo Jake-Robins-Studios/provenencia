@@ -1,9 +1,10 @@
 # S16-83 — The date form is smaller and keyboard-first
 
-**Status:** Planned
+**Status:** Landed in [#1027](https://github.com/Jake-Robins-Studios/provenencia/pull/1027) (2026-11-28)
+**Landed:** As planned, except: the version is 0.53.1 (main was 0.53.0); `DateValueSelectTests`' second test, `monthAndDayCanBeSetWithoutAYear`, also lost its `applyStartCascade()` call (the method is gone); `Field.neighbours` is `@MainActor` because the kit's `PVFieldFocus.neighbours` is; `DateValueDraft.part(_:start:)` is static. The brief and its review moved to `design/archive/` with their relative links one level deeper. Historical landed plans under `spike-15/` and `spike-16/` still name deleted symbols (`PVInputTabClaim`, `sourceDateReadsAs`, `timeToggle`) as a record of what shipped then and were left as written
 **Spike / slice:** Spike 16 · Slice 9a — The date form
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S16-D20](../design/S16-D20-date-form-condensed.md), board agreed 2026-11-28
+**Brief:** [S16-D20](../design/archive/S16-D20-date-form-condensed.md), board agreed 2026-11-28
 **Board:** the Provenencia design system artifact (`https://claude.ai/artifact/7AZ8cscWF3f5Wz7gQ39cMe`), template "DateValue editor". The brief's **Board** line lists what it decides, and **Design → macOS** below describes every part of it in words, so this plan does not need the artifact open. Where the board and this plan differ (no field fills itself in, no Stored as / Reads as), this plan wins: the user dropped both after the board
 **Depends on:** S16-73 (landed [#1019](https://github.com/Jake-Robins-Studios/provenencia/pull/1019)), S16-D20 (agreed 2026-11-28)
 **Blocks:** S16-74
