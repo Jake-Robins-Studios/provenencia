@@ -10,7 +10,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | --- | --- | --- | --- |
 | S15-D4 | Adding an Artifact: the copy fields | Descoped 2026-11-12: folded into S15-D14 | — |
 | S15-D15 | Person page Sources section: Citations grouped under one citation | Descoped 2026-11-21 with S15-22 | — |
-| S15-D18 | Provenance sheet: records loading on open, and their failure | — | S15-29 |
+| S15-D18 | Provenance sheet: records loading on open, and their failure | Descoped 2026-11-28: S15-29 changes only the load area's two strings | — |
 | S15-D19 | Source page: Copy source-list entry | — | S15-23 |
 | S15-D20 | Metadata board row: a needed and a used entry on every board, no dismiss; the composer's Citation board included | — | S15-39 |
 | S15-D21 | Source page Artifacts: the list entry's mark for a missing citation field | — | S15-40 |
