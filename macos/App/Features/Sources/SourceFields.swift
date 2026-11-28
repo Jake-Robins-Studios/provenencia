@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// The Source fields of the Add Source sheet (Copy takes them in S16-74), in order: Title, Type, Published
-/// date, Description, Private. The sheet owns the draft, the two field errors and the save; this
+/// The Source fields of the Add Source sheet (Copy takes them in S16-74), in order: Title, Type with Private
+/// beside it (its help behind an info icon), Description, Published date. The sheet owns the draft, the two field errors and the save; this
 /// view draws them. Identifiers are `<prefix>.title`, `.type`, `.date`, `.date.readsAs`,
-/// `.description` and `.private`. The sheet disables it while it saves (`PVFormDialog` does).
+/// `.description`, `.private` and `.privateHelp`. The sheet disables it while it saves (`PVFormDialog` does).
 struct SourceFields: View {
     /// The width of the Add Source sheet and the Source date dialog.
     static let dialogWidth: CGFloat = 560
@@ -22,7 +22,29 @@ struct SourceFields: View {
                 typeError: $typeError,
                 types: types,
                 accessibilityIdentifierPrefix: accessibilityIdentifierPrefix
-            )
+            ) {
+                // A field with a hidden label, so Private lines up with the Type input.
+                PVField(label: L10n.Sources.formType, labelHidden: true) {
+                    HStack(spacing: PVSpacing.space3) {
+                        PVCheckbox(L10n.Sources.privateSwitch, isChecked: $draft.isPrivate)
+                            .accessibilityIdentifier("\(accessibilityIdentifierPrefix).private")
+                        PVHelpIcon(
+                            icon: .info,
+                            label: L10n.Sources.privateHelpLabel,
+                            help: L10n.Sources.privateSwitchHelp
+                        )
+                        .accessibilityIdentifier("\(accessibilityIdentifierPrefix).privateHelp")
+                    }
+                    .frame(height: PVControlSize.md.height)
+                }
+            }
+            PVField(
+                label: L10n.Sources.formDescription,
+                hint: L10n.Sources.formDescriptionHint
+            ) {
+                PVInput(text: $draft.description)
+                    .accessibilityIdentifier("\(accessibilityIdentifierPrefix).description")
+            }
             PVField(
                 label: L10n.Sources.formPublishedDate,
                 hint: L10n.Sources.formPublishedDateHint,
@@ -33,19 +55,6 @@ struct SourceFields: View {
                     accessibilityIdentifierPrefix: "\(accessibilityIdentifierPrefix).date"
                 )
             }
-            PVField(
-                label: L10n.Sources.formDescription,
-                hint: L10n.Sources.formDescriptionHint
-            ) {
-                PVInput(text: $draft.description)
-                    .accessibilityIdentifier("\(accessibilityIdentifierPrefix).description")
-            }
-            PVCheckbox(
-                L10n.Sources.privateSwitch,
-                description: L10n.Sources.privateSwitchHelp,
-                isChecked: $draft.isPrivate
-            )
-            .accessibilityIdentifier("\(accessibilityIdentifierPrefix).private")
         }
     }
 }

@@ -9094,6 +9094,18 @@
         }
       }
     },
+    "sources.page.private.helpLabel": {
+      "comment": "VoiceOver label for the help icon beside the Private checkbox in Add Source",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About Private"
+          }
+        }
+      }
+    },
     "sources.page.private.failedTitle": {
       "comment": "Title of the error banner when the Private switch could not be saved",
       "extractionState": "manual",

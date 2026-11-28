@@ -6,6 +6,9 @@ import SwiftUI
 /// `Features/Onboarding/` screens, so this isn't a new
 /// pattern for the codebase, just this file's version of it.
 ///
+/// `labelHidden` keeps the label's space but draws and speaks nothing, so a
+/// control beside a field lines up with that field's input.
+///
 /// See `DesignSystem/README.md` / `PVButton.swift` for the component
 /// pattern this follows.
 struct PVField<Content: View>: View {
@@ -26,6 +29,7 @@ struct PVField<Content: View>: View {
     private let error: String?
     private let announcesError: Bool
     private let marker: Marker
+    private let labelHidden: Bool
     private let content: Content
 
     init(
@@ -34,6 +38,7 @@ struct PVField<Content: View>: View {
         error: String? = nil,
         marker: Marker = .none,
         announcesError: Bool = false,
+        labelHidden: Bool = false,
         @ViewBuilder content: () -> Content
     ) {
         self.label = label
@@ -41,6 +46,7 @@ struct PVField<Content: View>: View {
         self.error = error
         self.announcesError = announcesError
         self.marker = marker
+        self.labelHidden = labelHidden
         self.content = content()
     }
 
@@ -60,6 +66,10 @@ struct PVField<Content: View>: View {
                 }
                 .font(PVFont.body(size: PVTypeScale.caption, weight: PVFontWeight.medium))
                 .foregroundStyle(PVColor.textSecondary)
+                // Keeps the label's height for a neighbour that lines up with
+                // the control below it, and draws and speaks nothing.
+                .opacity(labelHidden ? 0 : 1)
+                .accessibilityHidden(labelHidden)
             }
 
             content

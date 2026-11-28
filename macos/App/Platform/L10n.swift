@@ -6317,6 +6317,12 @@ enum L10n {
             comment: "Label of the switch that marks a Source private"
         )
 
+        static let privateHelpLabel = LocalizedStringResource(
+            "sources.page.private.helpLabel",
+            defaultValue: "About Private",
+            comment: "VoiceOver label for the help icon beside the Private checkbox in Add Source"
+        )
+
         static let privateSwitchHelp = LocalizedStringResource(
             "sources.page.private.help",
             defaultValue: "Private Sources will be kept out of sharing. Nothing else changes yet.",

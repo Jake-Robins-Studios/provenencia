@@ -1,7 +1,7 @@
 # S16-73 — Add Source takes the Published date and Private
 
 **Status:** Landed in [#1019](https://github.com/Jake-Robins-Studios/provenencia/pull/1019) (2026-11-28)
-**Landed:** As planned, except: D-15 disables every `pvFormDialog` body while it runs, so a failed save no longer keeps first responder in the field that was focused (as the Copy sheets already behaved); the version bump is to 0.52.0 (main was already 0.51.1) and all four `MARKETING_VERSION` lines moved; T-2 is a subtest of `TestSourcePublic`; STEP-8 names the brief at `design/archive/`; the date form's range-order message now carries the `end.fieldError` identifier too; `rg "\.disabled\(model\.isSaving\)"` also lists `PromoteView` (a page, not a dialog). The date line names what keeps a date from saving, and Remove time clears that side's time.
+**Landed:** As planned, except: D-15 disables every `pvFormDialog` body while it runs, so a failed save no longer keeps first responder in the field that was focused (as the Copy sheets already behaved); the version bump is to 0.52.0 (main was already 0.51.1) and all four `MARKETING_VERSION` lines moved; T-2 is a subtest of `TestSourcePublic`; STEP-8 names the brief at `design/archive/`; the date form's range-order message now carries the `end.fieldError` identifier too; `rg "\.disabled\(model\.isSaving\)"` also lists `PromoteView` (a page, not a dialog). The date line names what keeps a date from saving, and Remove time clears that side's time. The board update (2026-11-28) moved Private beside Type with its help behind an info icon (`PVHelpIcon`, also used by the Source page's Metadata heading) and put Description above the date, so AC-1.1's order and the Batch 8 working rule's "Title, Type, Published date, Description and Private" no longer hold: the order is Title, Type | Private, Description, Published date.
 **Spike / slice:** Spike 16 · Slice 8a — The Add and Copy Source sheets
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S16-D15](../design/archive/S16-D15-add-source-fields.md), board agreed 2026-11-28
@@ -329,7 +329,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `S
 
 Bar 44. In a project with the seeded Source types:
 
-1. Sources → Add Source. See Title (focused), Type, Published date, Description, the Private checkbox unticked with its help, in that order, at 560 pt. Stretch the window past 1600 pt of pane: the dialog stays 560 pt and centered (AC-1.1).
+1. Sources → Add Source. See Title (focused), then Type with the Private checkbox unticked at its right and its help behind an info icon, then Description, then Published date, in that order, at 560 pt. Stretch the window past 1600 pt of pane: the dialog stays 560 pt and centered (AC-1.1).
 2. Title "1880 census, Ward 4", Type Census, Year 1880, Month June, Day 1; see "Reads as 1 Jun 1880". Tick Private. Create. The page header shows "1 Jun 1880" and its Private switch on; back on Sources the Published column shows the date (AC-1.2, AC-1.5).
 3. Add Source, Title "Undated", a type, nothing else. Create: the Source is undated and its Private switch is off (AC-1.3).
 4. Add Source: type 13 in Month: the form's month error shows, Create is disabled. Clear it; open More options, type the phrase "Spring 1880" and a time zone: the line "This date isn't complete. Finish it or clear its fields." shows. Clear the time zone: the line goes and Reads as shows the phrase (AC-2.1, AC-2.2, AC-2.3).

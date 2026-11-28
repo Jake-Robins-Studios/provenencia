@@ -10,13 +10,12 @@ struct SourcePageMetadataView: View {
             PVSectionHeader(
                 title: L10n.Sources.metadataHeading,
                 aside: {
-                    PVIcon(.circleHelp, size: 15)
-                        .foregroundStyle(PVColor.textMuted)
-                        .help(L10n.string(L10n.Sources.metadataIntro))
-                        .accessibilityElement()
-                        .accessibilityLabel(L10n.string(L10n.Sources.metadataHelpLabel))
-                        .accessibilityHint(L10n.string(L10n.Sources.metadataIntro))
-                        .accessibilityIdentifier("sources.page.metadataHelp")
+                    PVHelpIcon(
+                        icon: .circleHelp,
+                        label: L10n.Sources.metadataHelpLabel,
+                        help: L10n.Sources.metadataIntro
+                    )
+                    .accessibilityIdentifier("sources.page.metadataHelp")
                 },
                 actions: {
                     PVButton(L10n.Sources.addMetadata, variant: .ghost, size: .sm, icon: .plus) {
