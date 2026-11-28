@@ -8770,14 +8770,62 @@
         }
       }
     },
-    "sources.page.dateIncompleteError": {
-      "comment": "Line under the date form when the date is typed into but not usable",
+    "sources.page.dateUnsavableRangeBoth": {
+      "comment": "Line under the date form when a Between date has no date or time on either bound",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This date isn't complete. Finish it or clear its fields."
+            "value": "Between two bounds needs an earliest and a latest bound. Add both, or choose Single date."
+          }
+        }
+      }
+    },
+    "sources.page.dateUnsavableRangeStart": {
+      "comment": "Line under the date form when a Between date has no date or time on its earliest bound",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add the earliest bound, or choose Single date."
+          }
+        }
+      }
+    },
+    "sources.page.dateUnsavableRangeEnd": {
+      "comment": "Line under the date form when a Between date has no date or time on its latest bound",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add the latest bound, or choose Single date."
+          }
+        }
+      }
+    },
+    "sources.page.dateUnsavableZone": {
+      "comment": "Line under the date form when a single date has a time zone but no date or time",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A time zone needs a date or a time. Add one, or clear the time zone."
+          }
+        }
+      }
+    },
+    "sources.page.dateUnsavableOther": {
+      "comment": "Line under the date form when a typed date cannot be saved and no other line applies",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This date can't be saved as typed. Check its fields, or clear them."
           }
         }
       }

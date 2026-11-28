@@ -119,6 +119,25 @@ struct DateValueDraft: Equatable, Sendable {
         }
     }
 
+    /// Hiding a side's time block clears its clock fields and zone, so no hidden value is saved.
+    mutating func hideTime(start: Bool) {
+        if start {
+            startHour = nil
+            startMinute = nil
+            startSecond = nil
+            startMillisecond = nil
+            startTZ = ""
+            showStartTime = false
+        } else {
+            endHour = nil
+            endMinute = nil
+            endSecond = nil
+            endMillisecond = nil
+            endTZ = ""
+            showEndTime = false
+        }
+    }
+
     // MARK: Validation
 
     /// Civil component that can show an out-of-range field error.
@@ -184,11 +203,24 @@ struct DateValueDraft: Equatable, Sendable {
         return start ? nil : endError
     }
 
-    /// The line for a date that is typed into but not usable, when the form shows no error of its
-    /// own: not blank, not valid, and neither side showing an error.
-    var incompleteError: String? {
+    /// The line for a draft that is typed into but cannot be saved, when no field shows an error:
+    /// not blank, not valid, and neither side showing an error. Names the first case that applies.
+    var unsavableError: String? {
         guard !isBlank, !isValid, shownError(start: true) == nil, shownError(start: false) == nil else { return nil }
-        return L10n.string(L10n.Sources.dateIncompleteError)
+        let key: LocalizedStringResource
+        if isRange, !startSide.hasCivil, !endSide.hasCivil {
+            key = L10n.Sources.dateUnsavableRangeBoth
+        } else if isRange, !startSide.hasCivil {
+            key = L10n.Sources.dateUnsavableRangeStart
+        } else if isRange, !endSide.hasCivil {
+            key = L10n.Sources.dateUnsavableRangeEnd
+        } else if isPoint, !startSide.hasCivil,
+                  !startTZ.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            key = L10n.Sources.dateUnsavableZone
+        } else {
+            key = L10n.Sources.dateUnsavableOther
+        }
+        return L10n.string(key)
     }
 
     /// What a save sends: nil while the form is blank, else the draft as input.
@@ -344,8 +376,10 @@ extension DateValueDraft {
             endSecond: input.endSecond,
             endMillisecond: input.endMillisecond,
             endTZ: input.endTZ,
-            showStartTime: input.startHour != nil,
-            showEndTime: input.endHour != nil,
+            showStartTime: input.startHour != nil || input.startMinute != nil
+                || input.startSecond != nil || input.startMillisecond != nil || !input.startTZ.isEmpty,
+            showEndTime: input.endHour != nil || input.endMinute != nil
+                || input.endSecond != nil || input.endMillisecond != nil || !input.endTZ.isEmpty,
             showAdvanced: !input.phrase.isEmpty
                 || (!input.calendar.isEmpty && input.calendar != "gregorian")
         )

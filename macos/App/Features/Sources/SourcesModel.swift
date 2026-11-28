@@ -47,7 +47,7 @@ final class SourcesModel {
             SourceDraftValidation(
                 titleError: trimmedTitle.isEmpty ? L10n.string(L10n.Sources.titleRequired) : nil,
                 typeError: sourceTypeID.isEmpty ? L10n.string(L10n.Sources.typeRequired) : nil,
-                dateError: date.incompleteError,
+                dateError: date.unsavableError,
                 dateParses: date.isBlank || date.isValid
             )
         }

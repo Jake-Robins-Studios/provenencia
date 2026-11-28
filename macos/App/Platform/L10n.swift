@@ -6616,10 +6616,34 @@ enum L10n {
             comment: "Inline error when range end precedes start"
         )
 
-        static let dateIncompleteError = LocalizedStringResource(
-            "sources.page.dateIncompleteError",
-            defaultValue: "This date isn't complete. Finish it or clear its fields.",
-            comment: "Line under the date form when the date is typed into but not usable"
+        static let dateUnsavableRangeBoth = LocalizedStringResource(
+            "sources.page.dateUnsavableRangeBoth",
+            defaultValue: "Between two bounds needs an earliest and a latest bound. Add both, or choose Single date.",
+            comment: "Line under the date form when a Between date has no date or time on either bound"
+        )
+
+        static let dateUnsavableRangeStart = LocalizedStringResource(
+            "sources.page.dateUnsavableRangeStart",
+            defaultValue: "Add the earliest bound, or choose Single date.",
+            comment: "Line under the date form when a Between date has no date or time on its earliest bound"
+        )
+
+        static let dateUnsavableRangeEnd = LocalizedStringResource(
+            "sources.page.dateUnsavableRangeEnd",
+            defaultValue: "Add the latest bound, or choose Single date.",
+            comment: "Line under the date form when a Between date has no date or time on its latest bound"
+        )
+
+        static let dateUnsavableZone = LocalizedStringResource(
+            "sources.page.dateUnsavableZone",
+            defaultValue: "A time zone needs a date or a time. Add one, or clear the time zone.",
+            comment: "Line under the date form when a single date has a time zone but no date or time"
+        )
+
+        static let dateUnsavableOther = LocalizedStringResource(
+            "sources.page.dateUnsavableOther",
+            defaultValue: "This date can't be saved as typed. Check its fields, or clear them.",
+            comment: "Line under the date form when a typed date cannot be saved and no other line applies"
         )
 
         static let dateYearOutOfRange = LocalizedStringResource(

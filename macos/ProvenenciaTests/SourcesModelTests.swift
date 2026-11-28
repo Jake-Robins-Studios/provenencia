@@ -320,7 +320,7 @@ struct SourcesModelTests {
         #expect(!month13.isValid)
         // A phrase and a time zone, no year: the line shows.
         let incomplete = validation { $0.phrase = "Spring 1880"; $0.startTZ = "America/Chicago" }
-        #expect(incomplete.dateError == L10n.string(L10n.Sources.dateIncompleteError))
+        #expect(incomplete.dateError == L10n.string(L10n.Sources.dateUnsavableZone))
         #expect(!incomplete.isValid)
         // A phrase alone is a valid date; a time zone alone is blank.
         #expect(validation { $0.phrase = "Spring 1880" }.isValid)

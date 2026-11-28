@@ -146,13 +146,17 @@ struct DateValueEditorForm: View {
             }
             Button {
                 if start {
-                    draft.showStartTime.toggle()
                     if draft.showStartTime {
+                        draft.hideTime(start: true)
+                    } else {
+                        draft.showStartTime.toggle()
                         DispatchQueue.main.async { startHourFocused = true }
                     }
                 } else {
-                    draft.showEndTime.toggle()
                     if draft.showEndTime {
+                        draft.hideTime(start: false)
+                    } else {
+                        draft.showEndTime.toggle()
                         DispatchQueue.main.async { endHourFocused = true }
                     }
                 }
