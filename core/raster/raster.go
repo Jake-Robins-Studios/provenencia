@@ -178,6 +178,8 @@ func checkMaxEdge(opts Options) error {
 //
 // When reduceJPEG is set, a JPEG declaring more than MaxDecodePixels is not
 // refused: it decodes at 1/8 scale from its DC coefficients (decodeJPEGDC).
+// So does a JPEG that image/jpeg refuses but whose DC passes are complete,
+// such as a progressive file cut off after them.
 func decode(src []byte, formats []string, reduceJPEG bool) (image.Image, error) {
 	if len(src) > maxDecodeBytes {
 		return nil, ErrTooLarge

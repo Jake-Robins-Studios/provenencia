@@ -375,6 +375,21 @@ func TestDecodeJPEGDCRefuses(t *testing.T) {
 		})
 	}
 
+	t.Run("truncated/progressive-before-a-component's-dc-scan", func(t *testing.T) {
+		// Y's DC scan, then a Y AC scan the file ends in: Cb and Cr were
+		// never decoded, so finish refuses the image.
+		p := defaultParts(3)
+		p.sofMarker = 0xC2
+		p.sos = []byte{1, 1, 0x00, 0, 0, 0}
+		b := p.build(make([]byte, 8))
+		b = append(b, rastertest.JPEGSegment(0xDA, []byte{1, 1, 0x00, 1, 63, 0})...)
+		b = append(b, make([]byte, 8)...)
+		_, err := decodeJPEGDC(b, MaxDecodePixels)
+		if err == nil || err.Error() != jpegErr("a component was never decoded").Error() {
+			t.Fatalf("err = %v, want a component was never decoded", err)
+		}
+	})
+
 	t.Run("header/frame-over-budget", func(t *testing.T) {
 		_, err := decodeJPEGDC(rastertest.JPEGHeader(65535, 65535, 1, nil), MaxDecodePixels)
 		if !errors.Is(err, ErrTooLarge) || errors.Is(err, errJPEGDC) {
