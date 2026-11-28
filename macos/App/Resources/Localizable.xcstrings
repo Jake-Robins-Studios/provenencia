@@ -8699,7 +8699,7 @@
       }
     },
     "sources.page.dateEarliestHeading": {
-      "comment": "Uppercase heading for range start side",
+      "comment": "Spoken name of the earliest side's group on a range; not drawn",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -9251,7 +9251,7 @@
       }
     },
     "sources.page.dateLatestHeading": {
-      "comment": "Uppercase heading for range end side",
+      "comment": "Spoken name of the latest side's group on a range; not drawn",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -9263,7 +9263,7 @@
       }
     },
     "sources.page.dateLeaveEmptyHint": {
-      "comment": "Hint beside date cascade heading",
+      "comment": "Hint on the Calendar and phrase link's line",
       "extractionState": "manual",
       "localizations": {
         "en": {

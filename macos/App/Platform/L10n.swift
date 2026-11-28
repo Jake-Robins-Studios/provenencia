@@ -6402,13 +6402,13 @@ enum L10n {
         static let dateEarliestHeading = LocalizedStringResource(
             "sources.page.dateEarliestHeading",
             defaultValue: "Earliest — not before",
-            comment: "Uppercase heading for range start side"
+            comment: "Spoken name of the earliest side's group on a range; not drawn"
         )
 
         static let dateLatestHeading = LocalizedStringResource(
             "sources.page.dateLatestHeading",
             defaultValue: "Latest — not after",
-            comment: "Uppercase heading for range end side"
+            comment: "Spoken name of the latest side's group on a range; not drawn"
         )
 
         static let dateEarliestShort = LocalizedStringResource(
@@ -6444,7 +6444,7 @@ enum L10n {
         static let dateLeaveEmptyHint = LocalizedStringResource(
             "sources.page.dateLeaveEmptyHint",
             defaultValue: "Leave a part empty when the record does not say",
-            comment: "Hint beside date cascade heading"
+            comment: "Hint on the Calendar and phrase link's line"
         )
 
         static let dateYear = LocalizedStringResource(

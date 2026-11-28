@@ -9,7 +9,7 @@ struct DateValueEditorFormTests {
     private func year(_ start: Bool) -> Field { .part(.year, start: start) }
 
     private func parts(start: Bool) -> [Field] {
-        DateValueDraft.CascadeComponent.allCases.map { .part($0, start: start) } + [.zone(start: start)]
+        DateValueDraft.Part.allCases.map { .part($0, start: start) } + [.zone(start: start)]
     }
 
     /// The targets Tab reaches from the earliest Year, until it leaves the form.
@@ -62,8 +62,11 @@ struct DateValueEditorFormTests {
                 == .field(.zone(start: true))
         )
         #expect(
-            walkNext(isRange: true, isAdvancedOpen: false).last == .hostNext
+            walkNext(isRange: true, isAdvancedOpen: false)
+                == (parts(start: true).dropFirst() + parts(start: false) + [.advancedToggle]).map { .field($0) }
+                + [.hostNext]
         )
+        #expect(Field.neighbours(of: .kind, isRange: true, isAdvancedOpen: false).previous == .hostPrevious)
         #expect(
             Field.neighbours(of: .advancedToggle, isRange: true, isAdvancedOpen: false).next == .hostNext
         )
@@ -76,5 +79,14 @@ struct DateValueEditorFormTests {
             #expect(Field.neighbours(of: .kind, isRange: isRange, isAdvancedOpen: false).next == .field(.startYear))
             #expect(Field.neighbours(of: .qualifier, isRange: isRange, isAdvancedOpen: false).next == .field(.startYear))
         }
+    }
+
+    @Test func hostEdgeWithNoNeighbourGoesToTheKeyLoop() {
+        #expect(Field.resolve(.hostPrevious, hostHasNext: true, hostHasPrevious: false) == nil)
+        #expect(Field.resolve(.hostPrevious, hostHasNext: false, hostHasPrevious: true) == .hostPrevious)
+        #expect(Field.resolve(.hostNext, hostHasNext: false, hostHasPrevious: true) == nil)
+        #expect(Field.resolve(.hostNext, hostHasNext: true, hostHasPrevious: false) == .hostNext)
+        #expect(Field.resolve(.field(.kind), hostHasNext: false, hostHasPrevious: false) == .field(.kind))
+        #expect(Field.resolve(nil, hostHasNext: true, hostHasPrevious: true) == nil)
     }
 }

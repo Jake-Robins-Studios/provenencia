@@ -152,31 +152,33 @@ struct DateValueEditorForm: View {
                 .font(PVFont.body(size: PVTypeScale.micro, italic: true))
                 .foregroundStyle(PVColor.textMuted)
         }
+        // The side's group already carries its spoken name; the label is only drawn.
+        .accessibilityHidden(true)
         // The fields' captions sit above their inputs; the label starts level with the inputs.
         .padding(.top, PVSpacing.space6)
     }
 
     private func dateRow(start: Bool) -> some View {
         HStack(alignment: .bottom, spacing: PVSpacing.space3) {
-            cascadeField(.year, start: start, width: 64)
+            partField(.year, start: start, width: 64)
             monthSelect(start: start)
-            cascadeField(.day, start: start, width: 48)
+            partField(.day, start: start, width: 48)
         }
     }
 
     private func timeRow(start: Bool) -> some View {
         HStack(alignment: .bottom, spacing: PVSpacing.space3) {
-            cascadeField(.hour, start: start, width: 48)
-            cascadeField(.minute, start: start, width: 48)
-            cascadeField(.second, start: start, width: 48)
-            cascadeField(.millisecond, start: start, width: 52)
+            partField(.hour, start: start, width: 48)
+            partField(.minute, start: start, width: 48)
+            partField(.second, start: start, width: 48)
+            partField(.millisecond, start: start, width: 52)
             zoneField(start: start)
         }
     }
 
     /// A part's caption over its input.
-    private func cascadeField(
-        _ component: DateValueDraft.CascadeComponent,
+    private func partField(
+        _ component: DateValueDraft.Part,
         start: Bool,
         width: CGFloat
     ) -> some View {
@@ -315,22 +317,14 @@ struct DateValueEditorForm: View {
 
     /// A target that has somewhere to go: a host edge with no host neighbour is left to the key loop.
     private func reachable(_ target: Field.Target?) -> Field.Target? {
-        switch target {
-        case .hostNext where yearFocus?.next == nil: nil
-        case .hostPrevious where yearFocus?.previous == nil: nil
-        default: target
-        }
+        Field.resolve(target, hostHasNext: yearFocus?.next != nil, hostHasPrevious: yearFocus?.previous != nil)
     }
 
     /// Resolved when the key is pressed, so no handle is built to look at it.
     private func claim(_ target: Field.Target) {
         switch target {
         case .field(let field):
-            if field == .startYear {
-                FocusClaim.claim(ownHandle(field))
-            } else {
-                FocusClaim.claim($focus, field)
-            }
+            FocusClaim.claim(ownHandle(field))
         case .hostNext:
             yearFocus?.next?()
         case .hostPrevious:
@@ -341,7 +335,7 @@ struct DateValueEditorForm: View {
     // MARK: Bindings
 
     /// The text of one part of one side: empty is nil, a number is the part, anything else is left as it was.
-    private func partBinding(_ component: DateValueDraft.CascadeComponent, start: Bool) -> Binding<String> {
+    private func partBinding(_ component: DateValueDraft.Part, start: Bool) -> Binding<String> {
         let part = DateValueDraft.part(component, start: start)
         return Binding(
             get: { draft[keyPath: part].map(String.init) ?? "" },
@@ -362,7 +356,7 @@ extension DateValueEditorForm {
     /// are the `Target`s `.hostNext` and `.hostPrevious`.
     enum Field: Hashable {
         case kind, qualifier
-        case part(DateValueDraft.CascadeComponent, start: Bool)
+        case part(DateValueDraft.Part, start: Bool)
         case zone(start: Bool)
         case advancedToggle, calendar, phrase
 
@@ -374,13 +368,22 @@ extension DateValueEditorForm {
 
         static var startYear: Field { .part(.year, start: true) }
 
+        /// A target that has somewhere to go: a host edge with no host neighbour is left to the key loop.
+        static func resolve(_ target: Target?, hostHasNext: Bool, hostHasPrevious: Bool) -> Target? {
+            switch target {
+            case .hostNext where !hostHasNext: nil
+            case .hostPrevious where !hostHasPrevious: nil
+            default: target
+            }
+        }
+
         /// The fields Tab walks from the earliest Year on: each side's parts then its time zone,
         /// the earliest side then the latest on a range, then the Calendar and phrase link and,
         /// while open, Calendar and Phrase. Kind and the qualifier sit before Year, off this list.
         static func order(isRange: Bool, isAdvancedOpen: Bool) -> [Field] {
             var fields: [Field] = []
             for start in isRange ? [true, false] : [true] {
-                fields += DateValueDraft.CascadeComponent.allCases.map { .part($0, start: start) }
+                fields += DateValueDraft.Part.allCases.map { .part($0, start: start) }
                 fields.append(.zone(start: start))
             }
             fields.append(.advancedToggle)
@@ -419,7 +422,7 @@ extension DateValueEditorForm {
     }
 }
 
-private extension DateValueDraft.CascadeComponent {
+private extension DateValueDraft.Part {
     var label: LocalizedStringResource {
         switch self {
         case .year: L10n.Sources.dateYear
