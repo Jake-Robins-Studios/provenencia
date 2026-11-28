@@ -71,7 +71,7 @@ Prefer extending a composite with slots over a new root `PV*` for a slight varia
 - [ ] #Preview with static sample data for new DesignSystem types
 - [ ] File saved under `macos/App/DesignSystem/` or `macos/App/Features/` (synchronized folders; no `project.pbxproj` edit)
 - [ ] Second call site? Snowflake → Recipes/<Name>/ (or Components/<Name>/ if agnostic)
-- [ ] When Tab must move from a field that claims Tab (`PVInput`, `PVComboBox`, `PVSelect`, `PVSegmentedControl`) to a `PVTextArea`, the form holds its `@FocusState` and lists the fields in order: `PVFieldFocus($focus, equals: field, in: order)`; a host's handle joins a form's loop through `replacingNeighbours`. Every kit field takes a `PVFieldFocus` (README Input, Field focus and TextArea rows)
+- [ ] When Tab must move from a field that claims Tab (`PVInput`, `PVComboBox`, `PVSelect`, `PVSegmentedControl`, `PVButton`) to a `PVTextArea`, the form holds its `@FocusState` and lists the fields in order: `PVFieldFocus($focus, equals: field, in: order)`; a host's handle joins a form's loop through `replacingNeighbours`. Every kit field takes a `PVFieldFocus` (README Input, Field focus and TextArea rows)
 - [ ] A form that submits on Return from a `PVComboBox` (`.onSubmit`, a sheet's default button) relies on the box's rule: Return reaches the form only when the field shows its pick (`PVComboBoxMatch.returnAction`, README ComboBox row). The form never re-checks the field's text
 - [ ] Each behavior the README promises for it (Return, Escape, dismissal, focus, VoiceOver announcement) is in its code and held by a test. `PVConfirm` promised that Return could not confirm a delete while its Delete button kept the default-action shortcut
 ```
