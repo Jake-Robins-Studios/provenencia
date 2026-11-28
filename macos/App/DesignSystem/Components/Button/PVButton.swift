@@ -147,6 +147,8 @@ private struct PVMenuRowButtonBody: View {
 /// `focus` takes the kit's field focus handle: the button is then focusable
 /// without Full Keyboard Access, takes the handle's Tab neighbours, and Return
 /// activates it (`pvActivatesOnReturn`) while Space stays the `Button`'s own.
+/// Inside a kit sheet the focused button takes Return from Confirm and Done
+/// (`pvSheetTakesReturn`).
 /// With no handle the button is as it was.
 ///
 /// `iconOnly` draws the same chrome as a square glyph button. The title is
@@ -235,6 +237,7 @@ struct PVButton: View {
                 .focusable()
                 .modifier(PVFieldTabClaim(focus: focus))
                 .pvActivatesOnReturn(when: focus.isActive(), action)
+                .pvSheetTakesReturn(focus.isActive())
         ))
     }
 }
