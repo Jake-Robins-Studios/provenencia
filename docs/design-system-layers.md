@@ -145,7 +145,7 @@ Product-specific compositions used **consistently across more than one place**. 
 
 - Map Provenencia meaning → component props (icons, colors, grade, type key).
 - Thin wrappers preferred for chrome — do not reimplement badge / chip / row chrome.
-- A recipe may own assembly as pure content built from `Catalog*` types and `Platform/` formatters (`PVPersonCardContent`, `PVProvenanceSheetContent`): built when the recipe opens, tested as pure functions, and it reports a link for the caller to map to a place.
+- A recipe may own assembly as pure content built from `Catalog*` types and `Platform/` formatters (`PVPersonCardContent`, `PVProvenanceSheetContent`): built when the recipe opens, or when the read it waits on answers (`PVProvenanceSheetContent`: its header from the row, its records from the sheet's read), tested as pure functions, and it reports a link for the caller to map to a place.
 - Live under `DesignSystem/Recipes/<Name>/`.
 
 **Examples:** `PVMark`, evidence-grade / source-type badge families; a shared “delete vocabulary row” confirm shell *if* several screens share the same wiring.

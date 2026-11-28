@@ -100,6 +100,7 @@ Extend [`PlaceRegistryTests`](../../../macos/ProvenenciaTests/PlaceRegistryTests
 In `Session/`:
 
 - Add a `Kind` case and a `CatalogQueryKey` factory (`.init(kind, project, ids)`).
+- A key over a request with cases puts a tag first in `ids` and reads it back through one accessor preconditioned on its kind (`provenanceSheet`, `provenanceRequest`): one kind, one arm.
 - Add one arm on `CatalogQueryKey.Kind.descriptor` in [`CatalogQueryRegistry.swift`](../../../macos/App/Features/Workspace/Session/CatalogQueryRegistry.swift): the loader (reading `key.project` and `key.id`, calling `GenealogyStore`), `whenHidden`, and, only when a mutation names the kind, `invalidateOn` with its `invalidation` (`make` requires both or neither). The switch is exhaustive, so a new kind does not compile until that arm exists.
 
 **One cache owns each list — do not fold a shared list into a page payload.**
