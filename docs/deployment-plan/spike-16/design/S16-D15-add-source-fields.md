@@ -1,10 +1,10 @@
 # S16-D15 — Add Source: the shared Source fields (Title, Type, Published date, Description, Private)
 
-**Kind:** Claude Design board (**enhancement** of the Add Source dialog as shipped: a FormDialog with Title, Type and Description. The dialog gains the Source's published date, as the shared date form inline, and the Private switch; the five fields become one shared set of Source fields that the Copy Source dialog takes up later)
+**Kind:** Claude Design board (**enhancement** of the Add Source dialog as shipped: a FormDialog with Title, Type and Description. The dialog gains the Source's published date, as the shared date form inline, and Private; the five fields become one shared set of Source fields that the Copy Source dialog takes up later)
 **Spike:** Provenencia Spike 16 (odds and ends), batch 8, slice 8a
 **View:** the Add Source dialog, opened by **Add Source** at the Sources list's top right
 **Implements later as:** PR **S16-73** (Add Source takes the Published date and Private)
-**Board:** — (not drawn yet). Draw it on [Claude Design — Source Detail](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK), page *Source page*, as a new row "S16-D15 · Add Source", beside the row "Copy Source" (S15-D13) and the Source date dialog (S15-D1 frame 3), so both sheets and the date form sit on one page
+**Board:** agreed 2026-11-28 — [Claude Design — Source Detail](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK), page *Dialogs*, section "Add Source" (it shares components with the Copy Source dialog): frames `add-today` (0), `add-open` (1a), `add-open-wide` (1b), `add-filled` (2), `add-range` (3), `add-field-error` (4, drawn with a range whose end is before its start), `add-incomplete` (5), `add-created` (6), `add-discard` (7), `add-more` (8), drawn by `Source.dc.html` near `S16-D15`. Board decisions: AS-4 is A; the date is the date dialog's form at 560 pt. After the board (user, 2026-11-28): Private is a kit Checkbox, not the board's switch (AS-7); frame 5 drew "Spring 1880" with no year as incomplete, but a phrase alone is a valid date in the app and the engine, so the app's rule stands and AS-5's example is a phrase with a time zone
 **Depends on:** the Source date dialog and Private switch as agreed in S15-D1 (SD-3, SD-5) and shipped in S15-03; the Add Source dialog as shipped (Spike 2, moved into its own modifier in S16-66). Nothing open
 **Related:** working rules "(Batch 8) The Add and Copy sheets share one set of Source fields" and "(Batch 8) A new Source and its parts are one write through one composer" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); scope entry [S16-73](../deployment-plan.md#s16-73--add-source-takes-the-published-date-and-private); bar 44; board S16-D16 (the Copy sheet with these fields, S16-74), written after this one; [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
@@ -82,7 +82,7 @@ Today **Add Source** opens a FormDialog, 480 pt wide: the title "Add source", th
 
 A Source's **published date** and its **Private** switch can only be set afterwards, on the Source page (the date through the Source date dialog, Private by the switch in the page header). So a researcher who knows both when adding the Source has to open the page and make two more edits.
 
-What changes: **the dialog shows the five Source fields in order: Title, Type, Published date, Description, Private.** The published date is the app's shared date form, inline, empty on open; a blank date means the Source is undated. Private is the same switch as the Source page header's, off on open. Create writes the Source with its date and Private in one step, and the page that opens shows both.
+What changes: **the dialog shows the five Source fields in order: Title, Type, Published date, Description, Private.** The published date is the app's shared date form, inline, empty on open; a blank date means the Source is undated. Private is a checkbox with the header switch's label and help, unticked on open (user, 2026-11-28). Create writes the Source with its date and Private in one step, and the page that opens shows both.
 
 The five fields are **one shared set**, drawn once. The Copy Source dialog will show the same set, filled from the original (S16-D16, a later board). This board draws only Add Source.
 
@@ -126,15 +126,15 @@ What stays: the dialog's title, subtitle, buttons and the Callouts; Title and Ty
 
 | ID | Requirement |
 | --- | --- |
-| AS-1 | **Order.** The dialog shows, under the subtitle and any Callout: **Title**, **Type**, **Published date**, **Description**, **Private**, in that order, each as a kit Field (Private as a kit Switch). These five are one shared block; annotate it "Source fields (shared with Copy Source)". |
+| AS-1 | **Order.** The dialog shows, under the subtitle and any Callout: **Title**, **Type**, **Published date**, **Description**, **Private**, in that order, each as a kit Field (Private as a kit Checkbox). These five are one shared block; annotate it "Source fields (shared with Copy Source)". |
 | AS-2 | **Width.** The dialog is as wide as the Source date dialog (560 pt), so the date form sits in it at its drawn width. Title, Type and Description take the dialog's field width. |
 | AS-3 | **Published date.** A Field labelled **Published date** with the hint "Optional — leave blank for an undated Source", holding the shared date form inline, empty on open (Kind Point, no qualifier, empty fields, More options closed). Draw it at the same size as in the date dialog. The form takes no focus on open: Title keeps it. |
-| AS-4 | **Reads as.** Pick one: **(A)** the date dialog's "Reads as" strip shows under the form, inside the Published date Field, once the date parses (a range too), and is hidden while the date is blank or does not parse; **(B)** no strip on Add Source. Recommendation: **A**, the same strip as the date dialog, so the researcher sees the date as the page will show it. |
+| AS-4 | **Reads as.** The date dialog's "Reads as" strip shows under the form, inside the Published date Field, once the date parses (a range too), and is hidden while the date is blank or does not parse (board: A). |
 | AS-5 | **A date that does not parse.** The form's own field errors show as they do today. When the date does not parse and no field error shows, one line under the form says why Create is disabled: **"This date isn't complete. Finish it or clear its fields."** (the Field's error, danger ink). Create is disabled while the date does not parse, whatever Title and Type say. The line follows the same display rule as Title and Type: not on open. |
 | AS-6 | **Description** keeps today's field, label and hint, now after the date. |
-| AS-7 | **Private.** The Source page header's switch, drawn the same way: a kit Switch labelled **Private**, its help as the tooltip ("Private Sources will be kept out of sharing. Nothing else changes yet."), off on open, at the leading edge under Description. It is one piece shared with the header (the same label, help and look), not a copy. |
-| AS-8 | **Create.** Create source writes the Source with the date (if not blank) and Private. The dialog then closes and the new Source's page opens, as today: its header shows the date and Private on. A blank date and Private off create the Source exactly as today. While Create runs, every field is disabled. |
-| AS-9 | **Dirty.** The dialog asks before it closes when Title, Description or the date has anything typed, a type was picked by the researcher, or Private is on. The Kind or Qualifier changed alone, with nothing typed, is not dirty. |
+| AS-7 | **Private.** A kit Checkbox labelled **Private**, the header switch's help as its description ("Private Sources will be kept out of sharing. Nothing else changes yet."), unticked on open, under Description. A choice in a form saved later is a Checkbox, as the kit's Switch says; the Source page header keeps its Switch (user, 2026-11-28). |
+| AS-8 | **Create.** Create source writes the Source with the date (if not blank) and Private. The dialog then closes and the new Source's page opens, as today: its header shows the date and Private on. A blank date and Private unticked create the Source exactly as today. While Create runs, every field is disabled. |
+| AS-9 | **Dirty.** The dialog asks before it closes when Title, Description or the date has anything typed, a type was picked by the researcher, or Private is ticked. The Kind or Qualifier changed alone, with nothing typed, is not dirty. |
 | AS-W1 | **Wide.** The dialog is a modal over the Sources list; at Wide it is the same 560 pt dialog, centered over the list. Nothing moves between widths. |
 
 ### 4.1 Wide layout
@@ -152,13 +152,13 @@ Draw over the Sources list at Regular (pane 1102 × 900), the list dimmed behind
 | Frame | Requirement | What it shows |
 | --- | --- | --- |
 | 0 | — | Today's dialog (Title, Type, Description), drawn from § 1 as the starting point only |
-| 1a / 1b | AS-1 – AS-3, AS-6, AS-7, AS-W1 | The dialog on open: Title focused and empty, Type empty, the date form blank, Description empty, Private off. Regular and Wide |
-| 2 | AS-1, AS-3, AS-4, AS-7 | Filled: Title "1880 census, Ward 4, Altona", Type Census, the date 1 Jun 1880 (Point, exact), Description "Enumeration district 12", Private on; the Reads as strip (option A) |
+| 1a / 1b | AS-1 – AS-3, AS-6, AS-7, AS-W1 | The dialog on open: Title focused and empty, Type empty, the date form blank, Description empty, Private unticked. Regular and Wide |
+| 2 | AS-1, AS-3, AS-4, AS-7 | Filled: Title "1880 census, Ward 4, Altona", Type Census, the date 1 Jun 1880 (Point, exact), Description "Enumeration district 12", Private ticked; the Reads as strip (option A) |
 | 3 | AS-3 | A range: Kind Range, from 1879 to 1880, the end row shown |
 | 4 | AS-5 | A date that does not parse with a field error: month 13, the form's own error under the month, Create disabled |
 | 5 | AS-5 | A date that does not parse with no field to blame: the phrase "Spring 1880" and a time zone in More options, no year; the AS-5 line under the form, Create disabled |
 | 6 | AS-8 | The new Source's page header after Create from frame 2: the calendar icon and "1 Jun 1880", and Private on (draw only the header row, as S15-D1 frame 1a has it) |
-| 7 | AS-9 | Cancel with Private on and nothing else entered: the kit's discard confirm |
+| 7 | AS-9 | Cancel with Private ticked and nothing else entered: the kit's discard confirm |
 | 8 | AS-2, AS-3 | More options open on a range: the dialog body scrolling inside the window at Regular |
 
 Under each frame, note what the board changed from today's dialog.
@@ -170,17 +170,17 @@ Under each frame, note what the board changed from today's dialog.
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
 | Add Source dialog | Snowflake | Extend | `macos/App/Features/Sources/SourcesListView.swift` `SourcesAddDialog` | The FormDialog host; its form becomes the Callouts and the shared Source fields. Width 560 (AS-2) |
-| Form dialog | Component | Ship | `macos/App/DesignSystem/Components/FormDialog/PVFormDialog.swift` | Width, dirty confirm, the buttons' running state and the scrolling body are the kit's; the dialog disables its own fields while Create runs, as the date and Copy dialogs do |
+| Form dialog | Component | Ship | `macos/App/DesignSystem/Components/FormDialog/PVFormDialog.swift` | Width, dirty confirm, the running state and the scrolling body are the kit's; from S16-73 the kit also disables the form's fields while it runs, for every form dialog (user, 2026-11-28) |
 | Source fields | Snowflake | New | `macos/App/Features/Sources/` (the S16-73 plan names the file) | The five fields of AS-1 as one view, used by Add Source now and Copy Source from S16-74. It composes the pieces below; it draws no field of its own |
 | Title and Type fields | Snowflake | Ship | `macos/App/Features/Sources/SourceTitleTypeFields.swift` `SourceTitleTypeFields` | Title (Field + Input) and Type (Field + ComboBox) with their display rule, unchanged |
 | Date form | Snowflake | Ship | `macos/App/Features/Dates/DateValueEditorForm.swift` `DateValueEditorForm` | The shared date form, inline in a Field (AS-3); not redrawn |
 | Date block | Snowflake | Extend | `macos/App/Features/Sources/SourceDateDialog.swift` (`SourceDateForm`'s form and `readsAs`, private today) | The date form and, if AS-4 is A, the Reads as strip under it (a sunken Card, micro caps "Reads as", the date as the header words it) become one small view that the date dialog and the Source fields both draw; S15-D23's marks control joins it later |
 | Date error line | Component | Ship | `PVField` `error:` | AS-5's line is the Published date Field's error, not a Callout and not a new control; its words belong to the date form, beside its other date errors, so the date dialog can show the same line later |
 | Description field | Snowflake | Ship | today's Field + Input in `SourcesAddDialog` | Moves into the Source fields, same label and hint |
-| Private switch | Snowflake | Extend | `macos/App/Features/Sources/SourcePageIdentityHeader.swift` (`privateSwitch`, private today) | Becomes one small Source-private switch view (label, help, identifier) that the page header and the Source fields both draw; the kit Switch (`PVSwitch`) underneath. The kit says a choice in a form saved later is a Checkbox; this form mirrors the page's stored switch, so it draws the same Switch (an exception the user confirms) |
+| Private checkbox | Component | Extend | `macos/App/DesignSystem/Components/Checkbox/PVCheckbox.swift` `PVCheckbox` | The sheet's Private (AS-7), with the header switch's label and help as its description; the checkbox gains dimming when its form is disabled. The header's `PVSwitch` is unchanged |
 | Copy | — | Extend | `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings` | New: the "Published date" label, its hint, the AS-5 line. Reused: Title, Type, Description, the Private label and help |
 
-**Non-goals.** No new kit primitive, no new date control, no new switch, no Callout for the date error, no disclosure that hides the date form, no second Private switch drawn differently from the header's.
+**Non-goals.** No new kit primitive, no new date control, no Callout for the date error, no disclosure that hides the date form, no Switch for Private on the sheet.
 
 ---
 

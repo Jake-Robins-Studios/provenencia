@@ -1,11 +1,11 @@
 # S16-73 — Add Source takes the Published date and Private
 
-**Status:** Blocked — on board S16-D15
+**Status:** Planned
 **Spike / slice:** Spike 16 · Slice 8a — The Add and Copy Source sheets
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S16-D15](../design/S16-D15-add-source-fields.md), board not drawn yet
-**Board:** — (to be drawn on [Claude Design — Source Detail](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK), page *Source page*, row "S16-D15 · Add Source"). §6 macOS describes each frame in words, so the implementer does not need to open the board
-**Depends on:** S16-D15 (board)
+**Brief:** [S16-D15](../design/S16-D15-add-source-fields.md), board agreed 2026-11-28
+**Board:** [Claude Design — Source Detail](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK), page *Dialogs*, section "Add Source" (frames `add-today` 0, `add-open` 1a, `add-open-wide` 1b, `add-filled` 2, `add-range` 3, `add-field-error` 4, `add-incomplete` 5, `add-created` 6, `add-discard` 7, `add-more` 8); read it with the Artifact tool's `read`, `path` "project/Source.dc.html", near `S16-D15`. §6 macOS describes each frame in words, so the implementer does not need to open it. Where the plan and the board differ, the plan wins (user, 2026-11-28): Private is a checkbox, not the board's switch (D-12); frame 5's phrase-only date is valid in the app (the board's stand-in check is simpler than `DateValueDraft.isValid`), so the AS-5 example is a phrase with a time zone
+**Depends on:** S16-D15 (agreed 2026-11-28)
 **Blocks:** S16-74
 **Branch:** `s16-73-add-source-date-and-private`
 **Version bump:** minor, 0.50.1 → 0.51.0 at the base — Add Source gains two fields, and `CreateSourceRequest` gains two fields that old clients can leave out ([`docs/versioning.md`](../../../versioning.md))
@@ -14,7 +14,7 @@
 **Context:** map scope entry [S16-73](../deployment-plan.md#s16-73--add-source-takes-the-published-date-and-private); working rules "(Batch 8) The Add and Copy sheets share one set of Source fields" and "(Batch 8) A new Source and its parts are one write through one composer"; bar 44; [`docs/source-layer-data-model.md`](../../../source-layer-data-model.md) (the `sources` table, § 4.2 Copy Source)
 **Runs on:** macOS with Xcode, `protoc`, `protoc-gen-go` and `protoc-gen-swift` (STEP-2's generation, the Swift steps and §10). STEP-1 and STEP-2's Go tests run anywhere with Go; without the proto tools, stop at STEP-2 and report: generated files are never written by hand
 **Planned:** 2026-11-28 against `main` @ `9550775`
-**Review:** [`S16-73-add-source-date-and-private.review.md`](S16-73-add-source-date-and-private.review.md) — Fits with changes / Ready with changes, 2 rounds; every blocker Fixed or To user (four To user items open)
+**Review:** [`S16-73-add-source-date-and-private.review.md`](S16-73-add-source-date-and-private.review.md) — Fits with changes / Ready with changes, 2 rounds; every blocker Fixed, every To user item answered (2026-11-28)
 
 ### Implementer — read this first
 
@@ -39,13 +39,13 @@ A researcher adding a Source often knows when the record was published and wheth
 
 ## 2. User stories
 
-**US-1.** As a researcher, when I add a Source, I enter its published date and turn on Private in the same dialog, so the new Source starts complete.
+**US-1.** As a researcher, when I add a Source, I enter its published date and tick Private in the same dialog, so the new Source starts complete.
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-1.1 | Add Source opens | Title (focused), Type, Published date (the date form, blank), Description, Private (off), in that order; the dialog is 560 pt wide |
-| AC-1.2 | Title "1880 census, Ward 4", Type Census, date Point 1 Jun 1880, Private on → Create | The new Source's page header shows "1 Jun 1880" and Private on; the Sources table's Published column shows the date; one `create_source` audit row |
-| AC-1.3 | Same, date left blank, Private off | The Source is undated and public, exactly as a create today |
+| AC-1.1 | Add Source opens | Title (focused), Type, Published date (the date form, blank), Description, Private (a checkbox, unticked, its help under it), in that order; the dialog is 560 pt wide |
+| AC-1.2 | Title "1880 census, Ward 4", Type Census, date Point 1 Jun 1880, Private ticked → Create | The new Source's page header shows "1 Jun 1880" and its Private switch on; the Sources table's Published column shows the date; one `create_source` audit row |
+| AC-1.3 | Same, date left blank, Private unticked | The Source is undated and public, exactly as a create today |
 | AC-1.4 | Date Range 1879 to 1880 → Create | The Source's date is that range |
 | AC-1.5 | A date that parses | The "Reads as" strip under the form shows it as the header will ("1 Jun 1880"); a blank or broken date shows no strip |
 
@@ -62,8 +62,15 @@ A researcher adding a Source often knows when the record was published and wheth
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-3.1 | Only Private turned on → Cancel | The discard confirm shows |
+| AC-3.1 | Only Private ticked → Cancel | The discard confirm shows |
 | AC-3.2 | Only a year typed → Cancel | The discard confirm shows |
+
+**US-5.** As a researcher, while a dialog saves, I cannot change what it is saving.
+
+| AC | Given / when | Then |
+| --- | --- | --- |
+| AC-5.1 | Add Source, Create pressed, the write still running | Every field, the Private checkbox and the date form are disabled and dimmed |
+| AC-5.2 | Move to another Source, Move pressed, still running | Its fields are disabled, as the Copy sheet's are today |
 
 **US-4.** As the engine, a create carries the date and the switch, and an old request means what it meant.
 
@@ -83,8 +90,8 @@ A researcher adding a Source often knows when the record was published and wheth
 | Published date inline (AS-3), Reads as (AS-4) | STEP-5, STEP-6, AC-1.1, AC-1.4, AC-1.5 |
 | The date-error line (AS-5) and the draft's date validation | STEP-4, STEP-6, AC-2.1 – AC-2.4 |
 | Description moved into the shared view (AS-6) | STEP-6, AC-1.1 |
-| The Private switch view shared with the header (AS-7) | STEP-5, STEP-6, AC-1.2 |
-| Create sends both (AS-8); fields disabled while it runs | STEP-3, STEP-4, STEP-7, AC-1.2, AC-1.3 |
+| Private as a kit checkbox (AS-7); `PVCheckbox` dims when disabled | STEP-5, STEP-6, AC-1.2 |
+| Create sends both (AS-8); `PVFormDialog` disables its form while it runs, for every host | STEP-3, STEP-4, STEP-5, STEP-7, AC-1.2, AC-1.3, AC-5.1, AC-5.2 |
 | Dirty (AS-9) | STEP-4, AC-3.1, AC-3.2, AC-2.4 |
 | 560 pt, same at Wide (AS-2, AS-W1) | STEP-7, §10 |
 | `sourcecopy` package doc, `source-layer-data-model.md` | STEP-8 |
@@ -97,7 +104,7 @@ A researcher adding a Source often knows when the record was published and wheth
 | Metadata, credibility or Artifacts on Add Source | not planned |
 | A Clear date button on Add Source (the form is blank on open) | S16-74 (the Copy sheet starts filled), if its board draws one |
 | Changing the date form or the Source date dialog's look | not planned |
-| `PVCheckbox`, `PVRadio`, `PVCopyPartTick` dimming under `.disabled(_:)`; the 0.5 vs `PVHoverEffect`'s 0.45 disabled opacity | [`docs/ideas/kit-layering.md`](../../../ideas/kit-layering.md) (a line added in STEP-8) |
+| `PVSwitch`, `PVRadio`, `PVCopyPartTick` dimming under `.disabled(_:)`; the 0.5 vs `PVHoverEffect`'s 0.45 disabled opacity | [`docs/ideas/kit-layering.md`](../../../ideas/kit-layering.md) (a line added in STEP-8) |
 
 ## 4. Current state
 
@@ -116,7 +123,9 @@ A researcher adding a Source often knows when the record was published and wheth
 | Date form | `macos/App/Features/Dates/DateValueEditorForm.swift` `DateValueEditorForm` | Shows its own field errors (`cascadeFieldError(start:)`, `endError`); takes no focus unless given `yearFocus` |
 | Date draft | `macos/App/Platform/DateValueDraft.swift` `DateValueDraft` `isBlank`, `isValid`, `toInput()` | `isBlank` ignores kind, qualifier and time zones; nothing says whether the form is showing an error |
 | Reads as | `macos/App/Features/Sources/SourceDateDialog.swift` `SourceDateForm.readsAs`, `showsReadsAs` | Private to the date dialog |
-| Private switch | `macos/App/Features/Sources/SourcePageIdentityHeader.swift` `privateSwitch` | Private to the header: `PVSwitch` + `L10n.Sources.privateSwitch` + `.help(privateSwitchHelp)` + `.fixedSize()` + identifier `sources.page.private` |
+| Private switch | `macos/App/Features/Sources/SourcePageIdentityHeader.swift` `privateSwitch` | The header's immediate switch; stays as it is. Its strings `L10n.Sources.privateSwitch` and `privateSwitchHelp` are reused by the sheet's checkbox |
+| Form dialog | `macos/App/DesignSystem/Components/FormDialog/PVFormDialog.swift` `PVFormDialogContent.formBody`, `PVFormDialogControls` | `isRunning` disables only Cancel and Confirm; hosts disable their own fields: `SourceCopyDialog.swift:63`, `ArtifactSheet.swift:90`, `SourceDateDialog.swift:52` and `:86`, `SourceGraphFormDialog.swift:83`, `SourceTypeAddDialog.swift:84`, `SourceTypeCopyDialog.swift:62`, `CitationMetadataSheet.swift:58` (all `.disabled(model.isSaving)`, the same flag they pass as `isRunning`). Hosts that pass `isRunning` and disable nothing: `PropertiesView` (`:736`), `SourceMoveDialog`, `SourcePageView` (three dialogs), `EvidenceGraphView`, `CitationComposerView` (five dialogs). `SourceTypePageView.swift:211` and `:237` disable a page form, not a dialog |
+| Checkbox | `macos/App/DesignSystem/Components/Checkbox/PVCheckbox.swift` `PVCheckbox` | `.opacity(isDisabled ? 0.5 : 1)` only: inside a `.disabled` container it refuses clicks but does not dim |
 | Tests | `api/ffi/handlers/sources_test.go` `TestCreateSourceAndWorkspace`; `core/database/sources/sources_test.go` `TestSources`, `TestSourcePublic`; `core/database/sourcecopy/sourcecopy_test.go` `TestCopy`; `macos/ProvenenciaTests/SourcesModelTests.swift` `draftValidation`, `canSubmitAddFollowsValidation`, `createReturnsSourceAndRefreshesList`, `cancelAddDoesNotCreate`; `EvidenceGraphStoreTests.swift` `createSourceMakesADefaultGraph`, `CatalogCountsTests.swift` (FakeStore `createSource` callers) | Cover today's three fields; no Swift test runs `GoStore` against the engine, so `GoStore`'s mapping is checked by §10 |
 
 **Precedent.** `SetSourceDate` in `api/ffi/handlers/sources.go` reads the optional date with `valuecodec.OptionalDateFromProto` and maps it in `GoStore.setSourceDate` with `Self.mapDateValueToProto`: copy both. `sources.Create`'s `description` field in the created change (set only when non-empty) is the shape for `is_public` (set only when private). The citation composer puts `DateValueEditorForm` inline (`macos/App/Features/CitationComposer/CitationComposerAuthoringBox.swift`, `case .date`): copy how it passes the draft binding and an identifier prefix, without its `yearFocus` and without its sunken box.
@@ -135,14 +144,14 @@ A researcher adding a Source often knows when the record was published and wheth
 | D-8 | The date line needs no stored error and no "after first edit" flag: the date is blank on open, so it cannot be incomplete before the researcher types | AS-5's "not on open" holds by construction | A `dateError` stored on the model beside `titleError` — state that never differs from the derived value |
 | D-9 | `addSheetIsDirty` is also true when `draft.date.value != nil` or `draft.isPrivate`, checked beside the title and description, before the sole-type early return. A date's edit is a change of `value`, never of the whole `DateValueDraft` (which also holds `showAdvanced`, `showStartTime`, `showEndTime`); S16-74's Copy dirty compares `value` the same way | AS-9; kind or qualifier alone, or opening More options, is not an edit | Comparing whole `DateValueDraft`s — opening More options would ask to discard |
 | D-10 | `create()` sends `date: draft.date.value` and `isPrivate: draft.isPrivate`; validation has already refused an incomplete date | A blank form is undated (rule) | Sending a blank input with a kind — the engine would store an empty date |
-| D-11 | The shared view is `SourceFields` *(new)*, `macos/App/Features/Sources/SourceFields.swift`. It composes `SourceTitleTypeFields`, the date `PVField`, the Description `PVField`, and `SourcePrivateSwitch`. `SourceTitleTypeFields` stays a separate view because the Copy sheet uses it until S16-74 | The rule lets the plan name it; a sibling keeps Copy unchanged in this PR | Growing `SourceTitleTypeFields` — the Copy sheet would show three new fields that write nothing |
-| D-12 | `SourcePrivateSwitch` *(new)*, `macos/App/Features/Sources/SourcePrivateSwitch.swift`: `isOn: Binding<Bool>`, `accessibilityIdentifier: String`; it draws `PVSwitch(L10n.Sources.privateSwitch…)`, `.fixedSize()`, `.help(L10n.string(L10n.Sources.privateSwitchHelp))`. `PVSwitch` loses its `isDisabled:` parameter on all three inits and dims from `@Environment(\.isEnabled)` alone (its 0.5 opacity kept); its preview uses `.disabled(true)`. The header draws `SourcePrivateSwitch(isOn:…, accessibilityIdentifier: "sources.page.private").disabled(model.identity.pendingPrivate != nil)` | Rule: one Source-private switch view the header and the shared fields both draw; one disable channel, so the Add form's `.disabled(isSaving)` dims it | An `isDisabled` parameter beside `.disabled` — two channels, and the header is its only caller |
-| D-13 | `SourceDateEditor` *(new)*, `macos/App/Features/Sources/SourceDateEditor.swift`: `DateValueEditorForm` then the Reads as card (today's `SourceDateForm.readsAs` look), the card shown when `draft.isValid` and `SourceDateText.line(draft.value)` is non-nil, with that line as its text. Inputs: `draft: Binding<DateValueDraft>`, `accessibilityIdentifierPrefix`, `yearFocus: PVFieldFocus? = nil`. `SourceDateForm` (the dialog) and `SourceFields` both draw it; the dialog's `showsReadsAs` and its `!model.clears` term go (`clear()` empties the draft, so `clears` implies blank). Identifier of the card: `<prefix>.readsAs` (the dialog keeps `sources.page.sourceDate.readsAs`) | AS-4 option A (recommended; see Open questions); one date block, so S15-42's control and empty-date flag land in one view for the dialog and both sheets; the Source date's wording has one helper (`SourceDateText`) | Extracting only the strip — S15-42 would change two hosts; `DateRowDisplay.line` directly — a second path beside `SourceDateText` |
+| D-11 | The shared view is `SourceFields` *(new)*, `macos/App/Features/Sources/SourceFields.swift`. It composes `SourceTitleTypeFields`, the date `PVField`, the Description `PVField`, and the Private checkbox (D-12). `SourceTitleTypeFields` stays a separate view because the Copy sheet uses it until S16-74 | The rule lets the plan name it; a sibling keeps Copy unchanged in this PR | Growing `SourceTitleTypeFields` — the Copy sheet would show three new fields that write nothing |
+| D-12 | Private on the sheet is a kit checkbox: `PVCheckbox(L10n.Sources.privateSwitch, description: L10n.Sources.privateSwitchHelp, isChecked: $draft.isPrivate)` with identifier `<prefix>.private`. The Source page header keeps its `PVSwitch` unchanged. `PVCheckbox` dims at `isDisabled \|\| !isEnabled` (it reads `@Environment(\.isEnabled)`; today it dims only on its parameter), so it dims inside the running form (D-15) | `PVSwitch`'s doc: a choice in a form that is saved later is a `PVCheckbox` (user, 2026-11-28, over the board's switch); the help is the checkbox's visible description, since a form shows its hints | The header's switch on the sheet — a control that reads as saved at once; the help as a tooltip — hidden in a form |
+| D-13 | `SourceDateEditor` *(new)*, `macos/App/Features/Sources/SourceDateEditor.swift`: `DateValueEditorForm` then the Reads as card (today's `SourceDateForm.readsAs` look), the card shown when `draft.isValid` and `SourceDateText.line(draft.value)` is non-nil, with that line as its text. Inputs: `draft: Binding<DateValueDraft>`, `accessibilityIdentifierPrefix`, `yearFocus: PVFieldFocus? = nil`. `SourceDateForm` (the dialog) and `SourceFields` both draw it; the dialog's `showsReadsAs` and its `!model.clears` term go (`clear()` empties the draft, so `clears` implies blank). Identifier of the card: `<prefix>.readsAs` (the dialog keeps `sources.page.sourceDate.readsAs`) | AS-4 option A (board, 2026-11-28); one date block, so S15-42's control and empty-date flag land in one view for the dialog and both sheets; the Source date's wording has one helper (`SourceDateText`) | Extracting only the strip — S15-42 would change two hosts; `DateRowDisplay.line` directly — a second path beside `SourceDateText` |
 | D-14 | Identifiers: `sources.add.date` (the form's prefix), `sources.add.date.readsAs`, `sources.add.private`. The error line gets none: `PVField` draws it through `PVErrorText` with no identifier, and the tests read `validation.dateError`. `SourceFields` takes the `accessibilityIdentifierPrefix` that `SourceTitleTypeFields` takes and builds these from it; the description keeps `sources.add.description` | S16-74 passes `sources.copy` | Fixed `sources.add.*` strings in `SourceFields` |
-| D-15 | `SourceFields.dialogWidth = 560` *(new)*; `SourcesAddDialog` and `SourceDateDialogModifier` pass it as `width:`. `SourcesAddDialog` puts `.disabled(model.isSaving)` on `SourceFields`, as the date and Copy dialogs disable their forms today | AS-2, AS-8; one width the brief says must match | Two `560` literals |
+| D-15 | `PVFormDialog` disables its form body while it runs: `formBody` (both its scrolling and plain branches) wears `.disabled(isRunning)`. The host copies of that line go (Deletes); every other `pvFormDialog` host that passes `isRunning` now has its fields disabled while it runs, as the sheets that did it by hand do. `SourceFields.dialogWidth = 560` *(new)*; `SourcesAddDialog` and `SourceDateDialogModifier` pass it as `width:` | AS-2, AS-8; the running state is the kit's, one line for every host (user, 2026-11-28) | `.disabled(model.isSaving)` on `SourceFields` — the eighth copy; two `560` literals |
 | D-16 | `FakeStore.createSource` sets `source.date = date`, `source.dateSortKey = date == nil ? nil : nextSourceDateSortKey`, `source.isPublic = !isPrivate` | The fake's two date writers agree (`setSourceDate` uses `nextSourceDateSortKey`) | Leaving the sort key nil |
 
-**Rules this plan bends.** `macos/App/DesignSystem/Components/Switch/PVSwitch.swift` doc: "For a choice inside a form that is saved later, use ``PVCheckbox``." D-12 and the working rule "(Batch 8) The Add and Copy sheets share one set of Source fields" draw the header's switch in a form saved on Create → a form field that mirrors a stored switch on a page draws the same switch → **user's answer pending** (Open question 3) → STEP-5 adds that exception to the doc.
+**Rules this plan bends.** None. The working rule "(Batch 8) The Add and Copy sheets share one set of Source fields" said the sheets draw the header's switch; the user changed it to a checkbox (2026-11-28), and the map's rule is amended in this PR's planning commit.
 
 ## 6. Design
 
@@ -153,15 +162,14 @@ A researcher adding a Source often knows when the record was published and wheth
 | `CreateSourceRequest.date`, `.is_private` *(new)* | proto fields | `SetSourceDateRequest.date`, `SetSourcePublicRequest.is_public` | Extends the existing request; same message types |
 | `sources.CreateInput.Private` *(new)* | field | `sources.SetPublic` | `SetPublic` is an update of an existing row (D-2) |
 | `SourceFields` *(new)*, `SourceFields.dialogWidth` *(new)* | view, constant | `SourceTitleTypeFields` | Kept for Copy until S16-74 (D-11); composed, not copied |
-| `SourcePrivateSwitch` *(new)* | view | `SourcePageIdentityHeader.privateSwitch` | Extracted from it (D-12) |
 | `SourceDateEditor` *(new)* | view | `SourceDateForm` (form + `readsAs`) | Extracted from it, so the dialog and both sheets draw one date block (D-13) |
 | `DateValueDraft.shownError(start:)`, `.incompleteError`, `.value` *(new)* | properties | `cascadeFieldError(start:)`, `endError`, `isBlank`, `toInput()`; `CitationObservationValue.invalidDate` | The form's display rule and the blank/valid/value split in one place (D-7); the composer's message is about several Observations, not one date |
 | `SourceDraftValidation.dateError` *(new)* | field | `titleError`, `typeError` | Extends the one validation (D-6) |
 | `L10n.Sources.formPublishedDate`, `formPublishedDateHint`, `dateIncompleteError` *(new)* | keys | `formTitle`, `formDescription`, `dateRangeOrderError` | Same namespace; the date message sits with the date form's messages |
 
-**Builds on.** `sourcecopy.CreateFromDraft` (the one composer), `valuecodec.OptionalDateFromProto`, `GoStore.mapDateValueToProto`, `DateValueEditorForm`, `PVField`, `PVSwitch`, `PVFormDialog`.
-**Deletes.** `SourcesAddDialog`'s own Description `PVField` (moves into `SourceFields`); `SourcePageIdentityHeader.privateSwitch`; `SourceDateForm.readsAs`, `showsReadsAs` and its `!model.clears` term; the inline error `if` chain in `DateValueEditorForm.cascadeSection(start:)` (it reads `shownError`); the literal `width: 560` in `SourceDateDialog.swift`; `PVSwitch`'s `isDisabled:` parameter (D-12). `CreateSource`'s direct `sources.Create` call.
-**Next adds.** S16-74 calls `SourceFields` from `SourceCopyDialog` with the original's draft and `sources.copy`, and sends the date and Private through the same composer; `SourceTitleTypeFields` may then fold into `SourceFields`. S15-42's marks control and empty-date flag go into `SourceDateEditor`, so the date dialog and both sheets gain them from one view. Add Source sends no mark here (working rule); the create request's `date_mark` (into `sourcecopy.Draft.DateMark`), `SourcesModel.Draft`'s mark and `createSource`'s parameter belong to S15-42 if the user agrees (review log, To user). The date dialog can adopt `incompleteError` for its silent disabled Save (logged in the review).
+**Builds on.** `sourcecopy.CreateFromDraft` (the one composer), `valuecodec.OptionalDateFromProto`, `GoStore.mapDateValueToProto`, `DateValueEditorForm`, `PVField`, `PVCheckbox`, `PVFormDialog`.
+**Deletes.** `SourcesAddDialog`'s own Description `PVField` (moves into `SourceFields`); the eight host `.disabled(model.isSaving)` lines named in §4 Form dialog (the kit does it); `SourceDateForm.readsAs`, `showsReadsAs` and its `!model.clears` term; the inline error `if` chain in `DateValueEditorForm.cascadeSection(start:)` (it reads `shownError`); the literal `width: 560` in `SourceDateDialog.swift`. `CreateSource`'s direct `sources.Create` call.
+**Next adds.** S16-74 calls `SourceFields` from `SourceCopyDialog` with the original's draft and `sources.copy`, and sends the date and Private through the same composer; `SourceTitleTypeFields` may then fold into `SourceFields`. S15-42's marks control and empty-date flag go into `SourceDateEditor`, so the date dialog and both sheets gain them from one view. Add Source sends no mark here (working rule); the create request's `date_mark` (into `sourcecopy.Draft.DateMark`), `SourcesModel.Draft`'s mark and `createSource`'s parameter belong to S15-42 (user, 2026-11-28; Spike 15's map says so). The date dialog can adopt `incompleteError` for its silent disabled Save (logged in the review).
 
 ### Reach
 
@@ -217,14 +225,15 @@ Handler `api/ffi/handlers/sources.go` `CreateSource` per D-3. Regenerate with `.
 
 | Building block | Component | Home | Notes |
 | --- | --- | --- | --- |
-| Add Source dialog | `PVFormDialog` | `SourcesListView.swift` `SourcesAddDialog` | `width: SourceFields.dialogWidth`; form = the Callouts, then `SourceFields(…).disabled(model.isSaving)` (D-15) |
-| Source fields | snowflake | `SourceFields.swift` *(new)* | `VStack(spacing: PVSpacing.space6)`: `SourceTitleTypeFields`; `PVField(label: formPublishedDate, hint: formPublishedDateHint, error: draft.validation.dateError)` holding `SourceDateEditor(draft: $draft.date, accessibilityIdentifierPrefix: "\(prefix).date")` with no `yearFocus`; `error:` is `draft.validation.dateError` (its Reads as card sits inside the `PVField` content, above the field's error; the card shows only for a valid date and the error only for an incomplete one, so they never show together); `PVField(label: formDescription, hint: formDescriptionHint)` + `PVInput(text: $draft.description)`; `SourcePrivateSwitch(isOn: $draft.isPrivate, accessibilityIdentifier: "\(prefix).private")`. Inputs: `@Binding draft`, `@Binding titleError`, `@Binding typeError`, `types`, `accessibilityIdentifierPrefix` |
+| Add Source dialog | `PVFormDialog` | `SourcesListView.swift` `SourcesAddDialog` | `width: SourceFields.dialogWidth`; form = the Callouts, then `SourceFields(…)`; the kit disables it while Create runs (D-15) |
+| Source fields | snowflake | `SourceFields.swift` *(new)* | `VStack(spacing: PVSpacing.space6)`: `SourceTitleTypeFields`; `PVField(label: formPublishedDate, hint: formPublishedDateHint, error: draft.validation.dateError)` holding `SourceDateEditor(draft: $draft.date, accessibilityIdentifierPrefix: "\(prefix).date")` with no `yearFocus`; `error:` is `draft.validation.dateError` (its Reads as card sits inside the `PVField` content, above the field's error; the card shows only for a valid date and the error only for an incomplete one, so they never show together); `PVField(label: formDescription, hint: formDescriptionHint)` + `PVInput(text: $draft.description)`; the Private `PVCheckbox` (D-12). Inputs: `@Binding draft`, `@Binding titleError`, `@Binding typeError`, `types`, `accessibilityIdentifierPrefix` |
 | Date form | `DateValueEditorForm` | `macos/App/Features/Dates/` | Unchanged |
 | Date block | `DateValueEditorForm` + `PVCard(tone: .sunken)` | `SourceDateEditor.swift` *(new)* | D-13 |
-| Private switch | `PVSwitch` | `SourcePrivateSwitch.swift` *(new)* | D-12 |
-| Previews | `#Preview` | `SourceFields.swift` | Frames 1 (blank), 2 (filled, Private on, Reads as), 4 (month 13), 5 (the AS-5 line), each over a `FakeStore` type list at 560 pt |
+| Private | `PVCheckbox` | `SourceFields.swift` | D-12; the label "Private", the help as its description |
+| Running form | `PVFormDialog` | `PVFormDialog.swift` | D-15 |
+| Previews | `#Preview` | `SourceFields.swift` | Frames 1 (blank), 2 (filled, Private ticked, Reads as), 4 (month 13), 5 (the AS-5 line), each over a `FakeStore` type list at 560 pt |
 
-**Frames in words** (brief § 5). 1: on open, Title focused and empty, Type empty, the date form blank (Point, no qualifier, More options closed), Description empty, Private off. 2: Title "1880 census, Ward 4, Altona", Type Census, the date 1 Jun 1880, the Reads as strip "1 Jun 1880", Description "Enumeration district 12", Private on. 3: a range 1879 to 1880 with the Latest row. 4: month 13, the form's month error, Create disabled. 5: phrase "Spring 1880" with a time zone, the AS-5 line in danger ink under the form, Create disabled. 6: the new Source's header with the date and Private on. 7: Cancel with only Private on asks to discard. 8: More options on a range, the body scrolling.
+**Frames in words** (brief § 5). 1: on open, Title focused and empty, Type empty, the date form blank (Point, no qualifier, More options closed), Description empty, the Private checkbox off with its help line under it. 2: Title "1880 census, Ward 4, Altona", Type Census, the date 1 Jun 1880, the Reads as strip "1 Jun 1880", Description "Enumeration district 12", Private checked. 3: a range 1879 to 1880 with the Latest row. 4: month 13, the form's month error, Create disabled. 5: phrase "Spring 1880" with a time zone, the AS-5 line in danger ink under the form, Create disabled. 6: the new Source's header with the date and its Private switch on, and the created toast. 7: Cancel with only Private checked asks to discard. 8: More options on a range, the body scrolling.
 
 States: loading types and a failed create keep today's Callouts; saving disables every field. Accessibility: the "Published date" label is read as text before the form, and the form's controls keep their own labels, as in the date dialog (the form resets `pvFieldLabel`); the AS-5 line is the field's error, read as `PVField` reads errors; the switch is spoken "Private" with its help.
 
@@ -259,10 +268,10 @@ Files: `macos/App/Platform/DateValueDraft.swift`, `macos/App/Features/Dates/Date
 Do: D-6, D-7, D-9, D-10; the three keys.
 Check: `NSUnbufferedIO=YES xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' -only-testing:ProvenenciaTests/SourcesModelTests -only-testing:ProvenenciaTests/DateValueDraftTests CODE_SIGNING_ALLOWED=NO` passes T-4 – T-7; the date dialog shows its field errors as before.
 
-**STEP-5 — Extract the Private switch and the date block.**
-Files: `macos/App/Features/Sources/SourcePrivateSwitch.swift` *(new)*, `macos/App/Features/Sources/SourceDateEditor.swift` *(new)*, `macos/App/DesignSystem/Components/Switch/PVSwitch.swift`, `SourcePageIdentityHeader.swift`, `SourceDateDialog.swift` (the project uses synchronized folders: a new file needs no `project.pbxproj` edit). Skill: `add-ui-component`.
-Do: D-12, D-13; the `PVSwitch` doc line once Open question 3 is answered. The header and the date dialog look and behave as before, with the header's switch dimmed through `.disabled` instead of its parameter.
-Check: build; existing `SourcePageModelTests` pass; the Source page's Private switch and the date dialog's Reads as strip show as before (preview or run).
+**STEP-5 — Extract the date block; the kit disables a running form and dims a disabled checkbox.**
+Files: `macos/App/Features/Sources/SourceDateEditor.swift` *(new)*, `SourceDateDialog.swift`, `macos/App/DesignSystem/Components/FormDialog/PVFormDialog.swift`, `macos/App/DesignSystem/Components/Checkbox/PVCheckbox.swift`, `macos/ProvenenciaTests/PVPanelFormDialogTests.swift`, and the seven host files of §4 Form dialog (the project uses synchronized folders: a new file needs no `project.pbxproj` edit). Skill: `add-ui-component`.
+Do: D-13; D-15's kit line through `PVFormDialogControls.isFormDisabled(isRunning:)` *(new)*, beside `isCancelDisabled`, and the eight host lines removed; D-12's `PVCheckbox` dimming. The date dialog looks and behaves as before.
+Check: `NSUnbufferedIO=YES xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' -only-testing:ProvenenciaTests/PVFormDialogControlsTests -only-testing:ProvenenciaTests/SourcePageModelTests CODE_SIGNING_ALLOWED=NO` passes T-8; `rg -n "\.disabled\(model\.isSaving\)" macos/App/Features` lists only `SourceTypePageView.swift`; the `PVCheckbox` preview's "Disabled" row and a row under `.disabled(true)` look the same.
 
 **STEP-6 — The shared Source fields.**
 Files: `macos/App/Features/Sources/SourceFields.swift` *(new)*, `SourceDateDialog.swift` (its width). Skill: `add-ui-component`.
@@ -271,7 +280,7 @@ Check: build; the four previews render the frames in words.
 
 **STEP-7 — Add Source shows the shared fields.**
 Files: `SourcesListView.swift`.
-Do: D-15; the form calls `SourceFields`; its own Description field goes.
+Do: D-15's width; the form calls `SourceFields`; its own Description field goes.
 Check: `scripts/check-pr.sh` stage `xcode-test` passes (the whole `ProvenenciaTests` target); §10 steps 1–4.
 
 **STEP-8 — Docs.**
@@ -292,6 +301,7 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | T-5 | Swift | `SourcesModelTests.swift` `createSendsDateAndPrivate` *(new)* | FakeStore; draft with date Point 1 Jun 1880 and `isPrivate` → created `CatalogSource` has that date and `isPublic` false; a blank draft → `date` nil, `isPublic` true | D-10, D-16, AC-1.2, AC-1.3 |
 | T-6 | Swift | `macos/ProvenenciaTests/DateValueDraftTests.swift` `shownAndIncompleteErrors` *(new test)* | month 13 → `shownError(start: true)` set, `incompleteError` nil; range 1880 to 1879 → `shownError(start: false)` set; phrase + time zone → both shown nil, `incompleteError` set; a range with only an end year → both shown nil, `incompleteError` set; blank → all nil, `value` nil; only `showAdvanced` toggled on a blank draft → `value` nil | D-7, AC-2.1, AC-2.2 |
 | T-7 | Swift | `SourcesModelTests.swift` `addSheetDirtyCountsDateAndPrivate` *(new)* | Only `isPrivate` → dirty; only a year → dirty; only `setKind("range")` or `showAdvanced` → not dirty, `canSubmitAdd` follows title and type | D-9, AC-3.1, AC-3.2, AC-2.4 |
+| T-8 | Swift | `macos/ProvenenciaTests/PVPanelFormDialogTests.swift` `PVFormDialogControlsTests.formIsDisabledWhileRunning` *(new)* | `isFormDisabled(isRunning: true)` → true; `false` → false | D-15, AC-5.1, AC-5.2 |
 
 Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `SourcesModelTests`, `SourcePageModelTests`, `EvidenceGraphStoreTests`, `CatalogCountsTests`, `TestCopy`.
 
@@ -310,7 +320,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `S
 - [ ] This plan: Status → Landed in #N (date); a Landed note lists every difference from the plan
 - [ ] deployment-plan.md: map row status; completed.md: one short paragraph of what shipped
 - [ ] Brief moved to design/archive/ and design/README.md updated (if gated)
-- [ ] Domain doc updated if a rule in docs/*.md changed: source-layer-data-model.md (creating a Source; § 4.2's composer line); the sourcecopy package and Draft docs; the PVSwitch doc (if the user accepts the exception in Rules this plan bends)
+- [ ] Domain doc updated if a rule in docs/*.md changed: source-layer-data-model.md (creating a Source; § 4.2's composer line); the sourcecopy package and Draft docs
 - [ ] PR description: what shipped, AC evidence, deviations, manual check
 ```
 
@@ -318,12 +328,12 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `S
 
 Bar 44. In a project with the seeded Source types:
 
-1. Sources → Add Source. See Title (focused), Type, Published date, Description, Private off, in that order, at 560 pt. Stretch the window past 1600 pt of pane: the dialog stays 560 pt and centered (AC-1.1).
-2. Title "1880 census, Ward 4", Type Census, Year 1880, Month June, Day 1; see "Reads as 1 Jun 1880". Turn Private on. Create. The page header shows "1 Jun 1880" and Private on; back on Sources the Published column shows the date (AC-1.2, AC-1.5).
-3. Add Source, Title "Undated", a type, nothing else. Create: the Source is undated and Private is off (AC-1.3).
+1. Sources → Add Source. See Title (focused), Type, Published date, Description, the Private checkbox unticked with its help, in that order, at 560 pt. Stretch the window past 1600 pt of pane: the dialog stays 560 pt and centered (AC-1.1).
+2. Title "1880 census, Ward 4", Type Census, Year 1880, Month June, Day 1; see "Reads as 1 Jun 1880". Tick Private. Create. The page header shows "1 Jun 1880" and its Private switch on; back on Sources the Published column shows the date (AC-1.2, AC-1.5).
+3. Add Source, Title "Undated", a type, nothing else. Create: the Source is undated and its Private switch is off (AC-1.3).
 4. Add Source: type 13 in Month: the form's month error shows, Create is disabled. Clear it; open More options, type the phrase "Spring 1880" and a time zone: the line "This date isn't complete. Finish it or clear its fields." shows. Clear the time zone: the line goes and Reads as shows the phrase (AC-2.1, AC-2.2, AC-2.3).
-5. Add Source, turn only Private on, press Cancel: the discard confirm shows (AC-3.1).
-6. On a Source page, flip Private: the switch dims until the write returns, then shows the new state (D-12). In Add Source, press Create: every field, the switch included, dims while it runs (D-15).
+5. Add Source, tick only Private, press Cancel: the discard confirm shows (AC-3.1).
+6. In Add Source, press Create: every field, the checkbox included, dims while it runs (AC-5.1). Move an Artifact to another Source: the dialog's fields are disabled while it moves (AC-5.2). Copy Source and the Source date dialog still disable their fields while saving (D-15).
 
 ## 11. Risks and stop conditions
 
@@ -334,7 +344,7 @@ Bar 44. In a project with the seeded Source types:
 
 **Stop and report if:**
 
-- The agreed board differs from AS-1 – AS-9 or AS-W1 as written in the brief (for example AS-4 is B, a different width, or a disclosure around the date): the plan is refreshed first.
+- A `pvFormDialog` host's form holds a control that must stay live while the dialog runs (a stop or cancel inside the form, a field the run reads): D-15 would disable it.
 - `sourcecopy.CreateFromDraft` writes any change for an undated, metadata-free draft beyond `sources.Create`'s (T-1 "undated" fails).
 - `DateValueEditorForm` draws a date error that does not come from `shownError(start:)` (another `PVErrorText` site in the form).
 - Putting `PVField` around `DateValueEditorForm` hides or doubles its section labels (its `.environment(\.pvFieldLabel, nil)`) in a way the previews show.
@@ -342,11 +352,7 @@ Bar 44. In a project with the seeded Source types:
 
 ## 12. Open questions
 
-1. **AS-4, the Reads as strip on Add Source.** Recommended: A (D-13). The board decides; if it picks B, `SourceFields` draws `DateValueEditorForm` directly, `SourceDateEditor` still serves the date dialog, and AC-1.5 with them.
-2. **The board's other choices.** The plan follows the brief's requirements as written; it is refreshed when the board is agreed.
-3. **The `PVSwitch` doc exception** (Rules this plan bends). Recommended: accept; the working rule already asks for the header's switch.
-4. **Form fields disabled while a dialog runs.** Seven hosts add `.disabled(model.isSaving)` to their form; `PVFormDialog` could do it once from `isRunning`, which would also disable the forms of hosts that do not today (`SourceMoveDialog`, `NameValueFormDialog`, `PropertiesView`). Recommended: a separate quick PR after this one; this plan keeps D-15's line.
-5. **Who adds the create request's date mark.** S15-42 puts the Unknown and Supplied control on this sheet's date; no PR adds `date_mark` to `CreateSourceRequest`. Recommended: S15-42 owns it (proto field, `SourcesModel.Draft`, `createSource`), and Spike 15's map says so.
+None.
 
 ## 13. PR
 

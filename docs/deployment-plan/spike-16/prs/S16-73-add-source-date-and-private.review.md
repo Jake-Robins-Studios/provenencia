@@ -1,21 +1,25 @@
 # Review — S16-73 Add Source takes the Published date and Private
 
-**Verdict:** Fits with changes — Ready with changes, every blocker Fixed or To user. Status stays Blocked on board S16-D15, with four To user items
+**Verdict:** Fits with changes — Ready with changes. Every blocker Fixed, every To user item answered (2026-11-28): Planned
 **Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
-- **M-4.** The `PVSwitch` doc says a choice in a form saved later is a `PVCheckbox`. The working rule asks for the header's Private switch on Add and Copy. Recommendation: accept the exception and add it to the `PVSwitch` doc in this PR (plan §5 Rules this plan bends, Open question 3).
-- **M-6.** Seven form dialogs disable their own fields while saving; `PVFormDialog` could do it once from `isRunning`, which also changes three dialogs that do not today. Recommendation: a separate quick PR after S16-73; this plan keeps its one `.disabled(model.isSaving)` line (Open question 4).
-- **M2-3.** S15-42 (Spike 15) puts the Unknown and Supplied control on the Add sheet's date, but no PR adds a mark to `CreateSourceRequest`, and S15-42's Context line says S16-76 does (it does not). Recommendation: S15-42 owns `ValueMark date_mark = 8` on the create request, the mark in `SourcesModel.Draft` and in `createSource`; fix S15-42's Context line in Spike 15's map. Not added here: the working rule says Add Source sends no mark.
-- **AS-4 and the board.** The plan is Blocked until S16-D15's board is agreed; AS-4 (Reads as on Add Source) is recommended A.
+All answered by the user on 2026-11-28:
+- **Board / X-1.** The board is agreed (Source Detail, page *Dialogs*, section "Add Source"). Frame 5 drew a phrase-only date as incomplete; the app's rule wins (a phrase alone is a valid date). AS-4 is A.
+- **M-4.** Use a Checkbox for Private on the sheet; the header keeps its Switch. No `PVSwitch` doc exception. D-12 rewritten, the Spike 16 working rule amended, the brief's AS-7 and inventory changed. `SourcePrivateSwitch` and the `PVSwitch` change are gone; `PVCheckbox` gains dimming under `.disabled`.
+- **M-6.** Do it in this PR: `PVFormDialog` disables its form body while running (D-15, STEP-5, T-8, US-5); the eight host lines go.
+- **M2-3.** S15-42 owns the create request's `date_mark`; Spike 15's S15-42 Context line is corrected.
+
+These changes were made after round 2 and were not re-reviewed by agents; the ship-pr review covers the code.
 
 ## Writer's own calls
 - The shared view is `SourceFields`, a sibling that composes `SourceTitleTypeFields`, so the Copy sheet is unchanged until S16-74 (D-11).
 - The new proto field is `is_private` (zero value public), not `is_public` (D-1).
 - The dialog is 560 pt, the Source date dialog's width, through one constant (D-15).
 - The date's "isn't complete" copy is a date-form string, `L10n.Sources.dateIncompleteError` beside `dateRangeOrderError` (D-7).
-- The brief is drawn on the Source Detail board beside the Copy Source row (brief header).
-- `PVSwitch` dims under `.disabled(_:)` (D-12): a visible change to every `PVSwitch` disabled through the environment.
+- The sheet's Private checkbox shows the header's help as its visible description, not a tooltip (D-12).
+- `PVCheckbox` dims under `.disabled(_:)` (D-12): a visible change to every checkbox in a disabled container.
+- The kit's form disable is tested through `PVFormDialogControls.isFormDisabled(isRunning:)`, beside `isCancelDisabled` (T-8).
 
 ## Round 1
 
