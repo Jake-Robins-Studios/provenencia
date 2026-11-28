@@ -2,8 +2,11 @@
 // the catalog graph. For every Property its members' records speak to, it
 // returns the state, every auto-reconciled value (displayed or not, with its
 // reason), and the auto-reconciler's outcome for each Observation it
-// considered, joined to the record's Source: the records a detail page's
-// provenance sheet shows.
+// considered, joined to the record's Source. FieldRecords, PersonDerivedRow and
+// ProvenanceSheet read one provenance sheet's fields with their records; each
+// field carries its record and Source counts and each outcome its denial facts,
+// so a page row needs no records. ProvenanceSheet also renders the records'
+// citations, from SQL, through citationrender.
 //
 // Field values are the node's auto-reconciler ranks, and the sheet's reconciler
 // half (reason, value rank, denied by, vote) is the node's outcome rows. Term
