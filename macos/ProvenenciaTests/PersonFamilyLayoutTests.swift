@@ -181,8 +181,11 @@ struct PersonFamilyLayoutTests {
         #expect(two.frame(of: "r-0-m0-m-jm1") == CGRect(x: 643, y: 124, width: 395, height: 21))
         #expect(two.frame(of: "r-0-m0-m-jm2") == CGRect(x: 643, y: 145, width: 395, height: 21))
         #expect(try #require(two.frame(of: "r-0-maria")).minY == 26)
-        // The children start under the line, the left column's rule.
-        #expect(try #require(married.frame(of: "r-0-karl")).minY == 151)
+        // The children start a gap under the partner's last line, so it reads as hers.
+        #expect(try #require(married.frame(of: "r-0-karl")).minY == 163)
+        let lastLine = try #require(two.frame(of: "r-0-m0-m-jm2"))
+        let firstChild = try #require(two.frame(of: "r-0-karl"))
+        #expect(firstChild.minY == lastLine.maxY + PersonFamilyLayout.partnerMarriageChildGap)
 
         // A partner group with lines and no children ends at its last line, and the next group
         // starts a gap below it; the last group sets the height.

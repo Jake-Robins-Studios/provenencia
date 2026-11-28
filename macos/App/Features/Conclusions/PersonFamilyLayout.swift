@@ -103,6 +103,9 @@ struct PersonFamilyLayout: Equatable {
     /// One marriage line's height, and how far below a tile the first one starts.
     static let marriageLineHeight: CGFloat = 21
     static let marriageLineInset: CGFloat = 6
+    /// The space between a partner's last marriage line and their first child: three times
+    /// `marriageLineInset`, so the line reads as the partner's and not the child's.
+    static let partnerMarriageChildGap: CGFloat = 18
 
     static func gutter(_ widthClass: PVWidthClass) -> CGFloat {
         widthClass == .wide ? 96 : 48
@@ -247,13 +250,20 @@ struct PersonFamilyLayout: Equatable {
                 partnerCenter = top + th / 2
                 top += th
             }
+            var lastLineMaxY: CGFloat?
             for line in group.marriages {
-                items.append(.line(PlacedLine(id: line.id, frame: CGRect(
+                let frame = CGRect(
                     x: c2 + textLeading, y: top + Self.marriageLineInset, width: tp - textLeading, height: lineHeight
-                ))))
+                )
+                items.append(.line(PlacedLine(id: line.id, frame: frame)))
+                lastLineMaxY = frame.maxY
                 top += lineHeight
             }
-            if group.partner != nil { top += Self.tileGap }
+            if let lastLineMaxY {
+                top = lastLineMaxY + Self.partnerMarriageChildGap
+            } else if group.partner != nil {
+                top += Self.tileGap
+            }
             var childCenters: [CGFloat] = []
             for child in group.children {
                 items.append(.tile(PlacedTile(id: child.id, frame: CGRect(x: childX, y: top, width: tp - Self.indent, height: th))))
