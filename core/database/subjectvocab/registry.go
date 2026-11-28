@@ -180,12 +180,12 @@ var seedProperties = []seedProperty{
 	{Key: "place_picture", Label: "Picture", Description: "A picture of this place: a region of a cited page and the image of it. More than one is allowed.", ValueType: propertymeta.ValueTypeDepiction, Cardinality: propertymeta.CardinalityMultiple},
 	{Key: "religion", Label: "Religion", Description: "Religion or denomination as recorded. More than one value is allowed. Product term vocabulary; add your own terms.", ValueType: propertymeta.ValueTypeTerm, Cardinality: propertymeta.CardinalityMultiple},
 	{Key: "languages_spoken", Label: "Languages spoken", Description: "Languages the person spoke. More than one value is allowed. Product term vocabulary; add your own terms.", ValueType: propertymeta.ValueTypeTerm, Cardinality: propertymeta.CardinalityMultiple},
-	{Key: "height", Label: "Height", Description: "Height as recorded, with its unit (5 ft 9 in, 175 cm).", ValueType: propertymeta.ValueTypeText},
-	{Key: "weight", Label: "Weight", Description: "Weight as recorded, with its unit (160 lb, 72 kg).", ValueType: propertymeta.ValueTypeText},
-	{Key: "eye_color", Label: "Eye color", Description: "Eye color as recorded.", ValueType: propertymeta.ValueTypeText},
-	{Key: "hair_color", Label: "Hair color", Description: "Hair color as recorded.", ValueType: propertymeta.ValueTypeText},
-	{Key: "complexion", Label: "Complexion", Description: "Complexion as recorded.", ValueType: propertymeta.ValueTypeText},
-	{Key: "profession", Label: "Profession", Description: "Profession or occupation as recorded. More than one value is allowed.", ValueType: propertymeta.ValueTypeText, Cardinality: propertymeta.CardinalityMultiple},
+	{Key: "height", Label: "Height", Description: "Height as recorded, with its unit (5 ft 9 in, 175 cm). More than one value is allowed.", ValueType: propertymeta.ValueTypeText, Cardinality: propertymeta.CardinalityMultiple},
+	{Key: "weight", Label: "Weight", Description: "Weight as recorded, with its unit (160 lb, 72 kg). More than one value is allowed.", ValueType: propertymeta.ValueTypeText, Cardinality: propertymeta.CardinalityMultiple},
+	{Key: "eye_color", Label: "Eye color", Description: "Eye color as recorded. More than one value is allowed.", ValueType: propertymeta.ValueTypeText, Cardinality: propertymeta.CardinalityMultiple},
+	{Key: "hair_color", Label: "Hair color", Description: "Hair color as recorded. More than one value is allowed.", ValueType: propertymeta.ValueTypeText, Cardinality: propertymeta.CardinalityMultiple},
+	{Key: "complexion", Label: "Complexion", Description: "Complexion as recorded. More than one value is allowed.", ValueType: propertymeta.ValueTypeText, Cardinality: propertymeta.CardinalityMultiple},
+	{Key: "profession", Label: "Profession", Description: "Trade or skill set (carpenter, software developer). Not an employment: a job held at a place for a span is an event. More than one value is allowed.", ValueType: propertymeta.ValueTypeText, Cardinality: propertymeta.CardinalityMultiple},
 }
 
 // Non-bridge bindings from docs/seeded-vocabulary.md §3.3.
