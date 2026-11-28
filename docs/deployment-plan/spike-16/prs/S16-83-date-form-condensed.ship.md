@@ -1,7 +1,7 @@
 # Ship log — S16-83 The date form is smaller and keyboard-first
 
 **Plan:** [`S16-83-date-form-condensed.md`](S16-83-date-form-condensed.md) · **Branch:** `s16-83-date-form-condensed` · **PR:** #1027
-**State:** ready — awaiting the user's §10 re-run
+**State:** fixing — manual check 2
 
 ## Round 0 — implement
 Head `f49196396`. Gate PASS (orchestrator run, xcode-test included). Report deviations: manual check (§10) and the view-level keyboard evidence (D-3, D-4, D-6, D-13) not run — needs the user's Mac; version 0.53.1 (main already 0.53.0); `monthAndDayCanBeSetWithoutAYear` lost its `applyStartCascade()` call (method deleted); `Field.neighbours` is `@MainActor`; `DateValueDraft.part(_:start:)` is static; old names (`PVInputTabClaim`, `sourceDateReadsAs`, `.date.readsAs`, `hideTime`) left in landed/historical plans and map rows, not rewritten.
