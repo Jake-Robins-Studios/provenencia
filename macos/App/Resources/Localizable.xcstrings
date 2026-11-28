@@ -10407,7 +10407,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ is saved, but its image could not be read to make a thumbnail. It may be damaged or cut off. It still opens in its own app."
+            "value": "%@ is attached, but no thumbnail could be made from it. The image may be damaged, cut off, or too large."
           }
         }
       }

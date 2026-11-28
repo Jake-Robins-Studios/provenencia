@@ -372,7 +372,7 @@ final class ArtifactSheetModel {
         prefill = ArtifactSheetDraft(label: label, description: description)
         host.markSaved()
         guard var art = created else { return }
-        var refusedFilename: String?
+        var refused: (thumbnail: Bool, filename: String)?
         if let path = file.filePath {
             let ingested: (
                 artifact: CatalogArtifact, file: CatalogFileRef, reused: Bool, effects: CatalogWriteEffects,
@@ -396,7 +396,7 @@ final class ArtifactSheetModel {
             }
             art = ingested.artifact
             created = art
-            if ingested.thumbnailRefused { refusedFilename = ingested.file.originalFilename }
+            refused = (ingested.thumbnailRefused, ingested.file.originalFilename)
             onSaved(art, nil, heldEffects.map { $0.merged(with: ingested.effects) } ?? ingested.effects)
         }
         context.session.toasts.add(
@@ -406,7 +406,7 @@ final class ArtifactSheetModel {
                 ? L10n.Sources.toastArtifactCreatedFileless
                 : L10n.Sources.toastArtifactCreatedWithFile
         )
-        if let refusedFilename { context.noteThumbnailRefused(true, filename: refusedFilename) }
+        if let refused { context.noteThumbnailRefused(refused.thumbnail, filename: refused.filename) }
     }
 
     /// A message sits at the top of the body (the save error, the label's error): ask for it.

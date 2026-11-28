@@ -7593,7 +7593,7 @@ enum L10n {
         static func toastNoPreviewBody(name: String) -> String {
             return L10n.format(LocalizedStringResource(
                 "sources.page.toastNoPreviewBody",
-                defaultValue: "%@ is saved, but its image could not be read to make a thumbnail. It may be damaged or cut off. It still opens in its own app.",
+                defaultValue: "%@ is attached, but no thumbnail could be made from it. The image may be damaged, cut off, or too large.",
                 comment: "Warning toast body after attaching an image file whose thumbnail could not be made; argument is original filename"
             ), name)
         }

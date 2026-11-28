@@ -790,6 +790,27 @@ struct SourcePageModelTests {
         #expect(model.artifacts.items.first?.fileID.isEmpty == false)
     }
 
+    /// Adding an Artifact with an image file that gets no thumbnail warns after the created toast.
+    @Test func anAddWithNoThumbnailWarns() async throws {
+        let store = makeStore()
+        store.ingestArtifactFileThumbnailRefused = true
+        let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
+        let model = makeModel(store: store, session: session)
+        await model.warmFromSession()
+        let sheet = try await openAddSheet(model)
+        sheet.draft.label = "Scan"
+        let url = try ArtifactFileFixtures.writeStubPNG()
+        sheet.file.choose(url)
+
+        let saved = await sheet.save()
+
+        #expect(saved)
+        #expect(session.toasts.cards.map(\.tone) == [.warning, .success])
+        #expect(session.toasts.cards.first == ToastCard(
+            .warning, L10n.Sources.toastNoPreviewTitle, L10n.Sources.toastNoPreviewBody(name: url.lastPathComponent)
+        ))
+    }
+
     @Test func ingestMissingFileSurfacesIngestInvalid() async throws {
         let store = makeStore()
         store.ingestArtifactFileError = CoreInvokeError.coded(
