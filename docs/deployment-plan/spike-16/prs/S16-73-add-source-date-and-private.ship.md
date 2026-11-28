@@ -218,7 +218,7 @@ Check: `rg -n "pvSheetInnerEdit" macos/App/DesignSystem/Components/HelpIcon` pri
 Head `3c632e297`. Gate PASS (orchestrator re-run). F-12 done; orchestrator read the `PVHelpIcon` diff: no inner-edit signal, 4 pt ring padding (`space2`, the nearest token) with `.focusEffectDisabled()`, `cardEdge` with `.trailing` from `SourceFields`, tooltip empty while the card is open. The padding also widens the Metadata heading's icon by 8 pt. UX-1 to UX-4 (round 6) **Resolved**; not seen in the app.
 
 ## Result
-Gate PASS · CI green at `a299eafb3`, re-run on push · open: none · follow-ups: CON-2/UX-3 (round 1) focus restore and UX-3 (round 6) popup screen clamp dropped by the user (2026-11-28); Remove time clear-or-keep and UX-5 (round 1) to `docs/ideas/date-value-form.md` · UX-2 (round 1) fixed in round 3 · to user: —
+Gate PASS · CI green at `a299eafb3`, re-run on push · open: none · follow-ups: CON-2/UX-3 (round 1) focus restore and UX-3 (round 6) popup screen clamp dropped by the user (2026-11-28); Remove time clear-or-keep and UX-5 (round 1) to the Batch 9 design, `../date-value-form.md` (S16-83) · UX-2 (round 1) fixed in round 3 · to user: —
 
 ## Cost
 Plan: 6,277 words (check-plan-docs info line).

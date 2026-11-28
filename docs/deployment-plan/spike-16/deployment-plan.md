@@ -110,6 +110,12 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 46. **A copy's metadata can be edited before it is made.** Copy Source shows the original's metadata as a board, in the original's order, each value editable. Change one value and clear another: the copy's board shows the changed value and not the cleared one; the original's values are unchanged. Change the copy's type: every value stays, and the empty suggestions are the new type's. (S16-D17.)
 47. **A marked value keeps its mark.** Copy a Source whose publisher is marked unknown and whose date is marked supplied: the copy's publisher is still unknown and its date still supplied (a handler test until S15-41 and S15-42 show the marks). Edit an Artifact with a marked value in the Artifact sheet and save: the mark stays. (S16-76.)
 
+**Batch 9 — The date form** (user, 2026-11-28; lands before S16-99):
+
+52. **The date form is smaller.** The Source date dialog and Add Source draw the date form in less height than today, at the sizes S16-D20 agrees; observation dates in the Citation composer and the Copy sheet get the same form. Nothing a researcher could set before is gone. (S16-D20.)
+53. **A repeated letter walks a select's matches.** In the date form's Month select, pressing J three times quickly shows January, then June, then July; in any kit select, menu or list, a repeated letter walks the options that start with it, and a letter after a pause starts again from the current one. (S16-83.)
+54. **Typing a date is keyboard-first.** Tab into the date form lands on Year; Tab goes on to Month and Day (and the time fields when shown), then leaves the form. Shift-Tab from Year goes to the qualifier (Single date), then Kind; Tab from Kind comes back to Year. (S16-83.)
+
 **Scale.** Real data, which must stay as fast as today: a person in 50 Evidence graphs (Spike 13's budget) with one or two records per graph, 200 events with 10 participants each (12 shown per event at Wide), 20 children in four sibling groups, one to three places per event. Crafted data, which only has to stay bounded: each axis in bar 2 and 3, at least 20 times past its cap.
 
 **Scale (Batch 2).** The S11-21 large fixture at 4,000 and 16,000 persons (8,000 town events; 18,000 and 37,000 handles); one place with 6,000 events, and 24,000 for growth; a person in 50 and in 80 Evidence graphs; for the entity records, 3,000 Sources, 10,000 Evidence graphs and 50,000 Observations. Every speed claim is measured at 4,000 and 16,000 (or at the input it grows with) against today on the same machine.
@@ -121,6 +127,8 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 **Scale (Batch 6, slice 6g).** A commit that writes 10,000 date values (an import), on the S11-21 large fixture at 16,000 persons with 3,000 Sources (Batch 2's line). The effects memo grows with the distinct lookups of one change and is dropped with it. A Source delete reports one id.
 
 **Scale (Batch 8).** A Source with 60 metadata values and 200 Artifacts (a census film). Each sheet saves in one write, as today; the Copy sheet reads its board once on open and once per type change, never per keystroke. Drafts carry one mark per value, so a 60-value board sends 60 marks; nothing is read per value.
+
+**Scale (Batch 9).** No read, write or list changes; nothing to measure. The Month select has 13 options; type-select walks at most a list's length per key.
 
 ## Where the notes went
 
@@ -213,6 +221,15 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | The Copy Source sheet's date and description should be filled-in fields you can edit, not ticks; the copy sheet should look more like the Add sheet (with Private, pre-set from the original: user, 2026-11-26) | S16-D16, S16-74 |
 | Each metadata value on the Copy Source sheet should be editable (a type change keeps the values and swaps the empty suggestions: user, 2026-11-26) | S16-D17, S16-75 |
 | Map review (2026-11-26): Swift drops the marks the engine sends, and the draft board serves no Source; two preparatory PRs (user, 2026-11-26) | S16-76, S16-77 |
+
+**Batch 9** comes from a user request (2026-11-28) and an idea file it absorbs:
+
+| Source | PR |
+| --- | --- |
+| The date form takes too much space, in its own dialog and inline in another form | S16-D20, S16-83 |
+| A select's type-select: J, J, J should walk January, June, July (a kit problem, not the date form's) | S16-83 |
+| The date form's tab order: Year first; Kind and the qualifier reachable behind it | S16-83 |
+| [`ideas/date-value-form.md`](date-value-form.md) (moved into the spike as its feature doc, 2026-11-28): Remove time clears or keeps the time; the range message shows before the second bound is typed (S16-73 review) | S16-83 |
 
 **Back in the ideas folder** (user, 2026-11-08) —
 - [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md): P-8 (participants sent once per event), P-9 (record links memo and a household-sized budget), P-23 (siblings sent two or three times), and lazy Timeline cards after an unfold. Memoising section content went to Batch 2's S16-27.
@@ -330,6 +347,12 @@ These are the calls for this spike. PR plans treat them as binding.
 - **(Batch 8) A copy's metadata is the original's, with the sheet's draft laid over it** (map review K8-3). The engine reads the original's metadata (`ReadDraft`) and lays the sheet's `MetadataDraft` over it by `Apply`'s rules: the values become the draft's; listed layout rows override; unlisted layout rows stay, so suggestions the original dismissed stay dismissed. That overlay is one pure function in `sourcemetadata`, and the seeded board read and the copy write both use it. An absent draft means the original's metadata as stored. The Copy sheet sends its draft whenever the board was edited or read again. Binds S16-77, S16-75.
 - **(Batch 8) The engine lays out the Copy sheet's board.** `GetDraftMetadataBoard` serves level `source`: a `source_type_id` in place of parents, and a seed (the original Source, plus the sheet's current `MetadataDraft` laid over it by the overlay above). The Source date's requirement is read against the date the request sends, since no Source row exists yet. A type change reads the board again with the sheet's current draft, so every value stays and the empty suggestions are the new type's. Swift does not merge suggestions itself (Spike 15 rule "Boards flag needed fields; the engine decides the rows"). Because the board comes from this read, it carries each entry's requirement, so S15-39's flags reach it. The sheet edits it through `MetadataDraftHost` and `MetadataBoardModel`, as the Artifact sheet does; the host gains a way to replace its rows after a re-read while keeping the original's board as what "changed" is measured from. Binds S16-77, S16-75.
 
+### Batch 9 — The date form
+
+- **(Batch 9) One date form, every host** (user, 2026-11-28). The condensed layout lands in `DateValueEditorForm` and `SourceDateEditor`, so the Source date dialog, Add Source, the Copy sheet (S16-74) and the Citation composer's observation dates all take it. No host draws its own date layout. Design: [`date-value-form.md`](date-value-form.md). Binds S16-83.
+- **(Batch 9) A repeated letter walks its matches** (user, 2026-11-28). In `PVTypeSelectMatcher`, a buffer that is one character repeated (`j`, `jj`, `jjj`) searches for that one character from past the current row, as a single keystroke does, so J, J, J walks January, June, July without a pause; a buffer of different characters stays a prefix search. Every caller (`PVSelectSession`, `PVContextMenuKeyboard`, the combo box, the list, the table) gets it through the one matcher. Binds S16-83.
+- **(Batch 9) The date form's Tab starts at Year** (user, 2026-11-28). Tab into the form lands on Year, then Month, Day, and the time fields when shown, then leaves the form. Shift-Tab from Year goes to the qualifier (on a Single date), then Kind; Tab from Kind returns to Year. The form owns this loop through the kit's field focus (`PVFieldFocus`, `PVSegmentedControl`'s focus target), not through system order. Binds S16-83.
+
 ## PR map
 
 | PR | Title | Slice | Scope | Brief | Depends on | Plan | Status |
@@ -422,6 +445,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-74 | Copy Source edits the date, description and Private | 8a | Go and Swift: `CopySourceRequest` carries the description text, the date with its mark and `is_private` in place of their ticks; the Copy sheet shows the shared Source fields filled from the original; credibility and Artifacts stay ticks | S16-D16 | S16-73, S16-76, S16-D16 | — | Scoped |
 | S16-77 | A draft board for a new Source | 8a | Preparatory, Go: `GetDraftMetadataBoard` serves level `source` for a type, seeded from an original Source and a draft through one overlay in `sourcemetadata`, which the copy write also uses | — | S16-76 | — | Scoped |
 | S16-75 | Copy Source edits each metadata value | 8a | Go and Swift: `CopySourceRequest` carries a `MetadataDraft` in place of `copy_metadata`; the Copy sheet hosts the seeded draft board and reads it again on a type change | S16-D17 | S16-74, S16-77, S16-D17 | — | Scoped |
+| S16-83 | The date form is smaller and keyboard-first | 9a | Swift: `DateValueEditorForm` takes S16-D20's condensed layout in every host; its Tab loop starts at Year with Kind and the qualifier behind Shift-Tab; `PVTypeSelectMatcher` walks a repeated letter's matches; the two parked date-form calls in [`date-value-form.md`](date-value-form.md) | S16-D20 | S16-73, S16-D20 | — | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -440,6 +464,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-D10 | Toast stack: two and more toasts stacked top-trailing in the workspace window, newest on top; entering and leaving (and Reduce Motion's fade); a refreshed card; a burst clipped at the window's bottom; the Citation composer's toast, which moves there from the foot of its observations column | **S16-58** | Starts from `PVToast`'s board |
 | [S16-D6](design/archive/S16-D6-event-date-row.md) | Event page: the Date row for an event dated by as-ofs | **S16-44** | Extends the S9-D6 Event page frames on the Event Detail board |
 | [S16-D18](design/archive/S16-D18-family-groups-and-marriages.md) | Person page Family: the siblings grouped by their parents, each group its parents then its children, no crossing lines; each couple's marriage date and place, for a group's parents and for the person and each partner; Regular and Wide | **S16-81** | An enhancement of the S13-D3 Family frames (11a, 11c) on the Person Detail board; redraws the left column. Absorbed S16-D19 before it was drawn (user, 2026-11-26); regrouped around sibling groups (user, 2026-11-27). [Agreed 2026-11-27](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ): Shared parent(s); "m." between a group's parents and over a partner's group; tiles keep 92 pt |
+| S16-D20 | The date form, condensed: its own dialog (Source date) and inline (Add Source); Single date and Between two bounds, with and without time and More open; a field error and the can't-be-saved line | **S16-83** | Iterates on the S16-D15 board's date form (Source Detail, page Dialogs); keeps every control the form has today |
 
 ## Slices
 
@@ -607,6 +632,10 @@ SLICE 8a — The Add and Copy Source sheets           (any time; S16-73 and S16-
   ✎ S16-D17 ──▶ S16-75  Copy Source edits each metadata value
   Check: bar 44 to 47.
 
+SLICE 9a — The date form                             (after S16-73)
+  ✎ S16-D20 ──▶ S16-83  The date form is smaller and keyboard-first
+  Check: bar 52 to 54.
+
 S16-99 — Dogfood close / docs
 ```
 
@@ -698,6 +727,8 @@ S16-76 ──▶ S16-77 ──▶ S16-75
 S16-D16 ──▶ S16-74
 S16-D17 ──▶ S16-75
 S16-76 ──▶ S15-41, S15-42 (Spike 15)
+S16-73 ──▶ S16-83
+S16-D20 ──▶ S16-83
 ```
 
 Batch 5 runs in order: each PR reads what the one before added (the key and the samples rule, then the summary's dating).
@@ -1334,3 +1365,18 @@ A user request (2026-11-26): the Add sheet takes the date and Private, and the C
 **Not this PR.** A marks control on the board (S15-41); needed-field flags (S15-39, which reaches this board through its requirements); the Add sheet's metadata (not asked for).
 **Check.** Bar 46.
 **Context.** `MetadataDraftHost.swift`, `MetadataBoardModel.swift`, `ArtifactSheetModel.swift` (the pattern), `SourcePageContext.readDraftBoardForAdd`, `SourcesModel.swift` (the list opens Copy too); skills `add-ffi-handler`, `add-ui-component`.
+
+### Batch 9 — The date form
+
+A user request (2026-11-28): the date form takes less space, and typing a date starts at Year. Design: [`date-value-form.md`](date-value-form.md).
+
+### Slice 9a — The date form
+
+#### S16-83 — The date form is smaller and keyboard-first
+
+**Today.** `DateValueEditorForm` stacks a labelled Kind control, a labelled qualifier row, dividers, a heading and hint per side, Year, Month and Day with a label each, an Add time link and a Calendar and phrase disclosure; in Add Source it is most of the sheet. Without Full Keyboard Access, Tab skips Kind and the qualifier; with it, they come before Year. `PVTypeSelectMatcher.advance` (`PVFloatingMenuSelection.swift`) appends each key inside 0.8 s, so J, J builds `jj` and matches nothing.
+**Ships.** Swift: the layout S16-D20 agrees, in the shared form (rule "One date form, every host"); the Tab loop (rule "The date form's Tab starts at Year"); the repeated-letter walk in the matcher (rule "A repeated letter walks its matches") with a `PVFloatingMenuSelectionTests` case for J, J, J inside the reset interval; the two calls in [`date-value-form.md`](date-value-form.md) once the user makes them (open in the plan until then).
+**Updates.** The kit README's Select row (type-select walks a repeated letter); `add-ui-component` if the Tab loop adds a kit pattern.
+**Not this PR.** The Copy sheet's own fields (S16-74); keyboard focus for the Reads as line.
+**Check.** Bar 52 to 54.
+**Context.** `DateValueEditorForm.swift`, `SourceDateEditor.swift`, `SourceDateDialog.swift`, `SourceFields.swift`, `CitationComposerAuthoringBox.swift` (an observation date host), `PVFloatingMenuSelection.swift`, `PVSelectSession.swift`, `PVSegmentedControl.swift`, `PVFieldFocus.swift`; skills `add-ui-component`, `add-localized-string`, `add-swift-test`, `add-design-brief`.
