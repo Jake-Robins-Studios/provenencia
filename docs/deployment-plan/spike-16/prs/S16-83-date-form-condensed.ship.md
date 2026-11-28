@@ -93,6 +93,21 @@ Check: the test passes; scripts/check-pr.sh PASS; the user re-runs §10 step 1 a
 ## Manual check — fix
 Head `65feca208`. Gate PASS (orchestrator run). F-7 done: `DateValueEditorForm.Layout` (gap 8, year 64, month 124, day 48, time parts 57, zone max 160); Month `fillsWidth: true`; captions 2 pt over their controls; `dayAndMsShareARightEdge` added red first (did not compile), green at head. Diff read by orchestrator against Fix plan M: matches. On screen: the user's §10 steps 1 and 4.
 
+## Manual check 2 — user feedback (2026-11-28)
+
+The user, with Calendar and phrase… open: Calendar and Phrase stack on two rows, and the Calendar select sits indented from its caption; the board puts them on one row.
+
+Board (`DateValueEditor.dc.html` lines 138–140): one row, `align-items: flex-start`, gap 10: Calendar is a `PVField` labelled "Calendar" in a fixed 148 pt column holding a `PVSelect` size sm with `fillsWidth: true`; Phrase is a `PVField` labelled "Phrase" with the hint "A short gloss carried on the date itself — not the source's wording", filling the rest of the row, holding a `PVInput` size sm. The code (`advancedSection`) is a `VStack` of two hand-built caption stacks, and the Calendar select is `fillsWidth: false` in a 220 pt frame (centered, the Month bug again).
+
+### Fix plan M2
+
+**F-8 — Calendar and Phrase on one row, as the board draws them** (user, manual check 2)
+Files: `macos/App/Features/Dates/DateValueEditorForm.swift`. Skill: `add-ui-component`.
+Failing test first: none (layout only); evidence is the user's look at the open section.
+Do: `advancedSection` becomes `HStack(alignment: .top, spacing: Layout.gap)` (8 pt, the kit token nearest the board's 10; no new token). Calendar: `PVField(label: L10n.Sources.dateCalendar) { PVSelect(…, size: .sm, menuWidth: 220, fillsWidth: true, …) }` framed `width: Layout.calendar` (new constant, 148). Phrase: `PVField(label: L10n.Sources.datePhrase, hint: L10n.Sources.datePhraseHint) { PVInput(… size: .sm …) }` with `.frame(maxWidth: .infinity, alignment: .leading)`. Keep every focus handle, accessibility label, `pvFieldLabel` and identifier as they are. If `PVField`'s caption style differs from the form's `fieldCaption`, use `PVField` anyway (the board draws `PVField`); say so in the report. This also settles MNT-5 (the hand-built Calendar/Phrase captions). Extend the plan's Landed note's F-7 sentence with: "and Calendar and Phrase share one row of `PVField`s, Calendar 148 pt".
+Check: scripts/check-pr.sh PASS; the user opens Calendar and phrase… in the Source date dialog and in the composer.
+
+## Result
 Gate PASS (head `2ccc5fe70`, origin/main unchanged at `6a6854119`) · CI see PR · open: none · follow-ups: MNT-3 → S16-84 on the Spike 16 map (user) · to user: §10 manual check before merge (the only proof of UX-1 in the running app, AC-1.1/1.2/1.6, AC-2.1/2.8/2.9, D-3/D-4/D-6/D-13; watch steps 1 and 4 for the `ViewThatFits` Kind/qualifier focus).
 
 ## Cost
