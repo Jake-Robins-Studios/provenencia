@@ -10,7 +10,7 @@
 **Branch:** `s16-83-date-form-condensed`
 **Version bump:** patch — a UI polish and a kit keyboard fix, no schema or wire change ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md), [`add-localized-string`](../../../../.agents/skills/add-localized-string/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md), [`add-date-value`](../../../../.agents/skills/add-date-value/SKILL.md) (the draft's rules only; no Go change)
-**Rules that bind:** `docs/design-system-layers.md`; `macos/App/DesignSystem/README.md` (Field focus, SegmentedControl, Button rows)
+**Rules that bind:** `docs/design-system-layers.md`; `macos/App/DesignSystem/README.md` (Field focus, SegmentedControl, Button, FloatingMenuSelection rows)
 **Context:** [feature doc](../date-value-form.md), working rules: "One date form, every host", "The latest bound is typed, never filled in", "The time fields always show", "The date form shows no Reads as", "A kit button takes the field focus handle", "A repeated letter walks its matches", "The date form's Tab starts at Year"; bar 52 – 54
 **Planned:** 2026-11-28 against `main` @ `a39185a`
 **Review:** — (not reviewed yet)
@@ -34,7 +34,7 @@ The shared date form takes less height in every host and is typed from the keybo
 
 **Why now.** The date form is most of the Add Source sheet, and S16-74 puts it in the Copy sheet next; it should be small and keyboard-first before a third host takes it.
 
-**What stays.** Every value a researcher can set today, the field errors and their words, the host's can't-be-saved line in Add Source, Clear date and the refused-save callout in the Source date dialog, the composer's value box, and `SourceDateText` for the Source page header.
+**What stays.** Every value a researcher can set today, the field errors and their words, the host's can't-be-saved line in Add Source, Clear date and the refused-save callout in the Source date dialog, the composer's value box, `SourceDateEditor` as the Source date block (S15-42 adds its marks control there), and `SourceDateText` for the Source page header.
 
 ## 2. User stories
 
@@ -54,14 +54,14 @@ The shared date form takes less height in every host and is typed from the keybo
 | AC | Given / when | Then |
 | --- | --- | --- |
 | AC-2.1 | Add Source, focus in Description, press Tab | Focus is on Year |
-| AC-2.2 | Single date, Tab from Year repeatedly | Month → Day → Hour → Min → Sec → Ms → Time zone → Calendar and phrase… → out of the form (the system key loop: the sheet's buttons with Full Keyboard Access, else the first field) |
-| AC-2.3 | Range, Tab from the earliest Time zone | Latest Year → Month → … → latest Time zone → Calendar and phrase… |
+| AC-2.2 | Single date, Tab from Year repeatedly | Month → Day → Hour → Min → Sec → Ms → Time zone → Calendar and phrase… → out of the form (the system key loop) |
+| AC-2.3 | Range, Tab from the earliest Time zone; Shift-Tab from the latest Year | Tab: latest Year → Month → … → latest Time zone → Calendar and phrase…. Shift-Tab from the latest Year: the earliest Time zone |
 | AC-2.4 | Calendar and phrase open, Tab from the link | Calendar → Phrase → out |
 | AC-2.5 | Single date, Shift-Tab from Year | Qualifier, then Kind; on a range Shift-Tab from Year goes straight to Kind |
 | AC-2.6 | Tab from Kind; Tab from the qualifier | Year in both cases |
 | AC-2.7 | Shift-Tab from Kind in Add Source | Description. In the Source date dialog and the composer (no field before the form) the key goes to the system key loop |
-| AC-2.8 | Focus on the qualifier, press → | About is chosen, focus stays on the control; Space chooses the focused segment |
-| AC-2.9 | Full Keyboard Access off | Every stop above is still reached |
+| AC-2.8 | Focus on the qualifier, press →; focus on Kind, press → | About is chosen and focus stays on the qualifier; Between two bounds is chosen, the qualifier goes, focus stays on Kind |
+| AC-2.9 | Full Keyboard Access off | Every stop above is still reached; Return on the focused link opens Calendar and phrase |
 
 **US-3.** As a researcher in any kit select, menu or table, I press one letter quickly several times to walk the items that start with it.
 
@@ -83,60 +83,69 @@ The shared date form takes less height in every host and is typed from the keybo
 | DF-5 time fields always shown, Sec and Ms on the latest side too | STEP-4, STEP-5, AC-1.5 |
 | DF-6 Calendar and phrase… as a `PVButton` link | STEP-3, STEP-5, AC-1.6 |
 | DF-7 field errors one line under their side; Add Source's can't-be-saved line unchanged | STEP-5, AC-1.3, AC-1.4 |
-| DF-8 dropped: Reads as goes (`SourceDateEditor` deleted) | STEP-7 |
+| DF-8 dropped: Reads as goes from `SourceDateEditor` | STEP-7 |
 | DF-9 the Tab loop | STEP-2, STEP-3, STEP-6, STEP-7, US-2 |
 | DF-10 the Source date dialog at 520 pt | STEP-7, AC-1.1 |
 | DF-W1 every host a modal, the same at Regular and Wide | STEP-7, §10 |
 | `PVTypeSelectMatcher` walks a repeated letter | STEP-1, US-3 |
-| `PVFieldFocus` neighbour replacement; `PVSegmentedControl` and `PVButton` claim Tab | STEP-2, STEP-3 |
+| `PVFieldFocus` neighbour replacement; one `FocusClaim` core; `PVSegmentedControl` and `PVButton` claim Tab | STEP-2, STEP-3 |
 
 | Out | Home |
 | --- | --- |
 | DF-4 the latest bound following the earliest, and filling the latest side on switching to Between | not planned (user, 2026-11-28: working rule "The latest bound is typed, never filled in") |
 | The Copy sheet's own fields and its focus order | S16-74 (inherits the form and `SourceFields`' order) |
-| A marks control on the date (No date, Supplied) | S15-42 |
+| A marks control on the date (No date, Supplied) | S15-42 (into `SourceDateEditor`) |
+| Moving the form's `L10n.Sources.date*` keys to `L10n.Dates` | S15-42 ("Also (structural debt)"; its entry now names the four keys this PR adds) |
 | Type-select in `PVList` | not planned (the list has none; feature doc) |
 | Per-side accessible names on each part ("Earliest, year") | not planned (fields read their part's name, "Year", today; the side group carries the side's name, D-6) |
-| A chevron or `PVDisclosureButton` for Calendar and phrase… | not planned (the board draws a text link whose words change) |
+| A chevron, or `PVDisclosureButton` gaining a link form | not planned (the board draws a text link whose words change; a second chevron-less disclosure link should give `PVDisclosureButton` a link form) |
 
 ## 4. Current state
 
 | Area | Where | Today |
 | --- | --- | --- |
-| Form | `macos/App/Features/Dates/DateValueEditorForm.swift` `DateValueEditorForm` | Stacks a captioned Kind `PVSegmentedControl`, a captioned qualifier `PVChipGroup` of four `PVChip`s, three `PVDivider`s, a micro-caps heading per side with the hint on the first, captioned Year / Month / Day, an Add time / Remove time plain button and a sunken `timeBlock` (latest side has no Sec / Ms), a plain-button Calendar and phrase toggle. Two `@FocusState` Bools (`startHourFocused`, `endHourFocused`) serve the time toggle. `yearFocus: PVFieldFocus?` is the host's handle on the earliest Year; no other field has a handle, so Kind, the chips and the links are Tab stops only with Full Keyboard Access, before Year |
-| Draft | `macos/App/Platform/DateValueDraft.swift` `DateValueDraft` | `showStartTime`, `showEndTime`, `hideTime(start:)` hide and clear time; `init(from:)` sets the show flags. `applyStartCascade()` / `applyEndCascade()` are no-ops every binding calls. `canSetStart*`, `canSetEnd*`, `hasFullStartDay`, `hasFullEndDay` have no caller. `setKind` clears the qualifier (to range) or the end side and `showEndTime` (to point) |
-| Reads as | `macos/App/Features/Sources/SourceDateEditor.swift` `SourceDateEditor` | Wraps the form and adds the sunken Reads as card (`L10n.Sources.sourceDateReadsAs`); its only job besides the pass-through |
-| Source date dialog | `macos/App/Features/Sources/SourceDateDialog.swift` `SourceDateDialogModifier`, `SourceDateForm` | Width `SourceFields.dialogWidth` (560); `SourceDateForm` holds `@FocusState Field { year }`, claims Year on appear, passes `PVFieldFocus($focus, equals: .year)` |
-| Add Source fields | `macos/App/Features/Sources/SourceFields.swift` `SourceFields` | No focus state: Description's `PVInput` has no handle, the date form gets no `yearFocus`, so Tab from Description goes by the system order. Doc comment lists `.date.readsAs` |
-| Composer | `macos/App/Features/CitationComposer/CitationComposerAuthoringBox.swift` `inlineValue`, `case .date` | Hosts `DateValueEditorForm` directly with `yearFocus: PVFieldFocus(focus, equals: .value)`; `CitationAuthoringNavigation.next(after: .property)` already sends Tab to `.value`, so Tab lands on Year today. No change needed beyond the form |
-| Field focus | `macos/App/DesignSystem/Components/Input/PVFieldFocus.swift` `PVFieldFocus` | Neighbours come only from `init(_:equals:in:)`; nothing can replace a handle's `next` / `previous` |
-| Focus claim | `macos/App/Platform/FocusClaim.swift` `FocusClaim.claim(_:_:then:)` | Deferred two-turn write for a `FocusState` binding only, not for a `PVFieldFocus` |
-| Segmented control | `macos/App/DesignSystem/Components/Chip/PVSegmentedControl.swift` `segment(_:)` | With a handle the focus target is one stop with Space and ← / →, and "does not read the handle's `next` / `previous`": no Tab claim |
+| Form | `macos/App/Features/Dates/DateValueEditorForm.swift` `DateValueEditorForm` | Stacks a captioned Kind `PVSegmentedControl`, a captioned qualifier `PVChipGroup` of four `PVChip`s, three `PVDivider`s, a micro-caps heading per side with the hint on the first, captioned Year / Month / Day, an Add time / Remove time plain button and a sunken `timeBlock` (latest side has no Sec / Ms), a plain-button Calendar and phrase toggle. Seven per-part bindings (`yearBinding` … `millisecondBinding`) differ only in the property they touch. Two `@FocusState` Bools serve the time toggle. `yearFocus: PVFieldFocus?` is the host's handle on the earliest Year; no other field has a handle, so Kind, the chips and the links are Tab stops only with Full Keyboard Access, before Year. `cascadeField`'s `disabled:` and `activateOnAppear:` have no caller; `DateOptionalAccessibilityIdentifier` exists for a nil identifier no caller passes |
+| Draft | `macos/App/Platform/DateValueDraft.swift` `DateValueDraft` | `showStartTime`, `showEndTime`, `hideTime(start:)` hide and clear time; `init(from:)` sets the show flags. `applyStartCascade()` / `applyEndCascade()` are no-ops every binding calls. The `canSetStart*` / `canSetEnd*` properties and `hasFullStartDay` / `hasFullEndDay` have no caller. `CascadeComponent` (year … millisecond) has its order written out in `cascadeFieldError`. `setKind` clears the qualifier (to range) or the end side and `showEndTime` (to point) |
+| Source date block | `macos/App/Features/Sources/SourceDateEditor.swift` `SourceDateEditor` | The form plus the sunken Reads as card (`L10n.Sources.sourceDateReadsAs`). S16-73 D-13 made it the one Source date block, where S15-42's marks control lands |
+| Source date dialog | `macos/App/Features/Sources/SourceDateDialog.swift` `SourceDateDialogModifier`, `SourceDateForm` | Width `SourceFields.dialogWidth` (560); `SourceDateForm` holds `@FocusState Field { year }`, claims Year on appear, passes `PVFieldFocus($focus, equals: .year)`; its doc mentions "what the date reads as" |
+| Add Source fields | `macos/App/Features/Sources/SourceFields.swift` `SourceFields` | No focus state: Description's `PVInput` has no handle, the date block gets no `yearFocus`, so Tab from Description goes by the system order. Doc comment lists `.date.readsAs` |
+| Composer | `macos/App/Features/CitationComposer/CitationComposerAuthoringBox.swift` `case .date` | Hosts `DateValueEditorForm` in `inlineValue` with `yearFocus: PVFieldFocus(focus, equals: .value)`; `CitationAuthoringNavigation.next(after: .property)` already sends Tab to `.value`. No change |
+| Field focus | `macos/App/DesignSystem/Components/Input/PVFieldFocus.swift` `PVFieldFocus` | Neighbours come only from `init(_:equals:in:)` (S15-50 made the neighbour init private for that); nothing replaces a handle's `next` / `previous` |
+| Tab claim | `macos/App/DesignSystem/Components/Input/PVInput.swift` private `PVInputTabClaim` | Claims Tab / Shift-Tab when the handle has a neighbour; only `PVInput` uses it. `PVSelect.handleTriggerKey` and `PVComboBox` claim Tab in their own key handlers |
+| Focus claim | `macos/App/Platform/FocusClaim.swift` `FocusClaim.claim(_:_:then:)` | The deferred two-turn write, for a `FocusState` binding only |
+| Segmented control | `macos/App/DesignSystem/Components/Chip/PVSegmentedControl.swift` `segment(_:)` | With a handle the selected segment is one stop with Space and ← / →; no Tab claim; "a host whose handle follows the selection re-claims it" after a choice |
 | Button | `macos/App/DesignSystem/Components/Button/PVButton.swift` `PVButton` | No focus parameter: a Tab stop only with Full Keyboard Access |
-| Type-select | `macos/App/DesignSystem/Components/FloatingMenuSelection/PVFloatingMenuSelection.swift` `PVTypeSelectMatcher.advance` | `jj` is a prefix search from the current row and matches nothing; callers `PVSelectSession.applyTypeSelect`, `PVContextMenu` `applyTypeSelect`, `PVTable` (line ~434) |
-| Tests | `macos/ProvenenciaTests/DateValueDraftTests.swift` `hidingTimeClearsIt`, `loadShowsTimeWithZoneOnly`, `applyStartCascadeDoesNotWipeIndependentFields`; `DateValueSelectTests.swift` (calls `applyStartCascade()` at lines 33, 42); `PVFieldFocusTests.swift`; `PVSegmentedControlTests.swift`; `PVFloatingMenuSelectionTests.swift` `typeSelectSkipsDisabledRows` | Cover what this PR deletes or extends |
+| Return activation | `macos/App/DesignSystem/Components/ReturnActivation/PVReturnActivation.swift` `pvActivatesOnReturn(when:_:)` | The kit's one Return rule; `PVShowMoreRow` and `PVInkLink` use it; Space stays the `Button`'s |
+| Type-select | `macos/App/DesignSystem/Components/FloatingMenuSelection/PVFloatingMenuSelection.swift` `PVTypeSelectMatcher.advance` | `jj` is a prefix search from the current row and matches nothing; callers `PVSelectSession.applyTypeSelect`, `PVContextMenu` `applyTypeSelect`, `PVTable` |
+| Qualifier vocabulary | `macos/App/Platform/ConclusionVocabulary.swift` `DateQualifier` | `about`, `before`, `after`, checked against Go by `api/ffi/swift_vocabulary_test.go` |
+| Tests | `macos/ProvenenciaTests/DateValueDraftTests.swift` `hidingTimeClearsIt`, `loadShowsTimeWithZoneOnly`, `applyStartCascadeDoesNotWipeIndependentFields`; `DateValueSelectTests.swift` `applyingAMonthOptionStillCascadesTheDraft` (calls `applyStartCascade()`); `PVFieldFocusTests.swift`; `PVSegmentedControlTests.swift`; `PVFloatingMenuSelectionTests.swift` `typeSelectSkipsDisabledRows` | Cover what this PR deletes or extends |
 
-**Precedent.** S16-73 ([#1019](https://github.com/Jake-Robins-Studios/provenencia/pull/1019)) last reshaped this form and `SourceFields`; copy its commit-per-behavior split. For a form owning a Tab order through `PVFieldFocus($focus, equals:, in: order)`, copy `macos/App/Features/Names/NameValueEditorForm.swift` (it takes a host `formFocus` and gives its own fields handles). For a kit field claiming Tab from its handle, copy `PVInputTabClaim` in `macos/App/DesignSystem/Components/Input/PVInput.swift` (`.onKeyPress(keys: [.tab, .backTab], phases: .down) { focus.claimTab(shift: press.key == .backTab) }`).
+**Precedent.** S16-73 ([#1019](https://github.com/Jake-Robins-Studios/provenencia/pull/1019)) last reshaped this form and `SourceFields`; copy its commit-per-behavior split. For a focus enum that owns its order as a pure static, copy `CitationFormFocus.order(_:)` in `macos/App/Features/CitationComposer/CitationComposerEvidenceColumn.swift`. For a focusable `Button` that takes Return through the kit, copy `PVShowMoreRow` (`.focused(…)` plus `.pvActivatesOnReturn(when:)`).
 
 ## 5. Decisions
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
-| D-1 | A type-select buffer made of one character repeated (`j`, `jj`, `jjj`, case-folded through `TextMatch.key`) searches for that single character from `current + 1`; any other buffer keeps today's prefix search from `max(0, current)`. The change is inside `PVTypeSelectMatcher.advance`, so its three callers gain it unchanged | Working rule "A repeated letter walks its matches"; one matcher, every caller | A per-caller rule — three copies |
-| D-2 | `PVFieldFocus.replacingNeighbours(next:previous:)` *(new)* returns a copy of the handle with both claims replaced (nil clears one). `FocusClaim.claim(_ handle: PVFieldFocus)` *(new)* writes `handle.focus()` on the next main-queue turn and again a turn later if `!handle.isActive()`, as the binding overload does. A claim that lands on a handle the form does not own goes through it | The loop crosses the host's binding (Year) and the form's own (the rest) without hand-built closures in each host | Passing the host's `FocusState` binding into the form — the form would need the host's value type |
-| D-3 | `PVInput.swift`'s private `PVInputTabClaim` moves to `PVFieldFocus.swift` as the internal `PVFieldTabClaim` *(renamed)*, unchanged (it claims only when the handle has a neighbour). `PVInput` and `PVSegmentedControl`'s focus target apply it; a handle with no neighbours adds nothing, so existing callers do not change | Kind and the qualifier must send Tab to Year; one claim modifier for every kit field | A second copy in the control |
-| D-4 | `PVButton` gains `focus: PVFieldFocus? = nil` as its last parameter before `action`. With a handle the button is `.focusable()`, applies the handle, and applies `PVFieldTabClaim` (D-3); Space and Return press it (`.onKeyPress(.space)` / `.return` run `action`). With none it renders exactly as today. Its focus ring is the one it already draws | Working rule "A kit button takes the field focus handle" (user, 2026-11-28) | `PVDisclosureButton` — adds a chevron the board does not draw; a local focusable button in the form — a snowflake for a kit gap |
-| D-5 | The form owns one `@FocusState private var focus: DateValueEditorForm.Field?` *(new enum)*: `kind`, `qualifier`, `startYear`, `startMonth`, `startDay`, `startHour`, `startMinute`, `startSecond`, `startMillisecond`, `startZone`, the same ten-minus-kind/qualifier for `end…`, `advancedToggle`, `calendar`, `phrase`. Year uses the host's `yearFocus` when given, else `.startYear`. The forward order is `DateValueEditorForm.tabOrder(isRange:isAdvancedOpen:)` *(new, static, pure)*: start parts, end parts on a range, `advancedToggle`, then `calendar`, `phrase` when open. Each field's handle is `PVFieldFocus($focus, equals: field, in: tabOrder)` with these replacements: the Year handle's `previous` is the qualifier on a Single date and Kind on a range, and its `next` is `.startMonth`; `.startMonth`'s `previous` claims the Year handle; the qualifier's `next` and Kind's `next` claim Year; the qualifier's `previous` is Kind; Kind's `previous` is the host Year handle's original `previous` (nil → key loop); the last field in `tabOrder` takes the host Year handle's original `next` (nil → key loop) | Working rule "The date form's Tab starts at Year"; the board's stop order; one order function the test reads | A Tab order per host — breaks "One date form, every host" |
-| D-6 | Layout as **Design → macOS**: `ViewThatFits(in: .horizontal)` over an `HStack` and a `VStack` of the two segmented controls (both `size: .sm`), so the composer's narrow box stacks them. On a range each side is a group with `.accessibilityElement(children: .contain)` and the label `dateEarliestHeading` / `dateLatestHeading`; a Single date's side has no group label. Kind and the qualifier keep `dateKindLabel` / `dateQualifierLabel` as their `PVSegmentedControl` label (spoken, not drawn) | Board; accessible names stay (DF-2) | A fixed row — clips at 452 pt |
-| D-7 | The qualifier is `PVSegmentedControl<String>` over `""`, `ABT`, `BEF`, `AFT`, the segments keeping today's identifiers `<prefix>.qualifier.exact|abt|bef|aft` | DF-2 | — |
-| D-8 | The time fields always show on both sides; `DateValueDraft` loses `showStartTime`, `showEndTime` and `hideTime(start:)`; the latest side gains Sec and Ms. An empty time field is no time; validation and `toInput()` are unchanged | Working rule "The time fields always show" | — |
-| D-9 | No field fills itself in. `setKind("range")` still only clears the qualifier; the latest side starts empty | Working rule "The latest bound is typed, never filled in" (user, 2026-11-28) | The board's mirroring — dropped by the user |
-| D-10 | `SourceDateEditor` is deleted; the Source date dialog and `SourceFields` host `DateValueEditorForm` directly. Its doc sentence "The form shows its own field errors; the host shows any other line" moves to `DateValueEditorForm`'s doc comment | Working rule "The date form shows no Reads as"; the wrapper has no other job | Keeping an empty wrapper |
-| D-11 | The Source date dialog's width is `SourceDateDialog.width = 520` *(new constant in `SourceDateDialog.swift`)*; `SourceFields.dialogWidth` stays 560 for Add Source and its doc comment drops "and the Source date dialog" | DF-10: a narrower width is the date dialog's alone | — |
-| D-12 | `SourceFields` gains `@FocusState private var focus: Field?` with `enum Field { case description, date }` and the order `[.description, .date]`: Description's `PVInput` takes `PVFieldFocus($focus, equals: .description, in: order)`, the form takes `yearFocus: PVFieldFocus($focus, equals: .date, in: order)`. Title and Type stay outside this order | The field before the form claims Tab into Year (AC-2.1); Shift-Tab from Kind returns to Description (AC-2.7) | Ordering Title and Type too — S16-74 owns the sheet's full order |
-| D-13 | The dead draft helpers go: `applyStartCascade()`, `applyEndCascade()` (and every call), `canSetStart*`, `canSetEnd*`, `hasFullStartDay`, `hasFullEndDay`. `CascadeComponent` keeps its name | They do nothing or have no caller; the bindings change here anyway | Renaming `CascadeComponent` — churn with no behavior |
+| D-1 | A type-select buffer made of one character repeated (`j`, `jj`, `jjj`, compared through `TextMatch.key`) searches for that single character from `current + 1`; any other buffer keeps today's prefix search from `max(0, current)`. The change is inside `PVTypeSelectMatcher.advance`, so its three callers gain it unchanged | Working rule "A repeated letter walks its matches" | A per-caller rule — three copies |
+| D-2 | `PVFieldFocus.replacingNeighbours(next:previous:)` returns a copy with both claims replaced (nil clears one). `FocusClaim` gets one core, `claim(write:isDone:then:)`: write on the next main-queue turn, run `then`, write again a turn later unless `isDone()`. The binding overload calls it (`write: { binding.wrappedValue = value }`, `isDone: { binding.wrappedValue == value }`), and a new `claim(_ handle: PVFieldFocus)` calls it with `handle.focus` / `handle.isActive` | The loop crosses the host's binding (Year) and the form's own; the two-turn rule stays in one place | A second copy of the two-turn write |
+| D-3 | `PVInputTabClaim` moves out of `PVInput.swift` into `PVFieldFocus.swift` as the internal `PVFieldTabClaim`, unchanged. It is the Tab claim for kit fields with no key handler of their own: `PVInput`, `PVSegmentedControl`'s focus target (new), `PVButton` (D-4). `PVSelect` and `PVComboBox` keep their own Tab handling, so Month and Calendar need no change. A handle with no neighbours adds nothing | Kind and the qualifier must send Tab to Year | A second claim modifier in the control |
+| D-4 | `PVButton` gains `focus: PVFieldFocus? = nil`, the last parameter before `action`. With a handle the button is `focus.apply(AnyView(control.focusable().modifier(PVFieldTabClaim(focus: focus)).pvActivatesOnReturn(when: focus.isActive(), action)))`; Space stays the `Button`'s own. With none the body is today's, unchanged. `iconOnly` makes no difference | Working rule "A kit button takes the field focus handle" (user, 2026-11-28); the kit's one Return rule | Own `.onKeyPress(.space / .return)` — a second Return rule and a double Space; `PVDisclosureButton` — draws a chevron the board does not |
+| D-5 | The form's focus is one `@FocusState private var focus: DateValueEditorForm.Field?`. `Field` is `kind`, `qualifier`, `part(DateValueDraft.CascadeComponent, start: Bool)`, `zone(start: Bool)`, `advancedToggle`, `calendar`, `phrase`. Every handle comes from one pure static table, `Field.neighbours(of:isRange:isAdvancedOpen:) -> (next: Target?, previous: Target?)`, with `Target` = `.field(Field)`, `.hostNext`, `.hostPrevious`; one private `handle(for:)` builds `PVFieldFocus` from it, maps `.part(.year, start: true)` to the host's `yearFocus` (or the form's own when nil) and resolves `.hostNext` / `.hostPrevious` to that host handle's original `next` / `previous` (nil → key loop). The forward order is each side's parts (`CascadeComponent.allCases`) then its zone, start side, then the end side on a range, then `advancedToggle`, then `calendar`, `phrase` while open; the table gives each its order neighbours except: start Year's `previous` is `qualifier` on a Single date and `kind` on a range; `qualifier`'s `next` is start Year, its `previous` `kind`; `kind`'s `next` is start Year, its `previous` `.hostPrevious`; the last field's `next` is `.hostNext`; start Year's `next` and the end side keep their order neighbours | Working rule "The date form's Tab starts at Year"; one table the test reads whole, no closures in `body` | Hand-placed replacements in the view; a Tab order per host |
+| D-6 | After a choice made with the keyboard (focus was on the control), Kind's and the qualifier's `select` re-claim their own field through `FocusClaim.claim($focus, …)`; a click does not move focus. Switching Kind keeps focus on Kind while the qualifier appears or goes | `PVSegmentedControl` moves its handle to the new segment and leaves re-claiming to the host | — |
+| D-7 | Layout as **Design → macOS**: a `ViewThatFits(in: .horizontal)` over an `HStack` and a `VStack` of the two segmented controls (`size: .sm`), so the composer's 452 pt box stacks them. On a range each side is a group with `.accessibilityElement(children: .contain)` labelled `dateEarliestHeading` / `dateLatestHeading`; a Single date's side has no group label. Kind and the qualifier keep `dateKindLabel` / `dateQualifierLabel` as their spoken label, not drawn | Board; accessible names stay (DF-2) | A fixed row — clips at 452 pt |
+| D-8 | The qualifier is `PVSegmentedControl<String>` over `""`, `DateQualifier.about`, `DateQualifier.before`, `DateQualifier.after`, the segments keeping today's identifiers `<prefix>.qualifier.exact`, `.abt`, `.bef`, `.aft` | DF-2; the checked vocabulary | String literals |
+| D-9 | Each part's binding is one `partBinding(_:start:)` over `DateValueDraft.part(_:start:) -> WritableKeyPath<DateValueDraft, Int32?>` *(new)*; the zone binds to `startTZ` / `endTZ`. `CascadeComponent` becomes `CaseIterable`, and `cascadeFieldError` reads `allCases` | One vocabulary for a part of a side | Seven bindings that differ by one property |
+| D-10 | The time fields always show on both sides and the draft fills nothing in (working rules "The time fields always show", "The latest bound is typed, never filled in"); validation and `toInput()` are unchanged. The draft's removals are in **Deletes** | Working rules | — |
+| D-11 | `SourceDateEditor` stays the Source date block and loses only Reads as; its doc says S15-42's marks control is the next thing it holds. The form's doc comment gains "The form shows its own field errors; the host shows any other line" | Working rule "The date form shows no Reads as"; S16-73 D-13 and S15-42 name this view | Deleting it — S15-42 would edit two hosts or bring it back |
+| D-12 | `SourceDateDialogModifier` gets `private static let width: CGFloat = 520`; `SourceFields.dialogWidth` stays 560 for Add Source and its doc drops "and the Source date dialog". `SourceDateForm`'s focus (`Field { year }`, the claim on appear) is unchanged | DF-10: a narrower width is the date dialog's alone | — |
+| D-13 | `SourceFields` gains `@FocusState private var focus: Field?`, `enum Field { case description, date }`, order `[.description, .date]`: Description's `PVInput` takes `PVFieldFocus($focus, equals: .description, in: order)`; `SourceDateEditor` takes `yearFocus: PVFieldFocus($focus, equals: .date, in: order)`. Title and Type stay outside this order | AC-2.1, AC-2.7 | Ordering Title and Type — S16-74 owns the sheet's full order |
+| D-14 | The Time zone field's prompt is `L10n.Sources.dateTimeZonePrompt` = "Europe/London, +01:00…" | The board draws it | — |
 
-**Rules this plan bends.** None.
+**Rules this plan bends.**
+
+| Rule | Where | Why | User's answer | Updated in |
+| --- | --- | --- | --- | --- |
+| A field's Tab neighbours come only from its form's order (S15-50) | `macos/App/DesignSystem/README.md` Field focus row; `.agents/skills/add-ui-component/SKILL.md` line "When Tab must move from a field that claims Tab …"; `PVFieldFocus` doc | D-2 adds `replacingNeighbours` so a host's handle joins the form's loop | Working rule "The date form's Tab starts at Year" (user, 2026-11-28): "one new `PVFieldFocus` operation that replaces a handle's Tab neighbours" | STEP-2 |
 
 ## 6. Design
 
@@ -144,46 +153,47 @@ The shared date form takes less height in every host and is typed from the keybo
 
 | New *(this PR adds)* | Kind | Closest existing | Why not reuse or extend it |
 | --- | --- | --- | --- |
-| `PVFieldFocus.replacingNeighbours(next:previous:)` *(new)* | func | `PVFieldFocus.init(_:equals:in:)` | The init builds neighbours from one binding's order; a host handle has none to give |
-| `FocusClaim.claim(_ handle: PVFieldFocus)` *(new)* | func | `FocusClaim.claim(_:_:then:)` | Same deferred write, for a handle instead of a binding |
-| `PVFieldTabClaim` *(renamed from `PVInputTabClaim`, moved to `PVFieldFocus.swift`)* | modifier | `PVInputTabClaim` | It is the claim itself, now shared by three kit fields |
-| `PVButton(…, focus:)` *(new parameter)* | component param | `PVSegmentedControl(…, focus:)` | Extends the kit's one focus handle to buttons |
-| `DateValueEditorForm.Field` *(new)*, `DateValueEditorForm.tabOrder(isRange:isAdvancedOpen:)` *(new)* | enum, static func | `NameValueEditorForm`'s own field enum and order | The date form's own fields |
-| `SourceDateDialog.width` *(new)* | constant | `SourceFields.dialogWidth` | The two widths now differ (D-11) |
-| `SourceFields.Field` *(new)* | enum | `SourceDateForm.Field` | Add Source's own focus |
-| `L10n.Sources.dateEarliestShort` = "Earliest", `dateEarliestNote` = "not before", `dateLatestShort` = "Latest", `dateLatestNote` = "not after" *(new)* | keys | `dateEarliestHeading` ("Earliest — not before") | The board sets the label on two lines; the heading stays as the spoken name |
-| `macos/ProvenenciaTests/DateValueEditorFormTests.swift` *(new)* | test file | `DateValueDraftTests.swift` | Tests the form's pure `tabOrder` |
+| `PVFieldFocus.replacingNeighbours(next:previous:)` | func | `PVFieldFocus.init(_:equals:in:)` | The init builds neighbours from one binding's order; a host handle has none to give |
+| `FocusClaim.claim(write:isDone:then:)`, `FocusClaim.claim(_ handle:)` | funcs | `FocusClaim.claim(_:_:then:)` | It becomes a caller of the core |
+| `PVFieldTabClaim` (renamed from `PVInputTabClaim`, moved) | modifier | `PVInputTabClaim` | The same claim, shared by three fields |
+| `PVButton(…, focus:)` | parameter | `PVSegmentedControl(…, focus:)` | Extends the kit's one focus handle to buttons |
+| `DateValueEditorForm.Field`, `Field.Target`, `Field.neighbours(of:isRange:isAdvancedOpen:)` | enum, static func | `CitationFormFocus.order(_:)` | The date form's own fields and their irregular loop |
+| `DateValueDraft.part(_:start:)` | func | the seven bindings | One key path per part and side |
+| `SourceDateDialogModifier.width`, `SourceFields.Field` | constant, enum | `SourceFields.dialogWidth`, `SourceDateForm.Field` | The widths differ now; Add Source's own focus |
+| `L10n.Sources.dateEarliestShort` = "Earliest", `dateEarliestNote` = "not before", `dateLatestShort` = "Latest", `dateLatestNote` = "not after", `dateTimeZonePrompt` | keys | `dateEarliestHeading` | Two-line labels; the heading stays as the spoken name. They sit beside the form's other `Sources.date*` keys until S15-42 moves them all |
+| `macos/ProvenenciaTests/DateValueEditorFormTests.swift` *(new)* | test file | `DateValueDraftTests.swift` | Tests the form's neighbour table |
 
-**Builds on.** `PVFieldFocus` and its `claimTab(shift:)`; `PVInputTabClaim`'s key handling; `PVSegmentedControl`; `PVTypeSelectMatcher`; the design-system README's Field focus, SegmentedControl, Button and FloatingMenuSelection rows.
+**Builds on.** `PVFieldFocus`, `FocusClaim`, `pvActivatesOnReturn`, `PVSegmentedControl`, `PVTypeSelectMatcher`, `CitationFormFocus`'s static order, the design-system README rows.
 
 **Deletes.**
-- `macos/App/Features/Sources/SourceDateEditor.swift` (whole file); `L10n.Sources.sourceDateReadsAs` and its catalog entry `sources.page.sourceDate.readsAs`.
-- `DateValueDraft`: `showStartTime`, `showEndTime`, `hideTime(start:)`, `applyStartCascade()`, `applyEndCascade()`, the twelve `canSetStart*` and `canSetEnd*` properties (month to millisecond), `hasFullStartDay`, `hasFullEndDay`; the show flags in `empty()` and `init(from:)`.
-- `DateValueEditorForm`: the captions above Kind and the qualifier, the qualifier's `PVChipGroup`, the three `PVDivider`s, the per-side micro-caps heading, the Add time / Remove time button and `timeBlock`'s sunken card, the plain-button `advancedToggle`, `startHourFocused` and `endHourFocused`, `cascadeField`'s `focused:` parameter (its last caller goes).
+- `SourceDateEditor`'s Reads as card; `L10n.Sources.sourceDateReadsAs` and its catalog entry `sources.page.sourceDate.readsAs`.
+- `DateValueDraft`: `showStartTime`, `showEndTime`, `hideTime(start:)`, `applyStartCascade()`, `applyEndCascade()`, the twelve `canSetStart*` / `canSetEnd*` properties, `hasFullStartDay`, `hasFullEndDay`; the show flags in `empty()` and `init(from:)`; `cascadeFieldError`'s written-out order.
+- `DateValueEditorForm`: the captions above Kind and the qualifier, the qualifier's `PVChipGroup`, the three `PVDivider`s, the per-side micro-caps heading, the Add time / Remove time button, `timeBlock`'s sunken card, the plain-button `advancedToggle`, `startHourFocused`, `endHourFocused`, the seven bindings `yearBinding` to `millisecondBinding` (one `partBinding` remains), `cascadeField`'s `focused:`, `disabled:` and `activateOnAppear:` parameters, `DateOptionalAccessibilityIdentifier`.
 - L10n keys and catalog entries: `datePointHeading`, `dateAddTime`, `dateHideTime`.
-- Tests: `hidingTimeClearsIt`, `loadShowsTimeWithZoneOnly`, `applyStartCascadeDoesNotWipeIndependentFields`; the two `applyStartCascade()` calls in `DateValueSelectTests.swift`.
-- `SourceFields` doc comment's `.date.readsAs`; the `#Preview` title "Filled, Private, Reads as: frame 2" becomes "Filled, Private: frame 2".
+- Tests: `hidingTimeClearsIt`, `loadShowsTimeWithZoneOnly`, `applyStartCascadeDoesNotWipeIndependentFields`; `DateValueSelectTests.applyingAMonthOptionStillCascadesTheDraft` is renamed `applyingAMonthOptionKeepsTheDraftValid` and loses its `applyStartCascade()` calls.
+- Doc text: `SourceFields`' `.date.readsAs`; `SourceDateForm`'s "what the date reads as"; the `SourceFields` preview title "Filled, Private, Reads as: frame 2" becomes "Filled, Private: frame 2"; `PVSegmentedControl`'s "does not read the handle's `next` / `previous`".
 
-**Next adds.** S16-74's Copy sheet takes `SourceFields` and inherits D-12's Description → Year claim. Any later dialog link or button joins a Tab order by passing `focus:` (D-4).
+**Next adds.** S15-42 puts No date and Supplied into `SourceDateEditor` and joins the loop as `Field` cases in the table. S16-74's Copy sheet takes `SourceFields` and inherits D-13. Any button joins a Tab order by passing `focus:`.
 
 ### Reach
 
 | New path or state | Destination | Checked |
 | --- | --- | --- |
-| Tab into Year from Description (Add Source) | `DateValueEditorForm` Year | The form's own `focus` is nil there; the Year handle is the host's, so the first write lands on the host binding (D-5) |
-| A loaded date with time and no Add time click | the always-shown time row | Fields show their value; nothing depends on the removed show flags (AC-1.5) |
-| `PVButton` with a focus handle | every `PVButton` caller | Default `nil` keeps today's code path (every existing caller passes none) |
-| `PVSegmentedControl` claiming Tab | every caller with a handle | `PVFieldTabClaim` adds nothing for a handle without neighbours; today's callers (the composer's Yes / No, and others with `focus:`) pass handles without neighbours |
+| Tab into Year from Description (Add Source) | `DateValueEditorForm` Year | The form's own `focus` is nil there; the Year handle is the host's (D-5) |
+| A loaded date with time and no Add time click | the always-shown time row | Fields show their value; nothing depends on the removed flags (AC-1.5) |
+| `PVButton` with a focus handle | every `PVButton` caller | Default `nil` keeps today's body; every existing caller passes none |
+| `PVSegmentedControl` claiming Tab | every caller with a handle | `PVFieldTabClaim` adds nothing without neighbours; today's callers (the composer's Yes / No and others) pass handles without neighbours |
+| The binding `FocusClaim.claim` through the new core | every caller | Same timing and writes (T-4) |
 
 ### Scale
 
-None — no write, list or loop changes; the form has at most 25 fields.
+None — no write, list or loop changes; the form has at most 23 fields.
 
 ### Edges
 
-- **Assumptions.** `PVTypeSelectMatcher.index` wraps and skips disabled rows; a single-character search from `current + 1` relies on that (T-1 covers wrap at July → January). The Tab claims assume a field's handle is applied only on the focused element: `PVSegmentedControl` applies it to the focus target only, and the claim sits on that same view.
-- **Neighbors.** `aa` walks, `ab` is a prefix search (AC-3.2, AC-3.5); a pause between two J's starts a new single-character search from the current row, as today. On a Single date Year's `previous` is the qualifier; on a range it is Kind (AC-2.5). Calendar and Phrase join the order only while open (AC-2.4).
-- **Removed inputs.** Switching range → point clears the end side as today, so `end…` fields leave the order with their views (D-5's order is recomputed from `isRange`). Closing Calendar and phrase removes `calendar` and `phrase` from the order; their values stay in the draft, as today.
+- **Assumptions.** `PVTypeSelectMatcher.index` wraps and skips disabled rows; the single-character search from `current + 1` relies on that (T-1: July → January). A handle is applied only to the focused element: `PVSegmentedControl` applies it to its focus target, and the Tab claim sits on that same view. `Field.neighbours` is pure, so the loop is the table's.
+- **Neighbors.** `aa` walks, `ab` is a prefix search (AC-3.2, AC-3.5); a pause between two J's starts a single-character search from the current row, as today. On a Single date Year's `previous` is the qualifier; on a range it is Kind (AC-2.5). The end Year's `previous` is the start zone (AC-2.3). Calendar and Phrase join while open (AC-2.4).
+- **Removed inputs.** Switching range → point clears the end side as today, and the end fields leave the table with their views. Closing Calendar and phrase removes `calendar` and `phrase`; their values stay in the draft, as today.
 - **Real data.** None — no table or seed drives a rule.
 - **Untrusted size.** None — no data the app did not write.
 
@@ -205,63 +215,64 @@ The board, in words (Regular and Wide identical: every host is a modal, DF-W1). 
 
 | Building block | Component | Home | Notes |
 | --- | --- | --- | --- |
-| Kind + qualifier row | two `PVSegmentedControl(size: .sm)` in `ViewThatFits` (D-6) | `DateValueEditorForm` | Row spacing `space4`; no captions; under it on a range the gloss `dateKindRangeHint` (micro, italic, `textMuted`, as today) |
-| A side | `VStack(spacing: space3)` of a date row and a time row | `DateValueEditorForm` | On a range a leading column 86 pt wide holds `dateEarliestShort` over `dateEarliestNote` (or Latest), caption size: the first `textSecondary` medium, the second micro italic `textMuted`; the rows sit after it. A Single date has no column |
+| Kind + qualifier row | two `PVSegmentedControl(size: .sm)` in `ViewThatFits` (D-7) | `DateValueEditorForm` | Row spacing `space4`; no captions; under it on a range the gloss `dateKindRangeHint` (micro, italic, `textMuted`, as today) |
+| A side | `VStack(spacing: space3)` of a date row and a time row | `DateValueEditorForm` | On a range a leading column 86 pt wide holds `dateEarliestShort` over `dateEarliestNote` (or Latest): the first caption size, medium, `textSecondary`; the second micro, italic, `textMuted`. A Single date has no column |
 | Date row | `PVInput(size: .sm, mono: true)` Year 64, `PVSelect` Month 124 (menu width 160), `PVInput` Day 48 | `DateValueEditorForm` | Each with today's micro caption above (`dateYear`, `dateMonth`, `dateDay`) |
-| Time row | `PVInput(size: .sm, mono: true)` Hour, Min, Sec, Ms each 57; Time zone `PVInput(size: .sm)` filling the rest | `DateValueEditorForm` | Captions `dateHour`, `dateMinute`, `dateSecond`, `dateMillisecond`, `dateTimeZone`; both sides draw all five; no sunken card |
+| Time row | `PVInput(size: .sm, mono: true)` Hour, Min, Sec, Ms each 57; Time zone `PVInput(size: .sm, prompt: dateTimeZonePrompt)` filling the rest | `DateValueEditorForm` | Captions `dateHour`, `dateMinute`, `dateSecond`, `dateMillisecond`, `dateTimeZone`; both sides draw all five; no sunken card |
 | Field error | `PVErrorText` | `DateValueEditorForm` | One line under its side, indented 86 pt on a range; identifiers unchanged |
-| Hint + link line | `HStack`: `dateLeaveEmptyHint` (micro, italic, `textFaint`), `Spacer`, `PVButton(variant: .link, size: .sm, focus:)` titled `dateShowAdvanced` / `dateHideAdvanced` with `.pvExpandedState(draft.showAdvanced)` | `DateValueEditorForm` | Identifier `<prefix>.advancedToggle` unchanged |
+| Hint + link line | `HStack`: `dateLeaveEmptyHint` (micro, italic, `textFaint`), `Spacer`, `PVButton(variant: .link, size: .sm, focus:)` titled `dateShowAdvanced` / `dateHideAdvanced`, with `.pvExpandedState(draft.showAdvanced)` | `DateValueEditorForm` | Identifier `<prefix>.advancedToggle` unchanged |
 | Calendar and Phrase | as today | `DateValueEditorForm` | Under the line when open; each takes its `Field` handle |
 | Form stack | `VStack(alignment: .leading, spacing: space5)` | `DateValueEditorForm` | No `PVDivider` |
-| Source date dialog | `pvFormDialog(width: SourceDateDialog.width)` | `SourceDateDialog.swift` | 520 pt; Clear date and callouts as today |
-| Add Source | `SourceFields` | `SourceFields.swift` | 560 pt; the form inside the Published date `PVField` as today |
+| Source date block | `SourceDateEditor` | `SourceDateEditor.swift` | The form only, until S15-42 |
+| Source date dialog | `pvFormDialog(width: SourceDateDialogModifier.width)` | `SourceDateDialog.swift` | 520 pt; Clear date and callouts as today |
+| Add Source | `SourceFields` | `SourceFields.swift` | 560 pt; the block inside the Published date `PVField` as today |
 | Composer | unchanged call | `CitationComposerAuthoringBox.swift` | The row stacks in the 452 pt box |
 
 States: blank, filled, range, open Calendar and phrase, field error (AC-1.*). Accessibility: Kind and the qualifier speak their labels; each range side speaks its full heading; the link reports expanded / collapsed.
 
 ### Strings
 
-L10n keys *(new)*: `L10n.Sources.dateEarliestShort` = "Earliest", `dateEarliestNote` = "not before", `dateLatestShort` = "Latest", `dateLatestNote` = "not after" (catalog keys `sources.page.dateEarliestShort`, `.dateEarliestNote`, `.dateLatestShort`, `.dateLatestNote`). Removed: `datePointHeading`, `dateAddTime`, `dateHideTime`, `sourceDateReadsAs`. Kept: `dateKindLabel`, `dateQualifierLabel` (spoken), `dateEarliestHeading`, `dateLatestHeading` (spoken), `dateKindRangeHint`, `dateLeaveEmptyHint`.
+L10n keys: the five in Codebase fit (catalog keys `sources.page.dateEarliestShort`, `sources.page.dateEarliestNote`, `sources.page.dateLatestShort`, `sources.page.dateLatestNote`, `sources.page.dateTimeZonePrompt`). Removed: `datePointHeading`, `dateAddTime`, `dateHideTime`, `sourceDateReadsAs`. Kept: `dateKindLabel`, `dateQualifierLabel`, `dateEarliestHeading`, `dateLatestHeading` (spoken), `dateKindRangeHint`, `dateLeaveEmptyHint`.
 
 ## 7. Steps
 
 **STEP-1 — A repeated letter walks its matches**
-Files: `PVFloatingMenuSelection.swift`, `macos/ProvenenciaTests/PVFloatingMenuSelectionTests.swift`, `macos/App/DesignSystem/README.md` (FloatingMenuSelection row, the table keys table, the Select contract's closed keys). Skill: `add-swift-test`.
-Do: D-1 in `advance`; update its doc comment; T-1, T-2.
+Files: `PVFloatingMenuSelection.swift`, `macos/ProvenenciaTests/PVFloatingMenuSelectionTests.swift`, `macos/App/DesignSystem/README.md` (the FloatingMenuSelection row; the closed-keys table under "## The Select contract"; the table keys table under "## The table tradeoff", its "a–z, 0–9" row). Skill: `add-swift-test`.
+Do: D-1; its doc comment; T-1, T-2.
 Check: `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' -only-testing:ProvenenciaTests/PVFloatingMenuSelectionTests` passes.
 
-**STEP-2 — Field focus handles can be rewired, and segmented controls claim Tab**
-Files: `PVFieldFocus.swift`, `FocusClaim.swift`, `PVInput.swift`, `PVSegmentedControl.swift`, `PVFieldFocusTests.swift`, README Field focus and SegmentedControl rows, `.agents/skills/add-ui-component/SKILL.md` field-focus line ("a handle's neighbours can be replaced"). Skill: `add-ui-component`.
-Do: D-2, D-3; remove "does not read the handle's `next` / `previous`" from the control's doc and README row; T-3, T-4.
-Check: `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' -only-testing:ProvenenciaTests/PVFieldFocusTests` passes, and Tab still moves between fields in a form that orders them (the composer's Subject → Property).
+**STEP-2 — Field focus handles can be rewired and claimed, and segmented controls claim Tab**
+Files: `PVFieldFocus.swift`, `FocusClaim.swift`, `PVInput.swift`, `PVSegmentedControl.swift`, `PVFieldFocusTests.swift`, README Field focus and SegmentedControl rows, `.agents/skills/add-ui-component/SKILL.md` (the line beginning "When Tab must move from a field that claims Tab": add "a host's handle joins a form's loop through `replacingNeighbours`"). Skill: `add-ui-component`.
+Do: D-2, D-3; the row in **Rules this plan bends**; T-3, T-4.
+Check: the `PVFieldFocusTests` suite passes (command as STEP-1), and Tab still moves Subject → Property in the composer.
 
 **STEP-3 — A kit button takes a focus handle**
-Files: `PVButton.swift`, README Button row. Skill: `add-ui-component`.
+Files: `PVButton.swift`, README Button row and the Field focus row's list of takers. Skill: `add-ui-component`.
 Do: D-4.
 Check: the app builds with no warning; the button previews render as before.
 
-**STEP-4 — The draft has no hidden time and no dead helpers**
+**STEP-4 — The draft has no hidden time and one key path per part**
 Files: `DateValueDraft.swift`, `DateValueDraftTests.swift`, `DateValueSelectTests.swift`. Skill: `add-date-value`.
-Do: D-8, D-9, D-13; delete the three tests in Deletes; T-5.
-Check: `DateValueDraftTests` and `DateValueSelectTests` pass. The form does not compile until STEP-5; do STEP-4 and STEP-5 in one commit.
+Do: D-9's draft half, D-10; the draft and test lines in Deletes; T-5. The form does not compile until STEP-5: commit STEP-4 and STEP-5 together.
+Check: `DateValueDraftTests` and `DateValueSelectTests` pass.
 
 **STEP-5 — The condensed form**
 Files: `DateValueEditorForm.swift`, `L10n.swift`, `Localizable.xcstrings`. Skills: `add-ui-component`, `add-localized-string`.
-Do: the layout in **Design → macOS**; D-6, D-7; the strings in §6 Strings.
-Check: the app builds with no warning; the `#Preview`s of `SourceFields` render (Xcode previews or a run).
+Do: the layout in **Design → macOS**; D-7, D-8, D-9's form half, D-14; the form lines in Deletes.
+Check: the app builds with no warning; the `SourceFields` previews render.
 
 **STEP-6 — The form's Tab loop**
 Files: `DateValueEditorForm.swift`, `macos/ProvenenciaTests/DateValueEditorFormTests.swift` *(new)*.
-Do: D-5; T-6.
+Do: D-5, D-6; T-6.
 Check: `DateValueEditorFormTests` passes.
 
 **STEP-7 — The hosts**
-Files: `SourceDateEditor.swift` (delete), `SourceDateDialog.swift`, `SourceFields.swift`, `L10n.swift`, `Localizable.xcstrings`.
-Do: D-10, D-11, D-12; remove `sourceDateReadsAs`.
-Check: `scripts/check-pr.sh` prints `check-pr: PASS`; the manual check §10 passes.
+Files: `SourceDateEditor.swift`, `SourceDateDialog.swift`, `SourceFields.swift`, `L10n.swift`, `Localizable.xcstrings`.
+Do: D-11, D-12, D-13; remove `sourceDateReadsAs`; the doc lines in Deletes.
+Check: `scripts/check-pr.sh` prints `check-pr: PASS`; §10 passes.
 
 **STEP-8 — Docs**
-Files: `docs/deployment-plan/spike-16/completed.md`, `deployment-plan.md` (map row), this plan (status), `design/S16-D20-date-form-condensed.md` → `design/archive/`, `design/README.md`, `date-value-form.md` (mark it shipped in its first paragraph), `VERSION`, `core/version.go`, `MARKETING_VERSION`.
+Files: `docs/deployment-plan/spike-16/completed.md`, `deployment-plan.md` (map row), this plan (status), `design/S16-D20-date-form-condensed.md` → `design/archive/`, `design/README.md`, `date-value-form.md` (its first paragraph says it shipped), `VERSION`, `core/version.go`, `MARKETING_VERSION`.
 Do: per the Definition of done; patch bump.
 Check: links resolve; `python3 scripts/check-plan-docs.py` reports no errors.
 
@@ -271,14 +282,14 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
-| T-1 | Swift | `PVFloatingMenuSelectionTests` `repeatedLetterWalksItsMatches` *(new)* | months on January (0), `j` at t, t+0.1, t+0.2, t+0.3 → 5, 6, 0 (wraps), 5; `["Aaron","Abel","Adam"]` from -1, `a`,`a` quickly → 0, 1; `["10","11","12"]` from 0, `1`,`1` → 1, 2 | AC-3.1, AC-3.2, AC-3.3, D-1 |
+| T-1 | Swift | `PVFloatingMenuSelectionTests` `repeatedLetterWalksItsMatches` *(new)* | twelve month names (no empty option), current 0 (January), `j` at t, t+0.1, t+0.2, t+0.3 → 5, 6, 0, 5; `["Aaron","Abel","Adam"]` from -1, `a`,`a` quickly → 0, 1; `["10","11","12"]` from 0, `1`,`1` → 1, 2 | AC-3.1, AC-3.2, AC-3.3, D-1 |
 | T-2 | Swift | `PVFloatingMenuSelectionTests` `mixedLettersStayAPrefixSearch` *(new)* | `["January","June","July"]`, `j`,`j`,`o` quickly → third returns -1; `["Jane","Jones"]` from -1, `j`,`o` → 0, 1 | AC-3.4, AC-3.5 |
-| T-3 | Swift | `PVFieldFocusTests` `replacingNeighboursSwapsBothClaims` *(new)* | handle with next/previous counters; `replacingNeighbours(next: B, previous: nil)` → Tab runs B, Shift-Tab `.ignored`; original unchanged | D-2 |
-| T-4 | Swift | `PVFieldFocusTests` `focusClaimOnAHandleWritesNextTurn` *(new)* | `FocusClaim.claim(handle)` → `focus` not called synchronously, called after one main-queue turn (await `Task.yield` / a continuation) | D-2 |
-| T-5 | Swift | `DateValueDraftTests` `loadKeepsTimeAndRangeTyped` *(new)* | `init(from:)` of a range 1880 – 1885 with `endTZ` "Europe/London" → end fields as saved, `setKind("range")` on a point with year 1880 → `endYear == nil` | D-8, D-9, AC-1.3, AC-1.5 |
-| T-6 | Swift | `DateValueEditorFormTests` `tabOrder` *(new)* | point closed → start parts + `advancedToggle`; range closed → start parts, end parts, `advancedToggle`; point open → … `advancedToggle`, `calendar`, `phrase`; Kind and qualifier never in the forward order | D-5, AC-2.2, AC-2.3, AC-2.4 |
+| T-3 | Swift | `PVFieldFocusTests` `replacingNeighboursSwapsBothClaims` *(new)* | handle with next/previous counters; `replacingNeighbours(next: B, previous: nil)` → Tab runs B, Shift-Tab `.ignored`; the original unchanged | D-2 |
+| T-4 | Swift | `PVFieldFocusTests` `focusClaimWritesOnTheNextTurn` *(new)* | the core with counting `write` and `isDone` → no write synchronously; one write after a main-queue turn; a second only while `isDone()` is false; the handle overload calls `focus` the same way | D-2 |
+| T-5 | Swift | `DateValueDraftTests` `loadKeepsTimeAndNothingFillsIn` *(new)* | `init(from:)` with only `startTZ` "Europe/London" → `startTZ` kept, `isValid` false as today; a point with year 1880, `setKind("range")` → `endYear == nil`; `part(.month, start: false)` writes `endMonth` | D-9, D-10, AC-1.3, AC-1.5 |
+| T-6 | Swift | `DateValueEditorFormTests` `neighbourTable` *(new)* | for Single date and range, Calendar and phrase closed and open, walk `next` from start Year and `previous` from start Year: point closed → Month, Day, Hour, Min, Sec, Ms, zone, `advancedToggle`, `.hostNext`; Shift-Tab → `qualifier`, `kind`, `.hostPrevious`; range → end side after start zone, end Year's `previous` is start zone, start Year's `previous` is `kind`; open → `advancedToggle`, `calendar`, `phrase`, `.hostNext`; `kind.next` and `qualifier.next` are start Year | D-5, AC-2.2, AC-2.3, AC-2.4, AC-2.5, AC-2.6, AC-2.7 |
 
-Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `DateValueDraftTests`, `CitationComposerModelTests` (date values in the composer), `SourcesModelTests`.
+Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `DateValueDraftTests`, `CitationComposerModelTests` (date values in the composer), `SourcesModelTests`, `PVFieldFocusTests`.
 
 ## 9. Definition of done
 
@@ -288,7 +299,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `D
 - [ ] scripts/check-pr.sh prints check-pr: PASS (gofmt, go vet, go test, Xcode tests with no Swift warning, catalog and plan-doc checks)
 - [ ] No Out line was implemented; no code outside §4 / §6 was refactored
 - [ ] New user-facing copy is in L10n + Localizable.xcstrings; no stale strings left
-- [ ] Sweep: each renamed or deleted name `rg`'d by its old, qualified name across `.agents/`, `.cursor/rules/`, `docs/*.md` and `L10n.swift` with no hit left; `scripts/check-guidance-names.py` passes (check-pr runs it)
+- [ ] Sweep: each renamed or deleted name `rg`'d by its old, qualified name across `.agents/`, `.cursor/rules/`, `docs/*.md`, `docs/deployment-plan/spike-15/`, `docs/deployment-plan/spike-16/` (not `archive/`) and `L10n.swift` with no hit left, and "come only from" in the README and skills; `scripts/check-guidance-names.py` passes (check-pr runs it)
 - [ ] Every row of **Rules this plan bends** has the user's answer, and its rule is updated
 - [ ] UI matches the brief inventory; no new kit primitive unless the brief marks it New
 - [ ] Version bump as the header says (VERSION, core/version.go, MARKETING_VERSION together) — or none
@@ -303,28 +314,27 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `D
 
 Turn Full Keyboard Access off (System Settings → Keyboard → Keyboard navigation).
 
-1. Open a Source page ("1880 census, Ward 4, Altona"), click its date to open the Source date dialog. See AC-1.1 at 520 pt. Click Calendar and phrase…: AC-1.6; Tab from the link per AC-2.4. Type 1880, Tab, J J J quickly: the Month reads July after June (AC-3.1). Walk Tab and Shift-Tab per AC-2.2, AC-2.5, AC-2.6, AC-2.8.
-2. Choose Between two bounds: AC-1.2; Tab per AC-2.3. Type Day 32: AC-1.4.
-3. Open Add Source (Sources list → Add). Tab from Description: Year (AC-2.1); Shift-Tab back to Kind, then Description (AC-2.7). On a range with only the earliest year: AC-1.3.
-4. Open the Citation composer, New observation, a date Property: the Kind and qualifier stack in the value box; Tab from Property lands on Year.
+1. Open a Source page ("1880 census, Ward 4, Altona"), click its date to open the Source date dialog. See AC-1.1 at 520 pt. Type 1880, Tab to Month, press J once (January), then J J quickly: June, July (AC-3.1). Walk Tab and Shift-Tab per AC-2.2, AC-2.5, AC-2.6; press → on the qualifier and on Kind (AC-2.8). Tab to the link and press Return: AC-1.6; Tab on per AC-2.4.
+2. Choose Between two bounds: AC-1.2; Tab and Shift-Tab per AC-2.3. Type Day 32: AC-1.4.
+3. Open Add Source (Sources list → Add). Tab from Description: Year (AC-2.1); Shift-Tab back to Kind, then Description (AC-2.7). On a range with only the earliest year: AC-1.3. Load a Source whose date has only a time zone: AC-1.5.
+4. Open the Citation composer, New observation, a date Property: Kind and the qualifier stack in the value box; Tab from Property lands on Year.
 5. Stretch the window past 1600 pt: each dialog is unchanged and centered (DF-W1).
-6. Every Tab and Shift-Tab above ran with Full Keyboard Access off (AC-2.9).
+6. Every step above ran with Full Keyboard Access off (AC-2.9).
 
 ## 11. Risks and stop conditions
 
 | Risk | Mitigation |
 | --- | --- |
-| A Tab claim crossing from the form's `FocusState` to the host's is swallowed while the key event is handled | D-2's `FocusClaim.claim(handle)` defers two turns, as the binding claim does |
-| `ViewThatFits` picks the stacked layout in the 520 pt dialog | Kind (sm) and the qualifier (sm) measure under the dialog's content width; if not, see stop conditions |
-| `PVButton(focus:)` changes rendering for existing callers | The default `nil` path is the unchanged code path; every existing preview still renders |
+| A Tab claim crossing from the form's `FocusState` to the host's is swallowed while the key event is handled | D-2's handle claim uses the two-turn core |
+| `PVButton(focus:)` changes rendering for existing callers | The `nil` path is today's body; existing previews render as before |
 
 **Stop and report if:**
 
-- `DateValueEditorForm`, `DateValueDraft`, `SourceFields`, `SourceDateDialog` or `PVTypeSelectMatcher.advance` no longer match §4 at your base.
+- `DateValueEditorForm`, `DateValueDraft`, `SourceDateEditor`, `SourceFields`, `SourceDateDialog`, `FocusClaim` or `PVTypeSelectMatcher.advance` no longer match §4 at your base.
 - Kind and the qualifier do not fit one row in the 520 pt Source date dialog at `size: .sm` (they stack there).
-- Tab from Description does not land on Year with Full Keyboard Access off after D-12, or Shift-Tab from Year does not reach the qualifier.
-- A `PVSegmentedControl` or `PVButton` caller outside the date form changes its Tab behavior.
-- `SourceDateText` or `sourceDateReadsAs` has a caller outside `SourceDateEditor.swift` that this plan does not name (`SourceDateText` has, and stays).
+- Tab from Description does not land on Year with Full Keyboard Access off after D-13, or Shift-Tab from Year does not reach the qualifier.
+- A `PVSegmentedControl`, `PVButton` or `FocusClaim` caller outside the date form changes its focus behavior.
+- Return on the focused link fires its action twice, or Space does nothing.
 
 ## 12. Open questions
 

@@ -196,7 +196,7 @@ Draw at Regular (pane 1102 × 900), the host's page dimmed behind a dialog; fram
 | Range gloss and leave-empty hint | Component | Extend | a caption line (board) | DF-2, DF-3: no `PVHelpIcon`, not a new control |
 | Field errors | Component | Ship | `PVErrorText` | Unchanged words and place |
 | Can't-be-saved line | Component | Ship | the host's `PVField` `error:` (Add Source's Published date) | Unchanged |
-| Reads as | Snowflake | Remove | `macos/App/Features/Sources/SourceDateEditor.swift` | Goes with the file (DF-8 dropped) |
+| Reads as | Snowflake | Remove | `macos/App/Features/Sources/SourceDateEditor.swift` | The card goes; the view stays the Source date block (DF-8 dropped) |
 | Source date dialog | Snowflake | Extend | `macos/App/Features/Sources/SourceDateDialog.swift` | Width may come down (DF-10) |
 | Add Source fields | Snowflake | Ship | `macos/App/Features/Sources/SourceFields.swift` | Takes the condensed form; its order from S16-D15 is unchanged |
 | Composer value box | Snowflake | Ship | `macos/App/Features/CitationComposer/CitationComposerAuthoringBox.swift` `inlineValue`, in the New and Edit observation dialogs (`CitationComposerView.swift`) | Hosts the same form (DF-1) |
