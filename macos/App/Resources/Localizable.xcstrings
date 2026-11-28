@@ -10863,7 +10863,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Facts that change over time, like occupation or residence, usually belong in events"
+            "value": "Facts that change over time, like employment or residence, usually belong in events"
           }
         }
       }

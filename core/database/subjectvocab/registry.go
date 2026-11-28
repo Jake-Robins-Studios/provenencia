@@ -185,7 +185,7 @@ var seedProperties = []seedProperty{
 	{Key: "eye_color", Label: "Eye color", Description: "Eye color as recorded. More than one value is allowed.", ValueType: propertymeta.ValueTypeText, Cardinality: propertymeta.CardinalityMultiple},
 	{Key: "hair_color", Label: "Hair color", Description: "Hair color as recorded. More than one value is allowed.", ValueType: propertymeta.ValueTypeText, Cardinality: propertymeta.CardinalityMultiple},
 	{Key: "complexion", Label: "Complexion", Description: "Complexion as recorded. More than one value is allowed.", ValueType: propertymeta.ValueTypeText, Cardinality: propertymeta.CardinalityMultiple},
-	{Key: "profession", Label: "Profession", Description: "Trade or skill set (carpenter, software developer). Not an employment: a job held at a place for a span is an event. More than one value is allowed.", ValueType: propertymeta.ValueTypeText, Cardinality: propertymeta.CardinalityMultiple},
+	{Key: "occupation", Label: "Occupation", Description: "Trade or skill set, as a record's occupation column gives it (carpenter, software developer). Not an employment: a job held at a place for a span is an employment event. More than one value is allowed.", ValueType: propertymeta.ValueTypeText, Cardinality: propertymeta.CardinalityMultiple},
 }
 
 // Non-bridge bindings from docs/seeded-vocabulary.md §3.3.
@@ -205,7 +205,7 @@ var seedBindings = []seedBinding{
 	{TypeKey: "person", PropertyKey: "eye_color", SortOrder: 9},
 	{TypeKey: "person", PropertyKey: "hair_color", SortOrder: 10},
 	{TypeKey: "person", PropertyKey: "complexion", SortOrder: 11},
-	{TypeKey: "person", PropertyKey: "profession", SortOrder: 12},
+	{TypeKey: "person", PropertyKey: "occupation", SortOrder: 12},
 
 	{TypeKey: "event", PropertyKey: "event_type", SortOrder: 0, Locked: true},
 	{TypeKey: "event", PropertyKey: "event_name", SortOrder: 1},

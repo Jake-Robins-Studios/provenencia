@@ -8188,7 +8188,7 @@ enum L10n {
         )
         static let holdsEventsHint = LocalizedStringResource(
             "properties.inspector.holdsEventsHint",
-            defaultValue: "Facts that change over time, like occupation or residence, usually belong in events",
+            defaultValue: "Facts that change over time, like employment or residence, usually belong in events",
             comment: "Standing hint under Holds, and the create-form field hint"
         )
         static func holdsReconciled(label: String) -> String {

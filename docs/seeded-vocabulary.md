@@ -233,7 +233,7 @@ weight              text          as recorded, with its unit; cardinality `multi
 eye_color           text          as recorded; cardinality `multiple`; unlocked on person
 hair_color          text          as recorded; cardinality `multiple`; unlocked on person
 complexion          text          as recorded; cardinality `multiple`; unlocked on person
-profession          text          trade or skill set, not an employment (a job held for a span is an event); cardinality `multiple`; unlocked on person
+occupation          text          trade or skill set, as a record's occupation column gives it; not an employment (a job held for a span is an `employment` event); cardinality `multiple`; unlocked on person
 ```
 
 Target Subject type hints are application-only (not SQL allow-lists). See the Interpretation doc.
@@ -264,7 +264,7 @@ person          weight              # text; multiple; unlocked
 person          eye_color           # text; multiple; unlocked
 person          hair_color          # text; multiple; unlocked
 person          complexion          # text; multiple; unlocked
-person          profession          # text; multiple; unlocked
+person          occupation          # text; multiple; unlocked
 
 event           event_type          # term; locked
 event           event_name          # text; unlocked
@@ -316,7 +316,7 @@ burial
 funeral
 census
 residence
-occupation
+employment
 migration
 travel
 ```
