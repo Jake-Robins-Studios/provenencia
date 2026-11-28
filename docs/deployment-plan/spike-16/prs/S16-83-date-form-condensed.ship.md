@@ -1,7 +1,7 @@
 # Ship log — S16-83 The date form is smaller and keyboard-first
 
 **Plan:** [`S16-83-date-form-condensed.md`](S16-83-date-form-condensed.md) · **Branch:** `s16-83-date-form-condensed` · **PR:** #1027
-**State:** fixing — manual check 3b
+**State:** ready — awaiting the user's look
 
 ## Round 0 — implement
 Head `f49196396`. Gate PASS (orchestrator run, xcode-test included). Report deviations: manual check (§10) and the view-level keyboard evidence (D-3, D-4, D-6, D-13) not run — needs the user's Mac; version 0.53.1 (main already 0.53.0); `monthAndDayCanBeSetWithoutAYear` lost its `applyStartCascade()` call (method deleted); `Field.neighbours` is `@MainActor`; `DateValueDraft.part(_:start:)` is static; old names (`PVInputTabClaim`, `sourceDateReadsAs`, `.date.readsAs`, `hideTime`) left in landed/historical plans and map rows, not rewritten.
@@ -142,6 +142,9 @@ Do:
 - Docs: `date-value-form.md` names the kinds "Single" and "Bounded" where it quotes the control's labels; the plan's Landed note extends the F-7 sentence with: "Kind reads Single / Bounded (was Single date / Between two bounds, user's manual check) and sits on one row with the qualifier at their natural widths in every host". Leave the map's working-rule history as written.
 Check: the test passes; scripts/check-pr.sh PASS (localizable included); the user opens the Source date dialog and the composer: one row, no truncation, in both.
 
+## Manual check 3b — fix
+Head `5315ac60d`. Gate PASS (orchestrator run). F-10 done (`65213460f`): Kind reads Single / Bounded; the two unsavable lines follow; `kindRow` puts both controls at natural width (`fixedSize`) with `Layout.kindGap` 12; `DateValueEditorFormLayoutTests/kindAndQualifierFitTheComposerBox` failed red (224 + 12 + 228 = 464 > 452) and passes green. Orchestrator found `DateValueDraftTests.swift:190` asserting the absence of "Single date" (vacuous after the copy change); fixed to "Single" in `5315ac60d`. Diff read by orchestrator: matches. On screen: the user's look at both hosts.
+
 ## Result
 Gate PASS (head `2ccc5fe70`, origin/main unchanged at `6a6854119`) · CI see PR · open: none · follow-ups: MNT-3 → S16-84 on the Spike 16 map (user) · to user: §10 manual check before merge (the only proof of UX-1 in the running app, AC-1.1/1.2/1.6, AC-2.1/2.8/2.9, D-3/D-4/D-6/D-13; watch steps 1 and 4 for the `ViewThatFits` Kind/qualifier focus).
 
@@ -161,4 +164,5 @@ Plan: 6,346 words (check-plan-docs info line).
 | M2 | implementer (no plan found) | sonnet | 74k |
 | M2 | implementer (fix) | sonnet | 76k |
 | M3 | implementer (stopped) | sonnet | 92k |
-| | **Total** | | **1,033k** |
+| M3b | implementer (fix + test follow-on) | sonnet | 89k+ |
+| | **Total** | | **1,122k+** |
