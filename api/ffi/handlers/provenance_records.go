@@ -52,7 +52,11 @@ func GetProvenanceRecords(in []byte) ([]byte, error) {
 		}
 		out = &engine.GetProvenanceRecordsResponse{Citations: renderedCitationsProto(got.Citations)}
 		for _, o := range got.Owners {
-			out.Owners = append(out.Owners, ownerFieldProto(o))
+			po := ownerFieldProto(o)
+			for _, oc := range o.Field.Outcomes {
+				po.Field.Outcomes = append(po.Field.Outcomes, reconcilerOutcomeProto(oc))
+			}
+			out.Owners = append(out.Owners, po)
 		}
 		out.Inputs = pageInputsProto(inputs)
 		return nil

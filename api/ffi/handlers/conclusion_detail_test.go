@@ -56,12 +56,12 @@ func TestGetConclusionDetail(t *testing.T) {
 	runRPC(t, GetConclusionDetail, []rpcTest{
 		{name: "bad proto", raw: []byte{0xff}, wantErr: true},
 		{
-			name: "Person carries its fields, values and outcomes",
+			name: "Person carries its fields, values and record counts, not records",
 			reqFn: func(t *testing.T) proto.Message {
 				dir, ref := namedPerson(t)
 				return &engine.GetConclusionDetailRequest{ProjectDir: dir, EntityId: personEntityID(t, dir, ref)}
 			},
-			after: func(t *testing.T, out []byte, _ proto.Message) {
+			after: func(t *testing.T, out []byte, req proto.Message) {
 				var d engine.ConclusionDetail
 				if err := proto.Unmarshal(out, &d); err != nil {
 					t.Fatal(err)
@@ -80,18 +80,26 @@ func TestGetConclusionDetail(t *testing.T) {
 					name.Values[0].GetValue().GetName().GetForm() != "James Kenneth Robins" {
 					t.Fatalf("name %+v", name)
 				}
-				if len(name.Outcomes) != 2 {
+				// The detail sends counts, not records.
+				if len(name.Outcomes) != 0 {
 					t.Fatalf("outcomes %+v", name.Outcomes)
 				}
 				if name.GetRecordCounts().GetRecords() != 2 || name.GetRecordCounts().GetSources() != 1 {
 					t.Fatalf("record counts %+v", name.GetRecordCounts())
 				}
-				var graphs, srcs []string
-				for _, o := range name.Outcomes {
-					graphs, srcs = append(graphs, o.GetGraphId()), append(srcs, o.GetSourceId())
+				// The sheet's read of the same field has the records, and the detail's inputs still
+				// name the graphs and Sources of exactly those records.
+				var sheet engine.GetProvenanceRecordsResponse
+				mustRPC(t, GetProvenanceRecords, &engine.GetProvenanceRecordsRequest{
+					ProjectDir: req.(*engine.GetConclusionDetailRequest).GetProjectDir(),
+					Row:        provenanceFields(d.Entity.GetId(), name.GetPropertyId()),
+				}, &sheet)
+				if len(sheet.GetOwners()) != 1 || len(sheet.GetOwners()[0].GetField().GetOutcomes()) != 2 {
+					t.Fatalf("sheet %+v", &sheet)
 				}
-				wantInputs(t, d.GetInputs(), []string{d.Entity.GetId()}, graphs, srcs)
-				for _, o := range name.Outcomes {
+				var graphs, srcs []string
+				for _, o := range sheet.GetOwners()[0].GetField().GetOutcomes() {
+					graphs, srcs = append(graphs, o.GetGraphId()), append(srcs, o.GetSourceId())
 					if o.GetValueRank() != 1 || o.GetObservationRef() == "" || o.GetSubjectRef() == "" ||
 						o.GetSourceId() == "" || o.GetCitationId() == "" || o.GetArtifactId() == "" || o.GetRecorded().GetName() == nil ||
 						o.GetVoteSupport() != 0 || o.GetVoteTotal() != 0 ||
@@ -99,6 +107,7 @@ func TestGetConclusionDetail(t *testing.T) {
 						t.Fatalf("outcome %+v", o)
 					}
 				}
+				wantInputs(t, d.GetInputs(), []string{d.Entity.GetId()}, graphs, srcs)
 			},
 		},
 		{
@@ -202,23 +211,31 @@ func TestConclusionValueProtoDepiction(t *testing.T) {
 	}
 }
 
-func TestConclusionDetailProtoCarriesVoteArtifactAndMembers(t *testing.T) {
+func TestReconcilerOutcomeProtoCarriesVoteAndArtifact(t *testing.T) {
 	artifact := []byte{0: 9, 15: 9}
-	d := conclusiondetails.Detail{
-		MemberCount: 4,
-		Fields: []conclusiondetails.Field{{Outcomes: []conclusiondetails.Outcome{{
-			Reason: "outvoted", ArtifactID: artifact, Vote: autoreconcile.Vote{Support: 2, Of: 3},
-			ArtifactLabel: "Vol. 3", CitationLabel: "Baptism of Ada", ArtifactPage: 37, PageLabel: "23", GroupRank: 2,
-		}}}},
+	outcome := conclusiondetails.Outcome{
+		Reason: "outvoted", ArtifactID: artifact, Vote: autoreconcile.Vote{Support: 2, Of: 3},
+		ArtifactLabel: "Vol. 3", CitationLabel: "Baptism of Ada", ArtifactPage: 37, PageLabel: "23", GroupRank: 2,
+		ValueRank: 1,
 	}
-	got := conclusionDetailProto(d)
-	o := got.Fields[0].Outcomes[0]
-	if got.GetMemberCount() != 4 || o.GetArtifactId() != database.UUIDString(artifact) || o.GetVoteSupport() != 2 || o.GetVoteTotal() != 3 {
-		t.Fatalf("%+v", got)
+	o := reconcilerOutcomeProto(outcome)
+	if o.GetArtifactId() != database.UUIDString(artifact) || o.GetVoteSupport() != 2 || o.GetVoteTotal() != 3 || o.GetValueRank() != 1 {
+		t.Fatalf("%+v", o)
 	}
 	if o.GetArtifactLabel() != "Vol. 3" || o.GetCitationLabel() != "Baptism of Ada" || o.GetArtifactPage() != 37 ||
 		o.GetPageLabel() != "23" || o.GetGroupRank() != 2 {
 		t.Fatalf("citation parts %+v", o)
+	}
+	pooled := conclusionFieldProto(conclusiondetails.Field{Values: []conclusiondetails.ReconciledValue{{Rank: 1, PooledSupport: 2}}})
+	if pooled.GetValues()[0].GetPooledSupport() != 2 {
+		t.Fatalf("pooled support %+v", pooled)
+	}
+	got := conclusionDetailProto(conclusiondetails.Detail{
+		MemberCount: 4,
+		Fields:      []conclusiondetails.Field{{Outcomes: []conclusiondetails.Outcome{outcome}}},
+	})
+	if got.GetMemberCount() != 4 || len(got.Fields[0].Outcomes) != 0 {
+		t.Fatalf("%+v", got)
 	}
 }
 
@@ -387,14 +404,14 @@ func TestGetConclusionDetailWarmReadsNoRecordSQL(t *testing.T) {
 	if err := proto.Unmarshal(second, &d); err != nil {
 		t.Fatal(err)
 	}
-	nameOutcomes := 0
+	nameRecords := 0
 	for _, f := range d.GetFields() {
 		if f.GetPropertyKey() == "name" {
-			nameOutcomes += len(f.GetOutcomes())
+			nameRecords += int(f.GetRecordCounts().GetRecords())
 		}
 	}
-	if nameOutcomes == 0 {
-		t.Fatalf("no name outcome in %+v", d.GetFields())
+	if nameRecords == 0 {
+		t.Fatalf("no name records counted in %+v", d.GetFields())
 	}
 	for _, table := range warmReadTables {
 		if sel.Read(table) {
@@ -628,7 +645,7 @@ func TestGetConclusionDetailCarriesDerivedRows(t *testing.T) {
 	if owner.GetPlace() != nil {
 		t.Fatalf("a date owner holds a Place: %+v", owner.GetPlace())
 	}
-	if owner.GetField().GetPropertyKey() != "date" || len(owner.GetField().GetOutcomes()) != 2 || owner.GetField().GetRecordCounts().GetRecords() != 2 {
+	if owner.GetField().GetPropertyKey() != "date" || len(owner.GetField().GetOutcomes()) != 0 || owner.GetField().GetRecordCounts().GetRecords() != 2 {
 		t.Fatalf("owner field %+v", owner.GetField())
 	}
 }

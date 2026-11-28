@@ -117,9 +117,6 @@ func conclusionFieldProto(f conclusiondetails.Field) *engine.ConclusionField {
 			PooledSupport: int32(v.PooledSupport),
 		})
 	}
-	for _, o := range f.Outcomes {
-		pf.Outcomes = append(pf.Outcomes, reconcilerOutcomeProto(o))
-	}
 	return pf
 }
 
