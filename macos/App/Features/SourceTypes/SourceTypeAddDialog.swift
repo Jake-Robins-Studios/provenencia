@@ -53,7 +53,6 @@ private struct SourceTypeAddForm: View {
             saveError: model.createError,
             saveErrorTitle: L10n.SourceTypes.addErrorTitle,
             saveErrorIdentifier: "sourceTypes.add.error",
-            isSaving: model.isSaving,
             rightWidth: Self.iconColumnWidth
         ) {
             SourceTypeLabelKeyFields(

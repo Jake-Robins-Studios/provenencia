@@ -71,8 +71,7 @@ private struct ArtifactSheetForm: View {
         PVFormColumns(
             saveError: model.saveError,
             saveErrorTitle: L10n.Sources.artifactCardSaveErrorTitle,
-            saveErrorIdentifier: "\(prefix).saveError",
-            isSaving: model.isSaving
+            saveErrorIdentifier: "\(prefix).saveError"
         ) {
             if model.isCreate {
                 fileField
