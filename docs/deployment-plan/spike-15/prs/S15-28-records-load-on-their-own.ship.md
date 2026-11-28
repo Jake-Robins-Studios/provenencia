@@ -1,7 +1,7 @@
 # Ship log — S15-28 A value's records load on their own
 
 **Plan:** [`S15-28-records-load-on-their-own.md`](S15-28-records-load-on-their-own.md) · **Branch:** `s15-28-records-load-on-their-own` · **PR:** #1016
-**State:** fixing 1
+**State:** ready
 
 ## Round 0 — implement
 Head `0cc025b12`. Report: version bump 0.51.0 (main was 0.50.1, plan's next-minor rule); T-3 malformed-id case via `RenderAll`; T-10 compares SELECT counts via `databasetest.CountSelects`. All in the plan's Landed note. Orchestrator gate on `0cc025b12`: PASS (all ten checks).
@@ -47,6 +47,24 @@ Failing test first: n/a (test-only; the assertion must pass against current code
 Do: in the "a Person's birth date row" case, collect each owner's outcomes' `GraphId` and `SourceId` as the pairs case does and pass them to `wantInputs`. Assert inputs in `TestProvenanceSheet`'s life-row subtest likewise. Ride-along nit MNT-4: `researchedPerson` uses one lookup of the name Property.
 Check: tests pass; scripts/check-pr.sh PASS.
 
+## Round 1 — fix
+Head `1845835cf`. Gate PASS (orchestrator run, all ten checks). F-1 done (`324dcb715`; `TestRenderBudgetSignal` red first — test against `render` directly, as allowed). F-2, F-3, F-4 done (`1845835cf`; `TestPersonDerivedRowUnknownKind` red first; `all` is now a map walked in `DerivedRowKinds` order). F-4 assertions passed against the code as it stood: no defect. MNT-4 nit fixed along.
+CON-1 (minor): read by the orchestrator — the derived case now passes the outcomes' graphs and Sources to `wantInputs`, and `TestProvenanceSheet`'s life-row subtest asserts them. **Resolved.** CON does not return for round 2.
+
+## Round 2 — review
+Scope `0cc025b12...1845835cf`. Reviewers: MNT (the only lens with a Fix-now major).
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| MNT-1 | MNT | major | Budget refusal shared `citations.ErrInvalid` | Resolved | `errOverBudget`; `renderAll` skips only it; `TestRenderBudgetSignal` |
+| MNT-2 | MNT | major | Four life row kind lists; unknown-kind rule in the caller | Resolved | `DerivedRowKinds`; early return in `personDerivedRows`; `TestPersonDerivedRowUnknownKind`, `TestDerivedRowKindsCoverEveryLifeRow` |
+
+No new blocker. Nits (logged): `MNT-6 · core/database/conclusiondetails/conclusiondetails.go:819 · name the unknown-kind guard as a local`
+
+## Result
+Gate PASS (`1845835cf`) · CI — · open: none · follow-ups: none · to user: —
+`origin/main` unmoved since the branch was cut (`9550775e3`); no merge needed.
+
 ## Cost
 Plan: 5,702 words (check-plan-docs info line).
 
@@ -57,3 +75,6 @@ Plan: 5,702 words (check-plan-docs info line).
 | 1 | SEC+PRF | opus | 66k |
 | 1 | MNT | opus | 91k |
 | 1 | CON | opus | 97k |
+| 1 | implementer (fix) | sonnet | 105k |
+| 2 | MNT | opus | 49k |
+| | **Total** | | **722k** |
