@@ -123,8 +123,59 @@ Check: tests pass; `rg -n '"Hide time"' macos/App` prints nothing; scripts/check
 
 Head `24fee849c`. Gate PASS (orchestrator re-run). F-8 done; orchestrator read `unsavableError` and the seven strings: each case and its text match F-8. UX-1, UX-2, UX-3 (round 3) **Resolved**.
 
+## Round 4 — user-directed board update
+The user, 2026-11-28: "I want to just give you one more design update for this add source form. I got them to tighten up some of the fields just to make it take up less space." Board: Source Detail, `project/Source.dc.html`, the `S16-D15` block (markup at the `S16-D15 · the shared Source fields` comment, values in `addVals`, `privHelp`). "Go ahead and implement that on this PR."
+
+What the board now draws, against the shipped `SourceFields`:
+- **Type and Private share a row.** Type takes the rest of the width; Private sits at its right, top-aligned with the Type input (the board pads it 31 px, the height of the field label), at its natural width.
+- **Private's help sits behind an info icon** beside the checkbox, as the Source page's Metadata help does (`SourcePageMetadataView.swift:13-19`): hover or focus shows "Private Sources will be kept out of sharing. Nothing else changes yet." The checkbox has no description line. The board's spoken label is "About Private." followed by the help.
+- **Order: Title, Type | Private, Description, Published date.** Description moves above the date block; the date block is last.
+- Unchanged: Title, Description's single-line input and hint, the Published date field and its hint, the date form itself, Reads as, the 560 pt width, the scrolling body.
+
+This supersedes the order in the plan's AC-1.1 and the Batch 8 working rule ("Title, Type, Published date, Description and Private"); the user's board is the later call. Note it in the plan's Landed note.
+
+### Fix plan 4
+
+**F-9 — Add Source takes the board's tighter layout** (from the user)
+Files: `macos/App/Features/Sources/SourceFields.swift`, `macos/App/Features/Sources/SourceTitleTypeFields.swift`, a new kit file `macos/App/DesignSystem/Components/HelpIcon/PVHelpIcon.swift`, `macos/App/Features/Sources/SourcePageMetadataView.swift`, `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`, the plan (§10 step 1 and Landed note), `docs/deployment-plan/spike-16/completed.md` if its paragraph names the order. Skills: `add-ui-component`, `add-localized-string`.
+Failing test first: none (layout; no unit test reaches it). Keep the existing previews and update them.
+Do:
+1. `PVHelpIcon` (recipe layer, read `add-ui-component`): an icon (`PVIcon`, size 15, `PVColor.textMuted`) with `.help(text)`, one accessibility element with a label and a hint, and an accessibility identifier. Inits take `icon: PVIcon.Name` (or the kit's icon type), `label:` and `help:` as `LocalizedStringResource`. Move `SourcePageMetadataView`'s help icon onto it with no visible or spoken change (`.circleHelp`, `metadataHelpLabel`, `metadataIntro`, `sources.page.metadataHelp`). Find other copies by body: `rg -n "\.help\(" -B3 macos/App | rg "PVIcon\("` — move any icon-plus-`.help` copy onto it, or name why not in the report.
+2. `SourceTitleTypeFields` gains an optional trailing view on the Type row (`@ViewBuilder typeTrailing`, defaulting to `EmptyView` through a constrained init so `SourceCopyDialog` compiles unchanged). When present, Type and the trailing view sit in an `HStack(alignment: .top, spacing: PVSpacing.space7)`; Type fills the width (`.frame(maxWidth: .infinity)`), the trailing view keeps its natural width.
+3. `SourceFields` passes as the trailing view: the Private `PVCheckbox(L10n.Sources.privateSwitch, isChecked:)` with no description, then `PVHelpIcon(icon: .info, label: L10n.Sources.privateHelpLabel, help: L10n.Sources.privateSwitchHelp)` with identifier `<prefix>.privateHelp`, in an `HStack(spacing: PVSpacing.space3)`, padded on top so the checkbox centres on the Type input (match the field label's height from `PVField`; do not hard-code 31). New key `L10n.Sources.privateHelpLabel` "About Private". The checkbox keeps `<prefix>.private`.
+4. `SourceFields` order: `SourceTitleTypeFields` (with the trailing view), Description, Published date. Update the type's doc comment and the previews' names.
+5. Plan §10 step 1 reads the new order and the Type | Private row; the Landed note says the board update (2026-11-28) moved Private beside Type with its help behind an info icon and put Description above the date.
+Check: `rg -n "PVIcon\(\.circleHelp" macos/App/Features` prints nothing; `rg -n "PVHelpIcon\(" macos/App` lists the Metadata header and `SourceFields`; scripts/check-pr.sh PASS.
+
+### Round 4 — fix and review
+Head `e192e235a`. Gate PASS (orchestrator re-run). F-9 done. Deviations: `PVField(labelHidden:)` added to align Private (no label height exposed); icon type is `PVSymbol`; README Components row added for `PVHelpIcon` (guidance-names). Reviewers (fresh): UX, MNT; scope `032fe6c80...e192e235a`.
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| MNT-1 (r4), UX outside-lens | MNT, UX | major | `PVField(labelHidden:)` is a one-caller Bool with a fake "Type" label; control height set by hand | Fix now → F-10 | verified: `SourceFields` wraps the checkbox in `PVField(label: formType, labelHidden: true)` and `.frame(height: PVControlSize.md.height)`; the kit already aligns neighbours with a custom `VerticalAlignment` (`PVProvenanceRecordRow.swift:174-180`) |
+| UX-1 (r4), MNT-3 (r4) | UX, MNT | minor | `PVHelpIcon` doc says focus shows the help; the icon can't take focus, so keyboard users lose Private's help | Fix now (doc) → F-10; keyboard-reachable help → To user | verified: no `.focusable` in `PVHelpIcon.swift`. The board promises "hover or focus"; making the help reachable by keyboard needs a kit design (focusable icon with a popover), so it goes to the user with a recommendation |
+| MNT-2 (r4) | MNT | minor | Generic Type-row slot is dead once S16-74 moves Copy onto `SourceFields` | Later PR → written into S16-74's map scope entry (Ships) | done by the orchestrator in `deployment-plan.md` |
+
+Nits (logged): `UX-2 (r4) · plan overview and AC-1.1 still list the old order` (rides along in F-10) · `MNT-4 (r4) · PVHelpIcon could take any PVCopy` · `MNT-5 (r4) · PVHelpIcon preview uses L10n.Sources` (rides along) · `MNT-6 (r4) · "neighbour" vs "beside"` (goes with MNT-1).
+
+### Fix plan 5
+
+**F-10 — Private lines up through an alignment guide; the help icon's doc says hover** (from MNT-1, UX-1, MNT-3, UX-2, MNT-5 of round 4)
+Files: `macos/App/DesignSystem/Components/Field/PVField.swift`, `macos/App/DesignSystem/Components/HelpIcon/PVHelpIcon.swift`, `macos/App/DesignSystem/README.md`, `macos/App/Features/Sources/SourceTitleTypeFields.swift`, `macos/App/Features/Sources/SourceFields.swift`, the plan (overview line, AC-1.1, Landed note).
+Failing test first: none (layout).
+Do:
+1. In `PVField.swift` declare a kit `VerticalAlignment.pvFieldControl` (pattern: `citationFirstLineCenter` in `PVProvenanceRecordRow.swift:174-180`, but internal to the kit, not private) whose value is the centre of the field's control; `PVField` sets it on its content with `.alignmentGuide(.pvFieldControl) { $0[VerticalAlignment.center] }`. Doc: lines up a control placed beside a field with that field's control.
+2. Remove `labelHidden` from `PVField` (parameter, stored property, body branch) and its clause in the README Field row; describe the guide there instead.
+3. `SourceTitleTypeFields`: the Type row is `HStack(alignment: .pvFieldControl, spacing: PVSpacing.space7)`.
+4. `SourceFields`: drop the wrapping `PVField` and the `.frame(height:)`; the Private `HStack` sets `.alignmentGuide(.pvFieldControl) { $0[VerticalAlignment.center] }`.
+5. `PVHelpIcon` doc and README row: "hover shows `help` as a tooltip; VoiceOver reads it as the hint. It cannot take keyboard focus, so do not put an instruction a researcher needs only here." Its preview uses string literals (`LocalizedStringResource` from a literal), not `L10n.Sources`.
+6. Plan: overview line and AC-1.1 name the new order (Title, Type with Private beside it, Description, Published date; Private's help behind an info icon). Landed note: the alignment guide replaces any label padding.
+Check: `rg -n "labelHidden" macos` prints nothing; `rg -n "pvFieldControl" macos/App` lists `PVField.swift`, `SourceTitleTypeFields.swift`, `SourceFields.swift`; `rg -n "L10n\\." macos/App/DesignSystem/Components/HelpIcon` prints nothing; scripts/check-pr.sh PASS.
+
+Head `9b98c4abd`. Gate PASS (orchestrator re-run). F-10 done; orchestrator read the `PVField` guide and `SourceFields` diff: `labelHidden` and the fixed height are gone, the Private row sets the guide. The Check's `rg L10n.` over `HelpIcon` still lists `PVHelpIcon.body`'s `L10n.string` resolver calls, which are the kit's resolver, not feature copy; accepted. MNT-1, UX-1, MNT-3 (round 4) **Resolved**.
+
 ## Result
-Gate PASS · CI green at `a299eafb3`, re-run on push · open: none · follow-ups: CON-2/UX-3 (round 1) focus restore after a failed form-dialog save · UX-2 (round 1) fixed in round 3 · to user: —
+Gate PASS · CI green at `a299eafb3`, re-run on push · open: none · follow-ups: CON-2/UX-3 (round 1) focus restore after a failed form-dialog save · to user: keyboard-reachable help for `PVHelpIcon` (round 4 UX-1) · UX-2 (round 1) fixed in round 3 · to user: —
 
 ## Cost
 Plan: 6,277 words (check-plan-docs info line).
@@ -144,4 +195,8 @@ Plan: 6,277 words (check-plan-docs info line).
 | 3 | implementer fix | sonnet | 87k |
 | 3 | UX | opus | 62k |
 | 3 | implementer fix | sonnet | 77k |
-| | **Total** | | **1,043k** |
+| 4 | implementer fix | sonnet | 95k |
+| 4 | UX | opus | 49k |
+| 4 | MNT | opus | 67k |
+| 5 | implementer fix | sonnet | 82k |
+| | **Total** | | **1,336k** |
