@@ -504,7 +504,10 @@ struct GoStore: GenealogyStore {
         userID: String,
         artifactID: String,
         path: String
-    ) async throws -> (artifact: CatalogArtifact, file: CatalogFileRef, reused: Bool, effects: CatalogWriteEffects) {
+    ) async throws -> (
+        artifact: CatalogArtifact, file: CatalogFileRef, reused: Bool, effects: CatalogWriteEffects,
+        thumbnailRefused: Bool
+    ) {
         var req = Provenencia_Engine_V1_IngestArtifactFileRequest()
         req.projectDir = projectDir
         req.userID = userID
@@ -516,7 +519,7 @@ struct GoStore: GenealogyStore {
         )
         return (
             Self.mapArtifact(resp.artifact), Self.mapFile(resp.file), resp.reused,
-            Self.mapWriteEffects(resp.effects)
+            Self.mapWriteEffects(resp.effects), resp.thumbnailRefused
         )
     }
 

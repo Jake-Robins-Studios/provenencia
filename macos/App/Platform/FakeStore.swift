@@ -411,6 +411,8 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     var addSourceNoteError: Error?
     /// When set, `ingestArtifactFile` throws before mutating artifacts.
     var ingestArtifactFileError: Error?
+    /// When set, `ingestArtifactFile` answers that an image file got no thumbnail.
+    var ingestArtifactFileThumbnailRefused = false
     /// When set, `createSourceType` throws instead of the built-in duplicate/slug checks.
     var createSourceTypeError: Error?
     /// What `copySourceType` answers; the fake never computes which parts copy
@@ -1287,7 +1289,10 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         userID _: String,
         artifactID: String,
         path: String
-    ) async throws -> (artifact: CatalogArtifact, file: CatalogFileRef, reused: Bool, effects: CatalogWriteEffects) {
+    ) async throws -> (
+        artifact: CatalogArtifact, file: CatalogFileRef, reused: Bool, effects: CatalogWriteEffects,
+        thumbnailRefused: Bool
+    ) {
         return try withState {
             if let ingestArtifactFileError { throw ingestArtifactFileError }
             let filename = URL(fileURLWithPath: path).lastPathComponent
@@ -1329,12 +1334,13 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
                     var copy = arts
                     copy[idx].fileID = file.id
                     copy[idx].file = file
-                    if ["png", "jpg", "jpeg", "gif", "webp", "tif", "tiff"].contains(ext) {
+                    let image = ["png", "jpg", "jpeg", "gif", "webp", "tif", "tiff"].contains(ext)
+                    if image, !ingestArtifactFileThumbnailRefused {
                         copy[idx].thumbnailRelPath = "objects/aa/bb/thumb-\(file.id.prefix(8))"
                     }
                     artifactsBySource[sourceID] = copy
                     bumpActivity(sourceID)
-                    return (copy[idx], file, false, nextWriteEffects)
+                    return (copy[idx], file, false, nextWriteEffects, image && ingestArtifactFileThumbnailRefused)
                 }
             }
             throw StoreBoom.boom

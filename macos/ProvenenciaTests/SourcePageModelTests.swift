@@ -845,6 +845,55 @@ struct SourcePageModelTests {
         #expect(!session.toasts.cards.isEmpty)
     }
 
+    /// An image file that gets no thumbnail says so in a warning toast after the attach toast.
+    @Test func anAttachWithNoThumbnailWarns() async throws {
+        let url = try ArtifactFileFixtures.writeStubPNG()
+        let store = makeStore(
+            artifacts: [
+                CatalogArtifact(
+                    id: "a1", ref: "ART-AAAAA", sourceID: sourceID, fileID: "",
+                    label: "Front", description: "", file: nil
+                ),
+            ]
+        )
+        store.ingestArtifactFileThumbnailRefused = true
+        let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
+        let model = makeModel(store: store, session: session)
+        await model.warmFromSession()
+        model.artifacts.openAttach(to: "a1")
+        model.artifacts.attachDraft.file.choose(url)
+
+        await model.artifacts.confirmAttach()
+
+        let name = url.lastPathComponent
+        #expect(session.toasts.cards == [
+            ToastCard(.warning, L10n.Sources.toastNoPreviewTitle, L10n.Sources.toastNoPreviewBody(name: name)),
+            ToastCard(.success, L10n.Sources.toastFileAttachedTitle, L10n.Sources.toastFileAttachedBody(name: name)),
+        ])
+    }
+
+    /// A readable image gets only the attach toast.
+    @Test func anAttachWithAThumbnailDoesNotWarn() async throws {
+        let url = try ArtifactFileFixtures.writeStubPNG()
+        let store = makeStore(
+            artifacts: [
+                CatalogArtifact(
+                    id: "a1", ref: "ART-AAAAA", sourceID: sourceID, fileID: "",
+                    label: "Front", description: "", file: nil
+                ),
+            ]
+        )
+        let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
+        let model = makeModel(store: store, session: session)
+        await model.warmFromSession()
+        model.artifacts.openAttach(to: "a1")
+        model.artifacts.attachDraft.file.choose(url)
+
+        await model.artifacts.confirmAttach()
+
+        #expect(session.toasts.cards.map(\.tone) == [.success])
+    }
+
     @Test func ingestThenRejectSecondAttach() async throws {
         let store = makeStore()
         let model = makeModel(store: store)

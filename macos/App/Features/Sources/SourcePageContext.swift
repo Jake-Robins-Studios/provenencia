@@ -33,6 +33,17 @@ final class SourcePageContext {
     /// for the Sources list while it is set.
     var gone: String?
 
+    /// After a file is attached: when the engine could not read its image for a thumbnail,
+    /// a warning toast says so, since the Artifact shows the plain fallback with no reason.
+    func noteThumbnailRefused(_ refused: Bool, filename: String) {
+        guard refused else { return }
+        session.toasts.add(
+            tone: .warning,
+            title: L10n.Sources.toastNoPreviewTitle,
+            message: L10n.Sources.toastNoPreviewBody(name: filename)
+        )
+    }
+
     /// Clears the shared banner before a new section mutation.
     func clearPageError() {
         pageError = nil
