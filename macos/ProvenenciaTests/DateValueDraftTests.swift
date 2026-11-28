@@ -187,7 +187,7 @@ struct DateValueDraftTests {
         d.setKind("range")
         d.endYear = 1880
         #expect(d.unsavableError == L10n.string(L10n.Sources.dateUnsavableRangeStart))
-        #expect(d.unsavableError?.contains("Single date") == false)
+        #expect(d.unsavableError?.contains("Single") == false)
     }
 
     @Test func loadKeepsTimeAndNothingFillsIn() {
