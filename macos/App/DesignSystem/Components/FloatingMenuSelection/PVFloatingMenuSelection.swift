@@ -73,9 +73,11 @@ struct PVTypeSelectMatcher: Equatable {
     }
 
     /// One type-select keystroke: appends `character` to the buffer, then finds
-    /// the match. A single keystroke starts past the current row, so pressing
-    /// the same letter repeatedly cycles through its matches. Returns the hit,
-    /// or -1.
+    /// the match. A buffer of one character, or of that one character typed
+    /// again and again (`j`, `jj`, `jjj`), searches for that character from
+    /// the row past the current one, so repeating a letter walks the items that
+    /// start with it. Any other buffer is a prefix search from the current row.
+    /// Returns the hit, or -1.
     mutating func advance(
         _ character: Character,
         from current: Int,
@@ -84,8 +86,11 @@ struct PVTypeSelectMatcher: Equatable {
         now: Date = Date()
     ) -> Int {
         let buffer = append(character, now: now)
-        let from = buffer.count == 1 ? current + 1 : max(0, current)
-        return Self.index(in: titles, prefix: buffer, fromIndex: from, isDisabled: isDisabled)
+        let key = TextMatch.key(String(character))
+        let repeated = !key.isEmpty && buffer.allSatisfy { TextMatch.key(String($0)) == key }
+        let from = repeated ? current + 1 : max(0, current)
+        let prefix = repeated ? String(character) : buffer
+        return Self.index(in: titles, prefix: prefix, fromIndex: from, isDisabled: isDisabled)
     }
 
     /// The one test for a key that type-selects.
