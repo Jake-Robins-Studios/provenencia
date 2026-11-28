@@ -254,4 +254,3 @@ One fresh maintainability reviewer on slice 6g (S16-68, S16-69, S16-70) and its 
 - **K9-9 · minor** — Nearby cases of the matcher change. **Fixed:** in the rule, with a test each.
 - **K9-10 · minor** — Deletes, strings, Context and the composer frame. **Fixed** in Ships, Context and S16-D20's row.
 - **K9-11 · minor** — About 11 steps; four open items, not two. **Fixed:** all four named with who decides; the two user calls come before the plan.
-
