@@ -48,7 +48,7 @@ struct DateValueDraftTests {
         #expect(d.endError != nil)
     }
 
-    @Test func cascadeGapIsValid() {
+    @Test func partGapIsValid() {
         var d = DateValueDraft.empty()
         d.startYear = 1900
         d.startDay = 5
@@ -91,7 +91,7 @@ struct DateValueDraftTests {
         d.startDay = 1890
         #expect(d.isFieldInvalid(.day, start: true))
         #expect(d.fieldError(.day, start: true) != nil)
-        #expect(d.cascadeFieldError(start: true) != nil)
+        #expect(d.firstPartError(start: true) != nil)
         #expect(!d.isValid)
     }
 
@@ -214,7 +214,7 @@ struct DateValueDraftTests {
         d.endHour = 9
         d.endTZ = "Europe/London"
         d.setKind("point")
-        for component in DateValueDraft.CascadeComponent.allCases {
+        for component in DateValueDraft.Part.allCases {
             #expect(d[keyPath: DateValueDraft.part(component, start: false)] == nil)
         }
         #expect(d.endTZ.isEmpty)

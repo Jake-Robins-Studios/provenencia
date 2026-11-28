@@ -75,7 +75,7 @@ struct DateValueDraft: Equatable, Sendable {
         if newKind == "range" {
             qualifier = ""
         } else {
-            for component in CascadeComponent.allCases {
+            for component in Part.allCases {
                 self[keyPath: Self.part(component, start: false)] = nil
             }
             endTZ = ""
@@ -85,7 +85,7 @@ struct DateValueDraft: Equatable, Sendable {
     // MARK: Validation
 
     /// Civil component that can show an out-of-range field error, in the order the form shows them.
-    enum CascadeComponent: CaseIterable, Equatable, Sendable {
+    enum Part: CaseIterable, Equatable, Sendable {
         case year, month, day, hour, minute, second, millisecond
     }
 
@@ -98,7 +98,7 @@ struct DateValueDraft: Equatable, Sendable {
     }
 
     /// The one mapping from a part of a side to its stored field.
-    static func part(_ component: CascadeComponent, start: Bool) -> WritableKeyPath<DateValueDraft, Int32?> {
+    static func part(_ component: Part, start: Bool) -> WritableKeyPath<DateValueDraft, Int32?> {
         switch (component, start) {
         case (.year, true): \.startYear
         case (.year, false): \.endYear
@@ -117,8 +117,8 @@ struct DateValueDraft: Equatable, Sendable {
         }
     }
 
-    /// Out-of-range message for one cascade field, if its stored value is invalid.
-    func fieldError(_ component: CascadeComponent, start: Bool) -> String? {
+    /// Out-of-range message for one part, if its stored value is invalid.
+    func fieldError(_ component: Part, start: Bool) -> String? {
         guard let value = self[keyPath: Self.part(component, start: start)].map(Int.init) else { return nil }
         switch component {
         case .year:
@@ -138,13 +138,13 @@ struct DateValueDraft: Equatable, Sendable {
         }
     }
 
-    func isFieldInvalid(_ component: CascadeComponent, start: Bool) -> Bool {
+    func isFieldInvalid(_ component: Part, start: Bool) -> Bool {
         fieldError(component, start: start) != nil
     }
 
     /// First out-of-range message on a side (Y/M/D then time), for group-level display.
-    func cascadeFieldError(start: Bool) -> String? {
-        for component in CascadeComponent.allCases {
+    func firstPartError(start: Bool) -> String? {
+        for component in Part.allCases {
             if let message = fieldError(component, start: start) {
                 return message
             }
@@ -155,7 +155,7 @@ struct DateValueDraft: Equatable, Sendable {
     /// The message the date form shows for this side: an out-of-range field first, else, on the end
     /// side, the range-order message. The one place that says when the form shows an error.
     func shownError(start: Bool) -> String? {
-        if let message = cascadeFieldError(start: start) { return message }
+        if let message = firstPartError(start: start) { return message }
         return start ? nil : endError
     }
 
@@ -248,7 +248,7 @@ struct DateValueDraft: Equatable, Sendable {
     private var endSide: Side { side(start: false) }
 
     private func side(start: Bool) -> Side {
-        func value(_ component: CascadeComponent) -> Int? {
+        func value(_ component: Part) -> Int? {
             self[keyPath: Self.part(component, start: start)].map(Int.init)
         }
         return Side(
