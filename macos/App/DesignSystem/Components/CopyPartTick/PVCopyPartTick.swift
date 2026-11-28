@@ -12,8 +12,6 @@ struct PVCopyPartTick: View {
     let absentHint: String
     @Binding var isChecked: Bool
     let isAvailable: Bool
-    /// True while the form saves; an unavailable part is disabled either way.
-    let isDisabled: Bool
 
     var body: some View {
         PVCheckbox(
@@ -23,7 +21,7 @@ struct PVCopyPartTick: View {
                 get: { isAvailable && isChecked },
                 set: { isChecked = $0 }
             ),
-            isDisabled: !isAvailable || isDisabled
+            isDisabled: !isAvailable
         )
     }
 }

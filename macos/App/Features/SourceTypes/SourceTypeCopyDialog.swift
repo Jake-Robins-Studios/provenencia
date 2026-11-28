@@ -90,8 +90,7 @@ private struct SourceTypeCopyForm: View {
                 hint: model.iconHint,
                 absentHint: absentHint,
                 isChecked: $model.choices.includeIcon,
-                isAvailable: true,
-                isDisabled: model.isSaving
+                isAvailable: true
             )
             .accessibilityIdentifier("sourceTypes.copy.icon")
             PVCopyPartTick(
@@ -99,8 +98,7 @@ private struct SourceTypeCopyForm: View {
                 hint: L10n.string(L10n.SourceTypes.copyDescriptionHint),
                 absentHint: absentHint,
                 isChecked: $model.choices.includeDescription,
-                isAvailable: model.descriptionAvailable,
-                isDisabled: model.isSaving
+                isAvailable: model.descriptionAvailable
             )
             .accessibilityIdentifier("sourceTypes.copy.description")
             PVCopyPartTick(
@@ -108,8 +106,7 @@ private struct SourceTypeCopyForm: View {
                 hint: model.formatsHint,
                 absentHint: absentHint,
                 isChecked: $model.choices.includeFormats,
-                isAvailable: model.formatsAvailable,
-                isDisabled: model.isSaving
+                isAvailable: model.formatsAvailable
             )
             .accessibilityIdentifier("sourceTypes.copy.formats")
             PVCopyPartTick(
@@ -117,8 +114,7 @@ private struct SourceTypeCopyForm: View {
                 hint: model.suggestionsHint,
                 absentHint: absentHint,
                 isChecked: $model.choices.includeSuggestions,
-                isAvailable: model.suggestionsAvailable,
-                isDisabled: model.isSaving
+                isAvailable: model.suggestionsAvailable
             )
             .accessibilityIdentifier("sourceTypes.copy.suggestions")
         }
